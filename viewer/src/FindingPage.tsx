@@ -268,13 +268,12 @@ function DiffCell({ oldV, newV, mono }: { oldV?: string; newV?: string; mono?: b
 
 type DiffToken = { type: "same" | "add" | "del"; text: string };
 
-// Word-level Myers/LCS diff with post-processing to coalesce tiny "same"
-// islands between opposite-type change runs. Without coalescing, sentences
-// with many small word swaps render as alternating add/del tokens which is
-// almost unreadable. Threshold below: same-runs shorter than MIN_SAME_CHARS
-// (counting non-whitespace) that sit between a `del` on one side and an
-// `add` on the other are folded back into the surrounding replacement.
-const MIN_SAME_CHARS = 8;
+// Word-level Myers/LCS diff with chunk-coalescing post-processing. Naive
+// LCS produces fragmented add/del tokens around heavy edits. We fold a
+// same-island into its surrounding chunks whenever it is *smaller* than
+// the larger of the two flanking change runs — purely structural, no word
+// lists, no fixed thresholds. The result is readable chunks of "this part
+// changed" rather than alternating word-by-word tokens.
 
 function diffWords(a: string, b: string): DiffToken[] {
   const at = a.split(/(\s+)/);
@@ -311,21 +310,25 @@ function collapseRuns(toks: DiffToken[]): DiffToken[] {
 
 function coalesceIslands(toks: DiffToken[]): DiffToken[] {
   const out: DiffToken[] = [];
+  const isChange = (x?: DiffToken) => !!x && (x.type === "del" || x.type === "add");
   for (let k = 0; k < toks.length; k++) {
     const t = toks[k];
     if (t.type !== "same") { out.push(t); continue; }
     const prev = out[out.length - 1];
     const next = toks[k + 1];
-    const isChange = (x?: DiffToken) => !!x && (x.type === "del" || x.type === "add");
-    const isSwap = isChange(prev) && isChange(next) && prev!.type !== next!.type;
     const significant = t.text.replace(/\s+/g, "").length >= MIN_SAME_CHARS;
-    if (isSwap && !significant) {
-      // Token appears in both old and new — emit it in both streams so the
-      // surrounding swap reads as a single replacement block.
+    if (significant || !isChange(prev) || !isChange(next)) {
+      out.push(t);
+      continue;
+    }
+    if (prev!.type !== next!.type) {
+      // Swap region: emit on both sides so it appears once as deleted and
+      // once as added in the rendered diff.
       out.push({ type: "del", text: t.text });
       out.push({ type: "add", text: t.text });
     } else {
-      out.push(t);
+      // Same-side: fold into the surrounding chunk for visual contiguity.
+      out.push({ type: prev!.type, text: t.text });
     }
   }
   return out;
