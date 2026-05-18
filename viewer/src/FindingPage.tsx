@@ -60,10 +60,6 @@ export function FindingPage({ findingId }: { findingId: string }) {
 
       <main className="detail-page">
         <header className="detail-h">
-          <div className="eyebrow">
-            <span className="resource">{f.artifactName}</span>
-            <code style={{ fontFamily: "var(--font-mono)" }}>{f.findingId}</code>
-          </div>
           <h1>{f.title}</h1>
           <dl className="detail-meta">
             {impact.hardInstanceBreaking && (
@@ -108,11 +104,14 @@ export function FindingPage({ findingId }: { findingId: string }) {
           )}
         </QuestionGroup>
 
-        <QuestionGroup q="What breaks?">
-          <Section title="Impact rationale" md={impact.impactRationaleMd} />
-          <Section title="Validation &amp; compatibility" md={f.validationAndCompatibilityMd} />
-          <Section title="Safety / business risk" md={impact.safetyOrBusinessRiskMd} />
-        </QuestionGroup>
+        {(ex.examplesMd || ex.oldValidNewInvalidJson || ex.r6NotRepresentableInR4Json || ex.migrationExampleJson) && (
+          <section className="section">
+            <h2>Examples</h2>
+            {ex.examplesMd && <div className="md"><Markdown source={ex.examplesMd} /></div>}
+            <JsonExample label="Valid in R4 — invalid in R6" value={ex.oldValidNewInvalidJson} />
+            <JsonExample label="Representable in R6 but not in R4" value={ex.r6NotRepresentableInR4Json} />
+          </section>
+        )}
 
         <QuestionGroup q="Why might R6 have done this?">
           {just.inferredGoal && (
@@ -123,48 +122,6 @@ export function FindingPage({ findingId }: { findingId: string }) {
           )}
           <Section title="Analyst rationale" md={just.justificationRationaleMd} />
         </QuestionGroup>
-
-        <QuestionGroup q="Could it have been done less breakingly?">
-          {(just.backwardCompatibleAlternativeSummary || just.alternativeTradeoffSummary || just.backwardCompatibleAlternativeAvailable) && (
-            <section className="section">
-              <h2>Summary</h2>
-              <dl className="kv">
-                {just.backwardCompatibleAlternativeAvailable && <><dt>Less-breaking alternative</dt><dd>{just.backwardCompatibleAlternativeAvailable}</dd></>}
-                {just.backwardCompatibleAlternativeSummary && <><dt>Alternative approach</dt><dd>{just.backwardCompatibleAlternativeSummary}</dd></>}
-                {just.alternativeTradeoffSummary && <><dt>Alternative tradeoffs</dt><dd>{just.alternativeTradeoffSummary}</dd></>}
-              </dl>
-            </section>
-          )}
-          <Section title="Less-breaking alternative" md={(just as any).backwardCompatibleAlternativeMd} />
-          <Section title="Backward-compatibility analysis" md={f.backwardCompatibilityAnalysisMd} />
-          <Section title="Migration guidance" md={f.migrationGuidanceMd} />
-        </QuestionGroup>
-
-        {(ex.examplesMd || ex.oldValidNewInvalidJson || ex.r6NotRepresentableInR4Json || ex.migrationExampleJson) && (
-          <section className="section">
-            <h2>Examples</h2>
-            {ex.examplesMd && <div className="md"><Markdown source={ex.examplesMd} /></div>}
-            <JsonExample label="Valid in R4 — invalid in R6" value={ex.oldValidNewInvalidJson} />
-            <JsonExample label="Representable in R6 but not in R4" value={ex.r6NotRepresentableInR4Json} />
-            <JsonExample label="Migration example" value={ex.migrationExampleJson} />
-          </section>
-        )}
-
-        {Array.isArray(f.evidence) && f.evidence.length > 0 && (
-          <section className="section">
-            <h2>Evidence ({f.evidence.length})</h2>
-            <ul className="evidence">
-              {f.evidence.map((e: any, i: number) => (
-                <li key={i}>
-                  <div className="source">{e.source}{e.confidence ? <span className="dim"> · {e.confidence}</span> : null}</div>
-                  {e.locator && <div className="locator">{e.locator}</div>}
-                  {e.detail && <div className="detail">{e.detail}</div>}
-                  {e.quote && <blockquote>{String(e.quote)}</blockquote>}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </main>
       <Footer />
     </>
@@ -275,6 +232,13 @@ type DiffToken = { type: "same" | "add" | "del"; text: string };
 // lists, no fixed thresholds. The result is readable chunks of "this part
 // changed" rather than alternating word-by-word tokens.
 
+// If the LCS retains less than this fraction of non-whitespace content
+// (measured against the longer side), we abandon interleaving and render
+// the whole thing as one replacement block. Below this density the diff
+// is dominated by stopword anchors that don't reflect semantic overlap
+// and the result is harder to read than a plain before/after.
+const MIN_MATCH_DENSITY = 0.75;
+
 function diffWords(a: string, b: string): DiffToken[] {
   const at = a.split(/(\s+)/);
   const bt = b.split(/(\s+)/);
@@ -295,6 +259,18 @@ function diffWords(a: string, b: string): DiffToken[] {
   while (i < n) raw.push({ type: "del", text: at[i++] });
   while (j < m) raw.push({ type: "add", text: bt[j++] });
 
+  // Density check: if the LCS didn't preserve enough overlap, bail out to
+  // a single replacement block.
+  const nws = (s: string) => s.replace(/\s+/g, "").length;
+  const sameChars = raw.filter((t) => t.type === "same").reduce((n, t) => n + nws(t.text), 0);
+  const denom = Math.max(nws(a), nws(b));
+  if (denom > 0 && sameChars / denom < MIN_MATCH_DENSITY) {
+    const out: DiffToken[] = [];
+    if (a) out.push({ type: "del", text: a });
+    if (b) out.push({ type: "add", text: b });
+    return out;
+  }
+
   return collapseRuns(coalesceIslands(collapseRuns(raw)));
 }
 
@@ -309,29 +285,42 @@ function collapseRuns(toks: DiffToken[]): DiffToken[] {
 }
 
 function coalesceIslands(toks: DiffToken[]): DiffToken[] {
-  const out: DiffToken[] = [];
-  const isChange = (x?: DiffToken) => !!x && (x.type === "del" || x.type === "add");
-  for (let k = 0; k < toks.length; k++) {
-    const t = toks[k];
-    if (t.type !== "same") { out.push(t); continue; }
-    const prev = out[out.length - 1];
-    const next = toks[k + 1];
-    const significant = t.text.replace(/\s+/g, "").length >= MIN_SAME_CHARS;
-    if (significant || !isChange(prev) || !isChange(next)) {
-      out.push(t);
-      continue;
+  // Iterative chunking. Each pass folds a same-island into its flanking
+  // changes whenever the island is structurally smaller than the nearby
+  // edit activity. After each fold we re-collapse runs and may discover
+  // new fold opportunities — keep going until the diff is stable.
+  let cur = toks.slice();
+  for (let pass = 0; pass < 6; pass++) {
+    const next: DiffToken[] = [];
+    const isChange = (x?: DiffToken) => !!x && (x.type === "del" || x.type === "add");
+    const nws = (s: string) => s.replace(/\s+/g, "").length;
+    let folded = false;
+    for (let k = 0; k < cur.length; k++) {
+      const t = cur[k];
+      if (t.type !== "same") { next.push(t); continue; }
+      const prev = next[next.length - 1];
+      const after = cur[k + 1];
+      if (!isChange(prev) || !isChange(after)) { next.push(t); continue; }
+      // Look at the larger of the two flanking changes — the local edit
+      // intensity. A same-island shorter than that gets folded.
+      const flankSize = Math.max(nws(prev!.text), nws(after!.text));
+      const sameSize = nws(t.text);
+      if (sameSize === 0 || sameSize < flankSize) {
+        if (prev!.type !== after!.type) {
+          next.push({ type: "del", text: t.text });
+          next.push({ type: "add", text: t.text });
+        } else {
+          next.push({ type: prev!.type, text: t.text });
+        }
+        folded = true;
+      } else {
+        next.push(t);
+      }
     }
-    if (prev!.type !== next!.type) {
-      // Swap region: emit on both sides so it appears once as deleted and
-      // once as added in the rendered diff.
-      out.push({ type: "del", text: t.text });
-      out.push({ type: "add", text: t.text });
-    } else {
-      // Same-side: fold into the surrounding chunk for visual contiguity.
-      out.push({ type: prev!.type, text: t.text });
-    }
+    cur = collapseRuns(next);
+    if (!folded) break;
   }
-  return out;
+  return cur;
 }
 
 function JsonExample({ label, value }: { label: string; value?: any }) {
