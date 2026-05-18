@@ -359,7 +359,23 @@
       "validationAndCompatibilityMd": "There is no old-valid/new-invalid Distance instance solely because of this change. Correct R6 validation should still apply the same primary extensible distance-unit binding and the same maximum all-distance-units concept. The compatibility issue is metadata-level: R6 StructureDefinition content is not naively R4-shaped, and an R6-to-R4 StructureDefinition conversion must translate the additional binding back to the R4 extension to preserve validation semantics.",
       "migrationGuidanceMd": "Update validators, code generators, and StructureDefinition conversion scripts to map R4 `elementdefinition-maxValueSet` and R6 `binding.additional[purpose=maximum]` as equivalent facts. Add tests that read both R4 and R6 Distance definitions and verify that the maximum value-set URL remains `http://hl7.org/fhir/ValueSet/all-distance-units`.",
       "backwardCompatibilityAnalysisMd": "The change was likely part of a general R6 improvement to make additional bindings first-class. A backward-compatible alternative would have been to emit both the new core representation and the old extension for at least one release, but that would duplicate metadata and require consistency checks.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Distance:SERIALIZATION_OR_CODEGEN:Distance.binding:0d9a6e",
+        "judgment": "No problem",
+        "narrativeMd": "The affected fact is the root `Distance` maximum value-set annotation: R4 carries it as the `elementdefinition-maxValueSet` extension, while R6 carries the same canonical in `ElementDefinition.binding.additional` with `purpose = maximum`. That can require conformance-tool updates, but it does not change the `Distance` instance wire shape, cardinalities, element types, modifier flags, primary extensible binding, or the maximum ValueSet canonical. A validator or generator that reads R6 StructureDefinitions should use the R6 metadata field; legacy tools that only scan the R4 extension may miss the maximum binding, but this is metadata churn rather than an R4-valid/new-R6-invalid instance break.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Distance.json differential root binding includes extension http://hl7.org/fhir/StructureDefinition/elementdefinition-maxValueSet = http://hl7.org/fhir/ValueSet/all-distance-units.",
+          "R6 StructureDefinition-Distance.json differential root binding includes binding.additional with purpose maximum and valueSet http://hl7.org/fhir/ValueSet/all-distance-units.",
+          "R4 and R6 root bindings both remain strength extensible to http://hl7.org/fhir/ValueSet/distance-units.",
+          "R4 and R6 ValueSet-distance-units compose lists are the same UCUM concepts: nm, um, mm, m, and km; all-distance-units keeps the same UCUM canonical-meter filter.",
+          "Distance element comparison showed the reported root binding representation change without a local cardinality/type/modifier change on the affected path."
+        ],
+        "fmmEffect": "R4 Distance is trial-use in the StructureDefinition and maturity map, with no numeric FMM found locally. That lowers the stability pressure compared with normative content, but the decision mainly turns on the metadata-only mechanism; R6's normative status does not increase the R4 compatibility burden.",
+        "compatibilityMechanism": "metadata/tooling: StructureDefinition consumers must read R6 binding.additional[purpose=maximum] instead of the R4 maxValueSet extension; ordinary Distance instances are not made invalid.",
+        "lessBreakingAlternativeAssessment": "Partial in theory: R6 could have duplicated the old maxValueSet extension beside binding.additional for transition. That would help some R4-era metadata consumers, but it would represent the same conformance fact twice, create synchronization risk, and preserve a legacy extension after R6 made additional bindings first-class. Because no instance pattern needs preserving, this is not a strong less-breaking base-design reason to revisit the change.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that there is no hard instance break and that any less-breaking alternative is only partial. I would classify the impact as even less concerning than the report's Low migration-risk framing because the compatibility mechanism is metadata/tooling churn only."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -553,5 +569,17 @@
       "R6 removal of R4 XPath constraint metadata while FHIRPath remains authoritative",
       "R6 type-characteristic extensions on Quantity-derived datatypes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Distance.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

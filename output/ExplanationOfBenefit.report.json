@@ -297,7 +297,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: an R4 instance with `patient` but no `subject` cannot validate against R6. R6-valid/not-R4-representable: `subject` can reference Group, which R4 `patient` cannot carry. Patient-to-Patient mappings are straightforward, but Group subjects require a policy decision.",
       "migrationGuidanceMd": "Rename `patient` to `subject` for Patient references during R4-to-R6 migration. Update generated model accessors, FHIRPath expressions, search mappings, and authorization/business rules. For R6-to-R4, reject, extension-map, or split Group-subject records according to local policy; do not silently coerce a Group to a Patient.",
       "backwardCompatibilityAnalysisMd": "The broader subject model is understandable, but making the old required property disappear creates a hard break. A deprecated `patient` alias or cross-version extension would have reduced disruption while preserving the new generalized `subject` semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:ELEMENT_PRESENCE_OR_IDENTITY:patient-subject:9f0b35",
+        "judgment": "Revisit",
+        "narrativeMd": "`patient` was a required R4 element and `subject` is the required R6 replacement, so ordinary R4 EOB instances and generated accessors break unless a transform runs. The Group target addition is understandable, but the same core recipient role could have been introduced with a less disruptive base design. Because this is the central beneficiary/recipient path for a financial resource, the rename deserves renewed review.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ExplanationOfBenefit.patient` is 1..1 `Reference(Patient)`.",
+          "R6 StructureDefinition: `ExplanationOfBenefit.subject` is 1..1 `Reference(Patient|Group)`.",
+          "R6 StructureDefinition checked: no local `ExplanationOfBenefit.patient` element is present."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral: it does not impose normative immutability, but it also does not soften a required, central billing-recipient path enough to ignore an avoidable wire rename.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 JSON with required `patient` lacks required R6 `subject`; generated APIs, FHIRPath, authorization, and mapping code also need path changes, and Group subjects create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained `patient` with an expanded target or retained it as a deprecated alias while adding `subject`. The tradeoff is an awkward legacy name for Group recipients or duplicate recipient fields, but the field is central enough that a transition design looks plausible.",
+        "comparisonToExisting": "agree: the prior report correctly identified a high-confidence hard break and a plausible less-breaking design; the fresh review likewise treats it as worth revisiting."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:SERIALIZATION_OR_CODEGEN:bodySite:4c2d18",
@@ -494,7 +508,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: R4 instances with `bodySite` as a CodeableConcept object or sibling `subSite` elements will not satisfy the R6 element type and path rules. R6-valid/not-R4-representable: multiple bodySite repetitions, multiple required sites per component, or BodyStructure references cannot be losslessly mapped into R4 0..1 bodySite plus flat subSite.",
       "migrationGuidanceMd": "Transform each R4 `bodySite` and associated `subSite` values into one R6 bodySite component. When R4 has subSite without bodySite, create a policy for deriving a site or carrying the data in an extension, because R6 bodySite components require at least one site. Test dental/oral claims with multiple surfaces and missing sites.",
       "backwardCompatibilityAnalysisMd": "The grouped structure better models site-to-subsite relationships, but removing the old scalar structure is disruptive. Retaining deprecated simple fields or providing a formal ConceptMap/StructureMap would have reduced migration ambiguity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:SERIALIZATION_OR_CODEGEN:bodySite:4c2d18",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`item.bodySite` and `addItem.bodySite` changed from a simple coded property with sibling `subSite` arrays into repeating backbone components with required `site` and nested `subSite`. That is a real JSON and SDK break for dental/anatomic adjudication data, but the R6 structure has a clear modeling benefit: it can group sites with their sub-sites and use BodyStructure references. Preserving the old shape would leave two competing anatomical-location representations.",
+        "keyEvidence": [
+          "R4 StructureDefinition: item/addItem `bodySite` is 0..1 `CodeableConcept`; sibling `subSite` is 0..* `CodeableConcept`.",
+          "R6 StructureDefinition: item/addItem `bodySite` is 0..* `BackboneElement`.",
+          "R6 StructureDefinition: `bodySite.site` is 1..* `CodeableReference(BodyStructure)` and `bodySite.subSite` is nested 0..* `CodeableConcept`."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the judgment turns on the concrete serialization break and the reasonableness of the richer location model.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `bodySite` objects and sibling `subSite` arrays do not match the R6 array/backbone shape; R6 multiple sites or BodyStructure references are not losslessly representable in R4.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept deprecated simple `bodySite`/`subSite` fields and added a distinct detailed backbone. That would preserve many R4 instances but creates duplicate location channels and hard consistency rules, especially when old flat sub-sites must be related to one of several sites.",
+        "comparisonToExisting": "partially agree: the prior report correctly found a high-confidence hard serialization break and only a partial alternative; its High impact feels somewhat strong for an optional, mostly model-improving path."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:SERIALIZATION_OR_CODEGEN:processNote-type:5b7f8a",
@@ -660,7 +688,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: a primitive `processNote.type` string is not a CodeableConcept in R6. R6-valid/not-R4-representable: a CodeableConcept with multiple codings or only free text cannot be collapsed to R4 required code without choosing one coding or losing information.",
       "migrationGuidanceMd": "Wrap R4 note type codes in a CodeableConcept using the note-type CodeSystem. Review markdown rendering/sanitization paths for note text. For R6-to-R4, define precedence rules for choosing a single code and reject or extension-map text-only concepts.",
       "backwardCompatibilityAnalysisMd": "The richer CodeableConcept model is defensible, but changing an existing primitive property is a classic serialization break. A choice or additional element would have been easier for cross-version clients.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:SERIALIZATION_OR_CODEGEN:processNote-type:5b7f8a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`processNote.type` changed from a primitive required-bound code to an optional CodeableConcept, while `processNote.text` changed from string to markdown. Existing note-type strings must be wrapped for R6, so serializers and generated models break. The R6 goal of richer/extensible note-purpose coding is credible, and keeping both primitive and CodeableConcept note-purpose fields would create duplicate semantics.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `processNote.type` is 0..1 `code` with required `note-type|4.0.1` binding.",
+          "R6 StructureDefinition: `processNote.type` is 0..1 `CodeableConcept` with extensible `note-type` binding.",
+          "R4/R6 local CodeSystem `note-type` concepts checked: display, print, and printoper are retained."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; this optional process-note path has real migration work, but the maturity context does not make the richer datatype disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: a primitive `processNote.type` string is not the R6 CodeableConcept shape; generated enum/string accessors change, and richer R6 CodeableConcepts may not reduce to one R4 code.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept the primitive `type` and added a sibling concept element, but that would require precedence and conflict rules for two note-purpose representations. A choice redesign would not preserve the old `type` wire name.",
+        "comparisonToExisting": "partially agree: the prior report correctly identifies the hard shape break and partial alternative; I would not weight the optional note path as strongly as the prior High overall impact."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:TYPE_DOMAIN:supportingInfo-timing:ca3e1d",
@@ -832,7 +874,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: `timingDate` is an R4 choice property that is not allowed by the R6 choice list. R6-valid/not-R4-representable: `timingTiming` and high-precision `timingDateTime` values require either simplification to a date/Period or an extension in R4.",
       "migrationGuidanceMd": "Rename `timingDate` to `timingDateTime` when the value is a single date and preserve the lexical date if that is clinically sufficient. Define downgrade rules for R6 Timing values before any R6-to-R4 conversion.",
       "backwardCompatibilityAnalysisMd": "This likely supports better temporal precision, but retaining `date` as a choice would have avoided invalidating the old property suffix. The compatibility cost of retaining it seems modest compared with the migration burden.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:TYPE_DOMAIN:supportingInfo-timing:ca3e1d",
+        "judgment": "Revisit",
+        "narrativeMd": "`supportingInfo.timing[x]` replaced the R4 `date` choice with `dateTime` and added `Timing`. A date value can be carried at date precision in dateTime, but the JSON choice suffix changes from `timingDate` to `timingDateTime`, making old instances fail strict R6 parsing. The R6 expressiveness goal could likely have been met by adding dateTime and Timing while keeping date.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `supportingInfo.timing[x]` allows `date` or `Period`.",
+          "R6 StructureDefinition: `supportingInfo.timing[x]` allows `dateTime`, `Period`, or `Timing`.",
+          "FHIR JSON choice names are type-derived, so R4 `timingDate` and R6 `timingDateTime` are different properties."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; absent normative pressure, the low-cost compatibility option of retaining `date` is decisive.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `timingDate` is not an R6 choice property; R6 `timingTiming` or high-precision dateTime values create reverse-conversion policy issues.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could allow `date`, `dateTime`, `Period`, and `Timing` on the same choice. That preserves old `timingDate` payloads and still adds precision/recurrence; the main tradeoff is overlapping date/dateTime choices, limited by max 1 choice cardinality.",
+        "comparisonToExisting": "agree: the prior report correctly found an avoidable choice-suffix break with a straightforward less-breaking base design."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:ELEMENT_PRESENCE_OR_IDENTITY:careTeam-responsible-qualification:7aa61c",
@@ -1001,7 +1057,21 @@
       "migrationGuidanceMd": "Map `qualification` to `specialty` only after confirming local code semantics. Preserve `responsible` with a cross-version extension, claim-level provider role, or IG-specific rule if the lead-provider flag matters. Add regression tests for multi-provider claims.",
       "backwardCompatibilityAnalysisMd": "The specialty rename may improve terminology, but dropping the old paths without aliases is avoidable from a compatibility perspective. The best backward-compatible option would have retained deprecated fields and documented precedence rules.",
       "reviewerNotesMd": "Human review is needed to decide whether each R4 qualification code is truly a specialty and how to preserve lead-provider responsibility.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:ELEMENT_PRESENCE_OR_IDENTITY:careTeam-responsible-qualification:7aa61c",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 removes `careTeam.responsible` and `careTeam.qualification`; `specialty` only partially replaces qualification and does not replace the lead/responsible flag. This can invalidate old care-team entries and lose billing-responsibility meaning for multi-provider claims. Because both old fields were optional and one has no R6 base replacement, retaining them as deprecated or clarified fields appears practical.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `careTeam.responsible` is 0..1 boolean for the lead/responsible practitioner.",
+          "R4 StructureDefinition: `careTeam.qualification` is 0..1 `CodeableConcept` bound to provider-qualification.",
+          "R6 StructureDefinition: `careTeam.specialty` is 0..1 `CodeableConcept` with the provider-qualification binding; no `responsible` or `qualification` elements are present."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral, but billing responsibility and provider qualification are business-relevant enough that maturity does not make removal harmless.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 care-team entries containing `responsible` or `qualification` use paths absent from R6; preserving `responsible` requires an extension or other policy.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could retain optional `responsible` and `qualification`, deprecating or clarifying them while adding `specialty` if distinct. The main tradeoff is guidance needed to prevent duplicate qualification/specialty facts; `responsible` is a separate boolean and has little conflict risk.",
+        "comparisonToExisting": "agree: the prior report's medium impact and less-breaking alternative are supported; I give it a Revisit action judgment because one removed field has no base replacement."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:ELEMENT_PRESENCE_OR_IDENTITY:diagnosis-packageCode:33db52",
@@ -1167,7 +1237,21 @@
       "migrationGuidanceMd": "For R4-to-R6, move a single packageCode to `diagnosisRelatedGroup`. If multiple distinct packageCode values occur, flag the record for adjudication-domain review or preserve extras in extensions. Update analytics that join DRG to diagnosis sequence.",
       "backwardCompatibilityAnalysisMd": "The root location may be semantically cleaner, but the migration would be safer with a formal map and a deprecation period for the nested element.",
       "reviewerNotesMd": "Human review is needed for records with multiple diagnosis repetitions carrying packageCode.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:ELEMENT_PRESENCE_OR_IDENTITY:diagnosis-packageCode:33db52",
+        "judgment": "Revisit",
+        "narrativeMd": "`diagnosis.packageCode` moved from each diagnosis repetition to a single root `diagnosisRelatedGroup`. The value set and wording make the intended successor clear, but the parent and effective cardinality changed: R4 could carry different package/DRG codes per diagnosis, while R6 has only one for the resource. That collapse can be financially meaningful and may require adjudication-domain judgment.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `diagnosis.packageCode` is 0..1 `CodeableConcept` under each diagnosis, bound to `ex-diagnosisrelatedgroup`.",
+          "R6 StructureDefinition: `diagnosisRelatedGroup` is 0..1 `CodeableConcept` at the resource root with the same binding.",
+          "Definitions/comments checked: both describe package billing or DRG-style grouping for a health condition."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the concern comes from reimbursement semantics and a possible cardinality collapse, not from high maturity pressure.",
+        "compatibilityMechanism": "old-valid/new-invalid: the nested R4 path is absent in R6; multiple distinct R4 nested codes cannot be automatically represented by one R6 root value.",
+        "lessBreakingAlternativeAssessment": "Partial but strong enough to reconsider. R6 could keep deprecated `diagnosis.packageCode` while adding the root field and guidance that single nested values migrate to the root. This duplicates the DRG location and leaves multi-code cases ambiguous, but it would preserve common old instances and expose conflicts rather than silently collapsing them.",
+        "comparisonToExisting": "partially agree: the prior report correctly found a hard move and only a partial alternative; I place more action weight on the lossy per-diagnosis-to-root cardinality change."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:TYPE_DOMAIN:item-adjudication-value:8ec20f",
@@ -1346,7 +1430,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: an R4 adjudication with `value` is invalid in R6. R6-valid/not-R4-representable: a Quantity with unit, comparator, or system/code metadata cannot be represented as a bare decimal without loss.",
       "migrationGuidanceMd": "Map decimal `value` to `quantity.value`; infer or add units only when category-specific rules make that safe. For R6-to-R4, define category-specific downgrade rules and preserve unit metadata in extensions if needed.",
       "backwardCompatibilityAnalysisMd": "The stronger Quantity datatype is clinically and financially clearer, but the same goal could have been achieved with a new optional element and a deprecation period for `value`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:TYPE_DOMAIN:item-adjudication-value:8ec20f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`item.adjudication.value` was a unitless decimal and R6 replaces it with `item.adjudication.quantity`. R4 decimals must be transformed, and R6 Quantity units can be lossy when downgrading. Still, the R6 goal is strong: non-monetary adjudication values such as percentages, counts, or days often need unit metadata, and retaining both value and quantity would duplicate the same adjudication fact.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `item.adjudication.value` is 0..1 `decimal` for a non-monetary value.",
+          "R6 StructureDefinition: `item.adjudication.quantity` is 0..1 `Quantity` with the same short/definition/comment.",
+          "R6 StructureDefinition checked: no local `item.adjudication.value` element is present."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; financial calculation relevance requires care, but it does not outweigh the clearer Quantity datatype.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 decimal `value` property is not accepted on the R6 adjudication component; R6 Quantity unit/system/comparator metadata cannot be represented by a bare R4 decimal.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could retain deprecated decimal `value` and add `quantity`, but then validators and implementers need mutual-exclusion or precedence rules for two non-monetary adjudication value fields. The old decimal also remains semantically ambiguous.",
+        "comparisonToExisting": "agree: the prior medium-impact, partial-alternative assessment matches the fresh review; the break is real but proportionate."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:CARDINALITY:required-relaxed:21ad90",
@@ -1499,7 +1597,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: no direct break from this relaxation. R6-valid/not-R4-representable: an R6 EOB that omits any of these formerly required fields cannot be converted to a valid R4 base resource without fabricating data or using extensions outside the R4 base cardinality model.",
       "migrationGuidanceMd": "Update consumers to treat these fields as optional in R6. Add profile-level requirements if an exchange still needs R4-like guarantees. For R6-to-R4 transforms, reject or quarantine records missing required R4 fields unless authoritative values can be derived.",
       "backwardCompatibilityAnalysisMd": "Relaxing cardinality is backward-compatible for old instances but not for old code contracts. If the goal was partial-data support, profiles or workflow-specific resources could have preserved base guarantees for existing EOB consumers.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:CARDINALITY:required-relaxed:21ad90",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 makes several formerly required billing fields optional, including insurance, insurer, provider, and product/service codes on line structures. This does not reject R4 instances, but it does break old non-null assumptions in validators, generated models, and consumers that move to R6 data. The base relaxation appears intentional to allow partial or staged records, and profiles can re-require these fields for exchanges that need R4-like guarantees.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `insurance` min 1, `insurer` min 1, `provider` min 1.",
+          "R6 StructureDefinition: those same paths have min 0.",
+          "R4/R6 StructureDefinitions checked: item/detail/subDetail and addItem/detail/subDetail `productOrService` minima decrease from 1 to 0."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the billing centrality makes nullability important, but there is no forward instance validation break.",
+        "compatibilityMechanism": "runtime/API/codegen: old R4-derived code may assume non-null insurer, provider, insurance, and product/service after validation; R6-to-R4 loss occurs when valid R6 instances omit R4-required content.",
+        "lessBreakingAlternativeAssessment": "No clearly better base design. Keeping the R4 minima would preserve old non-null contracts but would block the apparent R6 goal because FHIR profiles cannot relax a stricter base minimum. R4-like profiles are the appropriate compatibility mechanism for constrained exchanges.",
+        "comparisonToExisting": "agree: the prior report correctly distinguished this from a hard R4-to-R6 instance break while flagging high runtime and reverse-conversion risk."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:REFERENCE_TARGET:widened-targets:e651a3",
@@ -1633,7 +1745,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: none from target additions. R6-valid/not-R4-representable: any added target type violates the corresponding R4 targetProfile restriction. Runtime: client code that assumes, for example, facility is always Location or related.claim is always Claim must be updated.",
       "migrationGuidanceMd": "For R6 consumers, extend type handling and tests for each newly allowed target. For R6-to-R4, reject unsupported targets, map through extensions, or transform to a related allowed resource only when there is a documented business equivalence.",
       "backwardCompatibilityAnalysisMd": "Because this is additive in the forward direction, there is no clearly better R6 design for compatibility except retaining R4-restrictive profiles for ecosystems that need round-trip support.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:REFERENCE_TARGET:widened-targets:e651a3",
+        "judgment": "No problem",
+        "narrativeMd": "The listed reference changes are target widenings: R4-allowed targets remain allowed and R6 adds Patient/RelatedPerson enterers, Organization facilities, more request types, and related ExplanationOfBenefit references. R6-to-R4 gateways and closed-union client code need policy for new target types, but this is not a base R4-to-R6 compatibility problem for existing EOB instances.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `enterer`, `facility`, `prescription`, `originalPrescription`, and `related.claim` have narrower targetProfile lists.",
+          "R6 StructureDefinition: the same paths retain the R4 target types and add Patient, RelatedPerson, Organization, DeviceRequest, ServiceRequest, VisionPrescription, or ExplanationOfBenefit as applicable.",
+          "Cardinalities and element paths remain present for the reviewed references."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; additive target widening is compatible with old data regardless of maturity.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 reference targets are not legal R4 targets, but R4 references are preserved in R6.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 compatibility. Restricting the target list would improve round-trip constraints but would remove R6 expressiveness; R4-compatible profiles can constrain target types where needed.",
+        "comparisonToExisting": "disagree: the prior report correctly notes reverse-conversion and runtime awareness, but its Medium overall impact overstates a forward-compatible target widening under the fresh-review rubric."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:TYPE_DOMAIN:supportingInfo-value:2f6c48",
@@ -1871,7 +1997,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: no direct break for the old choices. R6-valid/not-R4-representable: most new choice suffixes, such as `valueMoney`, `valueCodeableConcept`, `valuePeriod`, or `valueTiming`, cannot validate in R4.",
       "migrationGuidanceMd": "Update R6 parsers and serializers to support the full choice list or constrain it with profiles. For downgrade, define datatype-specific conversions and preserve original R6 typed values with extensions when no lossless R4 representation exists.",
       "backwardCompatibilityAnalysisMd": "This is a forward-compatible widening, so the compatibility concern is reverse conversion rather than old data. Profiles are the appropriate backward-compatible control point.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:TYPE_DOMAIN:supportingInfo-value:2f6c48",
+        "judgment": "No problem",
+        "narrativeMd": "`supportingInfo.value[x]` keeps the R4 choices and adds many more datatypes. Existing R4 boolean, string, Quantity, Attachment, and Reference values remain structurally valid in R6. New R6 suffixes such as Money, Period, CodeableConcept, or Timing need R6 parser support and cannot always be sent back to R4, but that is normal additive evolution rather than a design problem for preserving old instances.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `supportingInfo.value[x]` allows boolean, string, Quantity, Attachment, and Reference(Resource).",
+          "R6 StructureDefinition: those choices are retained.",
+          "R6 StructureDefinition: many additional primitive and complex datatypes are added, including CodeableConcept, CodeableReference, Money, Period, Range, Ratio, Timing, Dosage, and Meta."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; it does not turn optional additive expressiveness into an R4-to-R6 break.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6-only choice suffixes have no native R4 slot, but old R4 choice suffixes remain allowed.",
+        "lessBreakingAlternativeAssessment": "Not applicable for forward compatibility. Omitting the added datatypes would preserve more reverse compatibility but would defeat the R6 expressiveness goal; profiles can restrict this choice set for R4-round-trippable exchanges.",
+        "comparisonToExisting": "disagree: the prior report correctly identifies reverse-conversion risk, but the fresh review treats retained old choices plus optional widening as No problem for R4-to-R6 compatibility."
+      }
     },
     {
       "findingId": "ExplanationOfBenefit:TERMINOLOGY_BINDING:processNote-language:bdc930",
@@ -2027,7 +2167,21 @@
       "migrationGuidanceMd": "Normalize note language codings to BCP-47 (`urn:ietf:bcp:47`) before R6 validation. Retain local language codes as additional codings only if a standard coding is also present. Include terminology-validation tests for missing, standard, and local-only language codings.",
       "backwardCompatibilityAnalysisMd": "The stricter binding is interoperable but could have been phased in through profiles or warnings. Because the element is optional and common codes are likely standard, the practical risk is moderate rather than high.",
       "reviewerNotesMd": "A terminology server expansion would improve confidence about edge-case language tags and validator behavior.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExplanationOfBenefit:TERMINOLOGY_BINDING:processNote-language:bdc930",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`processNote.language` keeps the same optional CodeableConcept shape but strengthens the binding from preferred common languages to required all-languages. Local-only language codings that passed R4 structural validation can fail R6 terminology validation. The stricter BCP-47 language requirement is a reasonable interoperability goal, and the practical break is limited because the element is optional and standard language tags are broadly expected.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `processNote.language` is 0..1 `CodeableConcept` with preferred `ValueSet/languages` binding and a maxValueSet hint to all-languages.",
+          "R6 StructureDefinition: `processNote.language` is 0..1 `CodeableConcept` with required `ValueSet/all-languages|6.0.0-ballot4` binding.",
+          "R6 `ValueSet-all-languages` compose includes system `urn:ietf:bcp:47`."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the optional, terminology-only nature softens the concern, while business presentation of process notes keeps it from being dismissed entirely.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with local-only or text-only note language concepts may fail required-binding validation in R6, depending on terminology-validator behavior.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could keep the binding preferred or extensible and enforce BCP-47 in profiles or warnings, preserving more local R4 codings. That would be gentler but would not provide the same base-level assurance of interoperable language tags.",
+        "comparisonToExisting": "agree: the prior report's potential hard break, medium impact, and partial less-breaking alternative are consistent with this fresh assessment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2198,5 +2352,19 @@
       "Claim/EOB processNote CodeableConcept conversion",
       "Adjudication value-to-quantity migration across financial resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ExplanationOfBenefit.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 5,
+      "No problem": 2
+    }
   }
 }

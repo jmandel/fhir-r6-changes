@@ -349,7 +349,22 @@
       "migrationGuidanceMd": "Forward migration can retain existing R4 status values. R6 consumers should update validation, generated models, nullability annotations, enum switches, and display logic to handle missing status as unknown. Down-conversion to R4 requires a documented policy: reject such records, manually review them, populate a defensible status, or carry unknown status in an extension/profile-specific mechanism.",
       "backwardCompatibilityAnalysisMd": "The need to represent unknown status is understandable, but making a modifier element optional is a broad base-resource change. A backward-compatible alternative would keep the element required and represent unknown explicitly, or use an extension/profile for exceptional unknown cases. Those alternatives preserve R4 cardinality expectations but still require downstream systems to understand the new semantics.",
       "reviewerNotesMd": "Human review is recommended before selecting a default R4 status for omitted R6 status because the wrong choice can change whether a warning is displayed or ignored.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Flag:CARDINALITY:Flag.status:3a8d2f",
+        "judgment": "Revisit",
+        "narrativeMd": "`Flag.status` is a modifier workflow element that changed from required to optional, with R6 defining an omitted value as unknown while keeping the same active/inactive/entered-in-error code set. This does not make R4 instances invalid in R6, but it does force R6-aware code and validators to handle a missing modifier that older generated models and business rules could reasonably treat as always present. For a displayed safety/operational flag, unknown status can affect whether a warning is shown, suppressed, or treated as entered in error, so the nullability change deserves another design look despite the resource's low R4 maturity.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Flag.json snapshot element Flag.status: min 1, max 1, isModifier true, required FlagStatus binding.",
+          "R6 StructureDefinition-Flag.json snapshot element Flag.status: min 0, max 1, isModifier true, meaningWhenMissing says omitted status means unknown.",
+          "R4 and R6 CodeSystem-flag-status.json contain the same codes: active, inactive, entered-in-error; no explicit unknown code was added.",
+          "viewer/r4-maturity.json records Flag as FMM 1, trial-use."
+        ],
+        "fmmEffect": "R4 FMM 1 and trial-use status soften the stability expectation, so the break is not concerning merely because it is a change. I still judge it Revisit because the changed element is a modifier controlling display/validity behavior and the absence of status can create safety-relevant runtime ambiguity.",
+        "compatibilityMechanism": "runtime/API/codegen and R6-to-R4 loss: R6 models must allow a previously mandatory modifier code to be absent, and an R6 Flag with no status cannot be represented as base R4 without inventing active, inactive, or entered-in-error semantics or carrying the unknown state outside the base element.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design would keep Flag.status 1..1 and add an explicit unknown status code. That would preserve non-null status handling and make the unknown state visible in the same element, but it would still alter the required code set, affect enum-based code, and remain hard to down-convert to R4. The alternative is therefore real but only partial, not cost-free.",
+        "comparisonToExisting": "partially agree: the existing High runtime/R6-to-R4 impact and Partial alternative assessment are directionally right, but the fresh review would elevate the finding to Revisit because the modifier nullability change has a plausible less-breaking base design and safety-relevant ambiguity."
+      }
     },
     {
       "findingId": "Flag:REFERENCE_TARGET:Flag.subject:fd20c1",
@@ -520,7 +535,22 @@
       "migrationGuidanceMd": "Forward migration needs no transform for existing R4 targets. R6-capable code should update generated reference unions, validation allow-lists, and display/routing logic for the two new subject types. Down-conversion should flag these cases for review and avoid substituting a related patient, practitioner, or organization unless a local mapping rule proves the substitution is safe.",
       "backwardCompatibilityAnalysisMd": "Adding targets is less disruptive than replacing the element, but it still creates R6 instances that R4 cannot represent. A profile or extension could have preserved base R4 compatibility, at the cost of making the broader subject semantics non-core and less discoverable.",
       "reviewerNotesMd": "Human review is recommended for down-conversion because the correct R4 substitute, if any, depends on the referenced resource and business context.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Flag:REFERENCE_TARGET:Flag.subject:fd20c1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Flag.subject` remains mandatory, but R6 widens the allowed reference targets by adding RelatedPerson and PractitionerRole while retaining all R4 targets. Existing R4 Flags remain valid against the R6 target set. The real compatibility issue is reverse or mixed-version exchange: a new R6 Flag about a caregiver or role cannot be faithfully represented as a base R4 Flag subject without changing the subject's meaning. That is a real loss case, but the base change supports a plausible core use case and the less-breaking options would mostly hide the new subject kinds in extensions or profiles.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Flag.json Flag.subject: min 1, targets Patient, Location, Group, Organization, Practitioner, PlanDefinition, Medication, Procedure.",
+          "R6 StructureDefinition-Flag.json Flag.subject: min 1, retains the R4 targets and adds RelatedPerson and PractitionerRole.",
+          "The R6 Flag.subject definition explicitly includes related person in the subject description.",
+          "viewer/r4-maturity.json records Flag as FMM 1, trial-use."
+        ],
+        "fmmEffect": "Low R4 maturity softens the case for revisiting a target-list widening. Because the change does not invalidate old R4 instances and supports additional subject semantics, FMM 1 pushes the judgment away from Revisit.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 subject reference to RelatedPerson or PractitionerRole is outside the base R4 target list, and substituting Patient, Practitioner, or Organization may change the meaning of what the flag is about. There is no old-valid/new-invalid R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "The less-breaking option would be to keep the R4 subject target list and represent RelatedPerson or PractitionerRole subjects through extensions or profiles. That would reduce raw R6-to-R4 friction but would fragment a central subject relationship and weaken base interoperability for the newly supported cases, so it is not a better base R6 design.",
+        "comparisonToExisting": "partially agree: I agree that the alternative is not applicable as a backward-compatible base design and that down-conversion can be lossy, but the existing High impact is somewhat overstated for an R4-to-R6 review because this is a pure target widening on low-FMM content."
+      }
     },
     {
       "findingId": "Flag:REFERENCE_TARGET:Flag.author:a6c49b",
@@ -674,7 +704,22 @@
       "validationAndCompatibilityMd": "R4-valid author references remain valid in R6. An R6 `RelatedPerson` author is not valid against R4's `Flag.author` target list. Since `author` is optional, dropping it can produce a valid R4 instance but loses information; replacing it with a patient or practitioner can be semantically wrong.",
       "migrationGuidanceMd": "Update R6 validation allow-lists and generated author reference types. For R6-to-R4 conversion, either retain the author in an extension, omit it with an explicit loss marker, or apply a local mapping only when the RelatedPerson can be safely represented by an R4-allowed target.",
       "backwardCompatibilityAnalysisMd": "The change is a normal additive target widening. A backward-compatible alternative would use an extension for related-person authors, but that would fragment a plausible core authoring use case.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Flag:REFERENCE_TARGET:Flag.author:a6c49b",
+        "judgment": "No problem",
+        "narrativeMd": "`Flag.author` is optional and R6 only adds RelatedPerson to the existing author target list. All R4 author targets remain valid in R6. A new R6 RelatedPerson author may not fit base R4, but the element is not a modifier and can be omitted or mapped by policy in down-conversion at the cost of some provenance detail. For this path, the compatibility concern is too limited to require renewed standards attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Flag.json Flag.author: min 0, targets Device, Organization, Patient, Practitioner, PractitionerRole.",
+          "R6 StructureDefinition-Flag.json Flag.author: min 0, retains the R4 targets and adds RelatedPerson.",
+          "Flag.author is not marked as a modifier in either R4 or R6.",
+          "viewer/r4-maturity.json records Flag as FMM 1, trial-use."
+        ],
+        "fmmEffect": "FMM 1 and trial-use status further reduce the stability concern for this optional additive target widening. There is no strong safety or business reason to escalate this path.",
+        "compatibilityMechanism": "R6-to-R4 loss with low practical risk: an R6 RelatedPerson author is not a base R4 author target, but the optional non-modifier element can be dropped or transformed when necessary, and no R4-valid author reference becomes invalid in R6.",
+        "lessBreakingAlternativeAssessment": "Keeping RelatedPerson authors out of the base target list and using an extension would avoid one R6-to-R4 edge case, but it would also make caregiver or family-member authorship less interoperable in R6. Because the change is additive and optional, a less-breaking base alternative is not needed.",
+        "comparisonToExisting": "disagree: the existing Not applicable alternative judgment is reasonable, but the Medium impact overstates this finding because the only issue is a low-risk reverse-direction case on an optional non-modifier element."
+      }
     },
     {
       "findingId": "Flag:ELEMENT_PRESENCE_OR_IDENTITY:Flag.supportingInfo:9e2b11",
@@ -830,7 +875,23 @@
       "validationAndCompatibilityMd": "R4 instances without `supportingInfo` remain valid in R6. R6 instances containing `supportingInfo` are invalid as base R4 unless transformed. A lossless R4 representation is plausible using the R4 `flag-detail` extension, because that extension can repeat on Flag and has a `valueReference`; however, systems that do not preserve or understand the extension may lose the supporting context.",
       "migrationGuidanceMd": "Forward migration may optionally transform existing R4 `flag-detail` extensions into R6 `supportingInfo` when the value is a compatible reference. Down-conversion should map each R6 supportingInfo reference to one R4 `flag-detail` extension or document loss if the receiver cannot accept extensions. Tests should cover zero, one, and multiple supportingInfo references.",
       "backwardCompatibilityAnalysisMd": "The compatible alternative was to continue using the extension. R6 chose a core element, likely to improve standardization and discoverability. That choice is reasonable but requires explicit cross-version transforms.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Flag:ELEMENT_PRESENCE_OR_IDENTITY:Flag.supportingInfo:9e2b11",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional repeating `Flag.supportingInfo` for references that explain or guide management of the flag. This is not an R4-to-R6 validation break because old R4 Flags simply lack the element. The R6 comment explicitly ties the element to the prior `flag-detail` extension, which gives a natural down-conversion path when receivers support the extension. Raw R6 instances with the new element are not base R4, but that is the expected cost of an optional core addition rather than a design problem.",
+        "keyEvidence": [
+          "No R4 local snapshot element Flag.supportingInfo is present in StructureDefinition-Flag.json.",
+          "R6 StructureDefinition-Flag.json Flag.supportingInfo: min 0, max *, Reference to Condition, Procedure, AllergyIntolerance, Observation, RiskAssessment, DocumentReference, DiagnosticReport.",
+          "R6 Flag.supportingInfo comment says it replaced the flag-detail extension and gives clinical examples such as intubation or swallowing/speech difficulty context.",
+          "R4 StructureDefinition-flag-detail.json defines an extension on Flag whose value is Reference(Resource) for additional supporting information.",
+          "viewer/r4-maturity.json records Flag as FMM 1, trial-use."
+        ],
+        "fmmEffect": "Low FMM softens concern, and the change is optional/additive rather than a removal or tightening. The safety relevance of the content does not make the additive base element itself problematic.",
+        "compatibilityMechanism": "R6-to-R4 loss, mostly mitigable: a raw R6 Flag.supportingInfo element is unknown to base R4, but the R4 flag-detail extension provides an explicit representation for the same kind of supporting reference. There is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "Continuing to rely only on the flag-detail extension would preserve an R4-shaped wire model, but it would leave clinically useful supporting context outside the R6 core resource. Since the new element is optional and has an evident extension mapping for prior versions, avoiding the addition is not a better less-breaking base design.",
+        "comparisonToExisting": "partially agree: I agree that no less-breaking base alternative is needed, but the existing Medium impact is higher than warranted for an optional additive element with a documented R4 extension mapping."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1009,5 +1070,19 @@
       "Reference target widening to RelatedPerson or PractitionerRole",
       "R6 core elements replacing R4 extensions"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Flag.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 1,
+      "No problem": 2
+    }
   }
 }

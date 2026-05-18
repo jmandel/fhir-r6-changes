@@ -300,7 +300,21 @@
       "validationAndCompatibilityMd": "Old-valid R4 instances with `patient` are new-invalid until transformed. Patient subjects can round-trip by renaming, but R6 Group subjects are not native R4 EpisodeOfCare content.",
       "migrationGuidanceMd": "Move R4 `patient` to R6 `subject` unchanged. For R6-to-R4, map only Patient subjects directly; use an extension, rejection, or profile-specific transform for Group subjects. Test both target types.",
       "backwardCompatibilityAnalysisMd": "The change was partly avoidable: retaining `patient` as deprecated would preserve old wire format but create duplicate ways to represent the same subject.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EpisodeOfCare:element:patient-subject:0f0a54",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a required element wire-name change, not only a broadened reference target. An R4 `EpisodeOfCare` instance carrying `patient` must be transformed before it is a conformant R6 instance, and generated clients, FHIRPath expressions, and mappings that use `patient` need code changes. Supporting Group-focused episodes is reasonable, but the same mandatory subject slot is central enough that retaining the old path with updated semantics looks like a plausible lower-disruption base design.",
+        "keyEvidence": [
+          "R4 StructureDefinition-EpisodeOfCare snapshot `EpisodeOfCare.patient`: 1..1 Reference(Patient), mapped to workflow `Event.subject`.",
+          "R6 StructureDefinition-EpisodeOfCare snapshot `EpisodeOfCare.subject`: 1..1 Reference(Patient|Group), also mapped to workflow `Event.subject`.",
+          "R4 maturity map: EpisodeOfCare is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it does not create normative stability pressure, but it also does not soften a required central field rename into a minor concern.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 JSON with `patient` lacks required R6 `subject`; generated models and FHIRPath paths change. R6 Group subjects also create an R6-to-R4 loss case.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept `EpisodeOfCare.patient` as the required Reference and widened it to Patient or Group with updated wording and aliases. The tradeoff is semantic/name debt because `patient` is awkward for Group subjects and less aligned with workflow naming, but it would preserve the common R4 wire shape without introducing duplicate fields.",
+        "comparisonToExisting": "agree with the existing high-impact and less-breaking-alternative-Yes assessment; the fresh rationale emphasizes the required central path rename rather than whole-resource burden."
+      }
     },
     {
       "findingId": "EpisodeOfCare:type:diagnosis-condition:7d8d0b",
@@ -491,7 +505,22 @@
       "validationAndCompatibilityMd": "This is old-valid/new-invalid for common R4 instances with diagnosis. R6-to-R4 is only direct when there is exactly one CodeableReference containing a Condition Reference; concept-only, multiple, or missing conditions need policy.",
       "migrationGuidanceMd": "Wrap each R4 Reference as one R6 CodeableReference item. For backport, create Condition resources, use extensions, reject unsupported cases, or define a lossy mapping explicitly. Test reference, concept-only, multiple, and omitted cases.",
       "backwardCompatibilityAnalysisMd": "A less disruptive design could preserve the old Reference and add a separate codeable choice. That would retain wire compatibility but complicate the R6 model.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EpisodeOfCare:type:diagnosis-condition:7d8d0b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`diagnosis.condition` changes from a single Condition Reference object to a repeating CodeableReference array. R4 diagnosis entries therefore need structural wrapping, and R6 can express concept-only, text-only, multiple, or absent conditions that do not fit the R4 one-reference shape. Still, the R6 model has a coherent goal: representing diagnosis conditions by code/text or by resource reference in one datatype. The lower-break alternatives create parallel representations of the same clinical fact.",
+        "keyEvidence": [
+          "R4 `EpisodeOfCare.diagnosis.condition`: 1..1 Reference(Condition).",
+          "R6 `EpisodeOfCare.diagnosis.condition`: 0..* CodeableReference(Condition) with an example `condition-code` binding.",
+          "R6 CodeableReference contains optional `concept` and optional `reference` children.",
+          "R4 maturity map: EpisodeOfCare is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the judgment is driven by the concrete JSON-shape break and the modeling tradeoff, not by a high or low maturity presumption.",
+        "compatibilityMechanism": "old-valid/new-invalid with R6-to-R4 loss: an R4 Reference at `diagnosis.condition` is not the R6 array-of-CodeableReference shape, while R6 concept-only or multiple conditions cannot be represented faithfully as one R4 Condition reference.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained the R4 Reference field and added a new repeating coded/text condition field, but that would split one diagnosis condition across overlapping fields and require precedence, duplication, and consistency rules. That is a material base-model cost, so it is not a clearly better design.",
+        "comparisonToExisting": "agree with the existing high-impact and Partial alternative assessment; the break is real, but the fresh judgment treats the CodeableReference redesign as proportionate."
+      }
     },
     {
       "findingId": "EpisodeOfCare:semantic:diagnosis-reason-split:68bd1f",
@@ -671,7 +700,23 @@
       "validationAndCompatibilityMd": "The split can produce behaviorally wrong but syntactically valid R6 if all R4 diagnosis data is placed in the wrong bucket. R6-to-R4 may need to merge reason and diagnosis and lose the distinction.",
       "migrationGuidanceMd": "Classify old diagnosis entries using clinical state, claims data, or business rules. Populate `reason`, `diagnosis`, or both deliberately. Backport non-Condition reasons through extensions, related resources, or rejection.",
       "backwardCompatibilityAnalysisMd": "The split is likely justified by semantic clarity. It could have been less disruptive with a compatibility extension, explicit ConceptMap-like guidance, or a deprecation period.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EpisodeOfCare:semantic:diagnosis-reason-split:68bd1f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The path-level risk is semantic misclassification: R4 diagnosis text described conditions the episode was intended to address, while R6 separates expected reasons from conditions actually addressed. A migration that blindly sends all old diagnosis data to only one R6 bucket can overstate treatment or lose the reason-for-care meaning. That requires clinical or business judgment in some cases, but the R6 distinction is useful and computable, and compatibility-preserving alternatives weaken or duplicate that distinction.",
+        "keyEvidence": [
+          "R4 `EpisodeOfCare.diagnosis.condition` definition: conditions/problems/diagnoses the episode is intended to provide care for.",
+          "R6 `EpisodeOfCare.reason` definition and comment: medical reasons expected to be addressed during the episode.",
+          "R6 `EpisodeOfCare.diagnosis` definition and comment: medical conditions actually addressed; a condition may appear in both reason and diagnosis.",
+          "R6 `EpisodeOfCare.reason.value`: CodeableReference targets include Condition, DiagnosticReport, Procedure, Observation, and HealthcareService.",
+          "R4 maturity map: EpisodeOfCare is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It does not by itself demand old broad semantics be preserved, but the review still counts expert-dependent clinical mapping as real migration work.",
+        "compatibilityMechanism": "semantic/documentation with R6-to-R4 loss: structurally valid transforms can carry the wrong meaning, and R6 non-Condition or concept-only reasons have no native R4 EpisodeOfCare diagnosis slot.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have added `reason` while leaving `diagnosis` with the broader R4 meaning, or kept the broad field deprecated and added a new addressed-diagnosis field. Those designs preserve more legacy ambiguity, but they undermine the clean reason-versus-addressed separation and create overlapping clinical representations.",
+        "comparisonToExisting": "partially agree with the existing high-impact and Partial alternative assessment; I agree the migration risk is significant, but I characterize the primary mechanism as semantic/expert mapping rather than a direct hard validation break."
+      }
     },
     {
       "findingId": "EpisodeOfCare:element:diagnosis-role-use:1d6b42",
@@ -862,7 +907,23 @@
       "validationAndCompatibilityMd": "The field rename is a hard instance break. The terminology change is primarily semantic because the binding remains preferred. R6-to-R4 is lossy for multiple uses and for working/final without a chosen R4 role equivalent.",
       "migrationGuidanceMd": "Rename `role` to `use` and wrap as an array. Preserve original codings, add mapped R6 codings if a ConceptMap is approved, and decide how to collapse multiple R6 uses for R4 export.",
       "backwardCompatibilityAnalysisMd": "Keeping `role` as deprecated while adding `use` would have reduced breakage but left two overlapping diagnosis classification fields.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EpisodeOfCare:element:diagnosis-role-use:1d6b42",
+        "judgment": "Revisit",
+        "narrativeMd": "The element remains an optional CodeableConcept with essentially the same role/use description, but the wire path changes from `role` to `use`, the max cardinality widens, and the preferred ValueSet changes. Because preferred bindings do not make old codings structurally invalid, the hard break is mainly the rename. Supporting multiple working/final uses could plausibly have been done without changing the R4 property name.",
+        "keyEvidence": [
+          "R4 `EpisodeOfCare.diagnosis.role`: 0..1 CodeableConcept, preferred binding to `ValueSet/diagnosis-role`.",
+          "R6 `EpisodeOfCare.diagnosis.use`: 0..* CodeableConcept, preferred binding to `ValueSet/encounter-diagnosis-use`.",
+          "R4 diagnosis-role CodeSystem concepts include AD, DD, CC, CM, pre-op, post-op, and billing.",
+          "R6 encounter-diagnosis-use CodeSystem concepts are working and final.",
+          "R4 maturity map: EpisodeOfCare is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; it permits evolution, but an avoidable field rename on otherwise similar content still deserves scrutiny.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: an R4 `diagnosis.role` property is not recognized at the R6 path, and generated code or FHIRPath rules using `role` must change. The terminology change is mostly semantic/conformance pressure because the binding remains preferred.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept `EpisodeOfCare.diagnosis.role`, widened it to repeat, and updated the preferred binding or used a transition ValueSet. The cost is retaining the older `role` name and allowing legacy codings longer, but it would preserve R4 instances and still support multiple classifications.",
+        "comparisonToExisting": "agree with the existing medium-impact and less-breaking-alternative-Yes assessment; I would separate the structural rename from the weaker preferred-binding terminology pressure."
+      }
     },
     {
       "findingId": "EpisodeOfCare:element:diagnosis-rank:aa4071",
@@ -1003,7 +1064,23 @@
       "validationAndCompatibilityMd": "Old instances with `diagnosis.rank` are new-invalid. R6 EpisodeOfCare has no rank to backport, but R6 Account may carry related sequence data outside this resource.",
       "migrationGuidanceMd": "Inventory R4 records with rank. If it is billing sequence, migrate with the diagnosis to R6 Account.diagnosis.sequence; otherwise preserve with an extension or profile-specific rule. Do not silently drop it.",
       "backwardCompatibilityAnalysisMd": "Removal is probably model-cleanup toward Account, but retaining a deprecated rank would have made same-resource migration lossless.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EpisodeOfCare:element:diagnosis-rank:aa4071",
+        "judgment": "Revisit",
+        "narrativeMd": "This optional field is removed from EpisodeOfCare with no same-resource replacement. R6 points billing-oriented diagnosis sequencing toward Account, which is a plausible target model, but migration is not a simple field rename: an implementer must decide whether the old rank was billing sequence, create or locate the relevant Account context, or preserve non-billing priority some other way. Because rank can affect reimbursement or prioritization and a deprecated transitional field would preserve old instances, this merits renewed design attention.",
+        "keyEvidence": [
+          "R4 `EpisodeOfCare.diagnosis.rank`: 0..1 positiveInt, defined as ranking of the diagnosis for each role type.",
+          "R6 StructureDefinition-EpisodeOfCare has no `EpisodeOfCare.diagnosis.rank` element.",
+          "R6 `EpisodeOfCare.diagnosis` comment says billing diagnoses can be documented on Account resources that support ranking.",
+          "R6 `Account.diagnosis.sequence`: 0..1 positiveInt for diagnosis ranking.",
+          "R4 maturity map: EpisodeOfCare is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but billing- or priority-related data loss is a concrete business risk that is not erased by trial-use status.",
+        "compatibilityMechanism": "old-valid/new-invalid with R4-to-R6 data-loss risk: R4 instances containing `diagnosis.rank` have an undefined R6 property, and the related Account sequence is outside the EpisodeOfCare resource and requires policy-driven migration.",
+        "lessBreakingAlternativeAssessment": "Partial but credible. R6 could have retained `diagnosis.rank` as deprecated with guidance to use `Account.diagnosis.sequence` for billing. The tradeoff is duplicate or stale ranking information across EpisodeOfCare and Account, but a transitional base element would materially reduce same-resource data loss.",
+        "comparisonToExisting": "partially agree with the existing medium-impact and Partial alternative assessment; I place more weight on billing/priority data loss and therefore judge the finding as Revisit."
+      }
     },
     {
       "findingId": "EpisodeOfCare:element:team-careTeam:2de3c5",
@@ -1154,7 +1231,22 @@
       "validationAndCompatibilityMd": "Old-valid instances with `team` are new-invalid. R6 `careTeam` values can be represented in R4 by reversing the rename; no target or cardinality loss was found.",
       "migrationGuidanceMd": "Rename `team` to `careTeam` for R4-to-R6 and reverse for R6-to-R4. Update generated-code references, FHIRPath paths, and tests.",
       "backwardCompatibilityAnalysisMd": "This could have been fully backward compatible with a deprecated alias. The chosen design favors clearer naming.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EpisodeOfCare:element:team-careTeam:2de3c5",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a pure path rename for an optional repeating CareTeam reference: cardinality, target resource, and workflow mapping are unchanged. Migration is mechanically reversible, so the practical risk is lower than for diagnosis or subject, but strict validators, generated properties, and path-based extraction still break when `team` is present. A clarity-only rename with a simple keep-the-old-name alternative is disproportionate even for FMM 2 content.",
+        "keyEvidence": [
+          "R4 `EpisodeOfCare.team`: 0..* Reference(CareTeam), alias `CareTeam`, mapped to workflow `Event.performer.actor`.",
+          "R6 `EpisodeOfCare.careTeam`: 0..* Reference(CareTeam), alias `CareTeam`, mapped to workflow `Event.performer.actor`.",
+          "R6 adds explanatory care-team comments but does not change the reference target or cardinality.",
+          "R4 maturity map: EpisodeOfCare is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The optional and non-summary nature lowers practical severity, but it does not justify a low-value wire rename when the old shape could have been preserved.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 instances with `team` are not valid R6 at that path, and code or FHIRPath expressions using `EpisodeOfCare.team` must be renamed.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept `EpisodeOfCare.team` and improved the definition, comments, or alias metadata to clarify that it references CareTeam. The main tradeoff is a less explicit path name; adding a parallel `careTeam` field would be less attractive because it creates duplicate same-resource representations.",
+        "comparisonToExisting": "agree with the existing medium-impact and less-breaking-alternative-Yes assessment; the fresh review emphasizes that the impact is narrow but the base-model rename appears avoidable."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1342,5 +1434,18 @@
       "diagnosis role/use terminology replacements",
       "billing rank movement to Account"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/EpisodeOfCare.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 2
+    }
   }
 }

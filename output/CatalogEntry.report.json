@@ -284,7 +284,23 @@
       "migrationGuidanceMd": "Do not attempt an automatic same-name upgrade. Inventory existing R4 `CatalogEntry` instances, classify them by `referencedItem` target type and catalog use case, and select a replacement modeling pattern. Common choices may include putting metadata on the referenced item resource, using the `catalog` Composition profile for catalog-level grouping, or defining cross-version extensions/profiles. Regression tests should include parsers, validators, API resource-type dispatch, and code generation.",
       "backwardCompatibilityAnalysisMd": "Because `CatalogEntry` was low-maturity in R4, removal may have been considered acceptable, but it remains technically breaking. A backward-compatible path could have preserved the resource as deprecated or supplied a formal migration package. The tradeoff is that keeping an obsolete resource in core can impede model cleanup and confuse implementers about preferred R6 patterns.",
       "reviewerNotesMd": "The package evidence is decisive for absence, but not for intended replacement. A human reviewer should look for ballot change notes or tracker discussions before finalizing migration guidance.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CatalogEntry:ARTIFACT_IDENTITY:root:4f3a21",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 defined `CatalogEntry` as a concrete `DomainResource`, while the supplied R6 package has no same-canonical StructureDefinition and marks `CatalogEntry` only as an old resource type. An R4 instance with `resourceType: \"CatalogEntry\"` is therefore an old-valid/new-invalid instance and generated R6 SDKs, validators, and REST handlers will not have a normal CatalogEntry surface. That is a real hard break, but the R4 artifact was FMM 0/trial-use, and a lightweight public-use check found removal/additional-resource material rather than clear evidence of broad production deployment. On that record, retiring the low-maturity core resource appears proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition-CatalogEntry.json: kind resource, type CatalogEntry, base DomainResource.",
+          "R6 package has no StructureDefinition-CatalogEntry.json and no CatalogEntry StructureDefinition index entry.",
+          "R6 CodeSystem-fhir-old-types includes CatalogEntry as an old resource name no longer used in this FHIR version.",
+          "R4 maturity map and StructureDefinition extensions show CatalogEntry is FMM 0 and trial-use.",
+          "Lightweight web search found HL7 FMG removal/additional-resource material but no clear documented production deployment evidence."
+        ],
+        "fmmEffect": "FMM 0/trial-use substantially reduces the stability expectation. The hard resource identity break remains real, but without clear production-use evidence it does not by itself warrant Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 CatalogEntry instances cannot validate as R6 core resources, and R6 model/server surfaces will not include CatalogEntry unless an implementation adds compatibility support.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained CatalogEntry as a deprecated compatibility resource, preserving most R4 instances. The tradeoff is material: it would keep an FMM 0 generic wrapper in core, require ongoing validator/API/codegen support, and risk duplicate catalog representations alongside Composition or item-specific models.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the hard resource break and a partial deprecated-resource alternative, but its Critical framing overstates the action concern for FMM 0 content without clear production-use evidence."
+      }
     },
     {
       "findingId": "CatalogEntry:CONVERSION_OR_MAPPING:CatalogEntry.local-elements:9b78d0",
@@ -439,7 +455,23 @@
       "migrationGuidanceMd": "Build an explicit field-by-field migration matrix. Treat `referencedItem` as the anchor to the actual catalog item, then decide where each wrapper field belongs. Test at least these cases: multiple CatalogEntry records pointing to the same item with different metadata, entries with no optional metadata, entries with validity/status data, and entries with implementation extensions. If no lossless R6 core location exists, preserve data with governed extensions or retain the original R4 instance alongside the R6 representation.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative would have left the wrapper available as deprecated or supplied official extensions on catalog `Composition.section.entry` or referenced resources. This would have reduced migration ambiguity. The cost would be maintaining a generic wrapper that may overlap with more precise R6 resource-specific models.",
       "reviewerNotesMd": "The finding intentionally does not claim a single official replacement because the supplied R6 package does not provide one. Human review should verify whether external ballot notes identify one.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CatalogEntry:CONVERSION_OR_MAPPING:CatalogEntry.local-elements:9b78d0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The affected R4 paths are the local wrapper fields such as mandatory `orderable` and `referencedItem`, plus status, validity, identifiers, classifications, and characteristics. R6 retains a catalog profile on `Composition`, but that profile is catalog/document-level and does not provide a same-shape per-item wrapper; its R4 predecessor already existed and pointed section entries at CatalogEntry. Implementations that used these fields must choose a new representation and may need human mapping, especially when catalog-specific metadata differs from the referenced item. Even so, the carrier being removed was FMM 0/trial-use, and retaining the whole wrapper just to carry these fields would perpetuate a low-maturity duplicate model.",
+        "keyEvidence": [
+          "R4 CatalogEntry local elements include orderable 1..1 boolean and referencedItem 1..1 Reference, plus status, validityPeriod, validTo, lastUpdated, identifiers, classifications, and characteristics.",
+          "R6 StructureDefinition-catalog is a profile on Composition with catalog-level constraints such as type, category, date, and a validity-period extension.",
+          "R4 StructureDefinition-catalog already existed and constrained Composition.section.entry to Reference(CatalogEntry), so the R6 catalog profile is not a direct renamed CatalogEntry carrier.",
+          "R6 Composition.section.entry is a generic Reference(Resource), not a per-entry metadata backbone.",
+          "No clear public production-use evidence was found in the lightweight check."
+        ],
+        "fmmEffect": "Low FMM softens the concern despite the awkward migration. The fields can be business-relevant, but absent evidence that this FMM 0 wrapper was widely deployed, the break is more a migration burden than a standards stability failure.",
+        "compatibilityMechanism": "R6-to-R4 loss and old-valid/new-invalid: R4 wrapper metadata has no direct R6 core carrier, so R4 instances fail as-is and transformed R6 representations may not round-trip to the original CatalogEntry fields without implementation-specific choices.",
+        "lessBreakingAlternativeAssessment": "Keeping a deprecated CatalogEntry wrapper would preserve the field set and reduce mapping ambiguity, but it would also leave multiple possible sources of truth for the same catalog facts across the wrapper, Composition sections, and item resources. Extensions or ConceptMaps help migration but are not less-breaking base R6 designs because they do not make R4 CatalogEntry instances valid R6 resources.",
+        "comparisonToExisting": "partially agree: the existing High impact description is accurate for implementations that used these fields, and the deprecated-wrapper alternative is only partial; however, FMM 0 and lack of clear production-use evidence make the break probably acceptable rather than a clear Revisit."
+      }
     },
     {
       "findingId": "CatalogEntry:REFERENCE_TARGET:CatalogEntry.relatedEntry:2c6e95",
@@ -591,7 +623,23 @@
       "migrationGuidanceMd": "Extract relationship edges before transforming entries. For each edge, preserve source entry identity, target entry identity, and relation code. Define a governed mapping for `triggers` and `is-replaced-by`; if no exact R6 relationship code exists, use extensions or retain the original R4 relationship alongside the R6 representation. Include tests for replacement chains and triggered-activity links.",
       "backwardCompatibilityAnalysisMd": "This could have been less disruptive if the relation terminology had remained available as deprecated and if a ConceptMap had mapped CatalogEntry relationships to R6 artifact or document relationships. That would not solve every modeling difference, but it would make the semantic loss explicit and machine-testable.",
       "reviewerNotesMd": "A terminology server or official migration guide could reveal a preferred target for these two codes. None was found in the supplied core package.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CatalogEntry:REFERENCE_TARGET:CatalogEntry.relatedEntry:2c6e95",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`CatalogEntry.relatedEntry` was an optional R4 graph edge, but when present it required a `relationtype` code and a Reference to another CatalogEntry. R6 has no CatalogEntry target and the supplied core package has no same relation-type CodeSystem or ValueSet. A catalog application using `is-replaced-by` or `triggers` links would need an explicit redesign, and `triggers` in particular is not obviously preserved by broader R6 relationship machinery. Still, this path is optional, tightly coupled to the removed FMM 0 resource, and preserving it in core would mainly mean preserving the obsolete resource graph.",
+        "keyEvidence": [
+          "R4 CatalogEntry.relatedEntry.item is 1..1 Reference(http://hl7.org/fhir/StructureDefinition/CatalogEntry) when relatedEntry is present.",
+          "R4 CatalogEntry.relatedEntry.relationtype is 1..1 code with required binding to ValueSet/relation-type|4.0.1.",
+          "R4 CodeSystem-relation-type contains triggers and is-replaced-by.",
+          "Supplied R6 package lacks StructureDefinition-CatalogEntry.json and lacks same-named CodeSystem-relation-type.json or ValueSet-relation-type.json.",
+          "R6 Composition.relatesTo exists with broader artifact relationship terminology, but it is not a CatalogEntry-to-CatalogEntry per-entry relation."
+        ],
+        "fmmEffect": "FMM 0/trial-use makes removal of this optional, resource-specific relationship surface less concerning. The possible semantic loss is real for adopters, but the evidence does not show enough adoption or safety reliance to make this a Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: R4 relatedEntry self-references cannot validate in R6 core, and mapping to generic R6 relationships may lose the exact CatalogEntry target semantics or the triggers/replacement code meaning.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design would retain relatedEntry and the relation-type terminology inside a deprecated CatalogEntry compatibility resource. That would preserve graph fidelity, but at the cost of maintaining obsolete self-references and duplicate relationship channels; a ConceptMap alone would be migration aid, not base compatibility.",
+        "comparisonToExisting": "partially agree: the existing report correctly calls out a hard break for instances using relatedEntry and a partial compatibility alternative, but High impact should be tempered because the path is optional and attached to FMM 0 content with no clear production-use evidence."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -750,5 +798,17 @@
       "R4 wrapper resources replaced by R6 profile or item-specific modeling",
       "R4 required value sets removed with their owning resource"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/CatalogEntry.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 3
+    }
   }
 }

@@ -290,7 +290,22 @@
       "migrationGuidanceMd": "Inventory R4 data and extension definitions for `valueContributor`. If found, map to an R6-approved representation using official guidance if available; otherwise use a site-specific extension, an R6 datatype that captures the same facts, or a retained raw payload for audit. Migration is not guaranteed lossless because `Contributor.type`, `Contributor.name`, and `Contributor.contact` do not have a single base R6 `Extension.value[x]` replacement identified in the inspected inputs.",
       "backwardCompatibilityAnalysisMd": "The breaking change was probably tied to removal of the `Contributor` datatype from the R6 core package. A backward-compatible alternative would have been to leave `Contributor` in `Extension.value[x]` as deprecated or to define a normative cross-version extension for it. That would reduce migration failures but keep legacy surface in the universal Extension value domain.",
       "reviewerNotesMd": "Human review should confirm whether HL7 published a replacement or ConceptMap for R4 `Contributor`; none was found in the inspected local primary inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Extension:TYPE_DOMAIN:Extension.value[x]:cfd69f23",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Extension.value[x]` allowed `valueContributor`, while the R6 choice list removes `Contributor` and the R6 package no longer defines that datatype. A conformant R4 extension instance using `valueContributor` therefore becomes outside the R6 base Extension type domain, and closed generated choice APIs or validators can reject it rather than merely warn. The affected value type appears metadata/attribution-oriented and probably rare, but this is still a direct hard break on the normative Extension datatype without an inspected official replacement or migration map.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Extension snapshot element `Extension.value[x]` includes type code `Contributor`.",
+          "R6 StructureDefinition-Extension snapshot element `Extension.value[x]` omits `Contributor`.",
+          "R4 package index contains `StructureDefinition-Contributor.json`; R6 package/index has no `StructureDefinition-Contributor.json`.",
+          "R4 Contributor carries attribution fields `type`, `name`, and `contact`, so conversion to another single R6 extension value is not mechanically evident from the inspected inputs."
+        ],
+        "fmmEffect": "R4 Extension is normative, with standards-status normative and normative-version 4.0.0 in the local StructureDefinition, so even a rare choice-type removal carries a high stability burden. The metadata-like domain softens safety concern but not the old-valid/new-invalid compatibility concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 extension containing `valueContributor` is structurally valid under the R4 base choice list but invalid under the R6 base choice list; closed validators, parsers, and generated choice accessors may also fail.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design plausibly exists: retain `Contributor` and `valueContributor` as deprecated legacy R6 surface, at least transitionally, or publish an explicit base replacement before removal. The tradeoff is real because R6 validators, schemas, and code generators would keep an otherwise removed datatype, but the datatype is small and the affected artifact is normative, so the compatibility-preserving option deserves renewed standards review.",
+        "comparisonToExisting": "Partially agree with the existing hard/high impact assessment and its recognition that keeping Contributor has implementation debt. I disagree with treating the break as probably justified at the Extension level without stronger rationale or migration evidence; the normative hard break and plausible deprecated-retention design make this a Revisit."
+      }
     },
     {
       "findingId": "Extension:TYPE_DOMAIN:Extension.value[x]:e5b0e67b",
@@ -458,7 +473,22 @@
       "migrationGuidanceMd": "Downgrade transforms should explicitly detect `valueInteger64`, `valueCodeableReference`, `valueRatioRange`, `valueAvailability`, `valueExtendedContactDetail`, and `valueVirtualServiceDetail`. If the business meaning must be preserved, use an extension-specific R4 representation, nested extensions, a raw-payload preservation strategy, or manual review. Do not silently coerce `integer64` into R4 `integer` because range and JSON representation constraints can differ.",
       "backwardCompatibilityAnalysisMd": "The widening itself is probably justified: R6 extensions need to carry R6 datatypes. The backward-compatible path for mixed-version ecosystems is a published downgrade convention, not preventing R6 from using its own datatypes. Without such conventions, each extension URL needs case-by-case mapping.",
       "reviewerNotesMd": "The exact prevalence depends on R6 extension definitions that choose these new value types. The base `Extension` StructureDefinition establishes possibility, not frequency.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Extension:TYPE_DOMAIN:Extension.value[x]:e5b0e67b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The six added R6 value choices widen `Extension.value[x]`; no existing R4 instance becomes invalid in R6 because of this addition. The real compatibility problem is reverse or mixed-version exchange: an R6 extension using `valueCodeableReference`, `valueRatioRange`, `valueAvailability`, `valueExtendedContactDetail`, `valueVirtualServiceDetail`, or `valueInteger64` has no native R4 choice name or datatype definition. That can force lossy downgrade policy, raw preservation, or extension-specific mapping, but allowing R6 extensions to carry R6 datatypes is a coherent base-model goal.",
+        "keyEvidence": [
+          "Type-list diff for `Extension.value[x]` shows R6 adds `integer64`, `CodeableReference`, `RatioRange`, `Availability`, `ExtendedContactDetail`, and `VirtualServiceDetail`.",
+          "The R4 `Extension.value[x]` type list lacks all six added choices.",
+          "R6 package contains StructureDefinitions for the six added datatypes; R4 package does not define those datatypes.",
+          "Cardinality of `Extension.value[x]` remains 0..1 in both R4 and R6."
+        ],
+        "fmmEffect": "Normative status raises the expectation that cross-version behavior be documented, but it does not make a widening change into an R4-to-R6 hard break. The stability concern is mainly for downgrade and round-trip tooling rather than forward migration.",
+        "compatibilityMechanism": "R6-to-R4 loss: valid R6 extensions using the new choice names are not representable as base R4 `Extension.value[x]` values and may be rejected or dropped by strict R4 validators and generated models.",
+        "lessBreakingAlternativeAssessment": "No good less-breaking base R6 design is apparent. Forbidding R6-only datatypes in Extension would preserve R4 downgrade simplicity but would prevent the universal extension mechanism from using the R6 datatype inventory. Published downgrade conventions or raw-payload preservation are useful mitigations, but they are migration mechanisms rather than better base R6 design.",
+        "comparisonToExisting": "Partially agree. The existing report is right that this is not an R4-to-R6 hard break and that there is no practical less-breaking base alternative, but its High impact framing should be read as reverse/mixed-version risk rather than a reason to revisit the R6 base widening."
+      }
     },
     {
       "findingId": "Extension:FLAGS_AND_MODIFIERS:Extension.url-value-summary:c96f6590",
@@ -562,7 +592,23 @@
       "validationAndCompatibilityMd": "R4-valid instances remain R6-valid with respect to these flags. Valid R6 extension instances are still structurally representable in R4 unless they also use R6-only value types. The compatibility risk is behavioral: summary-mode serializers and clients can see different payloads even when the underlying instance is unchanged.",
       "migrationGuidanceMd": "Review code paths that use StructureDefinition `isSummary` metadata, especially `_summary=true`, summary DTOs, caching, privacy filtering, and generated serializers. Add tests showing whether extension `url` and value appear in summary outputs in both R4 and R6 modes.",
       "backwardCompatibilityAnalysisMd": "The change could have been avoided by leaving the flags false, but that would make summary extensions less useful because the value cannot be interpreted safely without the URL. Implementers that require R4-like summary behavior can still filter extension details explicitly.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Extension:FLAGS_AND_MODIFIERS:Extension.url-value-summary:c96f6590",
+        "judgment": "No problem",
+        "narrativeMd": "R6 changes only the `isSummary` metadata for `Extension.url` and `Extension.value[x]` from false to true. The wire names, cardinalities, value domain except for the separate type-list findings, and instance validity are unchanged. Summary-aware serializers may include extension URL/value content in R6 summary views where R4 metadata would not have selected it automatically, but that is metadata-driven output selection rather than an old-valid/new-invalid or generated-property break; including the URL and value also makes summary extensions interpretable.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Extension marks `Extension.url.isSummary` as false.",
+          "R4 StructureDefinition-Extension marks `Extension.value[x].isSummary` as false.",
+          "R6 StructureDefinition-Extension marks `Extension.url.isSummary` as true.",
+          "R6 StructureDefinition-Extension marks `Extension.value[x].isSummary` as true.",
+          "Both elements keep their paths and cardinalities: `Extension.url` remains 1..1 and `Extension.value[x]` remains 0..1."
+        ],
+        "fmmEffect": "Normative status means summary behavior changes should be deliberate, but the mechanism is weak: this is additive metadata/tooling behavior and does not invalidate R4 content. FMM/status therefore does not elevate it beyond an implementation-awareness issue.",
+        "compatibilityMechanism": "metadata/tooling: summary flags can affect `_summary`-style serializers, generated summary DTOs, or element filters, but there is no structural validation break and no required consumer-side semantic remapping.",
+        "lessBreakingAlternativeAssessment": "Leaving both flags false would be less surprising for R4-oriented summary tooling, but it would make generic summaries less useful because an extension without its URL and value cannot be interpreted. Since implementations can still apply server policy, `_elements`, or privacy filters, the alternative does not justify revisiting the base metadata change.",
+        "comparisonToExisting": "Partially agree with the existing report that there is no hard instance break and that keeping the old flags has tradeoffs. I rate the concern lower than its Medium runtime framing because the change is additive summary metadata and does not create a meaningful R4-to-R6 compatibility problem for this path."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -738,5 +784,19 @@
       "R6 additions of `integer64`, `CodeableReference`, `RatioRange`, `Availability`, `ExtendedContactDetail`, and `VirtualServiceDetail` across other polymorphic elements",
       "R4-to-R6 datatype baseDefinition shift through `DataType`"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Extension.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

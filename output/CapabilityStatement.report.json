@@ -337,7 +337,22 @@
       "validationAndCompatibilityMd": "This is old-valid/new-invalid when duplicate `rest.mode` values appear. It does not create a meaningful R6-to-R4 representability issue because a conforming R6 instance with one block per mode is also structurally representable in R4.",
       "migrationGuidanceMd": "Merge duplicate `rest` repetitions with the same `mode`. During the merge, check for conflicts in `security`, `interaction`, `operation`, `searchParam`, and duplicate `resource.type` declarations; do not blindly concatenate if two blocks state inconsistent behavior.",
       "backwardCompatibilityAnalysisMd": "The change could have been introduced as a warning plus merge guidance, but that would leave ambiguity in client interpretation. Making the invariant an error is more disruptive but gives R6 clients a simpler capability model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CapabilityStatement:VALUE_CONSTRAINT:CapabilityStatement:cpb4",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 adds an error invariant that rejects duplicate `CapabilityStatement.rest.mode` values. A valid R4 statement could split server capabilities across multiple `rest` entries for organization or modular publication; R6 requires those entries to be merged, and that merge can require conflict decisions for security, operations, search parameters, and repeated resource declarations. The one-block-per-mode model is cleaner, but on a normative FMM 5 resource this direct instance break is significant enough to merit renewed design attention.",
+        "keyEvidence": [
+          "R4 root constraints include cpb-1, cpb-2, cpb-3, cpb-7, cpb-14, cpb-15, and cpb-16, but no `cpb-4`.",
+          "R6 root constraint `cpb-4` is severity `error` with expression `rest.mode.isDistinct()`.",
+          "R4 `CapabilityStatement.rest` was repeatable and the old uniqueness rule checked resource types within a rest block, not uniqueness of modes across blocks.",
+          "R4 maturity map reports CapabilityStatement as FMM 5 and normative."
+        ],
+        "fmmEffect": "FMM 5/normative raises the burden of justification for an added error invariant. The break is not just presentation churn; it can make previously valid R4 instances fail R6 validation.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with two `rest` repetitions both using `mode = server` or both using `mode = client` becomes invalid under R6 `cpb-4`.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep duplicate modes valid while publishing deterministic merge/conflict rules, or make `cpb-4` a warning/best-practice invariant. That would preserve R4 instances but leaves clients and validators responsible for normalization, so the alternative has real complexity; still, it is plausible enough for a normative hard break to revisit.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard R4-to-R6 validation break and a partial less-breaking alternative, but the fresh FMM-informed judgment treats it as needing standards review rather than merely documenting migration."
+      }
     },
     {
       "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:CapabilityStatement.patchFormat:patchmimetypes",
@@ -516,7 +531,22 @@
       "validationAndCompatibilityMd": "This is old-valid/new-invalid when an R4 `patchFormat` code is a valid MIME type but not one of the R6 patch MIME types. R6-to-R4 representability is low risk because the R6 allowed codes are still MIME-type strings that fit the old broad value set.",
       "migrationGuidanceMd": "Inventory `patchFormat` values and map them to the R6 list where possible. If a server truly supports a non-listed patch format, migration may require an extension, local profile, or ballot/spec feedback rather than a lossless base-resource transform.",
       "backwardCompatibilityAnalysisMd": "The tightening is semantically understandable because the element is specifically about PATCH. A less disruptive design could have retained the broad MIME binding and used a warning invariant, but that would preserve the R4 ambiguity. The base R6 change is therefore probably justified but not fully backward compatible.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:CapabilityStatement.patchFormat:patchmimetypes",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`patchFormat` keeps the same cardinality and primitive type, but its required binding narrows from all BCP-13 MIME types to a small patch-format value set. An R4 instance that listed a non-patch MIME type would fail R6 validation, but the element is specifically about PATCH formats and the R4 comment already framed JSON Patch and XML Patch as the legal patch formats. The break is real but looks proportionate to making the base validator match the element's semantics.",
+        "keyEvidence": [
+          "R4 `CapabilityStatement.patchFormat` is `0..* code` with required binding to `ValueSet/mimetypes|4.0.1`, whose compose includes all `urn:ietf:bcp:13` codes.",
+          "R6 `CapabilityStatement.patchFormat` is still `0..* code` but required-bound to `ValueSet/patchmimetypes|6.0.0-ballot4`.",
+          "R6 `patchmimetypes` enumerates `application/fhir+xml`, `application/fhir+json`, `application/fhir+turtle`, `application/json-patch+json`, and `application/xml-patch+xml`.",
+          "R4 maturity map reports CapabilityStatement as FMM 5 and normative."
+        ],
+        "fmmEffect": "FMM 5/normative makes a required-binding narrowing important, but the affected values are unusual for a patch-format declaration and the R6 goal is directly tied to the element meaning.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 allowed any valid MIME type in `patchFormat`; R6 rejects values outside the five patch MIME codes.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the broad MIME value set and added a warning, preferred binding, or profile guidance for actual patch media types. That would be less disruptive but would also keep non-patch MIME types formally valid in the base model, undermining the computable interoperability goal.",
+        "comparisonToExisting": "partially agree: the existing Medium impact and Partial alternative are directionally right; the fresh judgment accepts the hard break as probably justified because the old binding was broader than the path's intended semantics."
+      }
     },
     {
       "findingId": "CapabilityStatement:TYPE_DOMAIN:CapabilityStatement.rest.resource.type:uri-extended",
@@ -665,7 +695,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is generally widened, but R6-to-R4 conversion is lossy or invalid when the value is a full URL, an additional resource, a past/renamed type not in R4, or when `rest.resource.definition` is populated. Strict R4 validators will reject such values under the required R4 binding.",
       "migrationGuidanceMd": "Treat `rest.resource.type` as a URI/string in R6-aware models, not only as an enum. For down-conversion, map core resource names to R4 codes where possible and preserve additional-resource URLs and `definition` through extensions or sidecar metadata. Test clients that generate resource-specific APIs from CapabilityStatement.",
       "backwardCompatibilityAnalysisMd": "A purely backward-compatible solution would have required extensions for additional resources while leaving the old code element untouched. That would make new resource support harder to discover and less consistent. The R6 base change is justified by the new extensibility goal, but it is not backward-compatible for closed-enum implementations.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CapabilityStatement:TYPE_DOMAIN:CapabilityStatement.rest.resource.type:uri-extended",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes `rest.resource.type` from a required-bound resource-type code to an extensible URI and adds `rest.resource.definition` for additional resources. Existing R4 core resource names remain syntactically usable as URI strings, so this is not mainly an R4-to-R6 instance-validation break. It is a substantial generated-model and runtime change for code that treated the path as a closed enum, but the R6 design serves a clear goal: first-class publication of additional or custom resources.",
+        "keyEvidence": [
+          "R4 `CapabilityStatement.rest.resource.type` is `1..1 code` with required binding to `ValueSet/resource-types|4.0.1`.",
+          "R6 `CapabilityStatement.rest.resource.type` is `1..1 uri` with extensible binding to `ValueSet/extended-resource-types`.",
+          "R6 `extended-resource-types` includes R6 resource types, old FHIR types, and the additional-resources code system.",
+          "R6 adds `CapabilityStatement.rest.resource.definition` as `0..1 canonical(StructureDefinition)` for additional resources."
+        ],
+        "fmmEffect": "FMM 5/normative heightens concern about generated API churn on a central capability path, but the change is a widening for ordinary R4 instances and supports a concrete R6 extensibility goal.",
+        "compatibilityMechanism": "runtime/API/codegen: enum-based R4 clients and validators need to treat the value as a URI/string in R6; R6-to-R4 loss also occurs for additional-resource URIs and the new `definition` element.",
+        "lessBreakingAlternativeAssessment": "Keeping only the R4 closed code field would preserve enum APIs but would fail the R6 goal. Adding a second custom-resource field or relying on extensions would create competing representations and weaker discoverability. The chosen base change is disruptive but proportionate.",
+        "comparisonToExisting": "agree: the existing report's high runtime/R6-to-R4 risk and rejection of a true less-breaking R4-to-R6 base alternative match the primary evidence."
+      }
     },
     {
       "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:rest.resource.interaction.code:r6-fine-grained",
@@ -860,7 +905,21 @@
       "validationAndCompatibilityMd": "Old R4 codes are still accepted by R6. Valid R6 content using the new codes or `conditionalPatch` is not valid against the R4 required value set and cannot be represented losslessly in R4 without extensions or a lossy collapse to broader R4 concepts.",
       "migrationGuidanceMd": "Update enum models, switch statements, generated documentation, and capability-negotiation code to recognize the new codes. For down-conversion, decide whether to drop the precise code, map it to a broader R4 interaction plus legacy conditional fields where possible, or preserve it in extensions.",
       "backwardCompatibilityAnalysisMd": "The new codes could have been published as extensions or kept as booleans only, but that would not provide a uniform vocabulary for interaction declarations. The change is a reasonable R6 modeling improvement with predictable R4 runtime consequences.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:rest.resource.interaction.code:r6-fine-grained",
+        "judgment": "No problem",
+        "narrativeMd": "The R6 interaction value set adds more precise conditional and history-delete codes, and `conditionalPatch` is an optional new boolean. No R4 interaction code was removed, so existing R4 CapabilityStatements remain valid on this path. R4-era closed-enum consumers that ingest R6 content need updates, but this is expected additive vocabulary evolution rather than a concerning R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 `ValueSet/type-restful-interaction` lists `read`, `vread`, `update`, `patch`, `delete`, `history-instance`, `history-type`, `create`, and `search-type`.",
+          "R6 `ValueSet/type-restful-interaction` retains those codes and adds `update-conditional`, `patch-conditional`, `delete-conditional-single`, `delete-conditional-multiple`, `delete-history`, `delete-history-version`, and `create-conditional`.",
+          "R6 adds optional `CapabilityStatement.rest.resource.conditionalPatch` with definition `A flag that indicates that the server supports conditional patch.`"
+        ],
+        "fmmEffect": "FMM 5/normative does not turn an additive value-set expansion into a standards concern when old codes are retained and the new content is optional or R6-only expressivity.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 statements using the new codes or `conditionalPatch` cannot be represented exactly in R4, but R4-to-R6 validation for existing interaction codes is preserved.",
+        "lessBreakingAlternativeAssessment": "There is no useful less-breaking base R6 design for R4 instances because the value set is additive. Keeping only the old broad codes or using extensions would avoid some enum updates but would defeat the R6 goal of computable fine-grained interaction declarations.",
+        "comparisonToExisting": "partially agree: the existing report correctly says this is not a hard R4-to-R6 break and that no base alternative is needed, but its High impact overstates an additive R6 vocabulary change."
+      }
     },
     {
       "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:rest.resource.searchParam.type:resource",
@@ -1001,7 +1060,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe for existing codes. R6-to-R4 is invalid if `resource` appears because R4's required value set does not include it. Runtime code that treats search parameter type as an exhaustive enum may fail before formal validation.",
       "migrationGuidanceMd": "Update generated enums and query-generation logic to handle `resource`. For R6-to-R4 export, either omit such search parameters, map to `special` with documentation, or preserve the exact R6 type in an extension; each option is lossy or profile-specific.",
       "backwardCompatibilityAnalysisMd": "A compatibility-preserving approach would reuse `special`, but that would blur the distinction R6 added. The vocabulary expansion is probably justified, with the main cost falling on R4 down-conversion and enum handling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:rest.resource.searchParam.type:resource",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds `resource` as a search parameter type while retaining all R4 search parameter type codes. Existing R4 content on `rest.resource.searchParam.type` therefore migrates without a validation break. R6-to-R4 export or old closed-enum parsers may need special handling for the new code, but that is a narrow reverse-direction issue and not a reason to revisit the base R6 design.",
+        "keyEvidence": [
+          "R4 `CodeSystem/search-param-type` codes are `number`, `date`, `string`, `token`, `reference`, `composite`, `quantity`, `uri`, and `special`.",
+          "R6 `CodeSystem/search-param-type` retains the R4 codes and adds `resource`.",
+          "R4 and R6 `CapabilityStatement.rest.resource.searchParam.type` remain `1..1 code` with required binding to the release-specific search-param-type value set."
+        ],
+        "fmmEffect": "FMM 5/normative favors caution, but the path is widened rather than narrowed for R4 instances, so the stability concern is low.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 `resource` search parameter type is invalid in R4 and may break closed R4 enums, but old R4 values remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "Mapping `resource` to `special` or using an extension would preserve R4 export shape but lose precision. Since no R4 values are removed, a less-breaking R6 base design is not needed.",
+        "comparisonToExisting": "partially agree: the existing report identifies the reverse-direction enum/down-conversion issue, but its Medium impact is higher than warranted for an additive code with no R4-to-R6 invalidation."
+      }
     },
     {
       "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:CapabilityStatement.fhirVersion:r6-codes",
@@ -1157,7 +1230,23 @@
       "validationAndCompatibilityMd": "R4 instances using R4 version codes remain valid in R6. Native R6 instances using R6 FHIR-version codes are not valid R4 instances because the required R4 value set does not contain those codes.",
       "migrationGuidanceMd": "Do not expect a generic R6-to-R4 conversion to produce an R4-valid CapabilityStatement that still truthfully declares an R6 endpoint. If an R4-shaped compatibility document is required, publish a separate R4-facing CapabilityStatement for the R4 API surface or use explicit cross-version/profile guidance.",
       "backwardCompatibilityAnalysisMd": "No practical backward-compatible base change could avoid this: a version-specific artifact needs version-specific codes. The appropriate mitigation is explicit cross-version publication strategy, not a different element design.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:CapabilityStatement.fhirVersion:r6-codes",
+        "judgment": "Revisit",
+        "narrativeMd": "Primary terminology evidence changes this assessment. The R6 FHIR-version CodeSystem does not retain R4's exact `4.0.1` code; it uses release-family style codes such as `4.0`, `5.0`, and `6.0`. Because `CapabilityStatement.fhirVersion` is mandatory and required-bound, a normal R4 CapabilityStatement with `fhirVersion = 4.0.1` is not valid against the R6 binding. This is a direct break on a central normative path, not merely a native-R6-to-R4 representability issue.",
+        "keyEvidence": [
+          "R4 `CapabilityStatement.fhirVersion` is `1..1 code` with required binding to `ValueSet/FHIR-version|4.0.1`.",
+          "R6 `CapabilityStatement.fhirVersion` is still `1..1 code` with required binding to `ValueSet/FHIR-version|6.0.0-ballot4`.",
+          "R4 `CodeSystem/FHIR-version` includes exact patch-level codes ending with `4.0.0` and `4.0.1`.",
+          "R6 `CodeSystem/FHIR-version` includes `4.0`, `4.1`, `4.2`, `4.3`, `4.4`, `4.5`, `4.6`, `5.0`, and `6.0`, but not `4.0.1` or `6.0.0-ballot4`.",
+          "R4 maturity map reports CapabilityStatement as FMM 5 and normative."
+        ],
+        "fmmEffect": "FMM 5/normative strongly raises the burden of justification because every valid R4 CapabilityStatement has this required element and common R4 values are no longer in the R6 required binding.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance using `fhirVersion = 4.0.1` fails R6 required-binding validation; R6-to-R4 loss also occurs for R6 release-family codes such as `6.0`.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could include historical exact version codes as deprecated or legacy concepts in the R6 value set while also introducing normalized release-family codes. The tradeoff is possible ambiguity between exact patch versions and release families, but that seems manageable with deprecation, mappings, or explicit definitions and deserves review for a mandatory normative element.",
+        "comparisonToExisting": "disagree: the existing report says R4 version codes are retained and frames the issue as pure R6-to-R4 loss. The checked R6 CodeSystem does not support that premise, so both impact and alternative assessment should be revisited."
+      }
     },
     {
       "findingId": "CapabilityStatement:ELEMENT_PRESENCE:r6-only-local-elements:metadata-roles-languages",
@@ -1286,7 +1375,21 @@
       "validationAndCompatibilityMd": "R4 instances remain valid with respect to these additions. R6 instances using the new elements are not R4-representable in the base resource: strict R4 JSON/XML parsers reject unknown elements, and lenient parsers lose information if they ignore them.",
       "migrationGuidanceMd": "When producing R6, populate these elements directly instead of custom extensions where appropriate. For R6-to-R4 export, define explicit extension mappings for each element that must be preserved, especially `identifier`, `actorDefinition`, and `acceptLanguage`.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the least disruptive way to add this information to the base resource. The only more backward-compatible approach would be extensions, but that would make common metadata less standardized and harder to use in generic tooling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CapabilityStatement:ELEMENT_PRESENCE:r6-only-local-elements:metadata-roles-languages",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 elements are optional additions. They let R6 producers express identifiers, version-ordering logic, actor definitions, language negotiation, and a short copyright label directly in the base resource, but their absence in R4 does not invalidate any R4 instance during R4-to-R6 migration. R6-to-R4 conversion may need extensions to preserve the new data, which is normal for optional additions.",
+        "keyEvidence": [
+          "R4 snapshot has no local `CapabilityStatement.identifier`, `versionAlgorithm[x]`, `actorDefinition`, `acceptLanguage`, or `copyrightLabel` elements.",
+          "R6 adds `identifier` as `0..* Identifier`, `versionAlgorithm[x]` as `0..1 string|Coding`, `actorDefinition` as `0..* canonical(ActorDefinition)`, `acceptLanguage` as `0..* code`, and `copyrightLabel` as `0..1 string`.",
+          "All listed additions have minimum cardinality 0."
+        ],
+        "fmmEffect": "FMM 5/normative does not create concern here because the change is additive and optional; it does not reject R4 content.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 data in the new elements has no base R4 slot, but the R4-to-R6 direction has no compatibility break.",
+        "lessBreakingAlternativeAssessment": "Using only extensions would make R6-to-R4 preservation easier but would fragment common metadata and actor/language declarations. Optional base elements are already the least disruptive base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly notes R6-to-R4 loss, but the Medium impact should not be treated as a meaningful R4-to-R6 problem."
+      }
     },
     {
       "findingId": "CapabilityStatement:TYPE_DOMAIN:CapabilityStatement.implementation.description:string-markdown",
@@ -1405,7 +1508,22 @@
       "validationAndCompatibilityMd": "Simple R4 strings are generally valid markdown strings, so old-valid/new-invalid risk is low. R6 markdown content can be carried as an R4 string, but R4 systems may render or escape it differently and may not apply markdown sanitization rules.",
       "migrationGuidanceMd": "Regenerate models so the primitive type matches R6. Review UI paths that display implementation descriptions: render markdown only through the project's normal sanitized markdown pipeline, and add fixtures with markdown syntax and primitive extensions on `_description`.",
       "backwardCompatibilityAnalysisMd": "The change could have been avoided by leaving the type as `string`, but that would under-specify display semantics. Because the serialized shape is stable, this is a moderate codegen/runtime risk rather than a hard instance break.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CapabilityStatement:TYPE_DOMAIN:CapabilityStatement.implementation.description:string-markdown",
+        "judgment": "Revisit",
+        "narrativeMd": "`implementation.description` remains a required JSON string property, but its FHIR primitive type changes from `string` to `markdown`. Ordinary R4 text generally remains valid markdown, so this is not a hard instance break. The concern is avoidable generated-model and rendering/security churn on a mandatory normative element: implementations may regenerate a different primitive type and UIs may start rendering markdown where they previously displayed plain text.",
+        "keyEvidence": [
+          "R4 `CapabilityStatement.implementation.description` is `1..1 string`.",
+          "R6 `CapabilityStatement.implementation.description` is `1..1 markdown`.",
+          "The element id, cardinality, and JSON property name are unchanged.",
+          "R4 maturity map reports CapabilityStatement as FMM 5 and normative."
+        ],
+        "fmmEffect": "FMM 5/normative raises the bar for changing a mandatory element's primitive type, even when the wire shape is mostly stable.",
+        "compatibilityMechanism": "runtime/API/codegen: generated models, primitive-type checks, and display pipelines can change from plain string handling to markdown-aware handling; old simple instances usually still validate.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking design is to keep the primitive as `string` and add definition/comment guidance that markdown syntax may be present and must be rendered through safe markdown handling. That preserves R4 model APIs while meeting most display needs, though it sacrifices the generic tooling signal provided by the `markdown` primitive.",
+        "comparisonToExisting": "partially agree: the existing Medium impact and Yes alternative are persuasive, but the fresh judgment gives the less-breaking design more weight because the affected element is mandatory and normative."
+      }
     },
     {
       "findingId": "CapabilityStatement:SEMANTIC_OR_CONFORMANCE_TEXT:CapabilityStatement.imports:overlap-refinement",
@@ -1510,7 +1628,21 @@
       "migrationGuidanceMd": "Review import-flattening logic. For R6, traverse the whole import hierarchy, detect overlap among sibling imports, and allow the importing statement to refine imported resource, operation, interaction, search parameter, messaging endpoint, or document declarations according to local policy.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative would preserve the old no-overlap rule and add a new refinement extension or element. The R6 text is more flexible but requires processors to implement more nuanced merge rules.",
       "reviewerNotesMd": "Human review of the corresponding R6 narrative page or change proposal would improve confidence in exactly how refinements should be resolved when they conflict with imported declarations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CapabilityStatement:SEMANTIC_OR_CONFORMANCE_TEXT:CapabilityStatement.imports:overlap-refinement",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The `imports` path keeps the same shape, but R6 rewrites the overlap rule: sibling imports and their hierarchies must not overlap, while the importing CapabilityStatement may overlap to refine imported rules. This can affect import-flattening or conformance QA code that implemented a broader R4 no-overlap interpretation. The change is semantic rather than structural, and it makes intentional refinement computable enough that the migration burden appears proportionate.",
+        "keyEvidence": [
+          "R4 `CapabilityStatement.imports` is `0..* canonical(CapabilityStatement)` and says directly or indirectly imported CapabilityStatements SHALL NOT overlap.",
+          "R6 `CapabilityStatement.imports` remains `0..* canonical(CapabilityStatement)` but says sibling imports SHALL NOT overlap and the importing statement may refine imported rules.",
+          "No cardinality, type, or computable invariant changed on the path."
+        ],
+        "fmmEffect": "FMM 5/normative means semantic conformance changes deserve attention, but the change is documentation/conformance behavior only and addresses a real modeling need for refinements.",
+        "compatibilityMechanism": "semantic/documentation: R4-era import processors may reject R6 refinement patterns or apply the wrong overlap scope; base instance validation is unchanged.",
+        "lessBreakingAlternativeAssessment": "R6 could have preserved the broad R4 wording and added a separate refinement element, marker, or profile convention. That would protect older assumptions but would introduce duplicate ways to express import refinement and more hierarchy-processing rules, so the less-breaking design has meaningful costs.",
+        "comparisonToExisting": "partially agree: the existing Medium impact and Partial alternative are reasonable, though the fresh review treats this as proportionate semantic evolution rather than a likely hard break."
+      }
     },
     {
       "findingId": "CapabilityStatement:SEMANTIC_OR_CONFORMANCE_TEXT:rest.resource.profile:supportedProfile-conformance",
@@ -1628,7 +1760,22 @@
       "migrationGuidanceMd": "Review CapabilityStatements that declare both `rest.resource.profile` and `supportedProfile`. Confirm that supported profiles actually derive from or conform to the system-wide profile, and update documentation/client assumptions about which profile applies to all instances versus specific use cases.",
       "backwardCompatibilityAnalysisMd": "This could have been left as non-computable guidance outside the StructureDefinition, but placing it in the element definitions helps generic tooling and implementers. Because it is not a formal invariant, it is less disruptive than a validation rule but still deserves migration review.",
       "reviewerNotesMd": "A narrative-page review would help determine whether R6 expects formal derivation checks, declared conformance checks, or only a conceptual relationship.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CapabilityStatement:SEMANTIC_OR_CONFORMANCE_TEXT:rest.resource.profile:supportedProfile-conformance",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 makes the profile hierarchy explicit: if `rest.resource.profile` is present, every `supportedProfile` for that resource must conform to it. R4 already described `profile` as applying to all resources of the type and `supportedProfile` as use-case-specific, so this is more a tightening/clarification than a new wire constraint. QA tools may start flagging statements whose supported profiles are not derived from the system-wide profile, but the rule is consistent with the path's intended meaning.",
+        "keyEvidence": [
+          "R4 `rest.resource.profile` comment says the profile applies to all resources of the type and is the system's supported superset.",
+          "R6 `rest.resource.profile` comment says all `supportedProfile` entries must conform to this profile.",
+          "R6 `rest.resource.supportedProfile` comment says supported profiles must conform to the resource profile if present and are use-case-specific.",
+          "The relevant paths remain canonical references with unchanged cardinalities."
+        ],
+        "fmmEffect": "FMM 5/normative raises concern for conformance text changes, but the R6 wording largely formalizes the existing system-wide-versus-use-case distinction rather than changing instance structure.",
+        "compatibilityMechanism": "semantic/documentation: validators or QA tooling may enforce a profile hierarchy that R4 content did not always make explicit; JSON/XML validation shape is unchanged.",
+        "lessBreakingAlternativeAssessment": "A less-breaking approach would leave the R4 wording and publish the hierarchy rule as best-practice guidance or a profile-specific check. That would reduce surprise for older tooling but weaken generic conformance tooling's ability to reason about the declared profile hierarchy.",
+        "comparisonToExisting": "partially agree: the existing Medium impact and Partial alternative are plausible, but the fresh review views the change as a proportionate normative clarification rather than a redesign concern."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1847,5 +1994,19 @@
       "Resource type code-to-uri changes for additional resource support",
       "Base Resource/DomainResource inherited language, extension, and modifierExtension changes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/CapabilityStatement.fresh-review.json",
+    "findingDecisionCount": 10,
+    "matchedFindingDecisionCount": 10,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 4,
+      "No problem": 3
+    }
   }
 }

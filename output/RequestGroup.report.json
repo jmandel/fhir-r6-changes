@@ -299,7 +299,21 @@
       "migrationGuidanceMd": "Add an explicit resource-level migration step: rewrite `resourceType`, canonical profile URLs, type-specific routes, search parameter names, subscriptions, stored discriminator values, and generated class references from RequestGroup to RequestOrchestration. Then apply child-element transforms from the remaining findings. Regression tests should include parser dispatch, validation, persistence schema, REST endpoint names, and profile canonical references.",
       "backwardCompatibilityAnalysisMd": "The same domain goal could have been achieved with a deprecated alias or compatibility StructureDefinition, but the local R6 package did not include one. A major-version rename may be acceptable for specification clarity, but it is maximally disruptive for deployed wire formats and generated APIs.",
       "reviewerNotesMd": "Although no official diff was available, the package evidence strongly supports treating RequestOrchestration as the successor rather than declaring the artifact simply deleted.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RequestGroup:ARTIFACT_IDENTITY:root:8a6f3c",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a true resource-identity break, not just an element remodel. A stored or exchanged R4 instance dispatches as RequestGroup, while the R6 package has no RequestGroup StructureDefinition and instead defines RequestOrchestration. That affects wire validation, parser dispatch, generated classes, canonical profile URLs, REST endpoints, and references. The successor name may be clearer, but the same broadening could plausibly have been done while preserving the RequestGroup resource identity or with a transitional compatibility alias.",
+        "keyEvidence": [
+          "R4 StructureDefinition has id/type/url RequestGroup at http://hl7.org/fhir/StructureDefinition/RequestGroup.",
+          "R6 package index contains StructureDefinition-RequestOrchestration.json and no StructureDefinition-RequestGroup.json.",
+          "R6 CodeSystem-fhir-old-types contains RequestGroup as an old type name."
+        ],
+        "fmmEffect": "R4 RequestGroup is FMM 2 and trial-use, so there is not a normative stability burden. FMM 2 is neutral under the framework, and it does not erase the high blast radius of a top-level resource rename.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances and APIs keyed by resourceType RequestGroup are not base R6 RequestOrchestration without an explicit resource-level transform.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained RequestGroup as the base resource identity while updating its scope to orchestration, or supplied a transitional alias. Keeping the old name has some terminology cost, and an alias can create duplicate canonical surfaces, but the alternative is plausible and lower cost than breaking every resource-type dispatch.",
+        "comparisonToExisting": "agree with the existing report's critical impact and Yes alternative judgment; the fresh review adds that FMM 2 is neutral rather than strongly protective, but still supports Revisit because this is a top-level identity break."
+      }
     },
     {
       "findingId": "RequestGroup:ELEMENT_PRESENCE_OR_IDENTITY:reason:4f928d",
@@ -488,7 +502,21 @@
       "validationAndCompatibilityMd": "Old `reasonCode` and `reasonReference` properties are unknown in R6 RequestOrchestration, so R4 instances using them become invalid after only the resource rename. R6 instances using `reason.concept` or `reason.reference` can generally be split back into R4, but the transform must preserve order/extensions where relevant and reject or extend any CodeableReference content that cannot be cleanly classified.",
       "migrationGuidanceMd": "Map each R4 `reasonCode` repetition to `reason.concept` and each `reasonReference` repetition to `reason.reference`. Reverse transforms should split by populated CodeableReference child. Test concept-only, reference-only, mixed, repeated, and extension-bearing reasons. If order across old arrays matters to an implementation, preserve it with an extension because R4 had two independent arrays.",
       "backwardCompatibilityAnalysisMd": "A less breaking migration path would have retained the old fields as deprecated aliases. That would make validation and code generation more complex but would avoid rejecting existing R4 data. The current design prioritizes a single modern representation over wire compatibility.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RequestGroup:ELEMENT_PRESENCE_OR_IDENTITY:reason:4f928d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The reason fields moved from two R4 sibling arrays, reasonCode and reasonReference, to one R6 reason array of CodeableReference. That is a hard path-level break for old JSON and generated property names after the resource rename. However, CodeableReference is the R6 idiom for exactly this concept-or-reference pattern, and a base model that keeps both old fields plus the new unified field would create duplicate representations and conflict rules.",
+        "keyEvidence": [
+          "R4 RequestGroup.reasonCode is 0..* CodeableConcept.",
+          "R4 RequestGroup.reasonReference is 0..* Reference to Condition, Observation, DiagnosticReport, or DocumentReference.",
+          "R6 RequestOrchestration.reason is 0..* CodeableReference with the same reference target set."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It leaves the real old-valid/new-invalid path break to drive the judgment, but does not by itself make the unification suspect.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 reasonCode/reasonReference properties are not R6 element names; reverse conversion must split CodeableReference repetitions back into concept or reference.",
+        "lessBreakingAlternativeAssessment": "Partial. Deprecated aliases for reasonCode and reasonReference could preserve old instances for one release, but they would duplicate the same clinical/business reason alongside reason and require precedence, ordering, search, and extension reconciliation.",
+        "comparisonToExisting": "partially agree with the existing high impact and Partial alternative judgment; the break is real, but the fresh review treats the R6 design goal and duplicate-field tradeoff as proportionate."
+      }
     },
     {
       "findingId": "RequestGroup:REFERENCE_TARGET:subject:9d21a4",
@@ -632,7 +660,21 @@
       "validationAndCompatibilityMd": "No old R4 subject target was removed, so R4-to-R6 validation is preserved for this element. Valid R6 instances using one of the added targets are not base-R4-representable and can fail R4 validation or generated model type checks.",
       "migrationGuidanceMd": "For R4-to-R6, no value transform is needed beyond the resource rename. For R6-to-R4, either reject non-Patient/Group subjects, map them through an extension, or define a business-specific surrogate such as a Group when semantically appropriate. Test all added target types if bidirectional conversion is required.",
       "backwardCompatibilityAnalysisMd": "The change is additive in R6 and therefore relatively safe for forward migration. The incompatible aspect is inherent to adding new base expressivity that R4 did not support; only an extension or profile convention could preserve it in R4.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RequestGroup:REFERENCE_TARGET:subject:9d21a4",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens subject targets while retaining Patient and Group. An R4 subject value remains valid after the resource-level migration, so this is not an R4-to-R6 break for the affected path. Systems that down-convert new R6 non-patient/non-group subjects need policy, but that is the expected cost of additive R6 expressivity rather than a base design problem.",
+        "keyEvidence": [
+          "R4 RequestGroup.subject targets Patient and Group.",
+          "R6 RequestOrchestration.subject targets Patient and Group plus CareTeam, Device, HealthcareService, Location, Organization, Practitioner, PractitionerRole, and RelatedPerson.",
+          "Cardinality remains 0..1 Reference."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because the change is additive for R4-to-R6, maturity does not add a stability concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: only R6 instances using added subject target types lack a base R4 subject representation; old R4 subject values are preserved.",
+        "lessBreakingAlternativeAssessment": "Not applicable. A less-breaking base design is not needed because no R4 target type was removed. Constraining the new targets would reduce the intended generality of RequestOrchestration and would only help reverse conversion.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies reverse representability risk, but its Medium impact framing overstates the R4-to-R6 compatibility concern."
+      }
     },
     {
       "findingId": "RequestGroup:SERIALIZATION_OR_CODEGEN:action.participant:5dc0e1",
@@ -835,7 +877,21 @@
       "validationAndCompatibilityMd": "A direct R4 `action.participant.reference` is not a valid R6 participant field after resource migration. Valid R6 participants may also lack an `actorReference` and describe a type/role/function constraint instead, or use canonical actors and target resource types R4 cannot carry. The break is both validation-level and runtime/codegen-level.",
       "migrationGuidanceMd": "Map each R4 participant Reference to an R6 participant repetition with `actorReference`. If the referenced type is known, optionally set R6 `participant.type` using terminology-aware mapping, but be careful with `RelatedPerson` because the code spelling changed from `related-person` to `relatedperson`. For down-conversion, only actor references to R4-supported targets can be placed back into R4 `participant`; preserve roles/functions/canonical actors with extensions or flag for manual review.",
       "backwardCompatibilityAnalysisMd": "R6's richer participant model is understandable, but replacing rather than augmenting the direct Reference field makes existing instances and generated APIs break. A retained shortcut would have reduced migration cost but increased modeling redundancy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RequestGroup:SERIALIZATION_OR_CODEGEN:action.participant:5dc0e1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "This is a real serialization and generated-model break: R4 action.participant was an array of Reference values, while R6 action.participant is a backbone component and the actor is nested under actorReference or actorCanonical. Simple participant references can be mechanically wrapped, but the R6 model also supports roles, functions, canonical actors, and broader actor targets. Keeping the old direct Reference shape in base R6 would preserve old instances but would duplicate participant semantics and leave conflict handling to implementers.",
+        "keyEvidence": [
+          "R4 RequestGroup.action.participant is 0..* Reference to Patient, Practitioner, PractitionerRole, RelatedPerson, or Device.",
+          "R6 RequestOrchestration.action.participant is 0..* BackboneElement.",
+          "R6 RequestOrchestration.action.participant.actor[x] carries canonical or Reference actor choices with a broader target set."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The performer/participant path can affect workflow behavior, but the maturity level does not create a stronger-than-usual stability burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 participant item with a direct reference is the wrong R6 shape; generated APIs change from Reference[] to participant components.",
+        "lessBreakingAlternativeAssessment": "Partial. A deprecated direct participant Reference or separate participantDetail element could preserve simple R4 cases, but it would create two ways to express the same actor and would not cover R6-only role, function, canonical, or expanded target semantics without additional rules.",
+        "comparisonToExisting": "agree with the existing high impact and Partial alternative judgment, while judging the break proportionate because the R6 participant model adds substantive capability."
+      }
     },
     {
       "findingId": "RequestGroup:ELEMENT_PRESENCE_OR_IDENTITY:relatedAction.actionId:3bf0af",
@@ -998,7 +1054,21 @@
       "validationAndCompatibilityMd": "R4 instances with `relatedAction.actionId` become invalid in R6 because R6 requires `targetId`. R6 instances with `targetId` are invalid in R4. The migration is deterministic when no extensions depend on the old element id/name.",
       "migrationGuidanceMd": "Rename `action.relatedAction.actionId` to `targetId` during forward migration and reverse the rename during down-conversion. Include tests for nested actions, multiple relatedAction repetitions, extension elements attached to the renamed primitive, and references to missing action ids.",
       "backwardCompatibilityAnalysisMd": "Because the primitive type, cardinality, and semantics are stable, this is the kind of break most amenable to a backward-compatible alias. The R6 choice favors clearer naming over preserving old wire compatibility.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "RequestGroup:ELEMENT_PRESENCE_OR_IDENTITY:relatedAction.actionId:3bf0af",
+        "judgment": "Revisit",
+        "narrativeMd": "The old mandatory relatedAction.actionId was renamed to targetId with the same primitive type, same cardinality, and the same role of identifying the related action. That makes otherwise valid migrated R4 relatedAction objects fail strict R6 validation unless a key rename is applied. Since this appears mainly to be a naming clarification, retaining actionId and clarifying its definition would have preserved compatibility with little modeling cost.",
+        "keyEvidence": [
+          "R4 RequestGroup.action.relatedAction.actionId is 1..1 id.",
+          "R6 RequestOrchestration.action.relatedAction.targetId is 1..1 id.",
+          "The surrounding relatedAction relationship element remains required and uses the action relationship type value set."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but a same-type same-cardinality wire rename still needs a concrete justification because it creates an avoidable old-valid/new-invalid break.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 relatedAction.actionId is unknown in R6 and the required R6 targetId is absent until transformed.",
+        "lessBreakingAlternativeAssessment": "Yes. Keeping the actionId wire name and updating its prose to say it is the target action id would meet the apparent clarification goal without duplicate fields. An alias field is also possible but less attractive because it would duplicate semantics.",
+        "comparisonToExisting": "agree with the existing high impact and Yes alternative judgment; this is a narrow but avoidable hard path rename."
+      }
     },
     {
       "findingId": "RequestGroup:VALUE_CONSTRAINT:action.definition:1b7c96",
@@ -1138,7 +1208,21 @@
       "validationAndCompatibilityMd": "Old R4 actions are not invalidated as long as they had exactly one of `resource` or nested `action`. Valid R6 definition-only actions are invalid in R4 and cannot be transformed losslessly without extension or materialization into a request/resource.",
       "migrationGuidanceMd": "Forward migration does not need to populate `definition[x]`. Down-conversion should decide whether to reject definition-only actions, materialize a concrete request/resource, or preserve the definition in an extension. Test the rqg-1 invariant for all three branches and ensure transforms never create an action with multiple mutually exclusive branches.",
       "backwardCompatibilityAnalysisMd": "The exactly-one invariant is a reasonable update once `definition[x]` exists. R4 compatibility could only be approximated with extensions or by retaining no-op compatibility fields; neither would make base R4 systems semantically understand the new branch.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RequestGroup:VALUE_CONSTRAINT:action.definition:1b7c96",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds definition[x] as a third mutually exclusive way to specify an action and updates rqg-1 accordingly. R4-valid actions that had exactly one of resource or nested action still satisfy the R6 exactly-one rule, so this does not invalidate old action instances. Definition-only R6 actions cannot be represented in base R4, but that is an additive R6 capability rather than a less-compatible way to express old R4 content.",
+        "keyEvidence": [
+          "R4 rqg-1 expression is resource.exists() != action.exists().",
+          "R6 rqg-1 expression requires exactly one of resource, action, or definition.",
+          "R6 RequestOrchestration.action.definition[x] is 0..1 canonical or uri."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because the old valid resource/action cases remain valid, the maturity context does not create a revisit concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: definition-only R6 actions have no base R4 slot, but R4 actions with resource or nested action are still valid under the R6 constraint.",
+        "lessBreakingAlternativeAssessment": "Not applicable. The base R6 change is additive for R4-to-R6. Avoiding definition[x] would reduce R6 expressivity; R4 extensions or materialization are reverse-conversion mitigations, not less-breaking R6 base designs.",
+        "comparisonToExisting": "partially agree: the existing report correctly notes R6-to-R4 loss and no applicable alternative, but the fresh review downgrades the R4-to-R6 concern from High because old cases are preserved."
+      }
     },
     {
       "findingId": "RequestGroup:ELEMENT_PRESENCE_OR_IDENTITY:r6-action-additions:aa83de",
@@ -1292,7 +1376,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe for these additions because they are optional. R6-to-R4 is not safe: R4 validators reject the new element names, and generated R4 classes have no properties for them. If omitted, the converted R4 resource may remain syntactically valid but semantically incomplete.",
       "migrationGuidanceMd": "For R6-to-R4, define an explicit retention policy for each new field: extensions, companion PlanDefinition/ActivityDefinition references, out-of-band metadata, or rejection. Do not silently drop `input`, `output`, `dynamicValue`, `transform`, `goal`, or `applicabilityBehavior` in safety-sensitive workflows. Test the `pld-0` and `pld-1` invariants before conversion so invalid R6 data is not migrated.",
       "backwardCompatibilityAnalysisMd": "These are primarily additive R6 enhancements and are not avoidable if the base resource is meant to carry richer orchestration semantics. Backward compatibility is possible only through extensions or constrained profiles that avoid the new elements.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RequestGroup:ELEMENT_PRESENCE_OR_IDENTITY:r6-action-additions:aa83de",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 root and action fields are optional additions: goals, linkId, input/output, location, applicability behavior, endRelationship, transform, and dynamicValue. They can be important for R6 orchestration and may be lossy when down-converted, but they do not make existing R4 RequestGroup content invalid after the resource and element migrations. Treating every optional R6 feature as a breaking base design would overstate the compatibility issue.",
+        "keyEvidence": [
+          "R6 adds optional RequestOrchestration.goal and action.goal Reference(Goal).",
+          "R6 adds optional action.input and action.output backbones with pld-0/pld-1 constraints.",
+          "R6 adds optional action.location, action.applicabilityBehavior, relatedAction.endRelationship, action.transform, and action.dynamicValue."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It does not require R6 to avoid optional new orchestration fields that preserve old content.",
+        "compatibilityMechanism": "R6-to-R4 loss: new optional R6 fields have no base R4 elements and need extension, omission, or rejection policy for down-conversion.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Optional additions are already the less-disruptive way to add R6 expressivity. Profiles that avoid the new fields or R4 extensions can help round-tripping, but they are not different base R6 designs.",
+        "comparisonToExisting": "partially agree: the existing report correctly flags down-conversion loss and no applicable alternative, but the fresh review does not treat optional additions as a high R4-to-R6 break."
+      }
     },
     {
       "findingId": "RequestGroup:TYPE_DOMAIN:action.timing:67c4bb",
@@ -1454,7 +1552,21 @@
       "validationAndCompatibilityMd": "R4 instances using old timing choices remain valid after forward migration. R6 RelativeTime timing is not R4-representable in the base choice list and may require extension or approximation, which can alter scheduling semantics.",
       "migrationGuidanceMd": "Update generated choice-handling code to include `RelativeTime`. For down-conversion, choose one of: reject RelativeTime, preserve it in an extension, or map only simple offset cases to an approximate R4 Duration/Range/Timing with documented semantic loss. Test relative timing with contextReference, contextDefinition, contextPath, and offset variants.",
       "backwardCompatibilityAnalysisMd": "Adding a new choice type is a standard way to add expressivity in FHIR. It is forward-compatible but not backward-representable; preserving compatibility would require avoiding the new datatype or using extensions instead.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RequestGroup:TYPE_DOMAIN:action.timing:67c4bb",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds RelativeTime to action.timing[x] while retaining every R4 timing choice. Existing R4 dateTime, Age, Period, Duration, Range, and Timing values remain representable in R6. R6 timingRelativeTime requires reverse-conversion policy, but the path-level R4-to-R6 compatibility concern is minimal because the choice domain was widened rather than narrowed.",
+        "keyEvidence": [
+          "R4 RequestGroup.action.timing[x] choices are dateTime, Age, Period, Duration, Range, and Timing.",
+          "R6 RequestOrchestration.action.timing[x] retains those choices and adds RelativeTime.",
+          "Cardinality remains 0..1."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because no R4 timing choice was removed, stability pressure is not materially implicated.",
+        "compatibilityMechanism": "R6-to-R4 loss: timingRelativeTime cannot be represented in the R4 base choice list without extension or approximation; R4 timing values remain valid forward.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Widening the choice list is the compatibility-preserving base design for adding event-relative timing. Avoiding RelativeTime would limit R6 capability and would not improve R4-to-R6 migration.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies reverse loss and no applicable alternative, but the fresh review downgrades the concern because this is an additive choice."
+      }
     },
     {
       "findingId": "RequestGroup:TYPE_DOMAIN:action.markdown:0ee27a",
@@ -1587,7 +1699,21 @@
       "validationAndCompatibilityMd": "A typical R4 string value should still be acceptable as R6 markdown, so this is not classified as a hard instance break. R6 markdown content can be placed in an R4 string field as text, but R4 systems may render markdown syntax literally or fail to sanitize formatted content as expected.",
       "migrationGuidanceMd": "Regenerate models and update code paths that typed these fields as plain string primitives. Review UI rendering and security sanitization for markdown. If down-converting, decide whether to keep markdown markup as plain text, strip formatting, or preserve rendering intent out of band.",
       "backwardCompatibilityAnalysisMd": "Changing the primitive type gives consumers a clearer signal that formatted text is intended. It could have been less disruptive by retaining `string` with narrative guidance, but that would lose useful type-level semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "RequestGroup:TYPE_DOMAIN:action.markdown:0ee27a",
+        "judgment": "No problem",
+        "narrativeMd": "The primitive type changes from string to markdown for description and textEquivalent, but markdown is a specialization of string and the JSON scalar shape remains a string. Old R4 text values should not become invalid solely because of this change. Generated primitive classes and UI rendering/sanitization may need updates, but the practical compatibility effect is low and the markdown type provides a useful computable signal for human-facing text.",
+        "keyEvidence": [
+          "R4 RequestGroup.action.description and action.textEquivalent are type string.",
+          "R6 RequestOrchestration.action.description and action.textEquivalent are type markdown.",
+          "R6 StructureDefinition-markdown has baseDefinition http://hl7.org/fhir/StructureDefinition/string and no additional lexical constraint in the checked snapshot."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The absence of a wire-shape or lexical narrowing keeps this from becoming a stability concern.",
+        "compatibilityMechanism": "runtime/API/codegen: generated primitive types and renderers may change, but old JSON string values remain string-shaped and should remain acceptable as markdown.",
+        "lessBreakingAlternativeAssessment": "Partial but not compelling. R6 could have kept string and documented Markdown content, which would reduce type churn but lose the computable markdown signal. Given markdown's string derivation and low instance risk, a less-breaking design is not necessary for base compatibility.",
+        "comparisonToExisting": "disagree with the existing Medium impact and Yes alternative emphasis; the fresh review treats this as low practical impact rather than a design issue."
+      }
     },
     {
       "findingId": "RequestGroup:TERMINOLOGY_BINDING:status-intent:2a49d1",
@@ -1772,7 +1898,22 @@
       "validationAndCompatibilityMd": "Old R4 status/intent values remain valid in R6 based on local CodeSystem comparison. R6 instances using the added codes are invalid in R4 required bindings. Because the fields are required and modifier, a converter cannot simply omit them.",
       "migrationGuidanceMd": "Update enums and switch statements for R6. For down-conversion, create an explicit ConceptMap/policy for `ended`, `solicit-offer`, and `offer-response`, with a documented fallback if no faithful R4 code exists. Test all status and intent values, especially modifier-sensitive workflow branches.",
       "backwardCompatibilityAnalysisMd": "Adding codes is the least disruptive terminology expansion for forward migration, but it still creates backward-representability risk. A formal cross-version ConceptMap would be the most useful compatibility mechanism.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RequestGroup:TERMINOLOGY_BINDING:status-intent:2a49d1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The required status and intent bindings retain the R4 codes and add new R6 codes. That avoids old-valid/new-invalid terminology failure for R4 instances, but status and intent are required modifier elements, so R6 consumers, closed enums, state machines, and R6-to-R4 converters must handle ended, solicit-offer, and offer-response deliberately. The base design is still proportionate because adding codes while preserving old ones is the least disruptive way to expand workflow semantics.",
+        "keyEvidence": [
+          "R4 request-status codes include draft, active, on-hold, revoked, completed, entered-in-error, and unknown.",
+          "R6 request-status retains those and adds ended.",
+          "R6 request-intent retains R4 intent codes and adds solicit-offer and offer-response.",
+          "RequestGroup.status/intent and RequestOrchestration.status/intent are 1..1 required bindings and modifier elements."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because these are required modifier elements, the runtime and reverse-conversion effects still matter, but FMM 2 does not demand a stricter compatibility design.",
+        "compatibilityMechanism": "runtime/API/codegen: closed enum and workflow logic must handle new required modifier codes; R6-to-R4 loss also applies when no faithful R4 code exists.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6. R6 retained the old codes and only added new ones. ConceptMaps or local fallback policies are important mitigations for R6-to-R4, but they are not less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree with the existing high reverse/runtime concern and Not applicable alternative judgment; the fresh review emphasizes that there is no old-valid/new-invalid terminology break."
+      }
     },
     {
       "findingId": "RequestGroup:SEMANTIC_OR_CONFORMANCE_TEXT:action.documentation:77f35e",
@@ -1903,7 +2044,21 @@
       "validationAndCompatibilityMd": "This is not a hard instance break under standard validation because the new invariant is a warning. It can become operationally breaking where quality gates fail builds or imports on warnings.",
       "migrationGuidanceMd": "Classify existing `action.documentation.type` values. Values outside documentation/justification/citation should either move to a more appropriate R6 field, be preserved with an extension, or be accepted with an explicit warning policy. Do not assume warning-free validation if old data used documentation for dependencies or related artifacts.",
       "backwardCompatibilityAnalysisMd": "Using warning severity rather than error severity is the backward-compatible design. The remaining risk comes from local operational policy rather than the base specification rejecting instances.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "RequestGroup:SEMANTIC_OR_CONFORMANCE_TEXT:action.documentation:77f35e",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds a warning-level rqg-2 expectation that action.documentation RelatedArtifact.type should be documentation, justification, or citation. The element type and cardinality are unchanged, and the new constraint is not error severity. This can affect local warning-as-error pipelines, but standard base validation should not reject old instances solely for this rule.",
+        "keyEvidence": [
+          "R4 RequestGroup.action.documentation is 0..* RelatedArtifact with no RequestGroup-specific type warning.",
+          "R6 RequestOrchestration.action.documentation remains 0..* RelatedArtifact.",
+          "R6 adds rqg-2 with severity warning and expression type in documentation, justification, or citation."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The warning-level nature of the change keeps it from becoming a base compatibility problem.",
+        "compatibilityMechanism": "warning-level: old instances may emit a conformance warning if RelatedArtifact.type is outside the preferred set, but the base rule is not an error.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Warning severity is already the compatibility-conscious base design. Replacing it with prose-only guidance would be softer but would also remove useful computable guidance.",
+        "comparisonToExisting": "agree with the existing low impact and Not applicable alternative judgment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2100,5 +2255,19 @@
       "RelativeTime choice additions",
       "request-status/request-intent R6-only code additions"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/RequestGroup.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 3,
+      "No problem": 6
+    }
   }
 }

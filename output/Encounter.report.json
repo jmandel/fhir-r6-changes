@@ -337,7 +337,21 @@
       "migrationGuidanceMd": "Create a status map. Likely mappings include `finished` to `completed` and `onleave` to `on-hold`; treat `arrived`/`triaged` as subjectStatus or businessStatus with local review.",
       "backwardCompatibilityAnalysisMd": "Deprecated aliases or a normative ConceptMap would have reduced breakage while preserving the cleaner R6 model.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "No official local R4-to-R6 status ConceptMap was found."
+      "reviewerNotesMd": "No official local R4-to-R6 status ConceptMap was found.",
+      "freshReview": {
+        "findingId": "Encounter:TERMINOLOGY_BINDING:Encounter.status:status-codes",
+        "judgment": "Revisit",
+        "narrativeMd": "`Encounter.status` remains mandatory and modifier, but the required code set no longer accepts several R4 lifecycle/status values. That is a direct validation break for central workflow data, and the migration is not purely mechanical for `arrived` and `triaged` because R6 moved that meaning toward subject/business status rather than the lifecycle status.",
+        "keyEvidence": [
+          "R4 StructureDefinition Encounter.status: 1..1 code, required encounter-status|4.0.1, modifier",
+          "R6 StructureDefinition Encounter.status: 1..1 code, required encounter-status|6.0.0-ballot4, modifier",
+          "Local CodeSystems: R4 has arrived/triaged/onleave/finished; R6 instead has on-hold/discharged/completed/discontinued"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral: they do not create a normative stability burden, but they also do not soften a required modifier status code used in routine Encounter workflows.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances using removed required-binding codes fail R6 validation; there is also R6-to-R4 loss for new R6 status codes.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept the R4 codes as deprecated aliases while adding subjectStatus/businessStatus and new lifecycle codes. The tradeoff is real because it keeps patient-state concepts mixed into a modifier lifecycle field, but the required-code break is important enough to revisit.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies high bidirectional impact and a partial alternative; I put stronger action weight on the central required modifier code and expert-dependent mappings."
+      }
     },
     {
       "findingId": "Encounter:TYPE_DOMAIN:Encounter.class:coding-to-codeableconcept",
@@ -472,7 +486,20 @@
       "migrationGuidanceMd": "Wrap the R4 Coding as `class[0].coding[0]`. For R6-to-R4 choose one coded class or preserve extras with extensions.",
       "backwardCompatibilityAnalysisMd": "The R6 shape is expressive, but a deprecation window would have reduced breakage.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "The R6 encounter-class ValueSet was referenced but not found as a local JSON file."
+      "reviewerNotesMd": "The R6 encounter-class ValueSet was referenced but not found as a local JSON file.",
+      "freshReview": {
+        "findingId": "Encounter:TYPE_DOMAIN:Encounter.class:coding-to-codeableconcept",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Encounter.class` changes from a required single `Coding` to an optional repeating `CodeableConcept`, so ordinary R4 JSON and generated model properties need conversion. The R6 goal of supporting multiple, richer classifications is coherent, and preserving the R4 shape would likely require duplicate classification fields or precedence rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition Encounter.class: 1..1 Coding, extensible v3-ActEncounterCode",
+          "R6 StructureDefinition Encounter.class: 0..* CodeableConcept, preferred encounter-class"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the judgment rests on the concrete wire-shape and codegen break rather than maturity pressure.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 single Coding object is not the R6 repeating CodeableConcept array shape; SDK and FHIRPath users also see a runtime/API/codegen change.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain the old single Coding and add a new repeatable classification element. That would preserve R4 instances but creates duplicate encounter-class representations and conflict handling when both are populated.",
+        "comparisonToExisting": "agree: the existing high-impact and partial-alternative assessment is directionally right, though under this rubric the break appears proportionate."
+      }
     },
     {
       "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.period:actualPeriod",
@@ -580,7 +607,21 @@
       "validationAndCompatibilityMd": "R4 instances containing `period` fail strict R6 validation. R6 planned dates cannot be represented in base R4 without extensions or data loss.",
       "migrationGuidanceMd": "Rename `period` to `actualPeriod`; do not map planned dates into R4 period unless local policy intentionally treats planned time as actual.",
       "backwardCompatibilityAnalysisMd": "Clarity improved, but retaining `period` with clarified semantics would have been less disruptive.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.period:actualPeriod",
+        "judgment": "Revisit",
+        "narrativeMd": "This is mostly a path rename from `period` to `actualPeriod` while the type and cardinality remain `0..1 Period`; planned dates are additive. R4 instances and code using `Encounter.period` break even though R6 could have clarified the old element as the actual period and added planned fields beside it.",
+        "keyEvidence": [
+          "R4 StructureDefinition Encounter.period: 0..1 Period, start and end time of the encounter",
+          "R6 StructureDefinition Encounter.actualPeriod: 0..1 Period, actual start and end time",
+          "R6 StructureDefinition adds Encounter.plannedStartDate and Encounter.plannedEndDate"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; it does not by itself make the rename unacceptable, but it leaves the low-cost compatibility alternative decisive.",
+        "compatibilityMechanism": "old-valid/new-invalid: `period` is not an R6 Encounter element; generated APIs, FHIRPath, and stored column mappings also break on the renamed path.",
+        "lessBreakingAlternativeAssessment": "Yes. Keeping `period` with clarified actual-period wording and adding optional planned date elements would meet the apparent R6 goal with little cost beyond a less explicit legacy name.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a high-confidence avoidable path break with a strong less-breaking alternative."
+      }
     },
     {
       "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.histories:removed",
@@ -669,7 +710,22 @@
       "migrationGuidanceMd": "Inventory and preserve history intentionally. Do not drop histories silently; map to an official replacement if one is available outside the local package.",
       "backwardCompatibilityAnalysisMd": "Removal may reduce duplicated history, but a deprecation period would have been safer.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "No StructureDefinition-EncounterHistory.json was present in the local R6 package."
+      "reviewerNotesMd": "No StructureDefinition-EncounterHistory.json was present in the local R6 package.",
+      "freshReview": {
+        "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.histories:removed",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 inline `statusHistory` and `classHistory` backbones disappear from R6 Encounter. That can reject old instances and lose audit/workflow transition data; the local R6 package did not contain an `EncounterHistory` StructureDefinition despite comments pointing historical business status there.",
+        "keyEvidence": [
+          "R4 StructureDefinition defines Encounter.statusHistory and Encounter.classHistory as 0..* BackboneElement",
+          "R6 Encounter snapshot omits statusHistory and classHistory",
+          "R6 Encounter.businessStatus comment says historical businessStatuses should be captured in EncounterHistory",
+          "R6 package index and package files checked: no EncounterHistory StructureDefinition found"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral, but history of status/class transitions has credible operational and audit value, so maturity does not make removal harmless.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with either inline history contain elements not accepted by R6; migration may also be lossy without a concrete replacement.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design would retain deprecated inline histories while documenting or adding the preferred external history model. The tradeoff is larger Encounter resources and duplicate history representations, but the replacement was not evident in the supplied local package.",
+        "comparisonToExisting": "partially agree: the existing report identifies the hard break and partial alternative; I treat the absent local replacement as enough for Revisit rather than leaving the proportionality merely unresolved."
+      }
     },
     {
       "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.hospitalization:admission",
@@ -778,7 +834,21 @@
       "validationAndCompatibilityMd": "R4 instances with `hospitalization` are invalid in R6. R6 root-level preferences may not always mean admission-specific preferences when mapped back to R4.",
       "migrationGuidanceMd": "Map admission-specific children under `admission`; promote diet/special-arrangement/special-courtesy to root.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias would have reduced breakage but created duplicate locations.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.hospitalization:admission",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`hospitalization` becomes `admission`, and several preference/courtesy children are promoted to Encounter root. This breaks old paths, but most content has an obvious target and the R6 naming/scope cleanup is reasonable.",
+        "keyEvidence": [
+          "R4 StructureDefinition Encounter.hospitalization: 0..1 BackboneElement",
+          "R6 StructureDefinition Encounter.admission: 0..1 BackboneElement",
+          "R6 StructureDefinition promotes dietPreference, specialArrangement, and specialCourtesy to root-level Encounter elements"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the optional and mostly mechanically transformable nature of this path limits the concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `hospitalization` and nested preference paths are not valid R6 paths without restructuring.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would keep `hospitalization` as a deprecated alias and continue accepting nested preference fields. That would preserve R4 JSON but creates duplicate admission/preference locations and consistency rules.",
+        "comparisonToExisting": "partially agree: the existing report correctly finds a hard break and partial alternative, but its overall High impact seems overstated for a mostly mechanical optional-path migration."
+      }
     },
     {
       "findingId": "Encounter:REFERENCE_TARGET:Encounter.participant.individual:actor",
@@ -896,7 +966,21 @@
       "validationAndCompatibilityMd": "Old participant.individual data is invalid until renamed. Valid R6 Patient/Group/Device/HealthcareService actors cannot be represented in R4 participant.individual.",
       "migrationGuidanceMd": "Rename individual to actor; for down-conversion only map Practitioner, PractitionerRole, and RelatedPerson directly.",
       "backwardCompatibilityAnalysisMd": "The rename is justified by semantics but a deprecated alias would have eased migration.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Encounter:REFERENCE_TARGET:Encounter.participant.individual:actor",
+        "judgment": "Revisit",
+        "narrativeMd": "`participant.individual` was renamed to `participant.actor` while also broadening allowed targets. The target expansion is useful, but the wire-path break appears avoidable because the old path could have been retained with an updated definition and broader target list.",
+        "keyEvidence": [
+          "R4 StructureDefinition Encounter.participant.individual: Reference to Practitioner, PractitionerRole, or RelatedPerson",
+          "R6 StructureDefinition Encounter.participant.actor: Reference to Patient, Group, RelatedPerson, Practitioner, PractitionerRole, Device, or HealthcareService",
+          "R6 participant.actor definition explicitly covers individual, device, or service participation"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the common participant actor path and low-cost compatibility option drive the judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 participant.individual is not an R6 element; new R6 actor targets also create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept `participant.individual` and broadened its target profiles and prose. The cost is an awkward legacy name for devices, groups, and services, but it avoids duplicate fields and preserves old instances.",
+        "comparisonToExisting": "agree: the existing report correctly identifies high impact and a plausible less-breaking base design."
+      }
     },
     {
       "findingId": "Encounter:VALUE_CONSTRAINT:Encounter.participant:enc-1-enc-2",
@@ -990,7 +1074,21 @@
       "migrationGuidanceMd": "Ensure each participant has actor or type; remove type from Patient/Group actor entries or use another representation.",
       "backwardCompatibilityAnalysisMd": "A warning-first approach would have been less breaking but less strict.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Operational impact of enc-2 depends on validator resolve() behavior."
+      "reviewerNotesMd": "Operational impact of enc-2 depends on validator resolve() behavior.",
+      "freshReview": {
+        "findingId": "Encounter:VALUE_CONSTRAINT:Encounter.participant:enc-1-enc-2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds error-level participant invariants requiring either an actor or type and disallowing type for Patient/Group actors. This can reject some R4-valid sparse participant repetitions, but those repetitions are ambiguous, and the new constraints enforce a reasonable minimum meaning.",
+        "keyEvidence": [
+          "R4 Encounter.participant has no local Encounter-specific constraints beyond inherited ele-1",
+          "R6 Encounter.participant adds enc-1: actor.exists() or type.exists()",
+          "R6 Encounter.participant adds enc-2: Patient/Group actor implies type does not exist"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the break affects a narrower and often low-information participant shape rather than a core required field.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 participant containing only period/extensions can become R6-invalid; enc-2 also constrains new R6 Patient/Group participant usage.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would introduce these rules as warnings or profile constraints first. That reduces validation breakage but leaves ambiguous base Encounter participant entries valid.",
+        "comparisonToExisting": "agree: the existing report's medium-impact and partial-alternative assessment matches the fresh review."
+      }
     },
     {
       "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.reason:merged",
@@ -1126,7 +1224,22 @@
       "validationAndCompatibilityMd": "R4 reasonCode/reasonReference instances are R6-invalid until reshaped. R6 reason.use and DiagnosticReport references are not native R4 fields; R4 ImmunizationRecommendation references are no longer a listed target.",
       "migrationGuidanceMd": "Move codes to `reason.value.concept` and references to `reason.value.reference`; review ImmunizationRecommendation and use semantics manually.",
       "backwardCompatibilityAnalysisMd": "A transitional alias strategy would have reduced migration risk.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.reason:merged",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4's separate `reasonCode` and `reasonReference` lists become an R6 `reason` backbone with `reason.value` CodeableReference and optional `reason.use`. This is a real path and model break, and ImmunizationRecommendation references need review, but the unified reason model is coherent and aliasing the old lists would create duplicate clinical reason representations.",
+        "keyEvidence": [
+          "R4 StructureDefinition Encounter.reasonCode: 0..* CodeableConcept, preferred encounter-reason",
+          "R4 StructureDefinition Encounter.reasonReference: 0..* Reference to Condition, Procedure, Observation, or ImmunizationRecommendation",
+          "R6 StructureDefinition Encounter.reason.value: 0..* CodeableReference to Condition, DiagnosticReport, Observation, or Procedure",
+          "R6 StructureDefinition Encounter.reason.use: 0..* CodeableConcept"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the clinical importance of reasons raises migration care, but not enough to outweigh the coherent consolidation goal.",
+        "compatibilityMechanism": "old-valid/new-invalid: old top-level reasonCode/reasonReference fields are not valid R6 paths; target changes create additional mapping review.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain deprecated `reasonCode` and `reasonReference` and keep the old ImmunizationRecommendation target while adding the new backbone. That preserves more R4 data but creates duplicate reason lists, merge rules, and conflict risks.",
+        "comparisonToExisting": "agree: the existing report correctly identifies high impact and only a partial less-breaking alternative; the fresh judgment treats the change as proportionate."
+      }
     },
     {
       "findingId": "Encounter:TYPE_DOMAIN:Encounter.diagnosis.condition:remodel",
@@ -1262,7 +1375,23 @@
       "validationAndCompatibilityMd": "R4 Procedure diagnoses are invalid as R6 diagnosis.condition. R4 rank is lost unless preserved elsewhere. R6 coded or multiple diagnoses are not R4-representable without choices/extensions.",
       "migrationGuidanceMd": "Map Condition references to CodeableReference.reference; decide how to handle Procedure and rank, possibly through reason, Account, or extensions.",
       "backwardCompatibilityAnalysisMd": "A less-breaking design would retain rank/Procedure as deprecated fields for one release.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Encounter:TYPE_DOMAIN:Encounter.diagnosis.condition:remodel",
+        "judgment": "Revisit",
+        "narrativeMd": "Encounter diagnosis changed substantially: `condition` is no longer a required single Reference that can point to Procedure, it is repeatable CodeableReference to Condition only; `use` repeats with a new value set; `rank` is removed. Procedure diagnoses and billing rank are business- and billing-relevant, and moving that meaning elsewhere requires expert policy rather than a simple wrapper transform.",
+        "keyEvidence": [
+          "R4 Encounter.diagnosis.condition: 1..1 Reference to Condition or Procedure",
+          "R4 Encounter.diagnosis.rank: 0..1 positiveInt",
+          "R6 Encounter.diagnosis.condition: 0..* CodeableReference targeting Condition only",
+          "R6 Encounter.diagnosis comment says billing diagnoses are recorded in Account where they can be ranked",
+          "R6 Encounter snapshot has no diagnosis.rank"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral, but diagnosis and billing rank have credible clinical/business consequences, so the lossy expert-dependent migration remains concerning.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 diagnosis entries with required Reference shape, Procedure targets, or rank are not directly valid in R6; R6 coded/multiple diagnoses also create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could keep Procedure targets and `rank` as deprecated compatibility features while adding CodeableReference(Condition). The tradeoff is overlap with cleaner R6 diagnosis, reason, and Account-based billing semantics, but rank/procedure loss is significant enough to revisit.",
+        "comparisonToExisting": "partially agree: the existing report correctly marks high impact and a partial alternative; I give more weight to billing/rank and Procedure loss and judge the design should be revisited."
+      }
     },
     {
       "findingId": "Encounter:TYPE_DOMAIN:Encounter.serviceType:codeableReference",
@@ -1375,7 +1504,20 @@
       "validationAndCompatibilityMd": "R4 CodeableConcept serviceType is invalid as-is in R6. R6 references/multiple values cannot be losslessly represented in R4.",
       "migrationGuidanceMd": "Wrap old values as `serviceType[].concept`; for reverse conversion derive one concept or use an extension for references.",
       "backwardCompatibilityAnalysisMd": "A parallel reference element would have been more compatible but less unified.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Encounter:TYPE_DOMAIN:Encounter.serviceType:codeableReference",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`serviceType` keeps its name but changes from a single CodeableConcept to repeating CodeableReference(HealthcareService). Existing coded service types need wrapping, and R6 references/multiples need down-conversion policy, but the R6 model cleanly supports both coded and referenced services.",
+        "keyEvidence": [
+          "R4 StructureDefinition Encounter.serviceType: 0..1 CodeableConcept, example service-type",
+          "R6 StructureDefinition Encounter.serviceType: 0..* CodeableReference targeting HealthcareService, example service-type"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; this optional example-bound field has real codegen impact but a limited base compatibility burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 CodeableConcept value is not the R6 repeating CodeableReference shape; R6 HealthcareService references and multiple entries are not lossless in R4.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would keep CodeableConcept serviceType and add a separate HealthcareService reference field. That preserves R4 instances but splits one service-type concept across two fields and requires reconciliation.",
+        "comparisonToExisting": "agree: the existing medium-impact and partial-alternative assessment is appropriate."
+      }
     },
     {
       "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.location.physicalType:form",
@@ -1482,7 +1624,21 @@
       "validationAndCompatibilityMd": "R4 physicalType is R6-invalid. R6 form maps back directly in most cases.",
       "migrationGuidanceMd": "Rename the element and keep codes.",
       "backwardCompatibilityAnalysisMd": "Alias would have avoided the break.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.location.physicalType:form",
+        "judgment": "Revisit",
+        "narrativeMd": "`location.physicalType` was renamed to `location.form` while remaining a `0..1 CodeableConcept` for the location form/level. This is a direct path break with little apparent model payoff; the old name could have been retained with updated wording and binding.",
+        "keyEvidence": [
+          "R4 StructureDefinition Encounter.location.physicalType: 0..1 CodeableConcept, example location-physical-type",
+          "R6 StructureDefinition Encounter.location.form: 0..1 CodeableConcept, example location-form",
+          "R4 and R6 definitions both describe physical form/level such as bed, room, or ward"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; even without normative pressure, a same-type same-cardinality rename with a low-cost alternative deserves review.",
+        "compatibilityMechanism": "old-valid/new-invalid: `location.physicalType` is not an R6 Encounter.location element; FHIRPath and generated property names also change.",
+        "lessBreakingAlternativeAssessment": "Yes. Keep `location.physicalType` and broaden/clarify its definition or binding to the R6 form concept. The cost is retaining a narrower legacy name, which is modest compared with the path break.",
+        "comparisonToExisting": "agree: the existing report correctly identifies this as a real, likely avoidable path break."
+      }
     },
     {
       "findingId": "Encounter:REFERENCE_TARGET:Encounter.basedOn:expanded",
@@ -1593,7 +1749,20 @@
       "validationAndCompatibilityMd": "Valid R6 basedOn references to MedicationRequest, CarePlan, etc. are not base-R4 representable.",
       "migrationGuidanceMd": "For down-conversion, map only ServiceRequest directly; preserve others with extensions or related resources.",
       "backwardCompatibilityAnalysisMd": "Additive widening is appropriate; R4 lossiness is inherent.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Encounter:REFERENCE_TARGET:Encounter.basedOn:expanded",
+        "judgment": "No problem",
+        "narrativeMd": "`Encounter.basedOn` only widens its target set and keeps ServiceRequest, so R4-valid references remain valid in the R4-to-R6 direction. Reverse conversion of new R6 targets may need policy, but that is not a base compatibility problem for preserving R4 Encounter instances.",
+        "keyEvidence": [
+          "R4 StructureDefinition Encounter.basedOn: Reference(ServiceRequest)",
+          "R6 StructureDefinition Encounter.basedOn: Reference(CarePlan, DeviceRequest, MedicationRequest, ServiceRequest, RequestOrchestration, NutritionOrder, VisionPrescription)"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; the additive target widening is compatible with old data regardless of maturity.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 target types are not allowed by base R4, but R4 ServiceRequest references are preserved.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 compatibility. R6-to-R4 systems can constrain or extend, but the base R6 design is already additive for old instances.",
+        "comparisonToExisting": "disagree: the existing report correctly notes reverse-conversion loss, but its Medium overall impact overstates a forward-compatible target widening under the fresh-review rubric."
+      }
     },
     {
       "findingId": "Encounter:CONVERSION_OR_MAPPING:Encounter.r6Only:workflow-fields",
@@ -1682,7 +1851,20 @@
       "validationAndCompatibilityMd": "R4 validators reject these R6-only elements unless represented as extensions or related resources.",
       "migrationGuidanceMd": "Define down-conversion extensions/policies; do not confuse subjectStatus with lifecycle status or planned dates with actual period.",
       "backwardCompatibilityAnalysisMd": "This is the preferred additive pattern for forward evolution.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Encounter:CONVERSION_OR_MAPPING:Encounter.r6Only:workflow-fields",
+        "judgment": "No problem",
+        "narrativeMd": "The listed workflow fields are optional R6 additions. They do not make R4 Encounter instances invalid in R6; they only require deliberate policy when sending richer R6 data back to R4 systems.",
+        "keyEvidence": [
+          "R6 StructureDefinition adds optional businessStatus, subjectStatus, careTeam, virtualService, plannedStartDate, and plannedEndDate",
+          "R4 StructureDefinition has no native counterparts for those root-level fields"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2/trial-use is neutral; optional additive fields are the compatibility-preserving way to evolve the resource.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6-only optional content has no native R4 Encounter slot, but old R4 instances can omit it in R6.",
+        "lessBreakingAlternativeAssessment": "Not applicable for base R4-to-R6 compatibility. Extensions or down-conversion rules may be useful for R4 receivers, but no less-breaking R6 base design is needed.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies no hard forward break and reverse-conversion risk; under this rubric that is No problem rather than a material breaking finding."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1864,5 +2046,19 @@
       "History backbones removed",
       "R6 optional workflow fields without R4 equivalents"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Encounter.fresh-review.json",
+    "findingDecisionCount": 13,
+    "matchedFindingDecisionCount": 13,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 6,
+      "Breaking but probably OK": 5,
+      "No problem": 2
+    }
   }
 }

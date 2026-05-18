@@ -2,7 +2,7 @@
 // flattened list of findings for the explore view.
 
 import { bundle as raw } from "../data-bundle";
-import type { Finding, R4Maturity } from "../types";
+import type { BehaviorFinding, BehaviorReport, Finding, R4Maturity } from "../types";
 
 export const bundle = raw;
 
@@ -35,6 +35,47 @@ export function findingById(id: string): FlatFinding | undefined {
 
 export function artifactByName(name: string) {
   return raw.reports.find((r) => r.artifactName === name);
+}
+
+export interface FlatBehaviorFinding extends BehaviorFinding {
+  report: BehaviorReport;
+  reportKey: string;
+  reportLabel: string;
+  family: string;
+}
+
+export const behaviorReports = raw.behaviorReports ?? [];
+
+export const behaviorFlat: FlatBehaviorFinding[] = (() => {
+  const out: FlatBehaviorFinding[] = [];
+  for (const report of behaviorReports) {
+    const reportKey = report._reportKey ?? report.scope?.assignedBehavior ?? report.behaviorName;
+    const family = behaviorFamily(report);
+    const reportLabel = behaviorReportLabel(report);
+    for (const finding of report.findings ?? []) {
+      out.push({ ...finding, report, reportKey, reportLabel, family });
+    }
+  }
+  return out;
+})();
+
+export function behaviorFindingById(reportKey: string, findingId: string): FlatBehaviorFinding | undefined {
+  return behaviorFlat.find((f) => f.reportKey === reportKey && f.findingId === findingId);
+}
+
+export function behaviorFamily(report: BehaviorReport): string {
+  if (report.behaviorName === "OperationDefinitions") return "Operations";
+  if (report.behaviorName === "SearchParameters") return "Search";
+  if (report.behaviorName === "HttpRestBehavior") return "HTTP / REST";
+  return report.behaviorName ?? "Behavior";
+}
+
+export function behaviorReportLabel(report: BehaviorReport): string {
+  const assigned = report.scope?.assignedBehavior;
+  if (typeof assigned === "string" && assigned.startsWith("OperationDefinition:")) {
+    return assigned.slice("OperationDefinition:".length);
+  }
+  return behaviorFamily(report);
 }
 
 /** Distinct values for a coded field, sorted by count desc. */

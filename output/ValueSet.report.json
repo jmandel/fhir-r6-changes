@@ -333,7 +333,22 @@
       "migrationGuidanceMd": "Inventory `ValueSet.compose.include` entries with more than one `valueSet`. For each, determine whether the business intent was union or intersection. To preserve R4 union behavior in R6, split values into separate include components where appropriate and regression-test expansion counts and representative validation cases. Do not rely on structural validation alone.",
       "backwardCompatibilityAnalysisMd": "Changing the meaning of an unchanged repeating element is probably avoidable. An explicit intersection construct would have been more backward-compatible, though less compact. Because R6 ballot text chose direct semantic replacement, migrations need human review for intent.",
       "reviewerNotesMd": "Prioritize real production value-set definitions with `include.valueSet.length > 1`; single-valued uses are unaffected.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ValueSet:SEMANTIC_OR_CONFORMANCE_TEXT:compose.include.valueSet:6a4f91",
+        "judgment": "Revisit",
+        "narrativeMd": "`ValueSet.compose.include.valueSet` keeps the same wire shape but changes repeated canonical references from union to intersection. A terminology server can therefore accept the same R4 ValueSet definition and produce a much smaller or empty expansion in R6. For normative terminology infrastructure, that kind of silent behavior reversal is disproportionate when R6 could add an explicit intersection construct instead of redefining the existing array.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ValueSet.compose.include.valueSet`: multiple value sets include the union of referenced contents.",
+          "R6 StructureDefinition `ValueSet.compose.include.valueSet`: multiple value sets include the intersection of referenced contents.",
+          "The element remains `0..* canonical` in both versions, so the change is semantic rather than structural.",
+          "R4 maturity map marks ValueSet as FMM 5/normative."
+        ],
+        "fmmEffect": "FMM 5/normative raises the burden of justification because ValueSet expansion semantics are central to validation and terminology exchange.",
+        "compatibilityMechanism": "runtime/API/codegen: unchanged valid JSON can drive different expansion results in R6, and an R6 intersection encoded in one include is not faithfully represented by the same R4 shape.",
+        "lessBreakingAlternativeAssessment": "Yes: preserve the R4 union meaning for repeated `valueSet` and add an explicit intersection field, operator, or backbone. The tradeoff is extra set-algebra surface area for terminology servers, but it avoids silently reinterpreting existing definitions.",
+        "comparisonToExisting": "agree: the existing high-impact and less-breaking-alternative-available assessment matches the fresh path-level review."
+      }
     },
     {
       "findingId": "ValueSet:TERMINOLOGY_BINDING:designation.language:1d2e0b",
@@ -493,7 +508,22 @@
       "validationAndCompatibilityMd": "R4 data with a designation language outside the common list was not invalid solely because of the preferred binding. In R6, a value outside all-languages is invalid. R6-to-R4 representation is mostly safe because R4 can carry the code, though an R4 validator may only treat common-language membership as preferred guidance.",
       "migrationGuidanceMd": "Validate all `designation.language` values against BCP-47/all-languages before R6 migration. Correct malformed local codes or move non-language metadata to an extension. Include expansion fixtures if your system persists `ValueSet.expansion.contains.designation` content.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive as a warning, but required BCP-47 language tags improve interoperability. Because the element is optional and invalid custom language codes should be uncommon, the strengthening appears probably justified.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ValueSet:TERMINOLOGY_BINDING:designation.language:1d2e0b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 turns `designation.language` from a preferred common-language binding into a required all-languages binding. That can invalidate R4 instances that used local or malformed language codes, but the field is explicitly a language tag and R4 already pointed at all-languages as the maximum value set. Requiring valid BCP-47 language tags is a proportionate interoperability goal even on normative content.",
+        "keyEvidence": [
+          "R4 `ValueSet.compose.include.concept.designation.language`: `0..1 code`, preferred binding to `ValueSet/languages`, with maxValueSet `ValueSet/all-languages`.",
+          "R6 `ValueSet.compose.include.concept.designation.language`: `0..1 code`, required binding to `ValueSet/all-languages|6.0.0-ballot4`, with common languages as a starter binding.",
+          "Local R4 and R6 all-languages ValueSets include the `urn:ietf:bcp:47` system broadly.",
+          "The same designation structure is reused by expansion designations through the existing content-reference pattern."
+        ],
+        "fmmEffect": "FMM 5/normative raises the bar for hard validation changes, but the invalidated cases are values that do not satisfy the element's language-tag purpose.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 designation language outside all-languages could pass a preferred binding but fail R6 required terminology validation.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could keep a preferred binding and add a warning for invalid language tags, preserving unusual old values. That would not let consumers rely on the field containing a real interoperable language tag.",
+        "comparisonToExisting": "agree: the existing report correctly identified a hard but narrow validation break and a partial less-breaking alternative."
+      }
     },
     {
       "findingId": "ValueSet:TERMINOLOGY_BINDING:filter.op:0f5c2a",
@@ -650,7 +680,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe for this binding because all observed R4 codes remain present. R6-to-R4 is not safe for instances using `child-of` or `descendent-leaf`; they are invalid against the R4 required binding and likely absent from R4 generated enums.",
       "migrationGuidanceMd": "When downgrading R6 ValueSets, detect the new operators explicitly. If an equivalent R4 expression exists for the target code system, rewrite with documented semantics; otherwise preserve via extension, pre-expanded concepts, or reject with a clear compatibility error. Update enum and switch handling for R6.",
       "backwardCompatibilityAnalysisMd": "Adding codes is mostly unavoidable when adding terminology expressiveness, but it should be paired with explicit cross-version mapping guidance because required-binding codes are common codegen surfaces.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ValueSet:TERMINOLOGY_BINDING:filter.op:0f5c2a",
+        "judgment": "No problem",
+        "narrativeMd": "The required filter-operator code set is widened by adding `child-of` and `descendent-leaf`; the R4 operators remain available. Existing R4 ValueSet filters therefore do not become invalid in R6. R6 definitions that use the new operators need R6-aware terminology services and cannot be downgraded cleanly, but that is the expected reverse-direction effect of adding expressivity.",
+        "keyEvidence": [
+          "R4 `ValueSet.compose.include.filter.op` remains `1..1 code` with required filter-operator binding.",
+          "R6 `ValueSet.compose.include.filter.op` remains `1..1 code` with required filter-operator binding.",
+          "R4 `CodeSystem/filter-operator` has nine codes; R6 retains them and adds `child-of` and `descendent-leaf`.",
+          "No R4 filter-operator code was removed in the checked local CodeSystems."
+        ],
+        "fmmEffect": "FMM 5/normative calls for care, but there is no old-valid/new-invalid break because the old required code set is preserved.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 ValueSets using `child-of` or `descendent-leaf` fail R4 required-binding validation and older generated enums; R4-to-R6 filters using old codes remain valid.",
+        "lessBreakingAlternativeAssessment": "Not applicable: preserving all R4 codes already preserves R4-valid instances. Avoiding new codes would either block the R6 feature or overload older operators with new meanings.",
+        "comparisonToExisting": "partially agree: the source facts and not-applicable alternative are right, but I would not treat this widening as a material forward compatibility problem."
+      }
     },
     {
       "findingId": "ValueSet:ELEMENT_PRESENCE_OR_IDENTITY:metadata-additions:8e33b7",
@@ -786,7 +831,22 @@
       "validationAndCompatibilityMd": "An R4 instance without these fields remains valid in R6. An R6 instance with these fields is not valid native R4 unless the data is transformed into extensions or omitted. `relatedArtifact` also adds an R6-only invariant for allowed related artifact types.",
       "migrationGuidanceMd": "Define an explicit downgrade policy for each added field: preserve with standard/custom extensions, keep in sidecar metadata, or accept data loss. Update serializers, generated model classes, and UI forms to support the new R6 elements.",
       "backwardCompatibilityAnalysisMd": "Optional element additions are the least disruptive way to evolve the model, but they still need cross-version extension mappings to be lossless for R4 ecosystems.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ValueSet:ELEMENT_PRESENCE_OR_IDENTITY:metadata-additions:8e33b7",
+        "judgment": "No problem",
+        "narrativeMd": "The new canonical-resource metadata and governance fields are optional additions. They create real mapping choices for strict R4 parsers and lossless R6-to-R4 conversion, but they do not invalidate R4 ValueSets or reinterpret an existing path. The R6 design is the normal first-class way to standardize metadata that previously required extensions or side documentation.",
+        "keyEvidence": [
+          "R6 differential adds optional `versionAlgorithm[x]`, copyright label, review/effective dates, topic, contributors, endorsers, and `relatedArtifact`.",
+          "The checked R4 ValueSet StructureDefinition has no corresponding native elements.",
+          "All listed additions have `min=0`; `relatedArtifact` adds R6-only error constraint `vsd-12` only when that new element is used.",
+          "R4 maturity map marks ValueSet as FMM 5/normative."
+        ],
+        "fmmEffect": "Normative status increases scrutiny, but optional additive metadata does not breach the stability expectation for existing R4 instances.",
+        "compatibilityMechanism": "metadata/tooling: R6 metadata fields are unknown to native R4 models and may be lost on downgrade, but no R4 instance is made invalid.",
+        "lessBreakingAlternativeAssessment": "Not applicable: extensions or sidecar metadata would ease downgrade but would be less uniform and discoverable in R6. Since R4-valid instances are already preserved, this is a migration-mapping issue rather than a less-breaking base design issue.",
+        "comparisonToExisting": "partially agree: the existing report correctly notes R6-to-R4 loss and no base alternative, but its medium impact overstates the path-level R4-to-R6 concern."
+      }
     },
     {
       "findingId": "ValueSet:ELEMENT_PRESENCE_OR_IDENTITY:designation.additionalUse:4a9b72",
@@ -912,7 +972,22 @@
       "validationAndCompatibilityMd": "R4 instances remain valid because they cannot contain `additionalUse`. R6 instances with `additionalUse` are invalid if `use` is omitted and are not directly representable in R4. Generated R4 models will not have a field for this data.",
       "migrationGuidanceMd": "When converting R6 to R4, map `additionalUse` to an extension or split into additional designation repetitions only if that preserves semantics for the consuming system. Add tests for `additionalUse` with and without `use`.",
       "backwardCompatibilityAnalysisMd": "The new element is additive and constrained, which is a reasonable compatibility posture. A pure-extension approach would be more R4-friendly but less discoverable in R6.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ValueSet:ELEMENT_PRESENCE_OR_IDENTITY:designation.additionalUse:4a9b72",
+        "judgment": "No problem",
+        "narrativeMd": "`designation.additionalUse` is an optional R6 addition, and the new `vsd-11` invariant applies only when that new field is present. R4 designations with `language`, `use`, and `value` remain valid. Downgrading R6 multiple-use designations needs extensions or duplication policy, but the R6 base design is explicitly less disruptive than changing the cardinality of the existing `use` element.",
+        "keyEvidence": [
+          "R4 designation has no `additionalUse` element.",
+          "R6 `ValueSet.compose.include.concept.designation.additionalUse` is `0..* Coding` with extensible `designation-use` binding.",
+          "R6 designation constraint `vsd-11` is `additionalUse.exists() implies use.exists()`.",
+          "R6 element comment says `additionalUse` was added rather than increasing `.use` cardinality to maintain backward compatibility."
+        ],
+        "fmmEffect": "FMM 5/normative supports scrutiny, but the change preserves existing R4 designation instances and constrains only new R6 content.",
+        "compatibilityMechanism": "R6-to-R4 loss: native R4 has no `additionalUse` slot, while R4-to-R6 instances are unaffected.",
+        "lessBreakingAlternativeAssessment": "Not applicable: the optional added field is already the compatibility-preserving base design. R4 extensions or repeated designations are downgrade mitigations, not better R6 base designs.",
+        "comparisonToExisting": "partially agree: the existing report correctly identified reverse representability risk and no base alternative, but the forward compatibility concern is minimal."
+      }
     },
     {
       "findingId": "ValueSet:ELEMENT_PRESENCE_OR_IDENTITY:compose-new-children:5c77de",
@@ -1016,7 +1091,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe because the new children are optional. R6-to-R4 loses data unless transformed. R4 parsers may reject these elements if strict unknown-element rejection is enabled.",
       "migrationGuidanceMd": "Preserve `include.copyright` with an extension or external license registry when downgrading. For `compose.property`, decide whether to translate to expansion operation parameters, persist as an extension, or regenerate expansions using R6-aware tooling.",
       "backwardCompatibilityAnalysisMd": "Optional additions are relatively safe, but a published cross-version extension would make lossless downgrade much clearer.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ValueSet:ELEMENT_PRESENCE_OR_IDENTITY:compose-new-children:5c77de",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional composition metadata: per-include copyright and default expansion property requests. Existing R4 ValueSet definitions do not use these paths, so they remain valid. R6-to-R4 conversion can lose licensing notices or expansion property hints, but that is an inherent consequence of adding first-class R6 capabilities rather than a problematic R4-to-R6 break.",
+        "keyEvidence": [
+          "R6 `ValueSet.compose.include.copyright` is `0..1 markdown`; no native R4 element exists at that path.",
+          "R6 `ValueSet.compose.property` is `0..* string`; no native R4 element exists at that path.",
+          "R6 `compose.property` definition says it controls properties returned in an expansion when the client asks for no particular properties.",
+          "Both added children have `min=0`."
+        ],
+        "fmmEffect": "FMM 5/normative does not turn optional additive children into a standards-stability problem; it mainly argues for clear conversion guidance.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4 has no native place for include-level copyright or default expansion property requests; no old-valid/new-invalid R4-to-R6 issue exists.",
+        "lessBreakingAlternativeAssessment": "Not applicable: extensions or operation parameters could help R4-era systems, but they would be less discoverable and less uniform than first-class optional R6 elements.",
+        "comparisonToExisting": "partially agree: the existing report's evidence and no-base-alternative conclusion are sound, but the medium impact should be understood as reverse-conversion awareness rather than a forward break."
+      }
     },
     {
       "findingId": "ValueSet:SERIALIZATION_OR_CODEGEN:expansion-properties:9d102c",
@@ -1169,7 +1259,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 ValueSets are not invalidated. R6 expansion instances with the new fields are not native R4 and may fail strict R4 JSON validation. Even permissive clients can behave incorrectly if they ignore `next` and treat a partial expansion as complete, or if they drop concept properties needed downstream.",
       "migrationGuidanceMd": "Update expansion clients to recognize `expansion.next` and property structures when consuming R6. For downgrade, either strip with acknowledged data loss, map to extensions, or materialize the needed property information in an R4-compatible side channel. Add tests for paged expansions and property values of every allowed `value[x]` type.",
       "backwardCompatibilityAnalysisMd": "Optional typed additions are reasonable for R6, but they are not wire-compatible with strict R4 clients. A pure extension design would have been more backward-compatible but less type-safe and less interoperable for property-aware expansion processing.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ValueSet:SERIALIZATION_OR_CODEGEN:expansion-properties:9d102c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Expansion payloads are runtime API data, so adding `expansion.next` and structured concept properties can break older strict clients or clients that assume a single complete expansion. This is a real migration burden for terminology consumers. Still, the additions are optional and address concrete R6 needs for paged expansions and typed concept metadata; extension-only or side-channel designs would be less interoperable for R6 clients.",
+        "keyEvidence": [
+          "R6 adds `ValueSet.expansion.next` as `0..1 uri` with guidance to use it for paging when present.",
+          "R6 adds `ValueSet.expansion.property` and `ValueSet.expansion.contains.property` backbone structures.",
+          "R6 concept property and subProperty entries require `value[x]` when those optional containers are present.",
+          "The checked R4 ValueSet StructureDefinition has no native expansion paging link or concept property structures."
+        ],
+        "fmmEffect": "FMM 5/normative raises the compatibility burden because ValueSet expansions are a central terminology-service API surface, but the optional additions have a strong operational rationale.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 servers may serialize new expansion paging and property fields that R4-generated clients reject or ignore; R6-to-R4 loss also applies to returned property values.",
+        "lessBreakingAlternativeAssessment": "Not applicable in the R4-preservation sense: R4 ValueSet instances remain valid. Extension-only paging and property metadata would ease old clients but would weaken type-safe, uniform R6 expansion processing.",
+        "comparisonToExisting": "agree: the existing high runtime/R6-to-R4 risk and not-applicable base-alternative assessment are supported, though the change appears proportionate rather than needing redesign."
+      }
     },
     {
       "findingId": "ValueSet:VALUE_CONSTRAINT:url.cnl-1:3b8a50",
@@ -1280,7 +1385,22 @@
       "validationAndCompatibilityMd": "R4 instances with these characters remain structurally representable in R6. Under standard severity handling they generate a warning rather than an error. Warning-as-error pipelines can experience an operational break.",
       "migrationGuidanceMd": "Scan canonical URLs and normalize or mint replacement canonicals where possible. Because canonical changes are themselves disruptive, do not rewrite published URLs automatically without governance review.",
       "backwardCompatibilityAnalysisMd": "The warning-severity design is an appropriate backward-compatible mechanism for a conformance improvement.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ValueSet:VALUE_CONSTRAINT:url.cnl-1:3b8a50",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds a warning, not an error, that canonical URLs should avoid pipe, hash, and space characters. This can affect warning-as-error publication gates, but standard validation still accepts the instance. A computable warning is already the compatibility-preserving version of this canonical hygiene rule.",
+        "keyEvidence": [
+          "R4 `ValueSet.url` is `0..1 uri` without local `cnl-1`.",
+          "R6 `ValueSet.url` remains `0..1 uri` and adds warning constraint `cnl-1`.",
+          "R6 `cnl-1` expression is `exists() implies matches('^[^|# ]+$')`.",
+          "The constraint severity is `warning`, not `error`."
+        ],
+        "fmmEffect": "FMM 5/normative warrants checking warning churn, but warning severity keeps the base instance-compatibility impact low.",
+        "compatibilityMechanism": "warning-level: problematic canonical URLs may newly warn and local pipelines may choose to fail warnings, but base R6 validation does not make them invalid.",
+        "lessBreakingAlternativeAssessment": "No meaningful less-breaking base design: prose-only guidance would avoid warning churn but would not give tooling the same computable signal.",
+        "comparisonToExisting": "agree: the existing low-impact and no-less-breaking-base-design assessment is consistent with the fresh review."
+      }
     },
     {
       "findingId": "ValueSet:SEMANTIC_OR_CONFORMANCE_TEXT:jurisdiction:2cf341",
@@ -1458,7 +1578,22 @@
       "migrationGuidanceMd": "Audit how `jurisdiction` is populated and queried. If R4 values represented intended use, consider moving or duplicating them into R6 `useContext` with usage-context-type `jurisdiction`, while reserving `jurisdiction` for the maintaining authority. Document any profile-specific policy.",
       "backwardCompatibilityAnalysisMd": "Changing the definition of an existing element is less backward-compatible than adding a new stewardship field. The R6 guidance mitigates this by pointing to `useContext`, but migration still requires human interpretation of legacy data intent.",
       "reviewerNotesMd": "The R6 package did not include a local `ValueSet-jurisdiction.json`; the binding target is external to terminology.hl7.org in the StructureDefinition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ValueSet:SEMANTIC_OR_CONFORMANCE_TEXT:jurisdiction:2cf341",
+        "judgment": "Revisit",
+        "narrativeMd": "`ValueSet.jurisdiction` keeps the same `CodeableConcept` shape but changes from the jurisdiction where the value set is intended to be used to the jurisdiction where the maintaining authority operates. Registries or validators that select terminology by intended region can silently misclassify R6 data, and migration to `useContext` requires human knowledge of what the old value meant. Given normative status, redefining the old field is more concerning than adding a separate stewardship-jurisdiction path.",
+        "keyEvidence": [
+          "R4 `ValueSet.jurisdiction` definition: legal or geographic region in which the value set is intended to be used.",
+          "R6 `ValueSet.jurisdiction` definition: legal or geographic region in which the maintaining authority operates.",
+          "R6 comment encourages migration to `useContext` with usage-context-type `jurisdiction`.",
+          "The element remains `0..* CodeableConcept`, so the issue is silent semantic interpretation rather than structural validation."
+        ],
+        "fmmEffect": "FMM 5/normative strongly raises the burden for silent semantic changes on governance metadata used for regulatory or regional selection.",
+        "compatibilityMechanism": "semantic/documentation: instances remain wire-valid, but the same path can mean intended-use jurisdiction in R4 and maintaining-authority jurisdiction in R6, with expert-dependent migration.",
+        "lessBreakingAlternativeAssessment": "Yes: keep `jurisdiction` as intended-use jurisdiction and add a distinct maintaining-authority jurisdiction element or pattern, or deprecate without redefining. The tradeoff is another jurisdiction-related metadata surface, but it avoids silent reinterpretation.",
+        "comparisonToExisting": "agree: the existing report's medium semantic impact and less-breaking-alternative-available assessment are supported."
+      }
     },
     {
       "findingId": "ValueSet:VALUE_CONSTRAINT:name.cnl-0:7f6e1d",
@@ -1562,7 +1697,22 @@
       "validationAndCompatibilityMd": "Standard R6 validation should warn rather than fail. Toolchains that treat warnings as errors may need to adjust names or severity policy.",
       "migrationGuidanceMd": "Check `ValueSet.name` values used for code generation. Prefer names beginning with an uppercase letter and containing at least two alphanumeric/underscore characters.",
       "backwardCompatibilityAnalysisMd": "A warning constraint is a reasonable backward-compatible way to improve code-generation hygiene.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ValueSet:VALUE_CONSTRAINT:name.cnl-0:7f6e1d",
+        "judgment": "No problem",
+        "narrativeMd": "The root machine-readable name rule changes warning key and tightens the suggested pattern so a one-character uppercase name newly warns. Because severity remains warning and the field is still optional, this is publication and code-generation hygiene rather than a meaningful base compatibility break. Local warning-as-error pipelines may need policy or suppression updates.",
+        "keyEvidence": [
+          "R4 root warning `vsd-0`: `name.matches('[A-Z]([A-Za-z0-9_]){0,254}')`.",
+          "R6 root warning `cnl-0`: `name.exists() implies name.matches('^[A-Z]([A-Za-z0-9_]){1,254}$')`.",
+          "Both constraints have severity `warning`.",
+          "The changed pattern can warn on a single-letter name such as `A`, but does not create an error-level constraint."
+        ],
+        "fmmEffect": "FMM 5/normative increases attention to even warning churn, but warning severity and narrow prevalence keep the stability concern low.",
+        "compatibilityMechanism": "warning-level: stricter machine-name guidance and a new warning key can affect warning-as-error tools or suppression lists, not base instance validity.",
+        "lessBreakingAlternativeAssessment": "Partial but not material: R6 could keep the R4 `{0,254}` length rule or preserve the old warning key during transition. That would reduce churn, but the current warning-only design is already sufficiently compatible.",
+        "comparisonToExisting": "partially agree: the existing low-impact assessment is right, but I would not treat the stricter warning as a design issue worth revisiting."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1787,5 +1937,19 @@
       "Language binding strengthening from common languages to all-languages",
       "R6 expansion property/paging support in ValueSet operations"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ValueSet.fresh-review.json",
+    "findingDecisionCount": 10,
+    "matchedFindingDecisionCount": 10,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 2,
+      "No problem": 6
+    }
   }
 }

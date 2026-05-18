@@ -314,7 +314,21 @@
       "validationAndCompatibilityMd": "R4 JSON choice properties are unknown in R6. R6 concept-only/reference-only values can map back to R4, but a CodeableReference with both children cannot fit the single R4 choice slot.",
       "migrationGuidanceMd": "Add explicit choice-to-CodeableReference transforms, update serializers/FHIRPath/generated classes, and test code-only, reference-only, and dual-child cases.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified for model consistency, but a transition alias would have avoided immediate mandatory field rewrites.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationAdministration:SERIALIZATION_OR_CODEGEN:MedicationAdministration.medication:30d50d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The mandatory medication identity field changed from R4 choice-name serialization to a single R6 CodeableReference container. Every R4 instance with medicationCodeableConcept or medicationReference needs a transform, and generated APIs change shape, but the R6 design gives one coherent model for coded, referenced, or paired medication identity.",
+        "keyEvidence": [
+          "R4 StructureDefinition: MedicationAdministration.medication[x] is 1..1 CodeableConcept or Reference(Medication).",
+          "R6 StructureDefinition: MedicationAdministration.medication is 1..1 CodeableReference(Medication).",
+          "R6 CodeableReference has optional concept and reference children."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral: it does not create a normative stability presumption, but medication identity is central enough that the real wire/API break still matters.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 choice properties are not the R6 element name or child shape; R6 dual concept/reference values also create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have retained deprecated medication[x] aliases while adding CodeableReference, but that would create duplicate mandatory medication representations and conflict rules for a safety-relevant field.",
+        "comparisonToExisting": "agree: the existing high impact and partial alternative assessment match the independent path-level assessment."
+      }
     },
     {
       "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.occurrence[x]:4e99f8",
@@ -469,7 +483,21 @@
       "validationAndCompatibilityMd": "Old effectiveDateTime/effectivePeriod fields fail R6 validation. R6 occurrenceTiming is valid R6 but not representable in R4 without loss or extension.",
       "migrationGuidanceMd": "Rename effectiveDateTime→occurrenceDateTime and effectivePeriod→occurrencePeriod. Define policy for occurrenceTiming and update search/FHIRPath logic.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias would have reduced the break but introduced duplicate timing semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.occurrence[x]:4e99f8",
+        "judgment": "Revisit",
+        "narrativeMd": "A required administration-time element was renamed from effective[x] to occurrence[x], while Timing was added as a new choice. DateTime and Period values are conceptually mappable, but the hard rename invalidates ordinary R4 instances and code for a required field. The Timing addition could have been achieved without forcing the rename.",
+        "keyEvidence": [
+          "R4 StructureDefinition: MedicationAdministration.effective[x] is 1..1 dateTime or Period.",
+          "R6 StructureDefinition: MedicationAdministration.occurrence[x] is 1..1 dateTime, Period, or Timing.",
+          "Fresh-review framework Account example treats FMM 2 renames with low-cost alternatives as revisit-worthy."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral, so the judgment is driven by the required-path wire break and the availability of a simpler compatible design.",
+        "compatibilityMechanism": "old-valid/new-invalid: effectiveDateTime/effectivePeriod are not valid R6 names; R6 occurrenceTiming is an R6-to-R4 loss case.",
+        "lessBreakingAlternativeAssessment": "Yes: retain effective[x] and add Timing as an allowed choice while updating wording. The tradeoff is keeping the older name rather than aligning with the R6 event pattern.",
+        "comparisonToExisting": "agree: the existing high impact and yes alternative assessment are supported."
+      }
     },
     {
       "findingId": "MedicationAdministration:REFERENCE_TARGET:MedicationAdministration.context:719fca",
@@ -588,7 +616,21 @@
       "validationAndCompatibilityMd": "R6 rejects context. Encounter values can be migrated; EpisodeOfCare values cannot be placed in R6 encounter without violating targetProfile.",
       "migrationGuidanceMd": "Resolve reference types where possible, rename Encounter, and route EpisodeOfCare through an extension or profile-specific convention.",
       "backwardCompatibilityAnalysisMd": "Keeping context or adding episodeOfCare would preserve old data but leave overlapping context semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationAdministration:REFERENCE_TARGET:MedicationAdministration.context:719fca",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 context was both renamed and narrowed: Encounter references can be mechanically moved to encounter, but EpisodeOfCare references lose their native slot. Because the old element was optional this is not universal, but populated context data needs type-aware migration and EpisodeOfCare cases need a design decision rather than a simple rename.",
+        "keyEvidence": [
+          "R4 StructureDefinition: MedicationAdministration.context is 0..1 Reference(Encounter|EpisodeOfCare).",
+          "R6 StructureDefinition: MedicationAdministration.encounter is 0..1 Reference(Encounter).",
+          "The affected path is local to MedicationAdministration, not an inherited base element."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral; it softens neither the EpisodeOfCare data loss nor the fact that the break is localized and optional.",
+        "compatibilityMechanism": "old-valid/new-invalid: context is not an R6 element, and EpisodeOfCare cannot be placed in encounter without violating the target profile.",
+        "lessBreakingAlternativeAssessment": "Partial to Yes: R6 could keep context as a deprecated compatibility element or add a separate episodeOfCare element while introducing encounter. That preserves old data but leaves overlapping encounter/context semantics.",
+        "comparisonToExisting": "partially agree: the structural evidence and partial alternative are right, but this review gives more weight to the avoidable rename plus EpisodeOfCare loss than the existing probably-justified framing."
+      }
     },
     {
       "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.reason:fcceed",
@@ -759,7 +801,21 @@
       "validationAndCompatibilityMd": "R4 reasonCode/reasonReference fail R6 validation. R6 Procedure or dual-child CodeableReferences cannot cleanly fit R4 reasonReference/reasonCode.",
       "migrationGuidanceMd": "Implement element-by-element transforms and update analytics/search/FHIRPath that refer to old paths.",
       "backwardCompatibilityAnalysisMd": "Keeping deprecated old fields would avoid direct parser failures but require conflict resolution if old and new reason fields coexisted.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.reason:fcceed",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 separated coded reasons and referenced reasons, while R6 uses a repeating CodeableReference reason. Existing R4 arrays need path and wrapper transforms, and R6 can express Procedure reasons or concept/reference pairs that R4 cannot preserve cleanly. The consolidation is still a coherent model improvement for a code-or-reference reason field.",
+        "keyEvidence": [
+          "R4 StructureDefinition: reasonCode is 0..* CodeableConcept.",
+          "R4 StructureDefinition: reasonReference is 0..* Reference(Condition|Observation|DiagnosticReport).",
+          "R6 StructureDefinition: reason is 0..* CodeableReference(Condition|Observation|DiagnosticReport|Procedure)."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral; the central clinical nature of reasons makes the migration real, but not enough to reject a coherent CodeableReference consolidation.",
+        "compatibilityMechanism": "old-valid/new-invalid: old reasonCode and reasonReference paths are absent in R6; Procedure targets and paired CodeableReference values create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial: keeping deprecated reasonCode and reasonReference aliases would preserve R4 instances, but it would duplicate reason semantics and lose the item-level pairing that CodeableReference provides.",
+        "comparisonToExisting": "agree: the existing high impact and partial alternative assessment are consistent with this review."
+      }
     },
     {
       "findingId": "MedicationAdministration:TYPE_DOMAIN:MedicationAdministration.device-performer.actor:88b74c",
@@ -920,7 +976,21 @@
       "validationAndCompatibilityMd": "Strict R6 validators expect CodeableReference items, not bare Reference objects. R6 values using concept or Group cannot be represented in base R4.",
       "migrationGuidanceMd": "Wrap R4 references, update generated classes, and define downgrade policy for concept-only device/performer and Group performer values.",
       "backwardCompatibilityAnalysisMd": "Separate optional coded fields would have preserved Reference wire compatibility but kept parallel code/reference semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationAdministration:TYPE_DOMAIN:MedicationAdministration.device-performer.actor:88b74c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The element names survive, but their object shape changes from bare Reference to CodeableReference. R4 device and performer.actor references must be wrapped under reference, and R6 can now carry coded-only devices/performers or Group performers that R4 cannot natively represent. The change is disruptive but supports a plausible goal: recording a type or group when an exact actor/device resource is not available.",
+        "keyEvidence": [
+          "R4 StructureDefinition: device is 0..* Reference(Device).",
+          "R4 StructureDefinition: performer.actor is 1..1 Reference(Practitioner|PractitionerRole|Patient|RelatedPerson|Device).",
+          "R6 StructureDefinition: device and performer.actor are CodeableReference; performer.actor adds Group."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral; the judgment turns on the concrete datatype/API break and the reasonable expressiveness goal.",
+        "compatibilityMechanism": "runtime/API/codegen: the property paths are stable but generated types and JSON child shape change; concept-only and Group values are R6-to-R4 loss cases.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could retain Reference and add coded sibling fields plus Group as a target, but that splits one performer/device concept across parallel fields and requires conflict rules.",
+        "comparisonToExisting": "agree: the existing high impact and partial alternative assessment are supported."
+      }
     },
     {
       "findingId": "MedicationAdministration:CARDINALITY:MedicationAdministration.category:c5d186",
@@ -1101,7 +1171,21 @@
       "validationAndCompatibilityMd": "R4 category object is not valid R6 JSON for a repeating element. R6 multiple category entries are not representable in R4 0..1 without data loss or extension.",
       "migrationGuidanceMd": "Wrap category on upgrade. For downgrade, reject multiple categories, select a primary value by policy, or preserve extras in extensions.",
       "backwardCompatibilityAnalysisMd": "A separate repeating classification element would preserve old JSON shape but add overlap.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicationAdministration:CARDINALITY:MedicationAdministration.category:c5d186",
+        "judgment": "Revisit",
+        "narrativeMd": "The cardinality widening is not wire-compatible in FHIR JSON: a populated R4 category object becomes an R6 array. The field is optional and not as central as medication or timing, but the benefit of allowing multiple classifications seems achievable with a less disruptive additive design, especially because the R6 text says the category codes are still expected to be revisited.",
+        "keyEvidence": [
+          "R4 StructureDefinition: category is 0..1 CodeableConcept with preferred binding.",
+          "R6 StructureDefinition: category is 0..* CodeableConcept with example binding.",
+          "R6 category comment says the committee expects to revisit these codes."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral; the optional nature lowers blast radius, but it does not erase the avoidable object-to-array break.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 category serializes as an object when present, while R6 repeating category serializes as an array; multiple R6 categories are R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Yes: keep category as a primary 0..1 element and add a repeating additionalCategory or classification element. The tradeoff is a split primary/additional model and union logic for search/display.",
+        "comparisonToExisting": "agree: the existing high impact and yes alternative assessment match the fresh assessment."
+      }
     },
     {
       "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.instantiates:eb9744",
@@ -1242,7 +1326,21 @@
       "validationAndCompatibilityMd": "R6 rejects instantiates. R6 basedOn cannot be represented in base R4.",
       "migrationGuidanceMd": "Resolve URI semantics; map to CarePlan only when true, otherwise preserve in extension.",
       "backwardCompatibilityAnalysisMd": "Keeping instantiates would have preserved broad URI links but left two planning-related elements.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.instantiates:eb9744",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 instantiates carried arbitrary protocol, guideline, orderset, or definition URIs. R6 removes that slot and adds basedOn Reference(CarePlan), which is related workflow information but not an equivalent carrier for arbitrary URI definitions. This makes populated instantiates data extension- or policy-dependent even though keeping the optional URI would not prevent R6 basedOn.",
+        "keyEvidence": [
+          "R4 StructureDefinition: instantiates is 0..* uri for protocol, guideline, orderset, or other definition.",
+          "R6 StructureDefinition: instantiates is absent and basedOn is 0..* Reference(CarePlan).",
+          "The old and new element definitions describe different relationship types."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral; the path may be rare, but the semantics are not equivalent and the compatible alternative is low cost.",
+        "compatibilityMechanism": "old-valid/new-invalid: instantiates is not an R6 element, and URI definitions cannot be mechanically converted to CarePlan references.",
+        "lessBreakingAlternativeAssessment": "Yes: retain deprecated instantiates while adding basedOn for CarePlan fulfillment. The cost is continued support for a broad legacy definition-link field.",
+        "comparisonToExisting": "agree: the existing medium impact and yes alternative assessment are supported."
+      }
     },
     {
       "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.recorded-isSubPotent-subPotentReason:12afd3",
@@ -1381,7 +1479,21 @@
       "validationAndCompatibilityMd": "R4 validators have no native fields for these values; R6 data using them is valid but not base-R4 representable.",
       "migrationGuidanceMd": "Define extensions and do not silently drop computable sub-potency information during downgrade.",
       "backwardCompatibilityAnalysisMd": "Optional additions are backward-compatible for R4→R6; official cross-version extensions would reduce R6→R4 risk.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.recorded-isSubPotent-subPotentReason:12afd3",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "These are optional R6 additions, so R4 instances are not invalidated. The compatibility issue is reverse exchange: recorded time and sub-potency information can be clinically and audit relevant, and base R4 has no equivalent fields. The additions themselves are proportionate; the needed work is explicit downgrade preservation rather than a less-breaking R6 base design.",
+        "keyEvidence": [
+          "R6 StructureDefinition: recorded is 0..1 dateTime.",
+          "R6 StructureDefinition: isSubPotent is 0..1 boolean.",
+          "R6 StructureDefinition: subPotentReason is 0..* CodeableConcept."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral; the fields are additive, but medication dose-quality information is important enough that reverse loss should not be ignored.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 can carry capture-time and sub-potency details with no native base R4 representation.",
+        "lessBreakingAlternativeAssessment": "Not applicable: optional additions do not make R4 content invalid in R6. R4 extensions or conversion guidance are mitigation, not a less-breaking R6 base design.",
+        "comparisonToExisting": "agree: the existing reverse-conversion concern and not-applicable alternative assessment are supported."
+      }
     },
     {
       "findingId": "MedicationAdministration:REFERENCE_TARGET:MedicationAdministration.partOf:d110e8",
@@ -1503,7 +1615,21 @@
       "validationAndCompatibilityMd": "Strict R4 target-profile validation cannot accept MedicationDispense in partOf.",
       "migrationGuidanceMd": "Preserve MedicationDispense links via extension or block downgrade when waste lineage matters.",
       "backwardCompatibilityAnalysisMd": "An extension would be less disruptive but less visible.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicationAdministration:REFERENCE_TARGET:MedicationAdministration.partOf:d110e8",
+        "judgment": "No problem",
+        "narrativeMd": "Adding MedicationDispense as an allowed partOf target does not invalidate any R4 partOf reference. It creates a downgrade policy question for R6 waste-lineage links, but that is a target widening with limited practical base-compatibility concern, not a reason to revisit the R6 model.",
+        "keyEvidence": [
+          "R4 StructureDefinition: partOf is 0..* Reference(MedicationAdministration|Procedure).",
+          "R6 StructureDefinition: partOf adds MedicationDispense as a target.",
+          "R6 StructureDefinition comment: MedicationDispense will be used to indicate waste."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral; because the change is additive for R4-to-R6, maturity does not raise it to a design concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: only R6 instances using MedicationDispense targets exceed R4 target-profile validation.",
+        "lessBreakingAlternativeAssessment": "Not applicable: avoiding the target widening would reduce R6 expressiveness rather than preserve old instances; R4-facing profiles can constrain or map the new target.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies reverse-conversion risk, but this review treats it as no material R4-to-R6 compatibility problem."
+      }
     },
     {
       "findingId": "MedicationAdministration:SEMANTIC_OR_CONFORMANCE_TEXT:MedicationAdministration.statusReason:0afe4d",
@@ -1630,7 +1756,21 @@
       "validationAndCompatibilityMd": "R6-valid statusReason values can be behaviorally different when read by R4-era systems that assume not-given semantics.",
       "migrationGuidanceMd": "Audit rules around statusReason and constrain or extend broader status-change reasons during downgrade.",
       "backwardCompatibilityAnalysisMd": "A distinct new element would have reduced semantic ambiguity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationAdministration:SEMANTIC_OR_CONFORMANCE_TEXT:MedicationAdministration.statusReason:0afe4d",
+        "judgment": "Revisit",
+        "narrativeMd": "The structure stayed the same, but the meaning broadened from why administration was not performed to why the status changed. That is easy for validators to miss and can affect business rules that interpret statusReason as a not-given/refusal reason. A separate status-change reason would make the broader use explicit without silently changing old-path semantics.",
+        "keyEvidence": [
+          "R4 StructureDefinition: statusReason definition says why the administration was not performed.",
+          "R6 StructureDefinition: statusReason definition says why the status of the administration changed.",
+          "R4 and R6 keep the same 0..* CodeableConcept shape and example not-given value set."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral; the lack of a structural break lowers validation impact, but medication status semantics are still clinically meaningful.",
+        "compatibilityMechanism": "semantic/documentation: structurally valid data may be interpreted differently by R4-era logic and R6 producers.",
+        "lessBreakingAlternativeAssessment": "Yes: keep statusReason for not-performed semantics and add statusChangeReason for broader lifecycle explanations. The cost is one more optional element and overlap in not-done cases.",
+        "comparisonToExisting": "agree: the existing medium semantic risk and yes alternative assessment are supported."
+      }
     },
     {
       "findingId": "MedicationAdministration:VALUE_CONSTRAINT:MedicationAdministration.dosage.mad-1:76544f",
@@ -1755,7 +1895,21 @@
       "validationAndCompatibilityMd": "New R6 text-only dosage is valid under R6 and invalid under R4 unless transformed or extended.",
       "migrationGuidanceMd": "Detect text-only dosage; derive structured dose/rate only with provenance, otherwise preserve via extension or reject downgrade.",
       "backwardCompatibilityAnalysisMd": "The relaxation is pragmatic; official cross-version extension guidance would reduce risk.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicationAdministration:VALUE_CONSTRAINT:MedicationAdministration.dosage.mad-1:76544f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 relaxes the dosage invariant so a dosage backbone can be present with text alone. This is not an R4-to-R6 break, and it is a pragmatic way to represent administrations whose dosage details are only available as narrative. Reverse conversion still needs policy because R4 has dosage.text but does not allow it to satisfy mad-1 by itself.",
+        "keyEvidence": [
+          "R4 StructureDefinition: dosage mad-1 is dose.exists() or rate.exists().",
+          "R6 StructureDefinition: dosage mad-1 is dose.exists() or rate.exists() or text.exists().",
+          "The affected element remains 0..1 BackboneElement in both versions."
+        ],
+        "fmmEffect": "R4 FMM 2 trial-use is neutral; the relaxation preserves old instances, while dosage safety keeps reverse-conversion handling important.",
+        "compatibilityMechanism": "R6-to-R4 loss: text-only R6 dosage is valid in R6 but invalid against the R4 mad-1 invariant unless transformed or extended.",
+        "lessBreakingAlternativeAssessment": "Not applicable: the base R6 change is a constraint relaxation, so no less-breaking design is needed for R4-to-R6. Keeping the stricter rule would reduce valid R6 expressiveness.",
+        "comparisonToExisting": "agree: the existing medium reverse-conversion risk and not-applicable alternative assessment are supported."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1947,5 +2101,19 @@
       "reasonCode/reasonReference merged into CodeableReference reason",
       "context narrowed to encounter"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicationAdministration.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 5,
+      "Breaking but probably OK": 5,
+      "No problem": 1
+    }
   }
 }

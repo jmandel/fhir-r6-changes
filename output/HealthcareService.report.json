@@ -331,7 +331,21 @@
       "migrationGuidanceMd": "Transform R4 `telecom` repetitions into R6 `contact.telecom`. If the R4 data has no contact purpose, either create one `contact` with all telecom points or one `contact` per point based on local policy. For down-conversion, decide whether to flatten only `contact.telecom` or preserve `purpose`, `name`, `address`, `organization`, and `period` using extensions. Regression tests should include phone, email, URL, multiple contact points, and R6 contact records with non-telecom context.",
       "backwardCompatibilityAnalysisMd": "The richer model is understandable, but removal of the old direct element was avoidable. Keeping `telecom` as deprecated would have allowed old instances to remain valid while encouraging new implementations to populate `contact`. The cost would be duplicated contact semantics and extra reconciliation rules.",
       "reviewerNotesMd": "Confirm whether the official R6 migration guidance recommends one `ExtendedContactDetail` per R4 `ContactPoint` or grouping multiple R4 telecom entries into a single contact record.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "HealthcareService:element-presence:telecom-contact:5d6f0b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 exposed service contact points directly as `HealthcareService.telecom` with `ContactPoint 0..*`. R6 removes that direct path and uses `HealthcareService.contact` with `ExtendedContactDetail 0..*`, where telecom is nested under `contact.telecom` and can be accompanied by purpose, name, address, organization, and period. A service directory publishing phones or email at the old path is therefore old-valid/new-invalid until transformed, and generated SDK/FHIRPath code must change. The R6 goal of richer official contact records is credible, and retaining both shapes in the base resource would create duplicate contact representations and reconciliation rules, so the break looks proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot element `HealthcareService.telecom`: `ContactPoint 0..*`, definition says contacts related to this specific healthcare service.",
+          "R6 StructureDefinition snapshot element `HealthcareService.contact`: `ExtendedContactDetail 0..*`; no `HealthcareService.telecom` element remains.",
+          "R6 `ExtendedContactDetail` includes `telecom 0..*` plus purpose, name, address, organization, and period."
+        ],
+        "fmmEffect": "R4 FMM 2 and trial-use status are neutral: they do not create a normative stability expectation, so the concrete old-valid/new-invalid mechanism and contact-directory business use drove the judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen and R6-to-R4 loss: old `telecom` is not a valid R6 element, generated models change from bare `ContactPoint` to `ExtendedContactDetail`, and down-conversion can lose R6-only contact context.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have kept deprecated `telecom` while adding `contact`, preserving old instances. The tradeoff is material because two same-resource contact locations could diverge and generic clients/validators would need precedence or reconciliation rules.",
+        "comparisonToExisting": "agree with the existing high impact and Partial less-breaking-alternative judgment; after independent review, I also find a real break but one with proportionate design tradeoffs."
+      }
     },
     {
       "findingId": "HealthcareService:element-presence:availability:4c8a21",
@@ -546,7 +560,22 @@
       "migrationGuidanceMd": "Map R4 `availableTime` to `availability.availableTime`, R4 `notAvailable` to `availability.notAvailableTime`, and decide how to map R4 `availabilityExceptions`—commonly to a `notAvailableTime.description` without `during`, or to an extension if the distinction must be preserved. Clean up any `allDay=true` records by removing start/end times or changing `allDay` to false based on business intent. Test direct-path rejection, nested-path acceptance, textual exceptions, not-available entries without periods, and all-day/time combinations.",
       "backwardCompatibilityAnalysisMd": "The consolidation is probably justified by reuse and consistency, but compatibility could have been improved by leaving the old direct elements as deprecated aliases or by publishing a normative cross-version extension for `availabilityExceptions`. The tradeoff would be duplicate schedule representations and extra validation complexity.",
       "reviewerNotesMd": "Official migration guidance would be valuable for the exact handling of `availabilityExceptions` and for grouping multiple R4 availability repetitions into a single R6 `Availability` instance.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "HealthcareService:element-presence:availability:4c8a21",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 carried availability in direct resource elements: `availableTime`, `notAvailable`, and `availabilityExceptions`. R6 removes those direct paths and introduces one `HealthcareService.availability` of type `Availability`. That is a hard instance-shape change for R4 services that publish opening hours or closure text. Migration is not purely a rename because R6 adds `Availability.period`, renames `notAvailable` to `notAvailableTime`, makes the not-available description optional, and enforces `av-1` so all-day availability cannot also carry start/end times. Even so, consolidating repeated schedule semantics into a reusable datatype is a coherent R6 goal, and keeping the old direct fields alongside the new datatype would duplicate operational schedule data where conflicts could affect service discovery.",
+        "keyEvidence": [
+          "R4 StructureDefinition has direct `HealthcareService.availableTime 0..*`, `HealthcareService.notAvailable 0..*`, and `HealthcareService.availabilityExceptions 0..1`.",
+          "R6 StructureDefinition has `HealthcareService.availability 0..1` of type `Availability`; the old direct availability paths are absent.",
+          "R6 `Availability.availableTime` has error invariant `av-1`: cannot include start/end times when all-day is selected.",
+          "R6 `Availability.notAvailableTime.description` is optional and its comment covers examples such as closed public holidays."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. It lowers no very-low-FMM warning and raises no normative burden, so the operational scheduling risk and duplicate-representation tradeoff dominate.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen and R6-to-R4 loss: old direct availability elements are invalid in R6, code must move to the nested datatype, and some R6 availability details or R4 exception text need policy when round-tripping.",
+        "lessBreakingAlternativeAssessment": "Partial: deprecated direct fields could have been retained while adding `availability`. That would preserve many R4 instances but would put the same opening-hour and closure facts in two shapes, requiring conflict handling for safety- and business-relevant schedule data.",
+        "comparisonToExisting": "agree with the existing high impact and Partial alternative judgment; the break is significant, but the less-breaking base design has substantial duplicate-schedule costs."
+      }
     },
     {
       "findingId": "HealthcareService:terminology:communication:9e31b7",
@@ -713,7 +742,22 @@
       "migrationGuidanceMd": "Audit all `HealthcareService.communication` codings. Convert real languages to BCP-47 codes in `urn:ietf:bcp:47`; move non-language service capabilities to a better element, such as `characteristic`, `eligibility`, a profile extension, or local directory metadata. Test common language codes, regional tags, text-only entries, and legacy local coding systems against the R6 terminology configuration.",
       "backwardCompatibilityAnalysisMd": "The stricter binding is aligned with the element's semantics, but a backward-compatible transition could have used extensible strength or required one BCP-47 coding while allowing additional local codings. That would reduce validation failures but permit less consistent data.",
       "reviewerNotesMd": "A live terminology expansion would improve confidence for edge-case BCP-47 tags and validator behavior for CodeableConcepts containing both valid language codings and extra local codings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "HealthcareService:terminology:communication:9e31b7",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`HealthcareService.communication` remains `CodeableConcept 0..*`, but its binding changes from preferred `ValueSet/languages` to required `ValueSet/all-languages`. The clear break is for R4 data that used local-only or non-language concepts, such as interpreter-service flags, because R6 requires an actual human language tag. CodeableConcepts that include a valid BCP-47 language coding may still be able to carry supplemental codings depending on validator policy, so the highest risk is local-only legacy content rather than every local supplement. The required binding is proportionate because the element's definition is specifically the languages in which the service is offered.",
+        "keyEvidence": [
+          "R4 `HealthcareService.communication` binding strength is `preferred` to `http://hl7.org/fhir/ValueSet/languages`.",
+          "R6 `HealthcareService.communication` binding strength is `required` to `http://hl7.org/fhir/ValueSet/all-languages|6.0.0-ballot4` with an additional starter binding to `ValueSet/languages`.",
+          "R6 `ValueSet-all-languages` compose includes system `urn:ietf:bcp:47`.",
+          "No live terminology expansion was run; the judgment relies on local StructureDefinition and ValueSet compose evidence."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. The stability context does not by itself demand compatibility, but terminology validation can still affect service-directory workflows using this path.",
+        "compatibilityMechanism": "old-valid/new-invalid terminology validation plus runtime/API/codegen: R4 local-only `communication` codings tolerated under a preferred binding can fail R6 required-binding validation, and validators or terminology-backed generated code must enforce BCP-47 language tags.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have used extensible/preferred strength, or a custom invariant requiring at least one BCP-47 coding while explicitly permitting local supplements. Those alternatives reduce failures for legacy data but either weaken the guarantee that this field carries languages or only help cases that already include a valid language coding.",
+        "comparisonToExisting": "partially agree with the existing high impact and Partial alternative judgment; I agree there is a hard terminology break, but the practical risk is narrower for CodeableConcepts that already include a valid BCP-47 coding."
+      }
     },
     {
       "findingId": "HealthcareService:value-constraint:eligibility:1f0c64",
@@ -887,7 +931,22 @@
       "validationAndCompatibilityMd": "R4 instances without `value[x]` are not invalidated by this change. R6 instances that include `eligibility.value[x]` without `eligibility.code` are invalid because of `hcs-1`. Valid R6 eligibility values and periods are not cleanly representable in core R4; they must be reduced to comments, extensions, or profile-specific data.",
       "migrationGuidanceMd": "When upgrading, leave existing `code` and `comment` intact and optionally derive R6 `value[x]` only when the code semantics are known. When down-converting, use extensions for lossless preservation or produce a human-readable `comment` with an explicit loss marker. Tests should cover every allowed value choice type and the missing-code invariant.",
       "backwardCompatibilityAnalysisMd": "The invariant and new fields are reasonable for computable eligibility, but R4 compatibility would have been better served by a standard cross-version extension or by initially publishing this as a profile pattern. The tradeoff is that extensions are less visible to generic clients.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "HealthcareService:value-constraint:eligibility:1f0c64",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `eligibility.value[x]`, optional `eligibility.period`, and invariant `hcs-1` requiring `code` when the new value is present. Existing R4 eligibility entries with only `code` and/or `comment` are not made invalid by this change. The new fields can be important when R6 content is converted back to R4, but that is expected representability loss from optional additive expressiveness rather than a base R4-to-R6 break. The invariant also constrains only the new value-bearing form and has a clear computability rationale.",
+        "keyEvidence": [
+          "R4 `HealthcareService.eligibility` has `code 0..1` and `comment 0..1` and no `value[x]` or `period`.",
+          "R6 adds `HealthcareService.eligibility.value[x] 0..1` with CodeableConcept, boolean, Quantity, Range, and Reference choices.",
+          "R6 adds `HealthcareService.eligibility.period 0..1`.",
+          "R6 invariant `hcs-1`: `value.exists() implies code.exists()`."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral, but because the change is optional and does not invalidate R4 instances, FMM did not raise this to a design concern.",
+        "compatibilityMechanism": "R6-to-R4 loss only: R6 value and period details have no native R4 field, but there is no old-valid/new-invalid R4-to-R6 mechanism for existing eligibility content.",
+        "lessBreakingAlternativeAssessment": "Not applicable: this is an optional additive R6 base feature plus an invariant on that new feature. R4 extensions or comments can mitigate down-conversion loss, but they are not less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree with the existing no-hard-break and Not applicable alternative judgment, but disagree that this should remain a material R4-to-R6 compatibility concern; the fresh judgment is No problem."
+      }
     },
     {
       "findingId": "HealthcareService:type-domain:comment-markdown:7a42bc",
@@ -1005,7 +1064,21 @@
       "validationAndCompatibilityMd": "Most R4 values should remain lexically acceptable in R6, so hard validation failures are only potential. Runtime compatibility is more likely to break: generated APIs may expose a markdown-specific type, sanitization rules may differ, and UI output can change. R6 markdown content can be stored in R4 `string`, but R4 consumers will not necessarily know to render or sanitize it as markdown.",
       "migrationGuidanceMd": "Review generated model changes and UI rendering paths. Treat migrated content as untrusted markdown and apply the same sanitization policy used for other FHIR markdown primitives. Regression tests should include plain text, markdown punctuation, links, and content that previously displayed literally.",
       "backwardCompatibilityAnalysisMd": "This could have been fully backward-compatible by retaining `string` and documenting optional markdown conventions or by adding a separate formatted field. The tradeoff would be weaker standardization of formatting semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "HealthcareService:type-domain:comment-markdown:7a42bc",
+        "judgment": "Revisit",
+        "narrativeMd": "`HealthcareService.comment` keeps the same path, cardinality, and JSON string shape, but its primitive type changes from `string` to `markdown`. Most R4 literal text will still be lexically usable, so this is not usually a hard wire-format break. The real break is generated-type, validator, sanitization, and rendering behavior: text that was previously displayed literally may be interpreted as markdown, and SDKs may expose a different primitive class. The base R6 goal of allowing formatted comments seems achievable with a lower-cost design, such as keeping the existing `string` element with display guidance or adding a separate optional formatted-comment element.",
+        "keyEvidence": [
+          "R4 `HealthcareService.comment` type is `string 0..1`.",
+          "R6 `HealthcareService.comment` type is `markdown 0..1`.",
+          "The element name and cardinality remain unchanged, so the compatibility issue is type/API/rendering semantics rather than a renamed path."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral, so this is not a normative-stability problem. Still, the change affects a common descriptive path and appears avoidable at modest base-design cost.",
+        "compatibilityMechanism": "runtime/API/codegen with semantic/documentation effects: the wire value is still a string, but generated primitives, markdown validation/sanitization, and UI rendering can change for existing plain-text comments.",
+        "lessBreakingAlternativeAssessment": "Yes: retaining `comment` as `string` while documenting markdown display conventions, or adding a separate optional markdown/formatted field, would preserve R4 APIs and display expectations. The tradeoff is weaker type-level formatting semantics or some duplicate display text.",
+        "comparisonToExisting": "agree with the existing Potential/Medium impact and Yes less-breaking-alternative judgment; under the fresh rubric, that avoidable runtime/rendering change merits Revisit."
+      }
     },
     {
       "findingId": "HealthcareService:reference-target:offeredIn:2bb615",
@@ -1115,7 +1188,21 @@
       "validationAndCompatibilityMd": "R4 instances remain valid with respect to this optional addition. Valid R6 instances using `offeredIn` cannot be represented in core R4 without an extension, so down-conversion can lose service hierarchy. Generated R6 clients must also handle a new self-reference and possible reference cycles in traversal code.",
       "migrationGuidanceMd": "For R4-to-R6, populate `offeredIn` only when a trustworthy service hierarchy exists. For R6-to-R4, preserve the references through a documented extension or an external mapping table if hierarchy is operationally important. Test graph traversal for cycles and missing referenced services.",
       "backwardCompatibilityAnalysisMd": "A core self-reference is cleaner than an extension for R6 consumers, but an extension would have been more backward-compatible with R4. The tradeoff is between generic visibility in R6 and cross-version representability.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "HealthcareService:reference-target:offeredIn:2bb615",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `HealthcareService.offeredIn 0..*` as a self-reference for service hierarchies. It does not remove or constrain any R4 element, so existing R4 HealthcareService instances remain compatible on upgrade. R6 data using the new hierarchy may need an extension or external relationship store when converted to R4, and graph traversal code should handle cycles, but those are normal consequences of an optional forward addition rather than a breaking R4-to-R6 base design.",
+        "keyEvidence": [
+          "R6 `HealthcareService.offeredIn` is `Reference(HealthcareService) 0..*` with definition about a specific schedulable service referring to a generic service.",
+          "R4 HealthcareService has no corresponding `offeredIn` path.",
+          "The R6 element is optional and `referralMethod`, `providedBy`, and other existing reference elements are not tightened by this addition."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral, but the optional additive nature means no extra stability analysis is needed for R4-to-R6 compatibility.",
+        "compatibilityMechanism": "R6-to-R4 loss only: new R6 hierarchy references have no native R4 field, but no R4-valid instance becomes invalid because of the addition.",
+        "lessBreakingAlternativeAssessment": "Not applicable: an optional base element is already the compatibility-preserving way to add R6 expressiveness. An R4 extension is a down-conversion mitigation, not a less-breaking R6 base design.",
+        "comparisonToExisting": "partially agree with the existing no-hard-break and Not applicable alternative judgment, but disagree that the reverse-only medium impact should be treated as a material R4-to-R6 problem."
+      }
     },
     {
       "findingId": "HealthcareService:element-presence:referralRequired:ad51e0",
@@ -1238,7 +1325,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 instances are not invalidated by this addition. Valid R6 instances containing `referralRequired` lose computable meaning in plain R4. Runtime code may need to update access-rule logic to check this new boolean in addition to `referralMethod` and eligibility details.",
       "migrationGuidanceMd": "For R6-to-R4, preserve `referralRequired` in an extension when computability matters; otherwise include it in `eligibility.comment` or local directory metadata with an explicit loss warning. For R4-to-R6, do not infer `referralRequired=true` solely from the existence of `referralMethod` unless local policy confirms that interpretation.",
       "backwardCompatibilityAnalysisMd": "Adding an optional element is the usual backward-compatible forward evolution, but it creates down-conversion risk. A standard extension would have supported R4 and R6 but would not be as easy for generic R6 clients to discover.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "HealthcareService:element-presence:referralRequired:ad51e0",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `HealthcareService.referralRequired 0..1` while retaining `referralMethod`. This gives R6 a direct boolean for whether a referral is required, but it does not invalidate any R4 instance or change the old referral-method field. Down-converting R6 content may require an extension or a lossy comment to preserve the boolean, but that reverse-direction issue is not a base R4-to-R6 break and does not warrant revisiting the R6 addition.",
+        "keyEvidence": [
+          "R4 has `HealthcareService.referralMethod 0..*` but no `referralRequired` boolean.",
+          "R6 retains `HealthcareService.referralMethod 0..*` and adds optional `HealthcareService.referralRequired 0..1` of type boolean.",
+          "The R6 `referralRequired` comment says eligibility can carry more detailed referral requirements."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. Because the change is optional and forward-compatible, the maturity context does not make it concerning.",
+        "compatibilityMechanism": "R6-to-R4 loss only: R6 can express a computable referral-required boolean that core R4 lacks, but existing R4 instances do not become invalid in R6.",
+        "lessBreakingAlternativeAssessment": "Not applicable: this is an optional additive R6 element. R4 extensions or profile conventions can preserve the boolean in down-conversion, but they are mitigations rather than less-breaking R6 base designs.",
+        "comparisonToExisting": "partially agree with the existing no-hard-break and Not applicable alternative judgment, but disagree that this optional addition should count as a material R4-to-R6 compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1410,5 +1511,19 @@
       "Resources that replaced direct availability backbone elements with Availability datatype",
       "Resource-local language CodeableConcept bindings strengthened to required all-languages"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/HealthcareService.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 3
+    }
   }
 }

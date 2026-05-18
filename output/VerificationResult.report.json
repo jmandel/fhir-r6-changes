@@ -279,7 +279,22 @@
       "validationAndCompatibilityMd": "An R4-valid `VerificationResult` can become R6-invalid solely because R6 has no resource definition for it. Strict JSON/XML/RDF parsers generated from R6 will typically reject or deserialize it only as unknown/extension data. This finding is R4-to-R6; there is no symmetric R6-to-R4 representability issue for a removed same-named R6 artifact because R6 has no such artifact.",
       "migrationGuidanceMd": "Inventory all persisted and exchanged `VerificationResult` instances before moving an endpoint or repository to R6. Decide whether to retain them as R4 legacy resources, transform selected content into other R6 resources plus extensions, or reject them at migration boundaries. Test validation, Bundle ingestion, history export, REST endpoint routing, search indexing, and generated-client deserialization with representative `VerificationResult` examples.",
       "backwardCompatibilityAnalysisMd": "Removal was probably avoidable from a compatibility perspective: R6 could have retained a deprecated StructureDefinition while steering new implementations elsewhere. However, if the resource was considered immature or incorrectly scoped, carrying it forward would impose specification and implementation cost. Without official rationale, the compatibility tradeoff cannot be fully assessed.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "VerificationResult:ARTIFACT_IDENTITY:root:6a1c0d",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 defines `VerificationResult` as a concrete resource, and the R6 ballot4 core package has no same-named StructureDefinition or package-index entry. That makes any R4 `VerificationResult` instance old-valid/new-invalid at the resourceType level, and it also removes generated model/API identity. FMM 0 means R6 had much more freedom to retire the resource than it would for mature or normative content, but this is still worth renewed design attention because official directory IG material used the resource for validation/attestation workflows and because a deprecated or externally-carried legacy resource could have preserved existing wire identity while discouraging new use.",
+        "keyEvidence": [
+          "R4 StructureDefinition-VerificationResult.json: kind=resource, type=VerificationResult, abstract=false, standards-status=trial-use, FMM=0.",
+          "R6 core package check: no StructureDefinition-VerificationResult.json, no R6 package-index entry containing VerificationResult, and no package content match for VerificationResult.",
+          "HL7 VhDir profile page for `vhdir-validation` profiles VerificationResult and describes provider-directory validation, attestation, targetLocation, primarySource, and validator use.",
+          "National Healthcare Directory Exchange artifacts/capability statement include VerificationResult validation profile/search support, but no hard production prevalence evidence was found in the quick check."
+        ],
+        "fmmEffect": "FMM 0/trial-use substantially softens the stability expectation and prevents treating removal as automatically unacceptable. The judgment is Revisit only because there is specific implementation-guide evidence for directory validation use and the break is a whole-resource identity loss.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with `resourceType: \"VerificationResult\"` has no R6 core resource definition, so strict R6 validators/parsers and generated models have no base artifact to accept or deserialize.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design plausibly exists: keep `VerificationResult` in R6 as deprecated/retired, or carry it as an official additional/legacy resource with explicit guidance to use newer patterns for new designs. That would preserve most R4 instances and generated API identity. The tradeoff is real: R6 would keep supporting a FMM 0 model and risk duplicate verification representations alongside Provenance, AuditEvent, ArtifactAssessment, or directory-specific profiles.",
+        "comparisonToExisting": "Partially agree with the existing Critical impact and Yes alternative judgment. The hard identity break and deprecated-resource alternative are real, but the existing report underweights how much FMM 0 lowers the compatibility burden and how limited the quick evidence is on actual production prevalence."
+      }
     },
     {
       "findingId": "VerificationResult:CONVERSION_OR_MAPPING:root:no-direct-replacement:34d9b2",
@@ -451,7 +466,22 @@
       "migrationGuidanceMd": "Treat migration as a data-model redesign. Define which R4 elements are legally/business-critical, choose target R6 resources by use case, create extensions for fields that have no native target, and document lossy mappings explicitly. Test at least status, failure action, target-location, revalidation schedule, primary-source communication, attestation, certificate, and signature scenarios.",
       "backwardCompatibilityAnalysisMd": "A formal R6 replacement profile or StructureMap would have made this less disruptive even if the base resource was removed. The alternative is only partial because the R6 model may intentionally prefer different resources for event evidence, audit events, and artifact assessments.",
       "reviewerNotesMd": "Human review should confirm whether an official ballot note, Jira issue, or implementation guide identifies a preferred replacement. The local package evidence alone does not.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "VerificationResult:CONVERSION_OR_MAPPING:root:no-direct-replacement:34d9b2",
+        "judgment": "Revisit",
+        "narrativeMd": "The migration concern is not just that the resource name disappeared. R4 `VerificationResult` combined target references and FHIRPath target locations with validation need/status/timing, failure action, primary-source communication/update details, attestation, certificates, signatures, and validator information. R6 Provenance and AuditEvent cover event/provenance evidence, ArtifactAssessment covers comments/ratings about resources, and Consent.verification is domain-specific, but none is a direct lossless home for the full R4 model. For a directory or credentialing workflow, migration would require policy decisions and likely extensions, especially for targetLocation, revalidation scheduling, primary-source push behavior, and attestation certificate/signature semantics.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot includes VerificationResult.target, targetLocation, need, status, frequency, failureAction, primarySource, attestation, and validator elements.",
+          "R6 Provenance documentation describes provenance of producing/influencing resources and trust assessment support, but not a verification lifecycle/scheduling resource.",
+          "R6 ArtifactAssessment documentation describes comments, classifiers, or ratings about a resource and explicitly distinguishes itself from Provenance.",
+          "HL7 VhDir profile guidance treats these VerificationResult fields as core to validated healthcare directory workflows."
+        ],
+        "fmmEffect": "Low FMM makes it acceptable for R6 to redesign rather than preserve a one-to-one model. It does not erase the concern here because the mapping is expert-dependent and the affected semantics are audit/business-relevant in the directory IG context.",
+        "compatibilityMechanism": "R6-to-R4 loss: after conversion to other R6 resources, some R4 verification lifecycle, source, attestation, scheduling, and target-location semantics may not round-trip or remain queryable without profiles/extensions and human mapping rules.",
+        "lessBreakingAlternativeAssessment": "A fully compatible direct successor is not obvious without recreating the old resource. The most practical less-breaking R6 design would be to retain/deprecate the legacy resource and publish official mapping guidance or profiles for common Provenance, AuditEvent, and ArtifactAssessment migrations. This is only partial because the replacement-profile approach does not make old instances valid by itself and a retained resource adds duplicate modeling choices.",
+        "comparisonToExisting": "Agree with the existing High impact and Partial alternative judgment. The fresh review gives extra weight to the low-FMM context, but the no-direct-replacement issue remains material because migration can be lossy and expert-dependent."
+      }
     },
     {
       "findingId": "VerificationResult:TERMINOLOGY_BINDING:status-and-related-artifacts:91f4e8",
@@ -607,7 +637,22 @@
       "migrationGuidanceMd": "Remove or gate R6 code paths that assume `VerificationResult` endpoints, search parameters, or generated enums. If legacy R4 data must remain queryable, expose it through an R4 endpoint, a custom operation, or a documented migration index. If mapping to R6 resources, define explicit status-code mappings and test all R4 status and failure-action codes.",
       "backwardCompatibilityAnalysisMd": "Once the resource is removed, dropping resource-scoped search and bindings is coherent, but backward compatibility would have been improved by retained deprecated terminology artifacts or official ConceptMaps. That alternative would reduce enum and terminology migration risk without requiring the base resource to remain fully active.",
       "reviewerNotesMd": "The R6 core package contains a pointer in `other/spec.internals` to an external THO `validation-status` page, so absence from core should not be overread as proof that every old code system URL is globally unavailable.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "VerificationResult:TERMINOLOGY_BINDING:status-and-related-artifacts:91f4e8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 had a mandatory `VerificationResult.status` code with a required verificationresult-status value set, additional resource-scoped value sets/code systems, ConceptMaps, generated enum surfaces, and a `VerificationResult-target` search parameter. In R6 core these disappear because the resource itself is gone. That creates real runtime/API/codegen and search migration work for systems that compiled enums, exposed `VerificationResult?target=`, or implemented directory validation searches. However, as a separate finding this is derivative: keeping a resource-specific search parameter or binding surface in core while the resource is absent would be incoherent. The more meaningful design question is the root resource/mapping decision, not orphaning the dependent artifacts.",
+        "keyEvidence": [
+          "R4 `VerificationResult.status` is 1..1 code with required binding to `http://hl7.org/fhir/ValueSet/verificationresult-status|4.0.1`.",
+          "R4 package contains verificationresult-* CodeSystems/ValueSets, two status ConceptMaps, and SearchParameter-VerificationResult-target.",
+          "R6 package index has no VerificationResult-related terminology or SearchParameter entries.",
+          "National Healthcare Directory Exchange artifacts include VerificationResult search parameters including target, attestation-who, and primarysource-who."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the concern and supports removing dependent conformance artifacts if the base resource is removed. IG evidence shows implementers may feel the runtime/search break, but not enough to make this derivative cleanup independently disproportionate.",
+        "compatibilityMechanism": "runtime/API/codegen: generated enums, validator terminology tables, REST search definitions, and client/server routes tied to VerificationResult no longer have an R6 core counterpart, though the instance-validity break is already caused by resource removal.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design exists: retain deprecated terminology artifacts and ConceptMaps, and retain the target search parameter only if a deprecated/legacy VerificationResult resource is also retained. Keeping orphaned search parameters without the resource would confuse conformance; terminology-only retention helps migration but does not make old instances valid.",
+        "comparisonToExisting": "Partially agree with the existing High impact and Partial alternative judgment. The runtime/search break is real, but I would not treat it as an independently high standards problem once the resource-removal decision is assumed; the cleanup is internally consistent."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -753,5 +798,18 @@
       "Resource-specific SearchParameter removal caused by resource removal",
       "Resource-scoped terminology artifacts absent from newer core packages"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/VerificationResult.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 1
+    }
   }
 }

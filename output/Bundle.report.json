@@ -320,7 +320,21 @@
       "validationAndCompatibilityMd": "R4-valid entries without `fullUrl` can be R6-invalid. R6 entries with `fullUrl` remain representable in R4, so the main risk is R4-to-R6 validation.",
       "migrationGuidanceMd": "Scan Bundles by `type`; populate `fullUrl` for collection, document, message, searchset, and non-POST history entries. Regression tests should include entries whose cardinality appears valid but fail bdl-15.",
       "backwardCompatibilityAnalysisMd": "A less-breaking path would have made this a warning first. The base invariant is disruptive but provides stronger guarantees for references and Bundle entry identity.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.entry.fullUrl:bdl15",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an error-level invariant that makes `entry.fullUrl` required for ordinary Bundle entries outside the batch/transaction exception space. This can surface as a validator failure for legacy collection, document, message, searchset, or history Bundles that omitted fullUrl. The change is still proportionate because R4 already described fullUrl with SHALL-level prose and addressable entries are important for references and interpretation.",
+        "keyEvidence": [
+          "R4 `Bundle.entry.fullUrl` is 0..1 and its definition says the element SHALL have a value except for POST and operation-result cases.",
+          "R6 root constraint bdl-15 is error severity with expression `type='transaction' or type='transaction-response' or type='batch' or type='batch-response' or entry.all(fullUrl.exists() or request.method='POST')`.",
+          "R6 keeps the element cardinality 0..1, so the effective requiredness comes from the new invariant rather than min/max."
+        ],
+        "fmmEffect": "Bundle is R4 FMM 5 and normative, which raises the burden for validator-tightening changes; here that burden is partly met because the requirement was already present in R4 prose and the invariant makes existing intent computable.",
+        "compatibilityMechanism": "old-valid/new-invalid: structurally accepted R4 instances without fullUrl can become R6 validation failures for non-exempt Bundle types, although many such instances were already questionable against R4 prose.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have introduced bdl-15 as a warning or best-practice invariant first. That would preserve more legacy payloads, but generic R6 processors still could not rely on Bundle entries being addressable.",
+        "comparisonToExisting": "partially agree: I agree this is a real validator break and that a warning-level alternative exists, but the existing High impact framing understates that R4 already had SHALL-level fullUrl prose."
+      }
     },
     {
       "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.link:self:bdl18",
@@ -456,7 +470,21 @@
       "validationAndCompatibilityMd": "A searchset with no `link.where(relation='self')` can be R6-invalid. R4 can represent the added link, so R6-to-R4 representability is not a concern.",
       "migrationGuidanceMd": "Populate `Bundle.link.relation = self` with the actual search URL for every searchset, including empty and single-page results.",
       "backwardCompatibilityAnalysisMd": "The rule could have been a best-practice warning, but a base invariant gives clients a reliable origin URL for search results.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.link:self:bdl18",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 makes a top-level `self` link mandatory for `searchset` Bundles through an error-level invariant. Minimal R4 search results, fixtures, or non-REST adapters that omitted Bundle links can fail R6 validation. The requirement is narrow and usually mechanically satisfiable, and it gives stored or forwarded search results a computable origin URL.",
+        "keyEvidence": [
+          "R4 `Bundle.link` is 0..* and no R4 root constraint requires `relation = self`.",
+          "R6 root constraint bdl-18 is error severity with expression `type = 'searchset' implies link.where(relation = 'self' and url.exists()).exists()`.",
+          "R6 leaves `Bundle.link` cardinality at 0..*, so this is an invariant-based conditional requirement."
+        ],
+        "fmmEffect": "Bundle is FMM 5/normative, so a new error on search results needs a strong interoperability reason; the self-link requirement has a plausible search reproducibility and paging rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 searchset with no self link can be rejected by R6 validation even though the wire shape of links did not otherwise change.",
+        "lessBreakingAlternativeAssessment": "A warning-level invariant or search profile rule would be less breaking and would preserve minimal R4 searchsets, but it would not let generic R6 clients assume that a search result identifies the request that produced it.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a hard validation change and identifies a warning/profile alternative with a real interoperability tradeoff."
+      }
     },
     {
       "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.entry:method-resource-consistency:bdl3b3c14",
@@ -623,7 +651,21 @@
       "validationAndCompatibilityMd": "Old R4 data can fail R6 validation if GET/HEAD/DELETE entries carry resources, POST/PUT/PATCH entries omit resources, or history entries use PATCH.",
       "migrationGuidanceMd": "Normalize transaction and batch entries by method. For history, require request and response, remove or transform PATCH records, and verify resource presence by method.",
       "backwardCompatibilityAnalysisMd": "The stricter rules are operationally sensible, but a staged warning would have reduced migration friction for legacy audit/history exports.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.entry:method-resource-consistency:bdl3b3c14",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 replaces broad request/response presence checks with method-aware rules for history, transaction, and batch entries, and it forbids PATCH in history Bundles. Legacy Bundles that carried a body on GET/DELETE or omitted a body on POST/PUT/PATCH can become invalid. This is a real migration issue, but the stricter rules match REST processing semantics and reduce ambiguous executable or audit content.",
+        "keyEvidence": [
+          "R4 root constraints bdl-3 and bdl-4 tie request/response backbone presence to Bundle.type but do not compare resource presence with HTTP method.",
+          "R6 bdl-3c requires transaction/batch entries to have a request method and to have a resource exactly when the method is POST, PATCH, or PUT.",
+          "R6 bdl-3b applies the same resource-presence rule to history entries, and bdl-14 adds `type = 'history' implies entry.request.method != 'PATCH'`."
+        ],
+        "fmmEffect": "The normative/FMM 5 status increases compatibility concern, especially for transaction and history Bundles, but the target rule encodes fundamental method/body semantics rather than a cosmetic cleanup.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with lax method/body combinations can fail R6 validation; runtime/API/codegen risk also exists for systems that mechanically assemble transaction, batch, or history Bundles.",
+        "lessBreakingAlternativeAssessment": "R6 could have staged these as warnings or profile requirements. That would reduce migration failures, but base R6 processors would still have to handle operationally contradictory entries.",
+        "comparisonToExisting": "agree: the existing High runtime impact and partial less-breaking alternative assessment match the independent path-level assessment."
+      }
     },
     {
       "findingId": "Bundle:TYPE_DOMAIN:Bundle.entry.response.outcome:operationoutcome-profile",
@@ -769,7 +811,21 @@
       "validationAndCompatibilityMd": "A non-OperationOutcome `response.outcome` can be R6-invalid. R6 OperationOutcome content remains representable in R4 because R4 allowed any Resource.",
       "migrationGuidanceMd": "Audit batch-response and transaction-response Bundles for `entry.response.outcome.resourceType` other than `OperationOutcome`; convert hints/warnings into OperationOutcome.issue or move unrelated content elsewhere.",
       "backwardCompatibilityAnalysisMd": "Keeping a broad Resource type would be more compatible but less precise. The R6 profile appears justified because the R4 definition already identified OperationOutcome.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Bundle:TYPE_DOMAIN:Bundle.entry.response.outcome:operationoutcome-profile",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 constrains `entry.response.outcome` to an OperationOutcome profile while R4 exposed it as a generic Resource slot. A non-OperationOutcome payload that passed broad structural validation in R4 can fail R6 profile validation. The break is likely rare and justified because R4's own definition already described this element as an OperationOutcome containing hints and warnings.",
+        "keyEvidence": [
+          "R4 `Bundle.entry.response.outcome` type is `Resource` with no profile.",
+          "R4 definition says the element is an OperationOutcome containing hints and warnings from batch or transaction processing.",
+          "R6 type remains `Resource` but adds profile `http://hl7.org/fhir/StructureDefinition/OperationOutcome`."
+        ],
+        "fmmEffect": "FMM 5/normative status means narrowing a type domain deserves scrutiny, but the R6 profile aligns the computable model with mature R4 semantic text.",
+        "compatibilityMechanism": "old-valid/new-invalid: non-OperationOutcome resources in `entry.response.outcome` can be rejected by R6 validators; generated models may also narrow accepted values.",
+        "lessBreakingAlternativeAssessment": "Keeping unprofiled Resource with warning guidance would preserve odd legacy payloads, but it would continue to allow content that conflicts with the element's stated purpose and would weaken type safety.",
+        "comparisonToExisting": "agree: the existing Medium impact and partial alternative assessment are consistent with a narrow but real computable-profile break."
+      }
     },
     {
       "findingId": "Bundle:TYPE_DOMAIN:Bundle.link.relation:code-iana",
@@ -929,7 +985,22 @@
       "validationAndCompatibilityMd": "R4 strings not valid under FHIR `code` or the R6 IANA value set can be R6-invalid. JSON still serializes as a string, but generated APIs and validators may change behavior.",
       "migrationGuidanceMd": "Inventory relation values, correct misspellings, and map private names to registered IANA relations where possible. Use extensions/profiles for values with no acceptable IANA mapping.",
       "backwardCompatibilityAnalysisMd": "An extensible binding would have been less breaking. The required binding is stricter but gives generic clients interoperable link semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Bundle:TYPE_DOMAIN:Bundle.link.relation:code-iana",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 changes `Bundle.link.relation` from an unbound string to a code with a required IANA link-relation value set, and `Bundle.entry.link` inherits the same definition by content reference. That can invalidate private, misspelled, newly registered, or otherwise non-packaged relation names that R4 could carry. On a normative/FMM 5 resource, the required binding appears more restrictive than necessary to promote standard relations, especially because link relations are an extensible web mechanism.",
+        "keyEvidence": [
+          "R4 `Bundle.link.relation` type is `string` with no computable binding; its definition points readers to the IANA registry.",
+          "R6 `Bundle.link.relation` type is `code` with required binding to `http://hl7.org/fhir/ValueSet/iana-link-relations|6.0.0-ballot4`.",
+          "R6 `Bundle.entry.link` remains a content reference to `#Bundle.link`, so entry-level links are affected too.",
+          "Local R6 `CodeSystem-iana-link-relations.json` contains 120 packaged concepts."
+        ],
+        "fmmEffect": "FMM 5/normative status strongly raises the burden for turning an open string into a required terminology domain; the evidence supports interoperability intent but not why required binding is the least disruptive base choice.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 Bundles with relation strings outside the packaged IANA value set can become invalid; runtime/API/codegen: SDKs may also change from free string handling to code or enum validation.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep the string shape or use a code with extensible/preferred IANA binding, possibly with warnings for unregistered relations. That would weaken the guarantee that every relation is a packaged standard code, but it would preserve private or newly registered relation values while still encouraging interoperable names.",
+        "comparisonToExisting": "partially agree: I agree with the existing High impact assessment, but I disagree that the less-breaking alternative is only a weak partial option; an extensible or preferred binding seems like a plausible base design worth renewed review."
+      }
     },
     {
       "findingId": "Bundle:ELEMENT_PRESENCE_OR_IDENTITY:Bundle.issues:added",
@@ -1115,7 +1186,22 @@
       "migrationGuidanceMd": "Move bundle-level search outcome warnings into `Bundle.issues` for R6. For R6-to-R4, choose extension preservation, search outcome-entry mapping where applicable, or documented data loss.",
       "backwardCompatibilityAnalysisMd": "An optional element is minimally disruptive for R4-to-R6, but a standard cross-version extension would make R6-to-R4 conversion safer.",
       "reviewerNotesMd": "The local R6 ValueSet still includes `outcome`; it is deprecated, not removed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Bundle:ELEMENT_PRESENCE_OR_IDENTITY:Bundle.issues:added",
+        "judgment": "No problem",
+        "narrativeMd": "`Bundle.issues` is an optional R6 addition for bundle-level OperationOutcome warnings and information. It does not make any R4 Bundle invalid when moving forward to R6. Down-converting R6 Bundles that use it needs a policy, but that is a reverse-version mapping concern rather than a problematic R4-to-R6 base break.",
+        "keyEvidence": [
+          "R4 has no `Bundle.issues` element.",
+          "R6 adds `Bundle.issues` with cardinality 0..1 and profile `OperationOutcome`.",
+          "R6 bdl-16 limits issue severity to information or warning, and bdl-17 prohibits issues on document Bundles.",
+          "R6 `search-entry-mode` still includes `outcome` locally even though the report notes deprecation toward Bundle.issues."
+        ],
+        "fmmEffect": "Normative/FMM 5 status supports preserving old Bundle validity, and this optional addition does so; maturity mainly means R6-to-R4 conversion policy should be explicit where warnings matter.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 content in `Bundle.issues` has no native R4 element, but there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for forward compatibility because the element is optional. R6-to-R4 mitigations such as an extension or search outcome-entry mapping are conversion strategies, not better R6 base designs.",
+        "comparisonToExisting": "partially agree: I agree with the R6-to-R4 loss observation, but the existing Medium impact overstates this as a fresh-review concern because forward R4-to-R6 validity is unaffected."
+      }
     },
     {
       "findingId": "Bundle:TERMINOLOGY_BINDING:Bundle.type:subscription-notification",
@@ -1262,7 +1348,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 instances using existing codes are unaffected. R6 notification Bundles need a non-native mapping to R4 and may break exhaustive R4/R5-era switch logic.",
       "migrationGuidanceMd": "Update enums, switch statements, serializers, and validators. For R6-to-R4 exchange, define a profile-specific fallback and preserve SubscriptionStatus semantics explicitly.",
       "backwardCompatibilityAnalysisMd": "A profile/extension could avoid a new required-binding code, but would hide semantics from generic R6 clients.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Bundle:TERMINOLOGY_BINDING:Bundle.type:subscription-notification",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens the required Bundle.type code set with `subscription-notification` and adds a first-entry SubscriptionStatus rule for that new type. Existing R4 Bundle.type values are preserved. Older consumers and closed enums need updates to understand the new code, but adding a first-class code for new subscription behavior is not a concerning R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 `CodeSystem-bundle-type` has nine concepts and no `subscription-notification`.",
+          "R6 `CodeSystem-bundle-type` adds `subscription-notification` while retaining the R4 codes.",
+          "R6 bdl-13 requires `entry.first().resource.is(SubscriptionStatus)` only when `type = 'subscription-notification'`."
+        ],
+        "fmmEffect": "FMM 5/normative status would matter if existing codes were removed or redefined, but this change is additive and preserves existing R4 Bundle.type instances.",
+        "compatibilityMechanism": "runtime/API/codegen: closed enums and exhaustive switches may need a new case; R6-to-R4 loss: R4 cannot natively validate the new required-binding code.",
+        "lessBreakingAlternativeAssessment": "Using an extension or profile on an existing Bundle.type would be less visible to old systems only superficially, while hiding the new semantics from generic R6 processors. It is not a better base design for preserving R4-to-R6 validity, which is already preserved.",
+        "comparisonToExisting": "partially agree: I agree there is enum and R6-to-R4 handling work, but I rate the base compatibility concern lower than the existing Medium/High framing because the value set is widened, not narrowed."
+      }
     },
     {
       "findingId": "Bundle:SEMANTIC_OR_CONFORMANCE_TEXT:Bundle.entry.resource:parameters-context",
@@ -1381,7 +1481,21 @@
       "migrationGuidanceMd": "Identify `entry.resource.resourceType = Parameters`; ensure each is referenced or contextually tied to another Bundle entry, or move the data to a profile/extension with agreed semantics.",
       "backwardCompatibilityAnalysisMd": "A warning or explicit invariant would be clearer. As prose, the change is less mechanically breaking but creates implementation variability.",
       "reviewerNotesMd": "Classified as potential because the StructureDefinition includes no matching invariant.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Bundle:SEMANTIC_OR_CONFORMANCE_TEXT:Bundle.entry.resource:parameters-context",
+        "judgment": "Unclear",
+        "narrativeMd": "R6 adds prose saying a Parameters resource is allowed in `Bundle.entry.resource` only when referenced by something else in the Bundle that supplies context or meaning. The computable type remains Resource and no matching invariant appears in the local StructureDefinition. A stricter conformance review could reject standalone Parameters entries, but ordinary structural validation may not, so the intended enforcement level and migration burden are not clear from the supplied evidence.",
+        "keyEvidence": [
+          "R4 `Bundle.entry.resource` type is `Resource` and its definition says purpose/meaning is determined by Bundle.type.",
+          "R6 keeps type `Resource` but adds Parameters-specific iff-referenced/context text to the definition.",
+          "No R6 root invariant directly enforces the Parameters reference/context condition."
+        ],
+        "fmmEffect": "Bundle is FMM 5/normative, so absolute-sounding prose on a mature resource deserves attention; however, because the change is prose-only, FMM does not by itself prove a hard break.",
+        "compatibilityMechanism": "semantic/documentation: potential conformance break for standalone Parameters entries if implementers or validators enforce the new prose, but the mechanism is not computable in the examined StructureDefinition.",
+        "lessBreakingAlternativeAssessment": "Softer guidance, a warning-level rule, or profile-specific restrictions would be less disruptive, but without official rationale or validator behavior it is unclear whether R6 intended a hard base rule or explanatory guidance.",
+        "comparisonToExisting": "agree: the existing report appropriately treats this as potential rather than definite and identifies softer guidance as a plausible less-breaking direction."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1593,5 +1707,20 @@
       "Required binding code additions causing enum risk",
       "New optional elements with no R4 representation"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Bundle.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Unclear": 1,
+      "Breaking but probably OK": 4,
+      "No problem": 2
+    }
   }
 }

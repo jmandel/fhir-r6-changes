@@ -53,8 +53,8 @@ export interface FhirBreakingChangeAssessmentReport {
   /**
    * Main finding list.
    *
-   * Include hard breaking changes, likely breaking changes, runtime risks,
-   * round-trip risks, semantic risks, and notable non-breaking changes.
+   * Include hard breaking changes, likely breaking changes, runtime/codegen
+   * risks, semantic risks, and notable non-breaking changes.
    */
   findings: BreakingChangeFinding[];
 
@@ -214,6 +214,13 @@ export interface AssessmentSummary {
 
   criticalOrHighRuntimeRiskCount: number;
 
+  /**
+   * Deprecated for the current R4->R6 analysis scope.
+   *
+   * Set this to 0. Reverse conversion, downgrade, and round-trip concerns may
+   * be useful migration notes, but they should not create material findings in
+   * this report unless there is also a concrete R4->R6 compatibility mechanism.
+   */
   criticalOrHighR6ToR4RiskCount: number;
 
   requiresHumanReviewCount: number;
@@ -574,7 +581,6 @@ export interface StructuredDelta {
     | "slicing-changed"
     | "semantic-text-changed"
     | "serialization-changed"
-    | "r6-not-representable-in-r4"
     | "other";
 
   /**
@@ -605,6 +611,13 @@ export interface ImpactAssessment {
 
   runtimeBreakingRisk: ImpactLevel;
 
+  /**
+   * Deprecated for the current R4->R6 analysis scope.
+   *
+   * Always set to "Not applicable". If a concern is only about representing R6
+   * content in R4, downgrade conversion, or round-trip loss, treat it as
+   * non-breaking migration context rather than a material R4->R6 finding.
+   */
   r6ToR4RepresentabilityRisk:
     | ImpactLevel
     | "Not applicable";
@@ -613,8 +626,6 @@ export interface ImpactAssessment {
 
   affectedDirection:
     | "R4-to-R6"
-    | "R6-to-R4"
-    | "Both"
     | "Runtime only"
     | "Unknown";
 
@@ -900,7 +911,7 @@ Use structured fields for:
 - delta kind
 - hard instance-breaking status
 - runtime risk
-- R6-to-R4 representability risk
+- R4-to-R6 compatibility mechanism and impact
 - impact
 - confidence
 - justification verdict
@@ -916,6 +927,12 @@ Use Markdown narrative fields for:
 - judging whether the change was justified
 - describing backward-compatible alternatives and their tradeoffs
 - noting uncertainty or missing evidence
+
+FMM and standards-status calibration:
+- Treat maturity and standards status as stability pressure, not as the impact score itself.
+- For R4->R6 compatibility analysis, use the R4 artifact's FMM and R4 standards status as the baseline. R6 FMM/status can be mentioned as target-version context, but it must not increase the burden for preserving R4 compatibility.
+- For R4 artifacts that are normative or FMM 5, hard breaks and safety-significant runtime changes need stronger justification.
+- For R4 FMM 0-1 artifacts, do not infer broad production impact from breakage alone unless there is specific evidence or strong domain reason that the path is central, safety/business/public-health relevant, or widely implemented.
 
 Justification and backward-compatible alternative calibration:
 - Treat `justificationVerdict` as the combined assessment of whether the inferred R6 goal is reasonable and whether it was reasonable to accomplish that goal with this level of breakage.
@@ -951,7 +968,7 @@ Recommended shape for `narrativeReportMd`:
 # <artifactName> R4→R6 breaking-change assessment
 
 ## Bottom line
-A concise judgement of whether this artifact has hard breaking changes, mostly runtime risks, mostly round-trip risks, or no material issues.
+A concise judgement of whether this artifact has hard breaking changes, mostly runtime/codegen risks, semantic risks, or no material R4-to-R6 issues.
 
 ## Scope
 Explain exactly what was analyzed and what was not.
@@ -978,14 +995,14 @@ For every `findings[]` item, write `narrativeMd` as a short but substantive expl
 A good `narrativeMd` answers:
 - What changed?
 - What old implementation or instance pattern is affected?
-- Is this a validation break, runtime break, semantic break, round-trip problem, or only a migration note?
+- Is this a validation break, runtime break, semantic break, or only a migration note?
 - Why might this surprise implementers?
 - What is the practical consequence?
 
 A good `validationAndCompatibilityMd` answers:
 - Can an R4-valid instance become invalid in R6?
-- Can valid R6 content be represented in R4?
 - Does the change affect strict parsers, generated classes, schemas, FHIRPath, enum switches, or business rules?
+- Is the concern only about representing R6 content in R4, downgrade conversion, or round-trip loss? If so, explain it only as migration context and do not treat it as a material R4-to-R6 finding.
 - Is the risk common, rare, or unknown?
 
 A good `migrationGuidanceMd` answers:

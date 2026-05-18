@@ -349,7 +349,21 @@
       "migrationGuidanceMd": "Inventory R4 CareTeam records with `encounter`. If the corresponding Encounter resources are available and controlled by the migration, consider adding `Encounter.careTeam` references in R6 and removing `CareTeam.encounter`. If Encounter resources are not available, preserve the association with a version-specific extension or external mapping table and flag records for review. Test standalone and bundled migrations because this is a cross-resource transform.",
       "backwardCompatibilityAnalysisMd": "The removal was probably avoidable at the wire-format level: an optional deprecated field could have preserved R4 instances while steering new systems toward Encounter-based linkage. The tradeoff is that FHIR would carry two possible linkage directions, increasing synchronization burden.",
       "reviewerNotesMd": "Confirm with official R6 narrative or change notes whether `Encounter.careTeam` is intended as the normative migration target.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:CareTeam.encounter:8d0c52",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed a CareTeam to carry a direct `encounter` reference, while R6 removes that path and instead has a related reverse link on `Encounter.careTeam`. An R4 instance that uses `CareTeam.encounter` is therefore old-valid/new-invalid in R6, and a single-resource transform cannot preserve the link unless the referenced Encounter is also available and can be rewritten. Encounter context can be relevant for visit-scoped teams, audit, and filtering, so this looks like more than harmless cleanup.",
+        "keyEvidence": [
+          "R4 StructureDefinition-CareTeam: `CareTeam.encounter` is 0..1 Reference(Encounter), isSummary true, definition ties the team to an Encounter.",
+          "R6 StructureDefinition-CareTeam: no `CareTeam.encounter` element is present.",
+          "R6 StructureDefinition-Encounter: `Encounter.careTeam` is 0..* Reference(CareTeam), a reverse cross-resource migration target."
+        ],
+        "fmmEffect": "R4 CareTeam is FMM 2 and trial-use, so maturity is neutral rather than a strong stability guarantee. The Revisit judgment comes from the direct structural break and cross-resource migration burden, not from FMM alone.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 CareTeam instances with `encounter` contain an unknown element in R6; preserving the relationship may require updating a separate Encounter resource.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists in part: R6 could have retained optional, possibly deprecated `CareTeam.encounter` while adding `Encounter.careTeam` and guidance on source of truth. The tradeoff is bidirectional-link inconsistency, but a transitional retained field would preserve most R4 instances at modest wire-format cost.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a high-confidence hard break and identifies a partial less-breaking alternative."
+      }
     },
     {
       "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:reasonCode-reasonReference:3c14bb",
@@ -553,7 +567,21 @@
       "validationAndCompatibilityMd": "R4 instances containing `reasonCode` or `reasonReference` are invalid against R6 CareTeam until transformed. R6 instances using `reason.concept` or `reason.reference` are generally representable in R4, but paired concept/reference semantics and any CodeableReference-level extensions may not be preserved by splitting into two independent R4 arrays.",
       "migrationGuidanceMd": "Map each R4 `reasonCode` item to an R6 `reason` item with `concept`. Map each R4 `reasonReference` item to an R6 `reason` item with `reference`. For R6-to-R4, split simple entries back to the corresponding R4 arrays and flag entries containing both concept and reference, extensions, or ordering-sensitive semantics for review.",
       "backwardCompatibilityAnalysisMd": "The CodeableReference merge is cleaner long term, but it could have been introduced as an additive element with deprecated old siblings for one transition cycle. That would reduce wire-format breakage while leaving temporary duplication and conflict-resolution rules.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:reasonCode-reasonReference:3c14bb",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 split between `reasonCode` and `reasonReference` becomes a single repeating `reason` CodeableReference in R6. That is a real wire-format and generated-API break for R4 instances using either old field, but the mapping from R4 to R6 is direct for ordinary data: coded reasons become `reason.concept` and Condition references become `reason.reference`. The R6 model also has a coherent goal because CodeableReference can preserve a concept/reference pair that the R4 parallel arrays could not express.",
+        "keyEvidence": [
+          "R4 StructureDefinition-CareTeam: `reasonCode` is 0..* CodeableConcept with example clinical-findings binding.",
+          "R4 StructureDefinition-CareTeam: `reasonReference` is 0..* Reference(Condition).",
+          "R6 StructureDefinition-CareTeam: `reason` is 0..* CodeableReference(Condition) with the same example clinical-findings binding."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It does not excuse the break, but it lowers the stability expectation compared with mature or normative content; the proportionality of the CodeableReference redesign dominates.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: the R4 wire names disappear and SDK/FHIRPath paths change; reverse conversion can lose the explicit pairing when an R6 CodeableReference has both concept and reference.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would add `reason` while retaining deprecated `reasonCode` and `reasonReference`. That would preserve old instances, but it creates duplicate representations and conflict rules and still cannot model paired concept/reference semantics in the old arrays. The cleaner R6 base design appears proportionate.",
+        "comparisonToExisting": "partially agree: the existing report is right about the hard break and partial alternative, but I judge the break probably acceptable because the R6 model solves a real representational problem."
+      }
     },
     {
       "findingId": "CareTeam:CARDINALITY:participant.role:6f2a19",
@@ -727,7 +755,21 @@
       "migrationGuidanceMd": "Search for participant repetitions with more than one role. Split them into one R6 participant per role, copying shared fields and preserving role-specific extensions where possible. Regression tests should include multi-role participants with extensions, periods/effective values, and onBehalfOf references to ensure no role is dropped.",
       "backwardCompatibilityAnalysisMd": "The normalization goal is understandable, particularly once R6 adds participant `effective[x]` and `supportingInfo`, but a mandatory cardinality decrease in the base resource is hard breaking. A best-practice invariant would have avoided invalidating existing R4 data.",
       "reviewerNotesMd": "Review local business rules that identify duplicate participants by member only; they may collapse the intended R6 split representation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CareTeam:CARDINALITY:participant.role:6f2a19",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed multiple role CodeableConcepts on one participant; R6 allows at most one and says multiple roles should be represented by multiple participant repetitions. A multi-role R4 participant is invalid as-is in R6 and generated models may change from an array to a singleton. The migration pattern is nevertheless understandable: participant-role becomes the unit, which avoids ambiguity about which effective time, on-behalf-of value, extensions, or supporting information apply to each role.",
+        "keyEvidence": [
+          "R4 StructureDefinition-CareTeam: `CareTeam.participant.role` has max `*`.",
+          "R6 StructureDefinition-CareTeam: `CareTeam.participant.role` has max `1`.",
+          "R6 comment: if a participant has multiple roles within the team, there should be multiple participants."
+        ],
+        "fmmEffect": "FMM 2/trial-use makes the stability concern neutral. The path is clinically meaningful, but not mature enough for FMM alone to make the narrowing disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: an R4 participant with two or more roles violates the R6 max cardinality and code must handle repeated participant rows instead of a role list.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design would keep `role` repeating and add a warning or guidance to split roles. That preserves R4 data but weakens the R6 goal by leaving role-specific metadata ambiguous. The alternative has enough semantic cost that the breaking normalization is probably acceptable.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard high-confidence break and a partial alternative, but the fresh judgment gives more weight to the ambiguity the R6 normalization removes."
+      }
     },
     {
       "findingId": "CareTeam:SERIALIZATION_OR_CODEGEN:participant.period-effective:bb412e",
@@ -905,7 +947,21 @@
       "validationAndCompatibilityMd": "R4 instances with `participant.period` are invalid in R6 because R6 expects `effectivePeriod` for a Period choice value. R6 instances with `effectivePeriod` can be mapped back to R4 `period`, but `effectiveTiming` is not R4-representable without losing recurrence detail or using an extension.",
       "migrationGuidanceMd": "Map R4 `participant.period` to R6 `participant.effectivePeriod`. Update code, FHIRPath, and search/extraction logic to use `effective[x]` choice handling. For R6-to-R4, map `effectivePeriod` back to `period`; for `effectiveTiming`, define a cross-version extension or a policy for deriving a coarse Period and flagging the record as lossy.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by preserving `period` and adding Timing separately. The R6 choice design is cleaner but creates a field-name break for all existing Period users.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CareTeam:SERIALIZATION_OR_CODEGEN:participant.period-effective:bb412e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`participant.period` was replaced by the choice `participant.effective[x]`, with Period preserved as `effectivePeriod` and Timing added for recurring availability. Existing R4 Period data needs a property-name transform and R6 generated APIs/FHIRPath expressions change, so this is not source-compatible. However, R4-to-R6 migration is straightforward for the old Period case, and the choice element gives R6 a coherent single place for either bounded or recurring participation timing.",
+        "keyEvidence": [
+          "R4 StructureDefinition-CareTeam: `CareTeam.participant.period` is 0..1 Period.",
+          "R6 StructureDefinition-CareTeam: `CareTeam.participant.effective[x]` is 0..1 with Period and Timing.",
+          "R6 requirements mention managing members with the same role but different timing."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It keeps the rename from becoming automatically concerning, so the assessment turns on migration ease and the value of the new Timing support.",
+        "compatibilityMechanism": "old-valid/new-invalid, runtime/API/codegen, and R6-to-R4 loss: R4 `period` is not an R6 element, R6 uses `effectivePeriod`/`effectiveTiming`, and `effectiveTiming` has no native R4 CareTeam slot.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain `period` and add a separate optional Timing/availability field. That would preserve R4 wire names but create two timing concepts and precedence or mutual-exclusion rules. The R6 choice design is cleaner and the R4 Period migration is mechanical.",
+        "comparisonToExisting": "partially agree: the existing report correctly flags high runtime/codegen impact and a partial alternative, but the break appears proportionate given the straightforward Period mapping and added Timing capability."
+      }
     },
     {
       "findingId": "CareTeam:REFERENCE_TARGET:participant-member-onBehalfOf:ef5c21",
@@ -1104,7 +1160,21 @@
       "migrationGuidanceMd": "Update generated reference target validation, UI labels, authorization checks, and downstream analytics to handle Group and HealthcareService. For R6-to-R4 conversion, define explicit policies: reject unsupported references, preserve them in extensions, or map them to Organization only when a safe business mapping exists. Do not silently coerce Group or HealthcareService to Organization.",
       "backwardCompatibilityAnalysisMd": "The broadened participant model could have been expressed with an additive element, but R6 chose to generalize existing paths. That improves consistency while making old type assumptions unsafe.",
       "reviewerNotesMd": "The R6 Group limitation is in comment text, not an invariant; local profiles may need to enforce the family/household restriction if it matters.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CareTeam:REFERENCE_TARGET:participant-member-onBehalfOf:ef5c21",
+        "judgment": "No problem",
+        "narrativeMd": "The reference target changes are widening changes for R4-to-R6: R4 member targets remain allowed, and Organization remains allowed for `onBehalfOf`. R6 also removes the R4 error invariant that limited `onBehalfOf` to practitioner members and adds only a warning that role or member should exist. New R6 data can exceed R4's old assumptions, but the specific change does not make old valid R4 CareTeam instances invalid in R6.",
+        "keyEvidence": [
+          "R4 `participant.member` targets Practitioner, PractitionerRole, RelatedPerson, Patient, Organization, and CareTeam.",
+          "R6 `participant.member` retains those targets and adds Group and HealthcareService.",
+          "R4 `participant.onBehalfOf` targets Organization with error invariant ctm-1; R6 broadens targets and replaces that with warning ctm-2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because the R4-to-R6 direction is widening rather than narrowing, FMM does not create a reason to revisit the base design.",
+        "compatibilityMechanism": "R6-to-R4 loss and runtime/API/codegen only: new broad R6 references may not fit strict R4 models and old code may need type guards, but R4-valid references remain structurally valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base alternative is needed for R4 compatibility. Keeping `onBehalfOf` Organization-only would protect old assumptions but would block the broader proxy/agent representation R6 is adding and would not preserve any additional R4 instances.",
+        "comparisonToExisting": "partially agree: the existing report correctly says this is not a hard R4-to-R6 break, but I downgrade the action judgment because the remaining concerns are forward/reverse-version handling rather than a design problem for old R4 content."
+      }
     },
     {
       "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:participant.supportingInfo:97ab2d",
@@ -1231,7 +1301,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is unaffected because old instances simply lack the new optional element. R6-to-R4 conversion is not lossless unless a cross-version extension or external link store is used.",
       "migrationGuidanceMd": "When converting R6 to R4, preserve `supportingInfo` using a documented extension or companion Provenance/Consent/DocumentReference relationship, and make consumers aware that the data is not a native R4 CareTeam field. Include test cases for arbitrary target resource types.",
       "backwardCompatibilityAnalysisMd": "Because this is additive in R6, the main backward-compatible alternative is not a different R6 design but a shared extension for R4 compatibility. That extension would reduce data loss for mixed-version ecosystems.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:participant.supportingInfo:97ab2d",
+        "judgment": "No problem",
+        "narrativeMd": "`participant.supportingInfo` is an optional R6 addition for evidence supporting a participant's role, such as legal authority or guardianship documentation. R4 instances omit the element and remain valid in the R6 direction. Mixed-version systems may lose this new R6 content when converting back to R4, but that is the usual reverse-version cost of adding optional expressivity.",
+        "keyEvidence": [
+          "R6 StructureDefinition-CareTeam: `CareTeam.participant.supportingInfo` is 0..* Reference(Resource), isSummary true.",
+          "R6 definition describes the basis for the member's role participation, including power of attorney or guardianship documentation.",
+          "R4 StructureDefinition-CareTeam has no `participant.supportingInfo` element."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Since this is additive and optional, maturity does not raise a compatibility concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 supporting references have no native R4 CareTeam field; there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable for base R6 compatibility. A shared R4 extension could reduce reverse-conversion loss, but that is a backport or migration aid rather than a less-breaking R6 design.",
+        "comparisonToExisting": "partially agree: the existing report's reverse-loss observation is accurate, but I do not treat an optional additive field as a material fresh-review problem."
+      }
     },
     {
       "findingId": "CareTeam:TERMINOLOGY_BINDING:example-value-sets:0f83aa",
@@ -1356,7 +1440,21 @@
       "migrationGuidanceMd": "Do not assume local picklists generated from R4 example ValueSets are still aligned with R6 guidance. Run terminology-server expansions for the local SNOMED CT and LOINC versions, compare effective expansions, and update local profiles or ConceptMaps if users selected codes from portions no longer represented in R6.",
       "backwardCompatibilityAnalysisMd": "For example bindings, a backward-compatible migration story would publish explicit expansion comparisons or ConceptMaps rather than relying only on changed compose definitions. That would let implementers distinguish intended narrowing from representation cleanup.",
       "reviewerNotesMd": "Requires terminology review with licensed/current SNOMED CT and LOINC expansion behavior.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CareTeam:TERMINOLOGY_BINDING:example-value-sets:0f83aa",
+        "judgment": "No problem",
+        "narrativeMd": "The ValueSet compose definitions for CareTeam category and participant role changed, but both StructureDefinition bindings remain example strength. Base CareTeam validation should not reject an instance merely because its code is outside these example sets. Systems that turned the example ValueSets into picklists or local profile seeds may need review, but that is local convention/tooling impact rather than a base R4-to-R6 compatibility break.",
+        "keyEvidence": [
+          "R4 and R6 `CareTeam.category` bindings are both example strength.",
+          "R4 and R6 `CareTeam.participant.role` bindings are both example strength.",
+          "R4 care-team-category uses LOINC is-a filters; R6 enumerates eight LOINC concepts. R4 participant-role uses SNOMED filters; R6 changes to three explicit concepts plus different filters."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The weak binding strength, not maturity, is the main reason this is low concern.",
+        "compatibilityMechanism": "semantic/documentation: terminology guidance changed, but example bindings do not create base structural or required-terminology invalidity.",
+        "lessBreakingAlternativeAssessment": "Not applicable as a base compatibility alternative. Keeping the old compose definitions might reduce picklist churn for some implementations, but ConceptMaps or expansion notes are migration guidance rather than needed base R6 design changes.",
+        "comparisonToExisting": "agree: the existing report appropriately treats this as no hard instance break with low practical impact and no applicable less-breaking base design."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1512,5 +1610,19 @@
       "Encounter-context links moved between resources",
       "Participant actor reference target widening across workflow resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/CareTeam.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 3
+    }
   }
 }

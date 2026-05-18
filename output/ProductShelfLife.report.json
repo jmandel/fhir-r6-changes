@@ -273,7 +273,22 @@
       "migrationGuidanceMd": "Inventory R4 data for populated `ProductShelfLife.identifier`. If it duplicates an identifier on the containing product/package resource, migrate it there with deduplication rules. If it has distinct meaning, preserve it with a governed extension and document the mapping. Tests should include populated and absent identifier cases and verify that transforms do not silently drop populated identifiers.",
       "backwardCompatibilityAnalysisMd": "The removal may be justified if the identifier was semantically misplaced. A backward-compatible alternative would have been retaining an optional deprecated element or publishing a standard extension and mapping. That alternative would reduce data-loss risk but prolong support for a questionable modeling location.",
       "reviewerNotesMd": "Human review is recommended if real-world R4 instances populate this element, because the correct destination cannot be inferred from the ProductShelfLife StructureDefinition alone.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ProductShelfLife:ELEMENT_PRESENCE_OR_IDENTITY:ProductShelfLife.identifier:1f2c9a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed an optional `ProductShelfLife.identifier`; R6 has no local replacement. A populated R4 fragment therefore becomes invalid against the R6 datatype and generated R6 models will not have a direct property to receive the value. That is a real migration/data-preservation concern, but this specific element was optional, appears to identify the packaged medicinal product rather than the shelf-life fact itself, and the R4 public specification labels the type as a draft design not suitable for production implementation. I would still require migrations to inventory and deliberately preserve populated identifiers, but absent evidence of established production exchange, the removal looks proportionate to cleaning up a draft model rather than clearly requiring renewed standards action.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ProductShelfLife.identifier` is `0..1 Identifier`, summary=true, definition `Unique identifier for the packaged Medicinal Product`.",
+          "R6 StructureDefinition: local ProductShelfLife children are `type`, `period[x]`, and `specialPrecautionsForStorage`; no `identifier` element is present.",
+          "R4 public ProductShelfLife page states the type is a draft design not suitable for production implementation.",
+          "Local core references place ProductShelfLife under R4 DeviceDefinition and MedicinalProductPackaged shelf-life/storage elements."
+        ],
+        "fmmEffect": "The supplied/local R4 maturity context is draft rather than a numeric mature FMM, and the R4 spec page explicitly warns against production use. That softens stability and prevalence assumptions, though populated identifiers would still be business-significant.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `identifier` use a child that R6 does not define; there is also runtime/API/codegen impact because R6 generated models lack the property.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have retained `identifier` as an optional deprecated element, preserving old instances with modest technical cost. The tradeoff is continued support for a likely misplaced packaged-product identifier and possible duplication with identifiers on containing package/product resources, so the alternative is plausible but not clearly preferable for a draft datatype.",
+        "comparisonToExisting": "partially agree with the existing hard-break mechanism and the existence of a technically feasible less-breaking alternative, but the existing High impact/Yes alternative framing is too strong once the R4 draft-not-for-production status and questionable element placement are weighted."
+      }
     },
     {
       "findingId": "ProductShelfLife:TYPE_DOMAIN:ProductShelfLife.period:3d8b61",
@@ -459,7 +474,23 @@
       "migrationGuidanceMd": "For R4-to-R6, transform `period` to `periodDuration` only when the Quantity genuinely represents a duration; validate UCUM/time-unit assumptions. For ambiguous or non-time quantities, route to manual review or a governed extension rather than coercing silently. For R6-to-R4, define policy for missing `period[x]` and `periodString`, such as rejecting, backfilling from context, using an extension plus placeholder Quantity where allowed by local policy, or accepting lossy conversion. Test all choice arms and missing-period cases.",
       "backwardCompatibilityAnalysisMd": "The R6 choice is semantically expressive but was not backward-compatible at the wire level. Retaining a deprecated `period` element, adding a separate text element, or relaxing requiredness through profiles would have reduced breakage while addressing many expressivity goals. The tradeoff is that those alternatives are less clean than a single polymorphic choice and may preserve an overly broad Quantity type.",
       "reviewerNotesMd": "This finding combines element identity, cardinality, type-domain, and serialization effects because they are inseparable for a FHIR choice conversion.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ProductShelfLife:TYPE_DOMAIN:ProductShelfLife.period:3d8b61",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "This is the strongest compatibility issue in the artifact: R4 required `period` as a Quantity, while R6 makes the concept optional and serializes it as `periodDuration` or `periodString`. Existing R4 JSON/XML using `period` will not validate as R6 without a transform, generated APIs change from a required Quantity to an optional choice, and R6 `periodString` or an omitted period cannot be losslessly converted back to valid R4. The change affects core shelf-life meaning, which has regulatory and safety relevance, but the R6 design also has a coherent goal: distinguish time durations from generic Quantity and permit textual or unknown shelf-life statements. Given the R4 draft status and the material ambiguity/duplication introduced by less-breaking alternatives, the break appears proportionate rather than a clear Revisit.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ProductShelfLife.period` is `1..1 Quantity` with unchanged shelf-life period text.",
+          "R6 StructureDefinition: `ProductShelfLife.period[x]` is `0..1` with types `Duration` and `string`.",
+          "R6 Duration root has error constraint `drt-1` requiring coded values to be UCUM time expressions, making `Duration` narrower than unconstrained R4 Quantity.",
+          "FHIR choice elements use suffixed wire names such as `periodDuration` and `periodString`, not the old `period` property.",
+          "R4 public ProductShelfLife page labels the type draft and not suitable for production implementation; R5 PackagedProductDefinition scope confirms packaged products cover sale, supply, shipping, and storage contexts."
+        ],
+        "fmmEffect": "Draft/low-maturity R4 status lowers the compatibility burden and avoids assuming broad production deployment, but the period itself is central shelf-life data so the break remains meaningful.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen and R6-to-R4 loss: the old `period` wire name is no longer valid, generated models become an optional polymorphic choice, and R6 string/missing period values cannot be represented as required R4 Quantity without policy decisions.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could have kept optional legacy `period` Quantity and added a separate text element, preserving many R4 instances. That would create two same-fact representations, require conflict/precedence rules, and keep accepting broad non-duration Quantity content; it would not achieve the same clean Duration|string model.",
+        "comparisonToExisting": "partially agree with the existing high-impact mechanism and Partial alternative assessment. The existing report is right that this is a real break, but its prevalence/commonness claim is not established under the draft R4 baseline."
+      }
     },
     {
       "findingId": "ProductShelfLife:CARDINALITY:ProductShelfLife.type:8b45e0",
@@ -603,7 +634,22 @@
       "validationAndCompatibilityMd": "R4-valid instances remain valid with respect to this element in R6. R6-valid instances that omit `type` cannot be valid R4 ProductShelfLife without adding a CodeableConcept. Generated clients, validators, and business logic must treat `type` as optional in R6 and should not dereference it unconditionally.",
       "migrationGuidanceMd": "For R4-to-R6, no transform is required beyond accepting that the field is now optional. For R6-to-R4, define a backfill rule from context where possible; otherwise reject, flag for review, or use an agreed placeholder only if downstream consumers understand it. Add tests for missing `type` because R4-era code may not handle null.",
       "backwardCompatibilityAnalysisMd": "Because this is a relaxation, it is not a hard R4-to-R6 break. The backward-compatibility concern is primarily reverse conversion and consumer assumptions. A profile-level relaxation or best-practice warning could have preserved the base guarantee while allowing specific contexts to omit the type.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ProductShelfLife:CARDINALITY:ProductShelfLife.type:8b45e0",
+        "judgment": "No problem",
+        "narrativeMd": "`ProductShelfLife.type` kept the same path, type, and meaning, but R6 lowered the minimum from 1 to 0. That is a base-model relaxation, so R4-valid instances that included the required type remain valid for this element in R6. R6 data that omits the type can be harder to convert back to R4 and consumers must handle null, but that is a reverse-direction/consumer-assumption issue rather than an R4-to-R6 compatibility break. Contexts that still need a shelf-life category can require it by profile or exchange rule.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ProductShelfLife.type` is `1..1 CodeableConcept`.",
+          "R6 StructureDefinition: `ProductShelfLife.type` is `0..1 CodeableConcept` with the same short/definition text.",
+          "No local binding, type, summary, or modifier change was found for `ProductShelfLife.type`.",
+          "R4 ProductShelfLife is draft/not suitable for production per the public R4 page."
+        ],
+        "fmmEffect": "The draft R4 baseline further weakens any argument that the old requiredness must be preserved in base R6; the change is a relaxation rather than a hard forward break.",
+        "compatibilityMechanism": "R6-to-R4 loss only: R6 may omit a field that R4 required, but old R4 data with `type` is not made invalid by this element-level change.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 alternative is needed for R4-to-R6 compatibility because decreasing minimum cardinality preserves old valid instances. Profiles can restore requiredness where business rules need it.",
+        "comparisonToExisting": "disagree with the existing Medium/High risk framing for this finding as a forward compatibility concern; agree only that reverse conversion and null handling should be noted."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -758,5 +804,18 @@
       "R4 Identifier-valued datatype child removed without local replacement",
       "R4 required CodeableConcept changed to optional in R6"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ProductShelfLife.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

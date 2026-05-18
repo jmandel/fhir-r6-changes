@@ -330,7 +330,22 @@
       "validationAndCompatibilityMd": "An R4-valid fragment with `name: \"risk-score\"` can become R6-invalid because `exp-2` rejects the hyphen. This affects strict validation, generated model primitives, and any code that assumes names can be copied without normalization. In the reverse direction, an R6 `name` containing underscore can be valid in R6 but not valid as an R4 `id`, so R6-to-R4 conversion may require lossy renaming or an extension to preserve the original.",
       "migrationGuidanceMd": "Scan all `Expression.name` values before migration. For values that do not match `[A-Za-z][A-Za-z0-9_]{0,63}`, choose a deterministic normalization rule, preserve the original value in an extension or side table if references depend on it, and update any local references that use the old name. Test hyphenated, dotted, digit-leading, underscore, maximum-length, and absent-name cases.",
       "backwardCompatibilityAnalysisMd": "The change is understandable if R6 wants reusable names to behave like variables, but a base-level error invariant was not the only possible design. A warning invariant or profile-specific rule would have allowed old R4 data to remain base-valid while nudging new implementations toward variable-safe names. The tradeoff is that consumers could no longer rely on every base R6 `Expression.name` being variable-safe.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Expression:TYPE_DOMAIN:Expression.name:11ebce",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 accepted `Expression.name` values that were valid `id` strings, including names with hyphens, dots, or a leading digit. R6 keeps the same path but changes the primitive type to `code` and adds the error-level `exp-2` variable-name invariant, so some old names become invalid unless renamed. That is a concrete old-valid/new-invalid validator break and can require updating local references to the symbolic name, but the impact is mostly technical and the tighter rule is plausibly tied to the purpose of a reusable expression name.",
+        "keyEvidence": [
+          "R4 `Expression.name` is 0..1 with type `id`.",
+          "R4 `id` regex permits letters, digits, hyphen, and dot up to 64 characters.",
+          "R6 `Expression.name` is 0..1 with type `code`.",
+          "R6 root constraint `exp-2` is severity `error` and requires the name to start with a letter and then contain only letters, digits, or underscore."
+        ],
+        "fmmEffect": "R4 Expression is trial-use in the StructureDefinition and no numeric FMM was available locally, so I treated stability pressure as below normative while still recognizing the direct validator break.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `id` names with hyphen, dot, or a leading digit can fail the new R6 error invariant; generated code may also change primitive type, but the wire element name is unchanged.",
+        "lessBreakingAlternativeAssessment": "A warning or best-practice invariant, profile-level rule, or optional variable-safe alias would preserve more R4 instances. Those alternatives either weaken the base R6 guarantee that `name` is variable-safe or introduce duplicate names that consumers must reconcile, so they are only partial less-breaking designs rather than clearly better base choices.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment: this is a real hard instance break, but I would temper the runtime severity because the path and wire name stay stable and the artifact was trial-use."
+      }
     },
     {
       "findingId": "Expression:CARDINALITY:Expression.language:75df68",
@@ -468,7 +483,21 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid merely because of this cardinality change. The compatibility issue is the reverse: an R6 instance without `language` cannot be represented as a valid R4 `Expression` without inventing, inferring, or otherwise supplying a language code. A parser may accept the fragment structurally, but R4 validation should fail the missing required element.",
       "migrationGuidanceMd": "For R6-to-R4 transforms, detect missing `language` and avoid blindly defaulting. If the language can be inferred from context, add it and document the rule. If it cannot be inferred, preserve the R6 content in an extension or reject/quarantine the record for manual review. Tests should cover omitted language with `expression`, omitted language with `reference`, and executable expressions where language is still expected by business logic.",
       "backwardCompatibilityAnalysisMd": "The change is forward-compatible but not round-trip-compatible. Keeping `language` required would have maximized R4 compatibility, but it would have forced authoring-only content to supply a possibly misleading language. The R6 choice appears justified if supporting non-executable authoring states was more important than lossless conversion to R4.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Expression:CARDINALITY:Expression.language:75df68",
+        "judgment": "No problem",
+        "narrativeMd": "Changing `Expression.language` from required to optional is a widening change for R4-to-R6 validation: an R4 instance that supplied the required language still satisfies the R6 cardinality. The remaining issue is reverse conversion, because an R6 authoring-only expression may omit `language` and cannot be rendered as valid R4 without inferring or inventing a value. The R6 requirements text gives a plausible reason for the relaxation, so this is not a fresh R4-to-R6 compatibility concern.",
+        "keyEvidence": [
+          "R4 `Expression.language` has min 1 and max 1.",
+          "R6 `Expression.language` has min 0 and max 1.",
+          "R6 requirements text says optional cardinality supports text-only authoring, while executable expressions still require a specified language."
+        ],
+        "fmmEffect": "Trial-use status further softens this reverse-only concern; there is no old-valid/new-invalid R4-to-R6 break to justify revisiting the base design.",
+        "compatibilityMechanism": "R6-to-R4 loss: a base-valid R6 `Expression` can omit `language`, which R4 cannot represent without a migration policy; R4-to-R6 instances are not invalidated by this cardinality change.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R4-to-R6 base design is needed. Keeping `language` required would improve reverse round-tripping but would force artificial language values for the authoring-only case R6 explicitly supports.",
+        "comparisonToExisting": "disagree with the existing Medium impact if interpreted as an R4-to-R6 break; the report correctly identified a reverse-conversion risk, but under path-level fresh review this is forward-compatible."
+      }
     },
     {
       "findingId": "Expression:TERMINOLOGY_BINDING:Expression.language:2617c0",
@@ -712,7 +741,22 @@
       "migrationGuidanceMd": "Create an explicit language-code mapping table. At minimum, review whether `application/x-fhir-query` should map to `text/x-fhir-query`, and decide how R6 `text/cql-identifier` and `text/cql-expression` should be represented in R4. Update validators, generated enum bindings, expression-engine dispatch tables, and test fixtures for old query code, new query code, and the added CQL codes.",
       "backwardCompatibilityAnalysisMd": "The terminology change is probably justified by media-type alignment, but it could have been less disruptive if R6 retained the old query code as a deprecated alias or supplied a ConceptMap in the core package. That alternative would ease migration at the cost of allowing two codes for the same operational concept.",
       "reviewerNotesMd": "Human review is recommended because no authoritative terminology expansion or ConceptMap was present locally, and the R6 value set uses the external `urn:ietf:bcp:13` code system.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Expression:TERMINOLOGY_BINDING:Expression.language:2617c0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Expression.language` keeps an extensible binding to the same canonical value set, but the value set definition changes from the R4 HL7 expression-language CodeSystem to selected BCP-13 media-type codes. The common `text/cql` and `text/fhirpath` code strings remain recognizable, while the FHIR query code changes from `application/x-fhir-query` to `text/x-fhir-query` and R6 adds more CQL-specific codes. This can break exact-code dispatch tables or terminology-aware pipelines, but because the binding remains extensible it is not a clean structural invalidation of all old instances.",
+        "keyEvidence": [
+          "R4 binding strength is extensible and points to `http://hl7.org/fhir/ValueSet/expression-language`.",
+          "R4 `ValueSet/expression-language` includes all concepts from `http://hl7.org/fhir/expression-language`, including `text/cql`, `text/fhirpath`, and `application/x-fhir-query`.",
+          "R6 `ValueSet/expression-language` enumerates selected `urn:ietf:bcp:13` codes, including `text/cql`, `text/fhirpath`, `text/x-fhir-query`, `text/cql-identifier`, and `text/cql-expression`.",
+          "R6 keeps the binding extensible and represents the maximum mime-type binding as an additional binding to `ValueSet/mimetypes`."
+        ],
+        "fmmEffect": "Trial-use status lowers the stability burden compared with normative content. The path is used for expression execution, so the terminology migration still matters, but the evidence does not show safety-critical or broad production impact.",
+        "compatibilityMechanism": "warning-level: the extensible binding can create terminology/conformance pressure for old `application/x-fhir-query` values; exact-code runtime dispatch also needs a map to the R6 `text/x-fhir-query` code.",
+        "lessBreakingAlternativeAssessment": "R6 could have included `application/x-fhir-query` as a deprecated alias and published a core ConceptMap. That would be less disruptive for R4 query expressions, but it leaves two codes for one operational concept and increases validator and expression-engine dispatch burden, so the alternative is only partial.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative judgment: I agree there is real terminology/runtime migration work, but I would frame the hard-break risk as potential or warning-level because the binding remains extensible."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -878,5 +922,18 @@
       "Bindings whose canonical value set URL is stable but compose systems/codes changed",
       "R6 optional elements that were required in R4 and affect R6-to-R4 transforms"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Expression.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

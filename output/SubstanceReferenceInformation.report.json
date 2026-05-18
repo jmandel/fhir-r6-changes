@@ -267,7 +267,22 @@
       "validationAndCompatibilityMd": "An R4 instance with `resourceType: \"SubstanceReferenceInformation\"` can be valid against the R4 package but has no R6 resource definition to validate against. Strict R6 validators should reject the resource as unknown unless an implementation-specific compatibility profile or extension mechanism is introduced. This finding is primarily R4-to-R6; there is no direct R6-to-R4 counterpart because R6 does not define the resource.",
       "migrationGuidanceMd": "Inventory stored resources and code references by `resourceType`. If data must be preserved, choose an explicit strategy: retain an R4 compatibility store, transform selected fields into `SubstanceDefinition` with project-specific rules, or carry the original content in extensions/provenance. Generated clients should remove assumptions that an R6 core model contains a `SubstanceReferenceInformation` class.",
       "backwardCompatibilityAnalysisMd": "The removal may be justified by the R4 artifact's low maturity and sparse `Todo.` definitions, but the backward-compatible alternative was straightforward: keep a deprecated resource shell or publish an official cross-version mapping. That alternative would reduce validation and codegen breakage while allowing the substance model to evolve.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SubstanceReferenceInformation:ARTIFACT_IDENTITY:root:9f4c0a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`SubstanceReferenceInformation` is genuinely absent as an R6 core resource, so an R4 instance carrying that `resourceType` has no base R6 StructureDefinition/class/endpoint to target. That is a real top-level compatibility break for any adopter. The reason I do not rate it as needing renewed design attention is the stability context: the R4 artifact was FMM 0/trial-use, its own local definitions are mostly placeholders, and a targeted search did not surface official IG or vendor evidence of production reliance. Keeping a deprecated legacy resource would be more compatible, but it would make R6 carry an obsolete, under-specified substance model beside the consolidated `SubstanceDefinition` direction.",
+        "keyEvidence": [
+          "R4 StructureDefinition defines `SubstanceReferenceInformation` as a concrete DomainResource with id/type/canonical URL matching the old resource.",
+          "The expected R6 StructureDefinition file is absent, exact package search found no `SubstanceReferenceInformation`, and the R6 package index lists substance resources `Substance` and `SubstanceDefinition` instead.",
+          "R4 maturity map and StructureDefinition extensions show FMM 0 and trial-use/draft status.",
+          "Quick web search of official FHIR IG registry, HL7 materials, and vendor/public documentation found no documented production use or official IG dependency."
+        ],
+        "fmmEffect": "FMM 0/trial-use substantially softens the stability expectation. The break is real, but low maturity plus lack of quick production-use evidence keeps it from being disproportionate on compatibility grounds alone.",
+        "compatibilityMechanism": "old-valid/new-invalid, runtime/API/codegen: an R4 `resourceType: SubstanceReferenceInformation` instance is unknown to base R6 validators, generated models, serializers, and REST dispatch tables.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists in principle: retain a deprecated `SubstanceReferenceInformation` resource shell or transitional legacy resource while steering new content to `SubstanceDefinition`. The tradeoff is material for an FMM 0 artifact because it preserves a largely placeholder, duplicative resource identity and forces R6 tooling/search/codegen to support a model the substance domain appears to have consolidated away.",
+        "comparisonToExisting": "partially agree with the existing hard-break assessment, because the resource removal is a direct R4-to-R6 break. I would soften the practical impact relative to the existing High framing because the FMM 0/trial-use status and lack of documented production use make the removal more acceptable; the existing report also did not count a less-breaking alternative even though a deprecated shell is possible but costly."
+      }
     },
     {
       "findingId": "SubstanceReferenceInformation:CONVERSION_OR_MAPPING:local-content:3b0d8e",
@@ -447,7 +462,22 @@
       "migrationGuidanceMd": "Do not implement a blind one-to-one transform. First classify each R4 record by which local sections are populated. Map simple descriptive comments only if the project accepts a target such as `SubstanceDefinition.description` or `note`; map classification only after verifying semantics; preserve gene/geneElement/target details in extensions or external references unless an official mapping is obtained. Test for loss by round-tripping representative records.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative was available through a migration supplement: explicit StructureMap rules for shared concepts, cross-version extensions for removed concepts, and warnings for lossy sections. This would allow HL7 to redesign the R6 substance model while giving implementers an auditable path for legacy R4 data.",
       "reviewerNotesMd": "The candidate-successor analysis should be reviewed by a substance-domain expert. The package evidence supports `SubstanceDefinition` as a likely consolidation target, but not a confirmed replacement for every R4 local section.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceReferenceInformation:CONVERSION_OR_MAPPING:local-content:3b0d8e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 local content model did not survive as a same-shape R6 model: optional `comment`, `gene`, `geneElement`, `classification`, and `target` content cannot be migrated merely by renaming the resource. A system with populated records would need a domain-specific transformation, and some gene/target meaning could be lost or require extensions. Still, these R4 fields are optional, very under-specified, and attached to an FMM 0/trial-use artifact with no quick evidence of broad deployment. For base R6, replacing the draft local model with the broader `SubstanceDefinition` model looks proportionate even though it leaves legacy adopters with migration work.",
+        "keyEvidence": [
+          "R4 local top-level elements are `comment`, `gene`, `geneElement`, `classification`, and `target`; their local definitions and shorts are mostly `Todo.` and they have no local terminology bindings.",
+          "R6 `SubstanceDefinition` has a different top-level model including `identifier`, `status`, `classification`, `domain`, `description`, `note`, `moiety`, `characterization`, `property`, `structure`, `code`, `name`, `relationship`, and `sourceMaterial`.",
+          "R6 package searches found no same-name `gene`, `geneElement`, `target`, `geneSequenceOrigin`, `organismType`, or `amountType` successor paths.",
+          "Quick web search found no official IG or public production-use evidence that would raise the legacy mapping burden."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the concern; the mapping gap matters for adopters with data, but the low maturity and placeholder definitions argue against preserving every old local section in base R6.",
+        "compatibilityMechanism": "R6-to-R4 loss and migration/API-codegen burden: the old resource-level validation failure is covered by the root finding; this finding is mainly about non-lossless transformation and changed generated data models for local fields.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the old resource or added deprecated legacy backbones to `SubstanceDefinition`, but that would duplicate an under-specified local model and require precedence/mapping rules. StructureMaps, extensions, or migration guidance would mitigate adopter pain but are not themselves less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree that a blind lossless successor mapping is not supported by the package evidence. I would temper the existing High impact because the affected content is FMM 0, optional, sparsely defined, and not shown to be in production; no low-cost base alternative is evident."
+      }
     },
     {
       "findingId": "SubstanceReferenceInformation:TYPE_DOMAIN:target-amount:7a2e61",
@@ -627,7 +657,22 @@
       "migrationGuidanceMd": "If target data is populated, require a domain review before mapping it to `SubstanceDefinition.relationship`. Define explicit rules for `Range` and `Ratio`, decide how to populate mandatory relationship type, and preserve the original R4 target record when no unambiguous mapping exists.",
       "backwardCompatibilityAnalysisMd": "A broader candidate amount choice or official cross-version extension would reduce loss. Because the R4 field was draft and under-specified, R6 may have chosen a cleaner relationship model, but conversion guidance is still needed for adopters.",
       "reviewerNotesMd": "This finding is intentionally marked as candidate-only. It should not be read as proof that HL7 intended `target` to map to `relationship`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceReferenceInformation:TYPE_DOMAIN:target-amount:7a2e61",
+        "judgment": "Unclear",
+        "narrativeMd": "The type-domain mismatch is real if an implementer maps R4 `target` records into R6 `SubstanceDefinition.relationship`: R4 `target.amount[x]` permits `Range`, while the candidate R6 `relationship.amount[x]` permits `Ratio`, and R6 also requires `relationship.type`. The limiting issue is that this is a candidate-only mapping, not a confirmed rename or successor path. Without official mapping rationale, it is not possible to say whether R6 intentionally replaced target amounts with relationship amounts, whether another R6 representation is intended, or whether the correct answer is preservation outside the base model. Low FMM keeps this from being a revisit-level concern, but the path-specific compatibility judgment remains uncertain.",
+        "keyEvidence": [
+          "R4 `SubstanceReferenceInformation.target.amount[x]` is 0..1 with choice types `Quantity`, `Range`, and `string`.",
+          "R6 candidate `SubstanceDefinition.relationship.amount[x]` is 0..1 with choice types `Quantity`, `Ratio`, and `string`.",
+          "R6 candidate `SubstanceDefinition.relationship.type` is mandatory 1..1 with example binding to substance relationship type.",
+          "The existing report itself marks the target-to-relationship comparison as candidate-only with low match confidence; package searches did not identify a same-name R6 target amount successor."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability concern and argues against treating the conditional type mismatch as a design flaw by itself. If real regulatory/scientific target data exists, expert mapping risk remains, but no quick production-use evidence was found.",
+        "compatibilityMechanism": "unknown, with possible R6-to-R4 loss: the concrete problem appears only under an unconfirmed `target` to `relationship` migration; then `Range` and `Ratio` values and mandatory relationship type can require lossy or expert mapping.",
+        "lessBreakingAlternativeAssessment": "If `relationship` is the intended successor, widening `relationship.amount[x]` to include `Range` or defining a base legacy extension could preserve more R4 data, but that may undermine the R6 relationship model and does not address the mandatory relationship-type semantics. If `relationship` is not the intended successor, the alternative assessment changes entirely; official mapping evidence is needed.",
+        "comparisonToExisting": "partially agree with the existing Medium potential-impact finding that the candidate paths do not round-trip cleanly. I do not fully agree with treating it as a settled type-domain break because the successor mapping is speculative and the low-FMM source content weakens the case for base-model preservation."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -774,5 +819,18 @@
       "R4-to-R6 mappings for draft/FMM0 resources with `Todo.` local definitions",
       "Candidate choice-type changes involving Range versus Ratio in substance amount fields"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SubstanceReferenceInformation.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Unclear": 1,
+      "Breaking but probably OK": 2
+    }
   }
 }

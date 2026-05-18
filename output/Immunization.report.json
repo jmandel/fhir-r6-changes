@@ -291,7 +291,21 @@
       "migrationGuidanceMd": "Before validating as R6, scan for `statusReason` where `status != 'not-done'`. Decide whether to change status, move the reason to an extension/audit note, or reject the record for manual review. Include `entered-in-error` test cases because the R6 text and invariant appear inconsistent.",
       "backwardCompatibilityAnalysisMd": "The goal could likely have been achieved less disruptively with guidance text or a warning invariant. Making the invariant an error gives stronger data uniformity but breaks historical records that used the optional element in broader ways.",
       "reviewerNotesMd": "Human review is recommended because R6's `statusReason` definition says it is used for `not-done` or `entered-in-error`, while imm-1 permits only `not-done`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:VALUE_CONSTRAINT:Immunization.statusReason:8712b5",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 turns the formerly advisory relationship between `statusReason` and `status` into an error-level rule. That can reject R4 records that kept a reason for `entered-in-error` or another non-`not-done` status, and the R6 element prose still says the field is used for `not-done` or `entered-in-error`. The computable invariant and the narrative guidance therefore do not line up, so this looks like a standards/design issue rather than a routine migration cleanup.",
+        "keyEvidence": [
+          "R4 `Immunization.statusReason` is 0..1 CodeableConcept with no local invariant tying it to status.",
+          "R6 root constraint `imm-1` is error severity: `statusReason.exists() implies status = 'not-done'`.",
+          "R6 `statusReason` definition/comment says the reason can apply when the event was not performed or entered in error."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use means mature trial-use stability: not normative, but a hard validator break on public-health record content needs clear justification and does not get low-FMM leniency.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with `statusReason` and `status` other than `not-done` can fail R6 validation under an error invariant.",
+        "lessBreakingAlternativeAssessment": "Yes: the base could allow the `entered-in-error` case described in the prose, or make the `not-done` relationship warning-level/profile-specific. The tradeoff is weaker uniform base enforcement.",
+        "comparisonToExisting": "agree: the existing report correctly identified a hard break and a less-breaking alternative; the fresh review puts extra weight on the R6 prose/invariant inconsistency."
+      }
     },
     {
       "findingId": "Immunization:VALUE_CONSTRAINT:Immunization.subpotentReason:6a49d6",
@@ -442,7 +456,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: an old instance can become invalid if it has `subpotentReason` and omits `isSubpotent` or sets it false. R6-to-R4: R4 can still carry both elements, so down-conversion is not a structural problem.",
       "migrationGuidanceMd": "Detect all records with `subpotentReason`. If local rules allow, set `isSubpotent=true`; otherwise route the record for review. Test absent, false, and true flag cases.",
       "backwardCompatibilityAnalysisMd": "The invariant's intent is probably justified, but a warning-level constraint would have avoided rejecting historical records. The strict form trades migration tolerance for stronger clinical consistency.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:VALUE_CONSTRAINT:Immunization.subpotentReason:6a49d6",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 rejects `subpotentReason` unless `isSubpotent` is explicitly true. This is a real old-valid/new-invalid pattern, especially for R4 data that omitted the boolean, but the affected semantics are narrow and clinically coherent: both R4 and R6 say a missing `isSubpotent` means the dose should be considered potent. Requiring an explicit true flag when a subpotency reason is present is proportionate.",
+        "keyEvidence": [
+          "R4 `Immunization.subpotentReason` is 0..* CodeableConcept with no local condition.",
+          "R4 and R6 `Immunization.isSubpotent` both say missing means the dose is considered potent.",
+          "R6 root constraint `imm-2` is error severity: `subpotentReason.exists() implies (isSubpotent.exists() and isSubpotent = true)`."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use raises some compatibility expectation, but the path-level safety rationale for eliminating an internally inconsistent subpotency assertion is strong enough.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 records with `subpotentReason` and missing or false `isSubpotent` become invalid under R6.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have used a warning or only rejected explicit `isSubpotent=false`. That would preserve more old records but would continue allowing reason-plus-missing cases even though missing means potent.",
+        "comparisonToExisting": "agree: the existing report's medium impact and partial alternative match the fresh assessment."
+      }
     },
     {
       "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.reason:15ffae",
@@ -654,7 +682,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: instances containing `reasonCode` or `reasonReference` become invalid until transformed to `reason[].concept` or `reason[].reference`. R6-to-R4: concept-only and reference-only repetitions can be split, but mixed concept/reference repetitions lose grouping in R4.",
       "migrationGuidanceMd": "Map each R4 `reasonCode` to a separate R6 `reason.concept`; map each R4 `reasonReference` to `reason.reference`. For R6-to-R4, split CodeableReferences and use an extension or manual review if preserving concept-reference pairing matters.",
       "backwardCompatibilityAnalysisMd": "The CodeableReference pattern is coherent, but the old element names could have been retained temporarily as deprecated fields or compatibility extensions. That would reduce breakage at the cost of duplicative semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.reason:15ffae",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4's two reason arrays are replaced by one R6 `CodeableReference` array. R4 JSON paths and generated APIs must change, and reverse conversion can lose a concept/reference pairing when both are present in one R6 repetition. Still, the model consolidation is a coherent R6 pattern and a compatibility-preserving alias approach would create duplicate representations for the same clinical reason.",
+        "keyEvidence": [
+          "R4 has `reasonCode` 0..* CodeableConcept and `reasonReference` 0..* Reference(Condition|Observation|DiagnosticReport).",
+          "R6 has `reason` 0..* CodeableReference with the same reference targets and the reason ValueSet on the concept side.",
+          "CodeableReference can carry concept and reference in the same repetition, a pairing R4 cannot preserve directly."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use means reason migration matters, but this is a mature trial-use area where a well-motivated modeling cleanup can still be acceptable.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `reasonCode` and `reasonReference` properties are not R6 elements; generated clients also move from two collections to one CodeableReference collection.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have kept deprecated `reasonCode` and `reasonReference` while adding `reason`. That preserves old wire format but creates duplicate same-resource semantics and conflict rules.",
+        "comparisonToExisting": "agree: the existing report correctly treated this as a real but probably justified CodeableReference remodel."
+      }
     },
     {
       "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.informationSource:bd6a55",
@@ -844,7 +886,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: `reportOrigin` is an unknown element and fails strict R6 validation. R6-to-R4: coded concepts can map back, but source actor references cannot be represented by R4 `reportOrigin`.",
       "migrationGuidanceMd": "Map R4 `reportOrigin` to `informationSource.concept`. For R6 source references, choose a local extension, external Provenance, or manual mapping policy for R4 exports. Regression tests should include both concept and reference forms.",
       "backwardCompatibilityAnalysisMd": "The cleaner R6 name and richer datatype are understandable, but compatibility aliases or an additive reference element would have reduced breakage for systems already using coded origins.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.informationSource:bd6a55",
+        "judgment": "Revisit",
+        "narrativeMd": "`reportOrigin` is renamed and reshaped into `informationSource` CodeableReference. The R6 goal of naming a concrete information source is reasonable, but invalidating an existing coded-origin field was not necessary to support that goal. Source provenance for secondarily reported immunizations can be important for registry trust and public-health exchange, and a modest additive design appears available.",
+        "keyEvidence": [
+          "R4 `reportOrigin` is 0..1 CodeableConcept bound by example to `immunization-origin`.",
+          "R6 `informationSource` is 0..1 CodeableReference bound to the same origin ValueSet and can reference Patient, Practitioner, PractitionerRole, RelatedPerson, or Organization.",
+          "The R6 binding name remains `ImmunizationReportOrigin`, supporting the path-level continuity of the coded-origin concept."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use makes compatibility for established immunization provenance fields relevant; it is not low-FMM experimental content.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `reportOrigin` use a removed property name; R6 source references also create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Yes: keep `reportOrigin` for coded origin and add an optional source actor/reference field, or at least stage the rename with a deprecated alias. The tradeoff is two related source fields instead of one CodeableReference.",
+        "comparisonToExisting": "agree: the existing report's high impact and available less-breaking alternative are supported by the fresh review."
+      }
     },
     {
       "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.recorded:a327e7",
@@ -946,7 +1002,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: old instances with `recorded` are invalid unless the data is dropped or moved. R6-to-R4 is not applicable for this removed element. Generated R6 classes will not have a property for it.",
       "migrationGuidanceMd": "Inventory use of `recorded`. If the value is material, preserve it in a standard extension, Provenance, AuditEvent, or source-system metadata according to local policy. Do not blindly map it to `meta.lastUpdated` unless that timestamp truly has the same meaning.",
       "backwardCompatibilityAnalysisMd": "A deprecated optional element or standard extension would have been less disruptive. The removal may be justified by a broader provenance model, but that rationale was not available in the supplied package files.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.recorded:a327e7",
+        "judgment": "Revisit",
+        "narrativeMd": "`recorded` is removed with no direct R6 Immunization replacement. The field distinguishes event occurrence from first capture in the subject's record, which can matter for historical recalls, registry synchronization, audit, and data-quality workflows. Dropping or relocating that timestamp is lossy and policy-dependent.",
+        "keyEvidence": [
+          "R4 `Immunization.recorded` is 0..1 dateTime for when the occurrence was first captured in the record.",
+          "No R6 snapshot element with id `Immunization.recorded` is present.",
+          "`meta.lastUpdated` is inherited resource metadata and is not the same as first capture in the subject record."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use gives meaningful stability pressure for a provenance-like field in a mature public-health resource.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `recorded` have an unknown local property in R6 and cannot preserve the value without another representation.",
+        "lessBreakingAlternativeAssessment": "Yes: retain `recorded` as optional/deprecated while recommending Provenance or extensions for richer capture metadata. The tradeoff is carrying a legacy timestamp field longer.",
+        "comparisonToExisting": "agree: the existing report correctly called out old-instance invalidity, lossy migration, and a plausible less-breaking base design."
+      }
     },
     {
       "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.education:fb7255",
@@ -1070,7 +1140,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: any `education` content is invalid unless transformed. R6-to-R4 is not applicable because the element is absent in R6. Generated clients lose a typed education collection.",
       "migrationGuidanceMd": "Identify whether education evidence must be retained. Candidate migrations include a local extension, DocumentReference/Communication referenced from `supportingInformation`, or external provenance/consent documentation. The transform is not intrinsically lossless without a target convention.",
       "backwardCompatibilityAnalysisMd": "A deprecated optional backbone or a formal replacement reference would have avoided immediate old-instance invalidity. The removal may be acceptable if the work group intentionally delegated this content elsewhere, but that rationale was not in the local inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.education:fb7255",
+        "judgment": "Revisit",
+        "narrativeMd": "The whole `education` backbone is removed, including document identifier/reference and publication/presentation dates. That content can be jurisdictionally important for vaccine information statements, consent support, and audit. R6 `supportingInformation` is broad and optional, but it is not a typed inline replacement, so migration requires local design rather than a mechanical path change.",
+        "keyEvidence": [
+          "R4 `Immunization.education` is 0..* BackboneElement with an error rule requiring `documentType` or `reference`.",
+          "R4 education has child elements for document type, reference, publication date, and presentation date.",
+          "No R6 `Immunization.education` element is present; R6 `supportingInformation` is broad Reference(Resource)."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use does not prohibit redesign, but it raises concern for removing public-health and audit-relevant content without a direct replacement.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 instance carrying `education` content is invalid as base R6 and the typed education details have no R6 local slot.",
+        "lessBreakingAlternativeAssessment": "Yes: keep the optional backbone as deprecated or define a formal replacement path before removal. The tradeoff is retaining a jurisdiction-specific education structure in the base resource.",
+        "comparisonToExisting": "partially agree: the existing report identified the right break and alternative; the fresh review views the legal/public-health audit implications as strong enough to warrant Revisit even if prevalence is uncertain."
+      }
     },
     {
       "findingId": "Immunization:TYPE_DOMAIN:Immunization.programEligibility:d52f3b",
@@ -1267,7 +1351,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: status-only CodeableConcept repetitions are invalid as R6 backbones and lack required `program`. R6-to-R4: `programStatus` can map to the old field, but `program` has no R4 home and is lost unless extended.",
       "migrationGuidanceMd": "For each R4 eligibility concept, determine the applicable funding program. If no source program is known, use a jurisdiction-approved default, extension, or manual review queue rather than inventing a value. Test same-name field parsing because shape mismatches can cause runtime errors even before validation.",
       "backwardCompatibilityAnalysisMd": "The new model is semantically stronger, but making the new program child mandatory is the core breaking choice. An optional program during transition would have been more backward-compatible while still enabling richer data where available.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:TYPE_DOMAIN:Immunization.programEligibility:d52f3b",
+        "judgment": "Revisit",
+        "narrativeMd": "`programEligibility` keeps the same path but changes from a repeated CodeableConcept to a backbone whose `program` and `programStatus` are both mandatory. This is more than reshaping: old data often has only the eligibility status and may not know the new required program. For funding, inventory, or registry reporting, inventing a program value is not a safe mechanical migration.",
+        "keyEvidence": [
+          "R4 `programEligibility` is 0..* CodeableConcept bound by example to `immunization-program-eligibility`.",
+          "R6 `programEligibility` is 0..* BackboneElement.",
+          "R6 requires both `program` 1..1 CodeableConcept and `programStatus` 1..1 CodeableConcept inside each repetition."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use means a same-path type replacement on a funding-related public-health field should preserve old data unless the required new semantics are clearly necessary.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 CodeableConcept repetitions are not valid R6 backbones and lack the new mandatory `program`; R6-to-R4 also loses the program dimension.",
+        "lessBreakingAlternativeAssessment": "Partial but meaningful: R6 could keep the old status concept and add optional program data, or make `program` optional during a transition. That would not guarantee program-specific eligibility in every R6 instance, but it would avoid forcing unknown data into old records.",
+        "comparisonToExisting": "partially agree: the existing report correctly found high impact and only a partial alternative; the fresh review is less comfortable treating the mandatory new program as probably OK."
+      }
     },
     {
       "findingId": "Immunization:TYPE_DOMAIN:Immunization.protocolApplied.doseNumber:626a54",
@@ -1454,7 +1552,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: `doseNumberPositiveInt`, `doseNumberString`, `seriesDosesPositiveInt`, and `seriesDosesString` are not valid R6 names. R6-to-R4: a protocolApplied repetition with no doseNumber is invalid in R4, and CodeableConcept codings may not fit R4 primitive choices.",
       "migrationGuidanceMd": "Map R4 integer/string values to R6 CodeableConcept, preferably with jurisdiction-approved codings where known and text fallback otherwise. For R6-to-R4, decide whether to extract an integer, use string text, or reject/manual-review coded values. Add forecasting tests because semantic loss here can affect downstream schedules.",
       "backwardCompatibilityAnalysisMd": "Adding CodeableConcept as a new choice type would have been less disruptive than replacing the choice and removing mandatory doseNumber. The tradeoff is longer-term complexity from multiple allowed representations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:TYPE_DOMAIN:Immunization.protocolApplied.doseNumber:626a54",
+        "judgment": "Revisit",
+        "narrativeMd": "The protocol dose fields move from R4 choice primitives to R6 CodeableConcepts, and the R4 choice property names disappear. Because R4 made `doseNumber[x]` mandatory whenever `protocolApplied` was used, this affects essentially every R4 protocolApplied entry. Dose sequencing feeds forecasting and schedule evaluation, and a less-breaking choice-type expansion appears plausible.",
+        "keyEvidence": [
+          "R4 `protocolApplied.doseNumber[x]` is 1..1 positiveInt|string; `seriesDoses[x]` is 0..1 positiveInt|string.",
+          "R6 `protocolApplied.doseNumber` and `seriesDoses` are non-choice 0..1 CodeableConcept elements.",
+          "R6 comments describe coded concepts such as dose numbers or boosters, which could also be supported by adding CodeableConcept as a choice type."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use raises compatibility expectations for forecasting-relevant fields, especially where old valid data must be transformed before validation.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `doseNumberPositiveInt`, `doseNumberString`, `seriesDosesPositiveInt`, and `seriesDosesString` are removed wire names; reverse conversion can lose codings or fail when doseNumber is absent.",
+        "lessBreakingAlternativeAssessment": "Yes: retain `doseNumber[x]` and `seriesDoses[x]` while adding CodeableConcept as an allowed choice type. The tradeoff is continued support for primitive and coded representations rather than one normalized CodeableConcept shape.",
+        "comparisonToExisting": "partially agree: the existing report correctly found high impact and a partial alternative; the fresh review rates the choice-type alternative as strong enough to warrant Revisit."
+      }
     },
     {
       "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.reaction.manifestation:d79b18",
@@ -1620,7 +1732,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: `reaction.detail` is invalid. R6-to-R4: `manifestation.reference` can map back to `detail`, but `manifestation.concept` cannot be represented as R4 `detail` without creating or referencing an Observation or using an extension.",
       "migrationGuidanceMd": "Map R4 `reaction.detail` to `reaction.manifestation.reference`. For R6 concepts, decide whether to create an Observation, preserve as an extension, or drop with documented loss for R4 exports.",
       "backwardCompatibilityAnalysisMd": "The rename and type widening could have been staged. Widening under the old name would have preserved compatibility better, while a later rename could be handled by tooling.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.reaction.manifestation:d79b18",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `reaction.detail` becomes R6 `reaction.manifestation` and can now be coded directly through CodeableReference. Existing Observation references need a path and wrapper transform, while concept-only R6 manifestations cannot go back to R4 without an Observation, extension, or loss. The field is optional and the forward mapping for existing R4 references is straightforward, while the R6 name and datatype better express the clinical content.",
+        "keyEvidence": [
+          "R4 `reaction.detail` is 0..1 Reference(Observation).",
+          "R6 `reaction.manifestation` is 0..1 CodeableReference(Observation).",
+          "The short/definition remain reaction details, supporting a direct successor relationship."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use means the rename matters, but the affected optional reaction-detail path has a clear mapping and a reasonable expressivity goal.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `reaction.detail` is not an R6 element; R6 concept-only manifestations create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial: keep `reaction.detail` for Observation references and add a coded manifestation field. That preserves R4 data but splits one manifestation fact across related fields.",
+        "comparisonToExisting": "agree: the existing report's medium impact and probably justified/partial alternative align with the fresh review."
+      }
     },
     {
       "findingId": "Immunization:TYPE_DOMAIN:Immunization.manufacturer:f479d6",
@@ -1775,7 +1901,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: existing manufacturer Reference JSON is invalid without wrapping it under `manufacturer.reference`. R6-to-R4: concept-only manufacturer values are not representable in the R4 Reference slot.",
       "migrationGuidanceMd": "Wrap R4 manufacturer references as R6 `manufacturer.reference`. For R6 concepts, map to a local Organization when possible; otherwise use an extension, text-only Organization, or manual-review policy for R4 exports.",
       "backwardCompatibilityAnalysisMd": "An additive coded manufacturer element would have avoided changing an existing Reference field. The R6 approach is cleaner for generic tooling that understands CodeableReference but breaks R4 clients.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Immunization:TYPE_DOMAIN:Immunization.manufacturer:f479d6",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`manufacturer` stays at the same path but changes from Reference(Organization) to CodeableReference(Organization), so existing R4 Reference JSON must be wrapped one level deeper. R6 concept-only manufacturers also cannot be represented in the R4 reference slot. The migration is real, but supporting manufacturer names/codes when no Organization resource exists is a reasonable goal, and additive alternatives create parallel manufacturer representations.",
+        "keyEvidence": [
+          "R4 `manufacturer` is 0..1 Reference targeting Organization.",
+          "R6 `manufacturer` is 0..1 CodeableReference targeting Organization.",
+          "The R6 CodeableReference shape uses `manufacturer.reference.reference` for an Organization reference or `manufacturer.concept` for coded/text manufacturer content."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use gives compatibility weight for product traceability, but the R6 expressivity gain is credible and the forward transform is mechanical for references.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 Reference object at `manufacturer` is not the R6 CodeableReference shape; concept-only R6 values are R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial: keep the Reference field and add a separate coded/text manufacturer element. That preserves old instances but duplicates a traceability fact and requires precedence rules.",
+        "comparisonToExisting": "agree: the existing report correctly identified the wrapper break, reverse loss, and partial alternative."
+      }
     },
     {
       "findingId": "Immunization:REFERENCE_TARGET:Immunization.performer.actor:043f07",
@@ -1916,7 +2056,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: no break for existing R4 target types. R6-to-R4: Patient and RelatedPerson performer references fail R4 validation unless transformed or represented outside the base element.",
       "migrationGuidanceMd": "For R6-to-R4 exports, detect Patient/RelatedPerson performers and choose a policy: omit with warning, create an extension, use Provenance, or map to an Organization/Practitioner only when source data supports that mapping.",
       "backwardCompatibilityAnalysisMd": "The R6 widening is appropriate for new use cases; the incompatibility is inherent to adding target types absent in R4.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Immunization:REFERENCE_TARGET:Immunization.performer.actor:043f07",
+        "judgment": "No problem",
+        "narrativeMd": "This is target widening. All R4 performer actor targets remain valid in R6, and Patient/RelatedPerson are only new R6 possibilities. R6-to-R4 exporters need a policy for self- or caregiver-administered performers, but this is not an R4-to-R6 compatibility problem in the base StructureDefinition.",
+        "keyEvidence": [
+          "R4 `performer.actor` targets Practitioner, PractitionerRole, and Organization.",
+          "R6 `performer.actor` keeps those targets and adds Patient and RelatedPerson.",
+          "Cardinality and datatype remain Reference 1..1."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use does not turn a pure target widening into a forward-compatibility concern; it only makes down-version policy worth documenting.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 Patient or RelatedPerson performers do not satisfy the R4 target list, but R4-to-R6 is non-breaking.",
+        "lessBreakingAlternativeAssessment": "Not applicable: the base R6 design preserves all R4 target profiles. Extensions or Provenance are export mitigations, not less-breaking R6 designs.",
+        "comparisonToExisting": "partially agree: the existing report correctly saw no R4-to-R6 hard break, but the fresh judgment treats the reverse-only issue as No problem for design review."
+      }
     },
     {
       "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.optionalAdditions:9fd463",
@@ -2057,7 +2211,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: no invalidation because the elements are optional. R6-to-R4: instances using these elements have unknown properties in R4 and lose information unless mapped to extensions or associated resources.",
       "migrationGuidanceMd": "Define an R6-to-R4 policy before accepting these fields: standard extensions if available, Provenance/MedicationRequest linkage, DocumentReference/Observation references, or explicit lossy export warnings. Include round-trip tests to ensure product/order/support context is not silently discarded.",
       "backwardCompatibilityAnalysisMd": "Optional additions are generally backward-compatible in the forward direction. The down-version risk is inherent because R4 cannot natively carry R6-only fields.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.optionalAdditions:9fd463",
+        "judgment": "No problem",
+        "narrativeMd": "The added `administeredProduct`, `basedOn`, and `supportingInformation` fields are optional. They add useful R6 expressivity and do not invalidate any R4 Immunization instance. R6-to-R4 round-tripping can lose these fields, but that is the normal consequence of optional additions rather than a backwards-breaking base design.",
+        "keyEvidence": [
+          "R6 adds optional `administeredProduct` 0..1 CodeableReference(Medication).",
+          "R6 adds optional `basedOn` 0..* Reference(CarePlan|MedicationRequest|ServiceRequest).",
+          "R6 adds optional `supportingInformation` 0..* Reference(Resource), and R4 has no same-name local elements."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use supports noting round-trip loss, but optional additions are already the least-disruptive way to add new base capabilities.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6-only optional fields have no base R4 slots, but there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable: no less-breaking R6 base design is needed for forward compatibility. Using only extensions would reduce discoverability and is not more compatible for R4 instances.",
+        "comparisonToExisting": "disagree: the existing report's reverse-conversion warning is useful, but the fresh review does not treat optional additions as a material breaking-change finding."
+      }
     },
     {
       "findingId": "Immunization:TERMINOLOGY_BINDING:Immunization.terminology:e83f63",
@@ -2231,7 +2399,21 @@
       "migrationGuidanceMd": "Do not treat example ValueSets as hard constraints in base migration. Refresh picklists and terminology maps, and review local profiles that strengthen these bindings. Use a terminology server expansion and official ConceptMaps before making clinical code substitutions.",
       "backwardCompatibilityAnalysisMd": "The required status binding stability is a good compatibility property. For example sets, backward compatibility depends on tooling conventions; publishing explicit ConceptMaps would reduce ambiguity without constraining the base resource.",
       "reviewerNotesMd": "No terminology-server expansion was available, and several R6 terminology.hl7.org ValueSets referenced from bindings were not in the local core package.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Immunization:TERMINOLOGY_BINDING:Immunization.terminology:e83f63",
+        "judgment": "No problem",
+        "narrativeMd": "The required `status` codes are unchanged, while the observed terminology movement is in example or extensible bindings and ValueSet metadata/canonicals. Picklists, generated examples, or local profiles may need review, but base R4 Immunization instances should not become invalid solely because an example ValueSet changed.",
+        "keyEvidence": [
+          "R4 and R6 `ValueSet-immunization-status` both include `completed`, `entered-in-error`, and `not-done` from event-status.",
+          "R4/R6 `immunization-reason`, `immunization-route`, and `immunization-status-reason` local compose content changed, but these bindings are example strength on the base resource.",
+          "Several R6 bindings point to terminology.hl7.org ValueSets for THO-owned terminology, which is canonical/tooling churn rather than an instance-shape break."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3/trial-use warrants checking required bindings, but example-binding changes do not become hard compatibility problems because of maturity alone.",
+        "compatibilityMechanism": "metadata/tooling: example ValueSet content and canonical changes can affect UI lists, generated documentation, or local strengthened profiles, but not base R4-to-R6 instance validity.",
+        "lessBreakingAlternativeAssessment": "Not applicable: no required-code removal was found. ConceptMaps and release notes would help implementers, but they are migration aids rather than less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree: the existing report correctly noted unchanged required status codes and no base alternative; the fresh review downgrades the finding to No problem for base compatibility."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2412,5 +2594,19 @@
       "R6 optional additions creating down-version data loss",
       "New resource-level invariants constraining formerly advisory relationships"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Immunization.fresh-review.json",
+    "findingDecisionCount": 13,
+    "matchedFindingDecisionCount": 13,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 6,
+      "Breaking but probably OK": 4,
+      "No problem": 3
+    }
   }
 }

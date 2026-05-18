@@ -403,7 +403,21 @@
       "validationAndCompatibilityMd": "R4 instances using `accepted`, `declined`, `tentative`, or `needs-action` remain valid against the R6 required binding. An R6 instance using `entered-in-error` is not valid against R4's required value set. Strict R4 validators and generated R4 enums will reject or fail to parse the new code unless they preserve unknown codes out of band.",
       "migrationGuidanceMd": "R4→R6 code should add `entered-in-error` to generated status enums and ensure modifier-aware logic treats such responses as not valid for scheduling decisions. R6→R4 conversion should not silently coerce `entered-in-error` to another R4 status; preserve it in an extension, quarantine the instance, or require manual review.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible design could have represented `entered-in-error` as an extension while keeping the R4 value set unchanged, but that would undercut the safety value of a required modifier status. The base terminology change is disruptive for R6→R4 but probably justified because it standardizes an already-described invalidation state.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AppointmentResponse:TERMINOLOGY_BINDING:AppointmentResponse.participantStatus:9b8d2c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`participantStatus` still accepts every R4 status code, but R6 adds `entered-in-error` to a required modifier status. That creates real work for closed status enums, status-switch business rules, and R6-to-R4 conversion, because the new invalidation state cannot be represented in R4's required value set without policy. The design is still proportionate: it standardizes a safety-relevant state on the status element rather than hiding it elsewhere.",
+        "keyEvidence": [
+          "R4 `AppointmentResponse.participantStatus` is 1..1 `code`, modifier=true, required to `http://hl7.org/fhir/ValueSet/participationstatus|4.0.1`, with short text `accepted | declined | tentative | needs-action`.",
+          "R6 keeps the same path/cardinality/type/modifier flag but binds required to `http://hl7.org/fhir/ValueSet/appointmentresponse-status|6.0.0-ballot4`, whose compose includes all `participationstatus` codes plus `appointmentstatus#entered-in-error`.",
+          "R6 `CodeSystem-appointmentstatus` defines `entered-in-error` as an instance that should not have been part of the patient's medical record."
+        ],
+        "fmmEffect": "R4 AppointmentResponse is FMM 3 and trial-use, so compatibility has meaningful weight, especially for a required modifier status. That raises the bar above experimental content, but it does not outweigh a proportionate additive status that preserves all R4 codes.",
+        "compatibilityMechanism": "runtime/API/codegen and R6-to-R4 loss: old R4 instances remain valid in R6, but generated status enums and scheduling logic must handle a new modifier code, and R6 instances using it are not valid against R4's required binding.",
+        "lessBreakingAlternativeAssessment": "No compelling less-breaking R6 base design exists. Keeping the R4 value set would omit the invalidation state, and representing it only as an extension would make a modifier/safety status less visible to generic clients. Because all R4 codes remain valid, the main alternatives are mitigations for R6-to-R4 conversion rather than better base R6 designs.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that this is not an R4-to-R6 instance break and that no less-breaking base alternative is needed, but the direct R4-to-R6 impact is lower than the reported High score suggests."
+      }
     },
     {
       "findingId": "AppointmentResponse:REFERENCE_TARGET:AppointmentResponse.actor:1a7f3e",
@@ -551,7 +565,21 @@
       "validationAndCompatibilityMd": "R4→R6 instances continue to validate if they used any of the old target profiles. R6→R4 instances with `Group` actors cannot be represented as R4-conformant `actor` references without either choosing individual members, using an extension, or relaxing validation.",
       "migrationGuidanceMd": "Update generated reference target lists and switch statements to include `Group`. For R6→R4 conversion, decide whether group actors should be expanded into multiple individual responses, retained as an extension, or rejected for manual handling; expansion is not always lossless.",
       "backwardCompatibilityAnalysisMd": "Adding `Group` as a native target is a straightforward model widening. The less disruptive alternative would be an extension, but that would prevent generic scheduling clients from recognizing group participation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AppointmentResponse:REFERENCE_TARGET:AppointmentResponse.actor:1a7f3e",
+        "judgment": "No problem",
+        "narrativeMd": "`actor` is a straightforward target-list widening: R6 adds `Group` and retains every R4 target. R4 AppointmentResponse instances continue to validate, and the new target only affects systems that choose to consume R6 data with group actors or down-convert it to R4. That is normal model growth rather than a compatibility problem that needs standards redesign.",
+        "keyEvidence": [
+          "R4 `AppointmentResponse.actor` target profiles are Patient, Practitioner, PractitionerRole, RelatedPerson, Device, HealthcareService, and Location.",
+          "R6 `AppointmentResponse.actor` adds `http://hl7.org/fhir/StructureDefinition/Group` while retaining the R4 target profiles.",
+          "The element remains optional 0..1 Reference and summary=true in both versions."
+        ],
+        "fmmEffect": "FMM 3/trial-use means target-list changes should still be checked, but the widening preserves R4-valid content and does not create enough stability pressure for a revisit.",
+        "compatibilityMechanism": "R6-to-R4 loss: a new R6 `Group` actor has no conformant R4 target, and closed generated reference unions may need to recognize the new case; there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed. An extension-only group actor would be less visible and less computable for generic R6 scheduling clients while preserving little beyond R4 down-conversion convenience.",
+        "comparisonToExisting": "partially agree: I agree with the evidence and the Not applicable alternative assessment, but I would not carry the existing Medium impact through to the final judgment because the base change is additive."
+      }
     },
     {
       "findingId": "AppointmentResponse:TYPE_DOMAIN:AppointmentResponse.comment:6f0a21",
@@ -692,7 +720,21 @@
       "validationAndCompatibilityMd": "An R4-valid non-empty string should generally be acceptable as R6 markdown based on the primitive definitions inspected. R6 markdown can be placed in an R4 string field structurally, but the information that it was intended as Markdown is lost and R4 clients may display markup literally.",
       "migrationGuidanceMd": "Regenerate models and update serializers, validators, and UI rendering policy for `comment`. Display code should sanitize Markdown output and tests should cover comments containing asterisks, links, line breaks, and plain text.",
       "backwardCompatibilityAnalysisMd": "The change could have been avoided by leaving `comment` as `string` because Markdown text can still be carried as ordinary text. The R6 choice makes rendering intent explicit at the cost of API churn.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AppointmentResponse:TYPE_DOMAIN:AppointmentResponse.comment:6f0a21",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`comment` changes from `string` to `markdown` on the same JSON property. Ordinary wire data remains a JSON string, and R6 markdown is defined as a string-derived primitive, so this is not a typical instance rejection. The real burden is generated API/type churn and display policy: clients may now need to treat the content as markdown, including rendering and sanitization choices.",
+        "keyEvidence": [
+          "R4 `AppointmentResponse.comment` is optional 0..1 `string` with the same definition/comment text as R6.",
+          "R6 `AppointmentResponse.comment` is optional 0..1 `markdown`.",
+          "R6 `StructureDefinition-markdown` has baseDefinition `http://hl7.org/fhir/StructureDefinition/string` and describes markdown as a string that may contain GitHub Flavored Markdown syntax."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes an API-visible primitive type change worth taking seriously, but the unchanged scalar wire shape and reasonable richer-text goal keep this below Revisit.",
+        "compatibilityMechanism": "runtime/API/codegen: generated models, validators that distinguish primitive types, and renderers may change behavior; old R4 string values should generally remain representable because the JSON shape is still a string.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design exists: keep `comment` as `string` and clarify that markdown may be used by agreement, or add a parallel markdown element. The first loses a computable rendering signal, and the second creates duplicate comment fields with possible conflicts, so the R6 choice is defensible.",
+        "comparisonToExisting": "agree: the existing Medium impact and Partial alternative judgment match the fresh assessment, with the main risk in generated APIs and rendering semantics rather than hard validation."
+      }
     },
     {
       "findingId": "AppointmentResponse:ELEMENT_PRESENCE_OR_IDENTITY:AppointmentResponse.proposedNewTime:d4c23b",
@@ -815,7 +857,21 @@
       "validationAndCompatibilityMd": "R4 instances do not become invalid because the element is optional. R6 instances that use the element cannot be losslessly represented in R4 without an extension or inference from start/end values.",
       "migrationGuidanceMd": "When migrating R4 data, derive `proposedNewTime` only when the referenced Appointment is available and business rules confirm that `start`/`end` represent a counter-proposal. Do not set it solely because times are present; R4 also allowed times to confirm the existing appointment.",
       "backwardCompatibilityAnalysisMd": "An extension would have been less disruptive for R4 systems but less useful for generic R6 scheduling clients. Adding an optional boolean is a relatively backward-safe core change.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AppointmentResponse:ELEMENT_PRESENCE_OR_IDENTITY:AppointmentResponse.proposedNewTime:d4c23b",
+        "judgment": "No problem",
+        "narrativeMd": "`proposedNewTime` is an optional additive boolean that makes an existing counter-proposal concept explicit. R4 instances can omit it, and the `start`/`end` definitions remain unchanged in R6, so migrated R4 data does not become structurally invalid. R6-to-R4 conversion may lose an explicit flag, but R4 already carried counter-proposal meaning through the timing fields.",
+        "keyEvidence": [
+          "No `AppointmentResponse.proposedNewTime` element exists in the R4 StructureDefinition.",
+          "R6 adds `AppointmentResponse.proposedNewTime` as optional 0..1 `boolean`, summary=true, defined as indicating that the response proposes a different time.",
+          "R4 and R6 `AppointmentResponse.start` and `AppointmentResponse.end` retain the same timing/counter-proposal definitions."
+        ],
+        "fmmEffect": "FMM 3/trial-use calls for checking semantic migration effects, but an optional additive clarification with unchanged existing timing semantics does not create material stability concern.",
+        "compatibilityMechanism": "none: the change is optional and additive for R4-to-R6. Any R6-to-R4 loss is limited to an explicit flag whose core timing information can still be present in R4 `start`/`end`.",
+        "lessBreakingAlternativeAssessment": "No better less-breaking base design is apparent. Keeping only implicit start/end comparison would preserve the R4 model but would not meet the R6 goal of making counter-proposals directly computable.",
+        "comparisonToExisting": "disagree: I agree that the field is optional and the alternative is Not applicable, but I would not classify the finding as Medium impact because there is no meaningful R4-to-R6 compatibility problem."
+      }
     },
     {
       "findingId": "AppointmentResponse:ELEMENT_PRESENCE_OR_IDENTITY:AppointmentResponse.recurrence:ac72e9",
@@ -955,7 +1011,21 @@
       "validationAndCompatibilityMd": "There is no R4→R6 validation break because the new elements are optional. R6 instances using them are not losslessly representable in R4, and a naive converter that drops the fields can turn a per-occurrence response into an ambiguous response to the series or template appointment.",
       "migrationGuidanceMd": "For R4→R6, populate recurrence fields only when the source system has reliable recurrence metadata. For R6→R4, preserve recurrence scope in extensions or split/route responses according to implementation policy; do not silently discard `recurring`, `occurrenceDate`, or `recurrenceId` in scheduling workflows.",
       "backwardCompatibilityAnalysisMd": "The native additions are justified for recurring scheduling interoperability. A pure extension approach would have been less disruptive for R4 but would not give base R6 clients computable recurrence semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AppointmentResponse:ELEMENT_PRESENCE_OR_IDENTITY:AppointmentResponse.recurrence:ac72e9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The recurrence fields are optional additions, so they do not reject R4 AppointmentResponse instances. They do, however, introduce meaningful R6-to-R4 loss when populated: dropping whether a response applies to all occurrences, a specific date, or a recurrence sequence can change scheduling scope. The native R6 design is proportionate because recurring appointment support needs computable base fields and the additions preserve R4-to-R6 structural compatibility.",
+        "keyEvidence": [
+          "R4 has no `AppointmentResponse.recurring`, `AppointmentResponse.occurrenceDate`, or `AppointmentResponse.recurrenceId` elements.",
+          "R6 adds optional `recurring` 0..1 boolean, `occurrenceDate` 0..1 date, and `recurrenceId` 0..1 positiveInt.",
+          "R6 definitions describe all-series responses, original occurrence dates, and recurrence sequence numbers for recurring appointment requests."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises concern for recurring scheduling workflows, but the changes are additive and targeted to a legitimate base-model gap.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4-valid data remains valid in R6, but populated R6 recurrence fields cannot be losslessly represented in base R4 and losing them can alter per-occurrence versus whole-series response meaning.",
+        "lessBreakingAlternativeAssessment": "No superior less-breaking R6 base design is evident. Leaving recurrence only to extensions or profiles would be easier for R4 backports but would not provide generic R6 clients with computable recurrence scope; the optional native fields preserve R4 instances while addressing the new workflow.",
+        "comparisonToExisting": "agree: the existing report's High R6-to-R4 representability concern and Not applicable alternative assessment are consistent with the fresh path-level review, though the change remains proportionate."
+      }
     },
     {
       "findingId": "AppointmentResponse:TERMINOLOGY_BINDING:AppointmentResponse.participantType:5e91aa",
@@ -1134,7 +1204,22 @@
       "migrationGuidanceMd": "Do not hard-code the R4 participantType expansion for R6. Refresh terminology services and matching tables, and test role matching between Appointment.participant.type and AppointmentResponse.participantType using local production codes. If `PPRF`, `SPRF`, or `PART` appear in source data, review whether R6 prefers a more specific replacement or permits the old coding as an additional coding/text.",
       "backwardCompatibilityAnalysisMd": "The change may have been made to refine role semantics, but the supplied inputs do not show why old explicit includes were dropped. A backward-compatible alternative would keep old includes while adding the new location hierarchy, at the cost of a larger and possibly less curated value set.",
       "reviewerNotesMd": "Requires a terminology-service expansion using the exact R4 and R6 terminology package versions before classifying any specific participantType code as removed or added with high confidence.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AppointmentResponse:TERMINOLOGY_BINDING:AppointmentResponse.participantType:5e91aa",
+        "judgment": "Revisit",
+        "narrativeMd": "`participantType` keeps an extensible binding to the same value-set canonical, but the compose changes: R6 adds location-role coverage and no longer explicitly includes R4's `SPRF`, `PPRF`, and `PART` concepts. Because the binding is extensible, this is not a hard validation break, but it can affect terminology warnings, value-set-driven pick lists, and role matching for a path used to align AppointmentResponse participants with Appointment participants. The local evidence shows a plausible low-cost base alternative: retain the R4 explicit includes while adding the R6 location hierarchy and exclusion.",
+        "keyEvidence": [
+          "R4 `AppointmentResponse.participantType` is 0..* CodeableConcept with extensible binding to `http://hl7.org/fhir/ValueSet/encounter-participant-type`.",
+          "R4 `ValueSet-encounter-participant-type` compose includes v3 `_ParticipationAncillary` descendants, explicit v3 `SPRF`, `PPRF`, and `PART`, and `participant-type`, excluding `_ParticipationAncillary`.",
+          "R6 keeps the same extensible binding canonical but compose includes v3 `_ParticipationAncillary` descendants, v3 `LOC` descendants, and `participant-type`, excluding `_ParticipationAncillary` and `ELOC`.",
+          "The local v3 ParticipationType CodeSystem shows `LOC`/`ELOC` and `PPRF`/`SPRF` as distinct concepts; full R6 expansion evidence was not available in the core package."
+        ],
+        "fmmEffect": "FMM 3/trial-use means warning-level terminology churn does not automatically warrant redesign, but this is mature enough that unexplained de-preference of existing role concepts on a participant-matching path deserves attention when a modest compatibility-preserving compose exists.",
+        "compatibilityMechanism": "warning-level: the extensible binding prevents an old-valid/new-invalid hard break, but terminology validation, auto-complete, and code-based participant matching can change when R4-preferred concepts are no longer in the preferred compose.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could keep the R4 explicit `SPRF`, `PPRF`, and `PART` includes while adding the `LOC` hierarchy and `ELOC` exclusion. The tradeoff is a broader, less curated preferred value set if R6 intentionally wanted to discourage those concepts, but the supplied evidence does not show that this tradeoff was necessary.",
+        "comparisonToExisting": "agree: the existing report's Yes alternative judgment is supported, and the impact is best understood as warning-level/conformance rather than hard break; that still justifies Revisit because the less-breaking base design is straightforward."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1317,5 +1402,19 @@
       "Resource fields changing from string to markdown",
       "Reference target additions involving Group"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/AppointmentResponse.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 2
+    }
   }
 }

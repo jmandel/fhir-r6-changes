@@ -285,7 +285,21 @@
       "migrationGuidanceMd": "Create an explicit resource-level transform. Change `resourceType` to `ClinicalUseDefinition`, set `type` to `undesirable-effect`, move old fields to the R6 paths described in the other findings, and preserve the old identity in provenance, source metadata, or a cross-version extension if round-tripping matters. Test serializers, API routing, search, profile canonical references, and generated model dispatch.",
       "backwardCompatibilityAnalysisMd": "The consolidation likely improves reuse across related medicine safety concepts, but it could have been less disruptive if the old resource stayed as a deprecated alias/profile. Because R6 has chosen a different resource identity, implementers need an explicit migration rather than schema-only validation.",
       "reviewerNotesMd": "The replacement is inferred from local computable definitions. Official change notes or a ConceptMap should be checked before freezing production migration rules.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductUndesirableEffect:ARTIFACT_IDENTITY:root:8f2c1a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 no longer has a `MedicinalProductUndesirableEffect` resource and the local computable replacement is `ClinicalUseDefinition` with `type = undesirable-effect`. That is a real resource identity break for validators, REST surfaces, model classes, profiles, and FHIRPath expressions keyed to the old `resourceType`. Still, this was R4 FMM 0 trial-use content, and the replacement has a coherent base-design rationale: consolidating IDMP clinical-use issue types into one resource with branch-specific backbones. Because keeping both resource identities would preserve old instances only by creating long-lived duplicate APIs and conformance surfaces, the break is substantial but proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition-MedicinalProductUndesirableEffect.json defines a concrete resource with url http://hl7.org/fhir/StructureDefinition/MedicinalProductUndesirableEffect.",
+          "R6 package index has no StructureDefinition-MedicinalProductUndesirableEffect entry; the assigned R6 file is absent locally.",
+          "R6 StructureDefinition-ClinicalUseDefinition defines a resource for indication, contraindication, interaction, undesirable effect, or warning and maps to IDMP Undesirable Effects."
+        ],
+        "fmmEffect": "R4 FMM 0 and trial-use status materially soften the stability expectation, so the resource-level break is not a Revisit solely because it is hard-breaking. The safety/regulatory domain keeps it meaningful, but not enough to overcome the low maturity and duplicate-resource tradeoffs.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: an R4 instance with `resourceType: MedicinalProductUndesirableEffect` has no base R6 resource type; APIs, generated classes, canonical references, and search surfaces need migration.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have retained `MedicinalProductUndesirableEffect` as a deprecated resource while adding `ClinicalUseDefinition`, but that would force duplicate representations, endpoints, search parameters, profiles, and conformance expectations for the same clinical-use fact.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a high-impact resource identity break and a partial less-breaking alternative, but FMM 0 makes the break more acceptable than the old high-impact framing alone suggests."
+      }
     },
     {
       "findingId": "MedicinalProductUndesirableEffect:ELEMENT_PRESENCE_OR_IDENTITY:ClinicalUseDefinition.type:2b7d31",
@@ -439,7 +453,21 @@
       "validationAndCompatibilityMd": "Old data is not valid as R6 unless transformed to include `ClinicalUseDefinition.type = undesirable-effect`. R6 validation also rejects an instance that has `undesirableEffect` with another type or combines multiple clinical-use branches. R6-to-R4 conversion can usually drop the type after confirming it is `undesirable-effect`, but other type values are outside this R4 resource's scope.",
       "migrationGuidanceMd": "Set `type` deterministically to `undesirable-effect` for every migrated record from this R4 resource. Add validation tests for missing type, wrong type, and multiple branch backbones.",
       "backwardCompatibilityAnalysisMd": "The discriminator is a necessary part of the merged design. A backward-compatible path would have kept separate resource identities or made `ClinicalUseDefinition` additive while deprecating the old resource, but that would not provide one uniform base model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductUndesirableEffect:ELEMENT_PRESENCE_OR_IDENTITY:ClinicalUseDefinition.type:2b7d31",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The old resource name implicitly said the record was an undesirable effect; R6 requires that fact as `ClinicalUseDefinition.type = undesirable-effect` and enforces branch/type consistency. This is an old-to-new validation and mapper requirement, but the value is deterministic for this R4 resource and is central to the merged-resource model. Optional or inferred type would reduce one migration step but weaken base validation and searchability for all `ClinicalUseDefinition` branches.",
+        "keyEvidence": [
+          "R4 MedicinalProductUndesirableEffect has no local `type` element.",
+          "R6 ClinicalUseDefinition.type is 1..1 code with required binding to clinical-use-definition-type.",
+          "R6 invariant cud-4 says ClinicalUseDefinition.undesirableEffect can only be used when type is `undesirable-effect`."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the burden for adding this required discriminator. Because the discriminator is mechanically derived from the old resource identity, low maturity strongly supports accepting the migration burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: a naive R6 `ClinicalUseDefinition` transform that omits `type` or sets the wrong type fails base R6 validation; generated enum and business logic also need the new discriminator.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could infer type from the populated branch or make `type` optional, but that would make a multi-branch resource less explicit and complicate validation, search, and consumers that need a uniform discriminator.",
+        "comparisonToExisting": "partially agree: the existing report is right about the required-field break and partial alternative, but its high overall impact is softened because the required value is deterministic for all migrated instances of this R4 resource."
+      }
     },
     {
       "findingId": "MedicinalProductUndesirableEffect:CARDINALITY:subject:4e6b90",
@@ -607,7 +635,21 @@
       "migrationGuidanceMd": "Audit all R4 records for missing subjects. For present `Medication` references, map to `ClinicalUseDefinition.subject.reference`. For `MedicinalProduct`, coordinate with the `MedicinalProductDefinition` migration and preserve source identifiers. Define a policy for coded R6 subjects if round-tripping to R4 is required.",
       "backwardCompatibilityAnalysisMd": "The cardinality increase has a clear safety rationale, but old incomplete data could have been tolerated by keeping the base element optional and adding profile-level requiredness. The target widening is useful in R6 but adds unavoidable round-trip loss for non-R4 target forms.",
       "reviewerNotesMd": "Confirm the project-specific mapping from R4 `MedicinalProduct` to R6 `MedicinalProductDefinition`; this report did not analyze that resource pair in depth.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductUndesirableEffect:CARDINALITY:subject:4e6b90",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`subject` changed from optional `Reference(MedicinalProduct|Medication)` to mandatory `CodeableReference` with a broader R6 target set. Subjectless R4 instances cannot become valid base R6 instances without backfilling a product or therapy, and `MedicinalProduct` references need the separate R6 medicinal-product migration. The path is central and safety-relevant, but requiring a subject is also fundamental to interpreting a clinical-use issue. Given FMM 0, making base R6 require the affected product or therapy appears proportionate even though some migrations need data remediation.",
+        "keyEvidence": [
+          "R4 MedicinalProductUndesirableEffect.subject is 0..* Reference targeting MedicinalProduct or Medication.",
+          "R6 ClinicalUseDefinition.subject is 1..* CodeableReference targeting MedicinalProductDefinition, Medication, ActivityDefinition, PlanDefinition, Device, DeviceDefinition, SubstanceDefinition, NutritionProduct, and BiologicallyDerivedProduct.",
+          "The subject identifies the medication, product, substance, device, procedure, etc. for which the undesirable effect or other clinical-use issue applies."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the compatibility concern for the cardinality increase. The subject is central and medication-safety relevant, so the break remains meaningful, but low maturity makes a cleaner required-subject model acceptable.",
+        "compatibilityMechanism": "old-valid/new-invalid plus R6-to-R4 loss: R4 instances with no subject fail R6; R6 coded subjects and new target resource types cannot be represented directly in the old R4 Reference slot.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could keep subject optional in base and require it in profiles or warnings, or retain a Reference-compatible legacy path. That would preserve incomplete R4 records but would allow base clinical-use safety facts without a subject and would complicate the MedicinalProduct to MedicinalProductDefinition transition.",
+        "comparisonToExisting": "partially agree: the existing high-impact finding is credible for subjectless or legacy-target data, but FMM 0 and the strong safety rationale make the base requiredness probably acceptable rather than clearly needing redesign."
+      }
     },
     {
       "findingId": "MedicinalProductUndesirableEffect:ELEMENT_PRESENCE_OR_IDENTITY:undesirableEffect-backbone:7cae15",
@@ -741,7 +783,21 @@
       "validationAndCompatibilityMd": "R4 top-level fields become invalid at their old locations in R6. R6 content can usually be unwrapped back to R4 for these three fields, subject to the separate `CodeableReference` change for `symptomConditionEffect`.",
       "migrationGuidanceMd": "Implement a deterministic path transform for `symptomConditionEffect`, `classification`, and `frequencyOfOccurrence`. Update FHIRPath expressions, JSON patches, search extraction code, serializers, profile differential paths, and generated model accessors.",
       "backwardCompatibilityAnalysisMd": "The move is explainable by the resource merge. A compatibility profile or old-path extension could reduce migration pain, but would not allow base R6 validators to accept old JSON paths.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductUndesirableEffect:ELEMENT_PRESENCE_OR_IDENTITY:undesirableEffect-backbone:7cae15",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 moves the effect-specific fields under `ClinicalUseDefinition.undesirableEffect`. That breaks old JSON paths, generated accessors, FHIRPath expressions, patches, and extractors, but the move follows directly from representing multiple mutually exclusive clinical-use branches in one resource. Keeping the old root-level fields as base aliases would preserve paths only by creating duplicate locations for the same facts and precedence rules when both are present.",
+        "keyEvidence": [
+          "R4 defines symptomConditionEffect, classification, and frequencyOfOccurrence directly under MedicinalProductUndesirableEffect.",
+          "R6 defines ClinicalUseDefinition.undesirableEffect 0..1 BackboneElement and puts symptomConditionEffect, classification, frequencyOfOccurrence, and management beneath it.",
+          "R6 ClinicalUseDefinition root has cud-1 through cud-6 branch/type constraints."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use substantially lowers the stability expectation for preserving old paths. The affected fields are meaningful, but the path move is a predictable consequence of the low-maturity resource consolidation.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: old top-level effect fields are not valid at the corresponding R6 top level and code using old paths must be updated.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have allowed deprecated root-level aliases for the old fields, but duplicate root/backbone representations would require conflict and precedence rules and would weaken the clean branch model.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the path break and runtime impact; I agree less strongly with the high-impact framing because the alternative has durable duplicate-representation costs under a low-FMM source artifact."
+      }
     },
     {
       "findingId": "MedicinalProductUndesirableEffect:TYPE_DOMAIN:symptomConditionEffect:9bd204",
@@ -882,7 +938,21 @@
       "migrationGuidanceMd": "Wrap R4 `symptomConditionEffect` as `ClinicalUseDefinition.undesirableEffect.symptomConditionEffect.concept`. For R6-to-R4 export, decide whether to resolve `ObservationDefinition` references to a concept, carry a contained/resource extension, or flag records for manual review.",
       "backwardCompatibilityAnalysisMd": "Adding a separate optional reference would have preserved old generated types, but R6's `CodeableReference` pattern provides a single standard representation for concept-or-reference fields.",
       "reviewerNotesMd": "Terminology expansion was unavailable, so no conclusions are made about specific code removals or additions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductUndesirableEffect:TYPE_DOMAIN:symptomConditionEffect:9bd204",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`symptomConditionEffect` changed from `CodeableConcept` to `CodeableReference(ObservationDefinition)`. Existing coded/text concepts have a straightforward R6 home in `CodeableReference.concept`, so this is not a severe old-data loss by itself. The real compatibility burden is generated type and JSON shape change, plus R6-to-R4 loss when R6 uses only a reference. Using the standard R6 concept-or-reference datatype is reasonable, and a separate sibling reference would preserve old shape only at the cost of parallel representations.",
+        "keyEvidence": [
+          "R4 MedicinalProductUndesirableEffect.symptomConditionEffect is 0..1 CodeableConcept.",
+          "R6 ClinicalUseDefinition.undesirableEffect.symptomConditionEffect is 0..1 CodeableReference targeting ObservationDefinition.",
+          "R6 adds only an example binding for undesirable-effect-symptom on this element."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the concern about changing generated types and wire shape. Because old concepts can be wrapped under `concept`, the low maturity weighs toward accepting the R6 representation.",
+        "compatibilityMechanism": "runtime/API/codegen plus R6-to-R4 loss: old concept-valued data must be wrapped in `CodeableReference.concept`; reference-only R6 values cannot be represented in the old CodeableConcept without resolving or extending.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could keep the old CodeableConcept field and add an optional ObservationDefinition reference sibling, but then consumers would need rules for concept-versus-reference precedence and duplicate population.",
+        "comparisonToExisting": "agree: the existing report treats this as a medium, non-hard representation/codegen and round-trip issue with a partial less-breaking alternative, which matches the fresh path-level assessment."
+      }
     },
     {
       "findingId": "MedicinalProductUndesirableEffect:TYPE_DOMAIN:population:aa18d6",
@@ -1008,7 +1078,21 @@
       "migrationGuidanceMd": "Inventory all R4 `population` uses. Define a deterministic conversion from each inline population qualifier to a `Group` resource or to a shared canonical group. Validate that referenced groups are included or resolvable in bundles and that R6-to-R4 export has a policy for unresolved groups.",
       "backwardCompatibilityAnalysisMd": "This change was likely avoidable from a compatibility perspective because an additive reference or choice could have supported both models. The chosen R6 model reduces duplication but shifts complexity to resource management.",
       "reviewerNotesMd": "The internal `Population` and `Group` definitions were not deeply assessed here under the base/referenced-artifact scope rule.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductUndesirableEffect:TYPE_DOMAIN:population:aa18d6",
+        "judgment": "Revisit",
+        "narrativeMd": "`population` changed from inline `Population` datatype content to `Reference(Group)`. For instances that use population qualifiers, this is more than a wrapper change: migration must create, find, or reference a `Group`, preserve the criteria that were inline, and maintain referential integrity in bundles and APIs. Population qualifiers can affect which cohort an adverse effect applies to, so lossy or expert-dependent conversion is clinically and regulatory meaningful despite the resource's FMM 0 status. A base choice or transitional inline form looks like a plausible less-breaking design worth renewed review.",
+        "keyEvidence": [
+          "R4 MedicinalProductUndesirableEffect.population is 0..* Population inline datatype.",
+          "R6 ClinicalUseDefinition.population is 0..* Reference targeting Group.",
+          "Both definitions describe the population group to which the undesirable effect applies, but the representation changes from embedded qualifiers to external resource references."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the general stability expectation, but this path is central when present and migration can be lossy or require expert judgment. The low FMM does not erase the safety/regulatory risk of attaching an effect to the wrong population.",
+        "compatibilityMechanism": "old-valid/new-invalid plus R6-to-R4 loss: inline R4 Population objects cannot validate as R6 Group references; R6 Group references cannot be converted back without resolving and mapping the referenced Group.",
+        "lessBreakingAlternativeAssessment": "Yes/Partial: R6 could allow an inline legacy population choice or sibling alongside `Reference(Group)` for one transition cycle. That would preserve old instances and avoid forced Group creation, though it would add duplicate representations and conflict rules if both inline and referenced populations are present.",
+        "comparisonToExisting": "partially agree: the existing report correctly calls this high-impact with a partial alternative; I would elevate the design concern to Revisit because the conversion is expert-dependent and a transitional base-compatible design seems plausible."
+      }
     },
     {
       "findingId": "MedicinalProductUndesirableEffect:FLAGS_AND_MODIFIERS:status:6d7f33",
@@ -1128,7 +1212,21 @@
       "migrationGuidanceMd": "For R4-to-R6 migration, decide whether to leave status absent or derive it from source governance metadata. For R6-to-R4 export, use an extension, provenance, or reject records whose status changes interpretation if the target system cannot honor it. Add tests that retired/inactive status values do not drive active warnings.",
       "backwardCompatibilityAnalysisMd": "The element is optional, so the design is backward-tolerant for old data. The modifier flag is semantically appropriate but forces R6-aware consumers and converters to handle it deliberately.",
       "reviewerNotesMd": "The exact code set and business meaning depend on the publication-status ValueSet and local policy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductUndesirableEffect:FLAGS_AND_MODIFIERS:status:6d7f33",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `ClinicalUseDefinition.status` and marks it as a modifier because retired or invalid status changes interpretation. That is a real R6 consumer obligation and a down-conversion consideration, but it does not invalidate any R4 `MedicinalProductUndesirableEffect` instance and it is semantically appropriate for reusable clinical-use knowledge. The compatibility concern is mainly that R6-to-R4 exporters must not silently lose an active-versus-retired distinction.",
+        "keyEvidence": [
+          "R4 MedicinalProductUndesirableEffect has no local status element.",
+          "R6 ClinicalUseDefinition.status is 0..1 CodeableConcept with preferred publication-status binding.",
+          "R6 marks status as isModifier=true because it can indicate that a record should not be treated as valid."
+        ],
+        "fmmEffect": "FMM 0/trial-use further reduces concern because this is an optional R6 addition rather than a restriction on old instances. The modifier semantics deserve implementation attention, but not standards redesign for R4 compatibility.",
+        "compatibilityMechanism": "R6-to-R4 loss: old instances remain valid after normal migration without status; only R6 records carrying status need preservation or rejection when exporting to R4.",
+        "lessBreakingAlternativeAssessment": "Not applicable: making status non-modifier would be less burdensome for generic clients but would understate its meaning. Because the element is optional and additive for R4-to-R6 migration, no less-breaking base design is needed.",
+        "comparisonToExisting": "disagree: the existing report's high runtime risk overstates the R4-to-R6 compatibility issue. The modifier must be honored by R6 consumers, but it is an appropriate optional addition and not a hard old-instance break."
+      }
     },
     {
       "findingId": "MedicinalProductUndesirableEffect:TERMINOLOGY_BINDING:effect-detail-bindings:f19c08",
@@ -1231,7 +1329,21 @@
       "migrationGuidanceMd": "Do not drop or recode existing values solely to satisfy example bindings. If harmonization is desired, use terminology services, ConceptMaps, or local coding policy, and test systems that display or classify undesirable effects by these ValueSets.",
       "backwardCompatibilityAnalysisMd": "The design is appropriately backward-compatible because it adds non-restrictive guidance. Stronger bindings would have been more breaking; the example strength avoids that.",
       "reviewerNotesMd": "Expansion-level comparison was not possible with the local package alone.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductUndesirableEffect:TERMINOLOGY_BINDING:effect-detail-bindings:f19c08",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds example bindings for undesirable-effect symptom, classification, and frequency. Example bindings are terminology guidance, not closed conformance requirements, so migrated R4 codes or text should not become invalid solely because of these bindings. Tooling should avoid treating example bindings as required enums, but the base specification change is intentionally non-restrictive.",
+        "keyEvidence": [
+          "R4 local effect detail elements have no local terminology bindings.",
+          "R6 ClinicalUseDefinition.undesirableEffect.symptomConditionEffect, classification, and frequencyOfOccurrence each have example-strength bindings.",
+          "No local ValueSet expansions were needed to judge base validation impact because example bindings do not reject non-member codes."
+        ],
+        "fmmEffect": "FMM 0/trial-use reinforces the low concern, but the decisive point is binding strength: example bindings do not create a base instance-compatibility break.",
+        "compatibilityMechanism": "none: at most warning-level or tooling guidance if local validators overinterpret example bindings; base R6 validation should not reject legacy codes solely for non-membership.",
+        "lessBreakingAlternativeAssessment": "Not applicable: example-strength binding is already the compatibility-preserving version of terminology guidance. A stronger binding would be the breaking alternative, not the chosen design.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as low impact, non-hard, and not needing a less-breaking alternative."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1381,5 +1493,19 @@
       "R4 Population datatype replaced by Reference(Group) in clinical-use resources",
       "R4 MedicinalProduct references replaced by R6 MedicinalProductDefinition references"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicinalProductUndesirableEffect.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 5,
+      "No problem": 2
+    }
   }
 }

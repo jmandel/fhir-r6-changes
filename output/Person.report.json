@@ -294,7 +294,21 @@
       "migrationGuidanceMd": "Regenerate serializers from the R6 definitions and include XML round-trip tests with `active` present. R4-to-R6 migration should parse and re-emit XML rather than textually copying element order. Code generators should avoid treating the old property order as stable.",
       "backwardCompatibilityAnalysisMd": "Because the same element could have been left in place, this order move appears likely avoidable from a compatibility perspective. If the goal was harmonization with other resources, the tradeoff is improved consistency at the cost of XML sequence compatibility.",
       "reviewerNotesMd": "Confirm against the official R6 XML schema or validator behavior if XML compatibility is a priority. Some FHIR parsers may accept out-of-order XML and normalize internally, which would reduce practical impact.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Person:SERIALIZATION_OR_CODEGEN:active-order:a7b0c1",
+        "judgment": "Revisit",
+        "narrativeMd": "`Person.active` keeps the same path, type, cardinality, modifier flag, and summary flag, but it moves from late in the R4 local XML/element sequence to immediately after `identifier` in R6. JSON payloads are not meaningfully affected, but XML schema validation and ordered serializers/parsers can reject or reorder an otherwise unchanged R4-style XML instance. Because `active` is a modifier/status element, the technical ordering break is not just cosmetic, and the apparent R6 goal could likely have been met without moving an existing element.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Person local order: identifier, name, telecom, gender, birthDate, address, photo, managingOrganization, active, link.",
+          "R6 StructureDefinition-Person local order: identifier, active, name, telecom, gender, birthDate, deceased[x], address, maritalStatus, photo, communication, managingOrganization, link.",
+          "R6 xml/person.xsd uses an xs:sequence with active before name, confirming XML order sensitivity for R6."
+        ],
+        "fmmEffect": "R4 Person is trial-use FMM 2, so maturity is a neutral factor rather than a strong stability guarantee. The revisit judgment is driven by the avoidable-looking order break and plausible base-compatible design, not by high maturity pressure.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-ordered XML with active after managingOrganization can fail R6 XML sequence expectations; generated ordered models may also change behavior.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have kept `active` in its R4 position and inserted the new optional R6 elements around the existing sequence. That would preserve XML and codegen ordering for existing content; the tradeoff is less harmonized placement of a status/modifier field near the beginning of the resource.",
+        "comparisonToExisting": "agree: the existing report's potential hard break, medium impact, and Yes less-breaking-alternative assessment are supportable after checking the local StructureDefinition order and R6 XML schema."
+      }
     },
     {
       "findingId": "Person:ELEMENT_PRESENCE_OR_IDENTITY:Person.deceased[x]:b43a10",
@@ -414,7 +428,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: no hard validation break because absence remains allowed. R6-to-R4: a valid R6 instance with `deceasedBoolean` or `deceasedDateTime` is not representable in base R4. Generated R4 classes and JSON/XML schema validators will not have a property for the new choice element.",
       "migrationGuidanceMd": "For down-conversion, use a project-approved extension or retain the R6 payload alongside the R4 projection. Test boolean and dateTime choices separately, including partial dateTime precision and absence semantics. Avoid silently interpreting absence as alive if the migration dropped an explicit death value.",
       "backwardCompatibilityAnalysisMd": "The R6 addition is optional and therefore mostly backward-compatible in the forward direction. The missing piece is a standard R4 preservation path; an official extension and ConceptMap-like conversion rule would make the change less disruptive for mixed-version ecosystems.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Person:ELEMENT_PRESENCE_OR_IDENTITY:Person.deceased[x]:b43a10",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "This is an optional R6 addition, so an R4 `Person` that omits death status remains acceptable in R6. The real compatibility issue is reverse or mixed-version exchange: an R6 instance with `deceasedBoolean` or `deceasedDateTime` has no base R4 `Person` slot, and losing that fact can affect outreach, identity matching, or record-use decisions. Native death-status support on a generic person record is a reasonable R6 goal, so the break appears proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Person has no `Person.deceased[x]` element.",
+          "R6 StructureDefinition-Person adds `Person.deceased[x]` 0..1 with boolean and dateTime choices and `isSummary=true`.",
+          "R6 element comment says absence is no statement and that many systems interpret absence as alive."
+        ],
+        "fmmEffect": "R4 Person's trial-use FMM 2 status is neutral. It does not require preserving the absence of a deceased element, but the administrative/safety relevance of death status keeps the R6-to-R4 loss from being dismissed as trivial.",
+        "compatibilityMechanism": "R6-to-R4 loss: valid R6 death status or death date cannot be represented in base R4 Person without an extension or external mapping.",
+        "lessBreakingAlternativeAssessment": "No better base R6 design is apparent. Omitting the element would fail the native R6 modeling goal; R4 extensions, StructureMaps, or conversion policy are useful mitigations but are not less-breaking R6 base designs.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as non-breaking forward but meaningful for R6-to-R4 representability, with no applicable less-breaking base alternative."
+      }
     },
     {
       "findingId": "Person:ELEMENT_PRESENCE_OR_IDENTITY:Person.maritalStatus:5d2f41",
@@ -551,7 +579,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is unaffected when the element is absent. R6-to-R4 validation fails for strict R4 schemas or generated classes if `maritalStatus` is present. A lossy transform that drops the field can change administrative or legal semantics.",
       "migrationGuidanceMd": "Define a down-conversion strategy: map to a standard/local extension, preserve the original R6 resource, or reject records where marital status must not be lost. Include tests for value-set codes, NullFlavor `UNK`, local codings, and text-only CodeableConcept values.",
       "backwardCompatibilityAnalysisMd": "The optional addition is forward-compatible, but the same information could have been introduced with an explicit R4 extension and official conversion guidance to reduce mixed-version disruption. The tradeoff is more extension reliance in R4 implementations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Person:ELEMENT_PRESENCE_OR_IDENTITY:Person.maritalStatus:5d2f41",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Person.maritalStatus` is also an optional R6-only element, so it does not invalidate old R4 instances. It can still create a real reverse-compatibility problem where civil or domestic-partnership status is needed for legal, administrative, or consent workflows and then cannot be carried in base R4 `Person`. The addition is narrow and uses a standard CodeableConcept binding, so the R6 design looks justified.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Person has no `Person.maritalStatus` element.",
+          "R6 StructureDefinition-Person adds `Person.maritalStatus` 0..1 CodeableConcept.",
+          "R6 binding is extensible to `http://hl7.org/fhir/ValueSet/marital-status`; the comment ties the element to civil registration use."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use gives neutral stability pressure. The judgment is based on the specific reverse data-loss risk and the reasonable model expansion, not on a high maturity expectation.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 marital status has no base R4 Person representation and would be rejected by strict R4 parsers if sent unchanged.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is compelling. A standard R4 extension or conversion map would mitigate mixed-version exchange, but keeping the element out of R6 would simply preserve the old gap rather than meet the civil-status modeling goal.",
+        "comparisonToExisting": "agree: the existing report's no forward hard break and high reverse-representability concern are directionally right, and the Not applicable alternative assessment is appropriate."
+      }
     },
     {
       "findingId": "Person:ELEMENT_PRESENCE_OR_IDENTITY:Person.communication:9c8e23",
@@ -706,7 +748,22 @@
       "validationAndCompatibilityMd": "R4-to-R6: no break unless a system creates an R6 communication entry without the required language. R6-to-R4: strict R4 parsers reject `communication`, and lossy transforms drop language preference. The language binding is required in R6 but open-ended through BCP-47, so validation depends on language-tag handling rather than a small finite code list.",
       "migrationGuidanceMd": "Use a standard or local extension for R4 preservation, or define role-specific mapping rules only when it is safe to copy communication preferences to linked Patient/Practitioner/RelatedPerson resources. Test multiple communication entries, preferred flags, text-only CodeableConcepts, and BCP-47 regional tags.",
       "backwardCompatibilityAnalysisMd": "An optional R6 backbone is forward-compatible for old data. A companion R4 extension and conversion map would make it much safer for mixed-version exchange. Automatic mapping to linked resources is only a partial alternative because R6 comments warn against updating linked practitioner resources from this property without context.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Person:ELEMENT_PRESENCE_OR_IDENTITY:Person.communication:9c8e23",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an optional repeatable `communication` backbone, so existing R4 instances are not made invalid. The practical break is that R6 language/preference data, including interpreter-relevant communication needs, has no base R4 `Person` location and can be lost in down-conversion. The required `communication.language` child is only required when the new backbone entry is present, which is a normal internal constraint for the added structure.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Person has no `Person.communication` backbone.",
+          "R6 StructureDefinition-Person adds `Person.communication` 0..* BackboneElement.",
+          "R6 `Person.communication.language` is 1..1 CodeableConcept with required all-languages binding; `preferred` is optional boolean.",
+          "R6 communication requirements mention language and interpreter needs."
+        ],
+        "fmmEffect": "R4 Person is FMM 2/trial-use, so the compatibility burden is neutral. The health-communication use case makes reverse loss meaningful, but the low-to-moderate maturity context supports accepting a well-scoped optional addition.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 communication-language preferences cannot be represented in base R4 Person without extension or context-specific mapping.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for forward compatibility because the backbone is optional. Backport extensions or mappings to role resources can mitigate R6-to-R4 exchange, but they are not R6 base alternatives and can be semantically lossy if the role context differs.",
+        "comparisonToExisting": "agree: the existing report accurately identifies no R4-to-R6 validation break and a significant reverse-representability risk, with no applicable less-breaking base alternative."
+      }
     },
     {
       "findingId": "Person:CARDINALITY:Person.photo:0f2b84",
@@ -847,7 +904,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: no cardinality validation break. R6-to-R4: a Person with two or more photos violates R4 `0..1` cardinality unless extra photos are dropped or moved to extensions/related resources. XML and JSON validators should both enforce this cardinality difference.",
       "migrationGuidanceMd": "Down-conversion should define a deterministic primary-photo selection rule and a preservation strategy for additional photos. Test zero, one, and multiple photos. Avoid silent truncation unless business owners accept the loss.",
       "backwardCompatibilityAnalysisMd": "The change is a classic widening: easy for forward compatibility, risky for reverse compatibility. A separate extension for extra photos would have preserved R4 shape but made R6's base support less straightforward.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Person:CARDINALITY:Person.photo:0f2b84",
+        "judgment": "No problem",
+        "narrativeMd": "Increasing `Person.photo` from a singleton to a repeatable element preserves every R4-valid instance and does not create an old-valid/new-invalid break. R6 instances with multiple photos need a policy when projected to R4, and generated R6 SDKs may expose a list rather than a singleton, but the affected data is ancillary display/identification media and the widening is the natural compatible way to add capacity.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Person `Person.photo` is 0..1 Attachment.",
+          "R6 StructureDefinition-Person `Person.photo` is 0..* Attachment.",
+          "The element definition and type remain otherwise stable."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. Because the change is a widening that preserves R4 instance validity and affects a low-risk optional element, maturity does not raise it to a design concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: only additional R6 photos beyond the first lack a base R4 slot; forward instance compatibility is preserved.",
+        "lessBreakingAlternativeAssessment": "A separate additional-photo element would reduce singleton-to-list codegen churn but would create duplicate photo representations and primary/additional precedence questions. The chosen cardinality widening is the cleaner base design.",
+        "comparisonToExisting": "partially agree: the structural delta and reverse-conversion caveat are real, but the existing medium/high framing overstates the practical problem for an optional widening with low direct safety risk."
+      }
     },
     {
       "findingId": "Person:FLAGS_AND_MODIFIERS:summary-flags:41c0a2",
@@ -944,7 +1015,21 @@
       "validationAndCompatibilityMd": "FHIR validators should not reject instances because of this flag change. The compatibility mechanism is runtime behavior: summary serialization and query responses may contain additional fields. R4-to-R6 and R6-to-R4 structural representability are not the issue.",
       "migrationGuidanceMd": "Audit summary/search-result APIs, generated summary projections, logging, caching, and privacy rules. Add regression tests for `_summary=true` or equivalent server behavior if it is driven by StructureDefinition metadata.",
       "backwardCompatibilityAnalysisMd": "The change could have been avoided by leaving summary flags unchanged and relying on `_elements` for clients that need identifiers or addresses. The tradeoff is that Person summaries would be less useful for matching and display.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Person:FLAGS_AND_MODIFIERS:summary-flags:41c0a2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Marking `identifier` and `address` as summary elements does not affect resource validity, but it can change runtime behavior for servers, serializers, and clients that use `isSummary` to implement `_summary=true` or lightweight result payloads. The added fields are useful for matching and display but are also sensitive demographics, so implementers must not assume R4-style summary payload contents or privacy exposure. On balance, the base summary change is a real migration concern but appears proportionate to the R6 goal.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Person marks `Person.identifier.isSummary=false` and `Person.address.isSummary=false`.",
+          "R6 StructureDefinition-Person marks both `Person.identifier` and `Person.address` as `isSummary=true`.",
+          "Cardinality and datatype for both elements are unchanged."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. It does not demand preserving R4 summary behavior, but the privacy/runtime nature of identifiers and addresses makes the change worth calling a real compatibility concern.",
+        "compatibilityMechanism": "runtime/API/codegen: summary serializers, `_summary` responses, payload-size assumptions, and privacy reviews can change even though full instances remain valid.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have left the base summary flags unchanged and relied on `_elements`, profiles, or implementation-guide rules when clients need identifiers and addresses. That would preserve R4 summary expectations, but it would weaken uniform R6 summary usefulness for demographic matching and could fragment client behavior.",
+        "comparisonToExisting": "partially agree: the existing medium runtime/privacy concern is fair, and the less-breaking alternative is only partial because it sacrifices a meaningful base R6 summary goal."
+      }
     },
     {
       "findingId": "Person:SEMANTIC_OR_CONFORMANCE_TEXT:telecom-identifier-user-identity:d18e77",
@@ -1064,7 +1149,22 @@
       "validationAndCompatibilityMd": "This is generally still-valid-but-behaviorally-different, not old-valid/new-invalid. Base validators do not know whether a telecom value is being used as a user identity. The compatibility mechanism is business logic, profile conformance, and security/privacy review rather than JSON/XML schema validation.",
       "migrationGuidanceMd": "Inventory uses of `Person.telecom` in authentication, account-linking, and user provisioning flows. Where a telecom value functions as a user identity, add or migrate to `Person.identifier` with an appropriate user-identity type and keep `telecom` only for contact semantics. Test duplicate-account and audit workflows.",
       "backwardCompatibilityAnalysisMd": "R6 chose a relatively backward-compatible path by adding guidance rather than a hard invariant. Stronger validation would be difficult and likely over-reject legitimate contact details. Profiles can enforce stricter local rules where necessary.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Person:SEMANTIC_OR_CONFORMANCE_TEXT:telecom-identifier-user-identity:d18e77",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The wire shape of `identifier` and `telecom` is unchanged, but R6 adds explicit guidance that user identities belong in `identifier` with type `USER` and should not be represented with `.telecom`. That can force semantic cleanup for systems that treated an email or phone contact point as an account/login identity, but it is deliberately implemented as guidance rather than a cardinality, type, or invariant change. The security/privacy clarification is reasonable and already close to the least disruptive form.",
+        "keyEvidence": [
+          "R4 `Person.identifier` has no user-identity comment and R4 `Person.telecom` only describes contact details.",
+          "R6 `Person.identifier.comment` permits user identities using type `USER`.",
+          "R6 `Person.telecom.comment` says not to use telecom properties to represent user identities and points to security/privacy guidance.",
+          "No computable cardinality, type, binding, or invariant change was found for these paths."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. The maturity context does not make a documentation-only guidance change unacceptable, while the security/privacy rationale supports accepting some semantic migration work.",
+        "compatibilityMechanism": "semantic/documentation: structurally valid old data may fail R6 semantic or policy review if it uses telecom as a user identity, but base validators do not get a new structural rejection rule.",
+        "lessBreakingAlternativeAssessment": "No better less-breaking base design is evident. Omitting the warning would fail the R6 security/privacy goal, while making it a hard invariant would be more disruptive; guidance is the compatibility-preserving middle ground.",
+        "comparisonToExisting": "agree: the existing report's no hard-instance-break conclusion and No less-breaking-alternative assessment are supportable, though the practical impact depends on whether implementers used telecom for login identities."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1245,5 +1345,19 @@
       "R6 additions of `deceased[x]`, `maritalStatus`, or `communication` across person-like resources",
       "Elements newly marked `isSummary` that may expose sensitive demographics"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Person.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 5,
+      "No problem": 1
+    }
   }
 }

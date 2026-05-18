@@ -311,7 +311,22 @@
       "migrationGuidanceMd": "Define an explicit transform to `SubstanceDefinition`, preserve original identifiers/provenance, and test validators, serializers, persistence, REST dispatch, and reference resolution. Do not use a simple resourceType rename.",
       "backwardCompatibilityAnalysisMd": "The likely consolidation goal could have been met less disruptively with a deprecated resource wrapper, optional polymer backbone, or standard cross-version extensions.",
       "reviewerNotesMd": "Confirm against official HL7 migration material if available.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstancePolymer:ARTIFACT_IDENTITY:root:1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "At the resource-identity level, an R4 `SubstancePolymer` instance, REST endpoint, generated model class, or resource-type switch has no same-named R6 base artifact to bind to. That is a real hard compatibility break. I do not think it needs renewed design attention on the available evidence because the R4 resource was FMM 0/trial-use with placeholder local definitions, R6 appears to have consolidated the substance-definition family into `SubstanceDefinition`, and a retained compatibility resource would preserve the old wire name only by keeping a second canonical representation for an immature specialized model.",
+        "keyEvidence": [
+          "R4 StructureDefinition-SubstancePolymer.json: concrete resource, type `SubstancePolymer`, status draft, standards-status trial-use, FMM 0.",
+          "R6 package has no StructureDefinition-SubstancePolymer.json; R6 package index lists `StructureDefinition-SubstanceDefinition.json` but no `SubstancePolymer`.",
+          "Base CapabilityStatement comparison: R4 lists `SubstancePolymer`; R6 lists `Substance` and `SubstanceDefinition` only.",
+          "Lightweight web search checked EMA SPOR/IDMP, CH EPL IDMP, FDA IDMP readiness, and a MuleSoft R4 library; it did not find documented production use of FHIR R4 `SubstancePolymer`, and the vendor library source characterized it as draft/not production-suitable."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use substantially softens the stability concern. The removal is breaking, but without quick evidence of production reliance, the low maturity makes consolidation more acceptable than it would be for mature or normative content.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 has no `SubstancePolymer` resource type, StructureDefinition, generated class, or base REST resource; old R4 instances are also old-valid/new-invalid until transformed.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept a deprecated `SubstancePolymer` resource or wrapper that maps to `SubstanceDefinition`. That would preserve old resourceType values, but it would also keep duplicate substance-definition identities, endpoints, validators, and generated classes around a weakly specified FMM 0 model, so it is not a low-cost base design.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment: the mechanism is genuinely hard-breaking, but I put less action weight on it because of FMM 0, lack of documented production use, and the material cost of the only plausible base-compatible alternative."
+      }
     },
     {
       "findingId": "SubstancePolymer:ELEMENT_PRESENCE_OR_IDENTITY:content:1",
@@ -454,7 +469,22 @@
       "migrationGuidanceMd": "Create a field-level mapping table. Use `classification` only for high-level polymer type, `relationship` for related/starting materials, `property` or extensions for polymer-specific properties, and extensions when grouping or repeat-unit semantics must be preserved.",
       "backwardCompatibilityAnalysisMd": "The breaking content-model merge was partially avoidable with an optional polymer backbone or official cross-version extensions. Profiles alone would not preserve base interoperability for old instances.",
       "reviewerNotesMd": "Domain review is important because R4 definitions provide little semantic text beyond `Todo.`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstancePolymer:ELEMENT_PRESENCE_OR_IDENTITY:content:1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The old polymer-specific content model does not have path-preserving R6 counterparts. After a resource migration, data in `monomerSet`, `repeat`, `repeatUnit`, `degreeOfPolymerisation`, and related local elements would need field-level mapping to generic `SubstanceDefinition` constructs or extensions. That can be lossy for an implementation that actually used the polymer topology, but the old R4 backbone was FMM 0 and mostly defined with `Todo.` text, so preserving it in the base model would carry forward an immature representation rather than a mature exchange contract.",
+        "keyEvidence": [
+          "R4 local element list includes `class`, `geometry`, `copolymerConnectivity`, `modification`, `monomerSet`, `monomerSet.startingMaterial`, `repeat`, `repeat.repeatUnit`, `degreeOfPolymerisation`, and `structuralRepresentation`.",
+          "R6 `SubstanceDefinition` relevant fields include generic `classification`, `property`, `relationship`, `molecularWeight`, and `structure.representation`; no core R6 `polymer`, `monomerSet`, `repeatUnit`, `copolymerConnectivity`, or `degreeOfPolymerisation` path was found.",
+          "R4 `SubstancePolymer` local definitions are placeholder `Todo.` text, reducing confidence that the R4 shape represented a stable, well-specified contract.",
+          "Lightweight production-use search found regulatory/IDMP relevance for substance data generally, but no public evidence that FHIR R4 `SubstancePolymer` is a production cornerstone."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens what would otherwise be a stronger concern about losing a central local backbone. The regulatory domain makes data loss worth noting, but low maturity and no quick production evidence keep this below Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: old child elements from the R4 polymer backbone are not valid R6 base elements; there is also possible R6-to-R4 loss if generic R6 properties or relationships cannot be regrouped into the R4 polymer hierarchy.",
+        "lessBreakingAlternativeAssessment": "R6 could have added an optional deprecated `SubstanceDefinition.polymer` component mirroring the R4 backbone. That would reduce mapping loss after resource migration, but it would duplicate facts expressible through `classification`, `property`, `relationship`, `molecularWeight`, and `structure`, and would require precedence and round-trip rules for an FMM 0 design.",
+        "comparisonToExisting": "partially agree with the existing high-impact/partial-alternative view: the content break is real, but I discount the need for standards rework because the alternative has significant duplication cost and the R4 content had very low maturity."
+      }
     },
     {
       "findingId": "SubstancePolymer:CONVERSION_OR_MAPPING:amount-structure:1",
@@ -606,7 +636,22 @@
       "migrationGuidanceMd": "Inventory use of amount and structural attachment fields. Define how `SubstanceAmount` comparator/range/unit semantics map to `Quantity`, `Ratio`, `string`, and comparator fields. For attachments, decide whether to create `DocumentReference` resources, keep data in extensions, or preserve the old payload externally.",
       "backwardCompatibilityAnalysisMd": "This could have been less disruptive with a retained `SubstanceAmount`-compatible component or an inline attachment alternative in R6. The cleaner R6 design shifts burden to migration tooling and consumers.",
       "reviewerNotesMd": "Coordinate with the separate `SubstanceAmount` datatype assessment.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstancePolymer:CONVERSION_OR_MAPPING:amount-structure:1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The amount and structural-representation details are real migration work, not a simple rename. R4 used `SubstanceAmount` at several polymer paths and allowed an inline `Attachment` for structural representations, while the likely R6 landing zones use generic quantities/ratios/strings and `DocumentReference` for representation documents. This can require transformation and may not round-trip exactly, but the affected shapes are embedded in the same FMM 0 polymer model and the R6 direction is a defensible cleanup toward common amount and document-reference patterns.",
+        "keyEvidence": [
+          "R4 `SubstancePolymer.monomerSet.startingMaterial.amount`, `repeat.repeatUnit.amount`, and `degreeOfPolymerisation.amount` use `SubstanceAmount`; `structuralRepresentation.attachment` uses `Attachment`.",
+          "R4 `SubstanceAmount` contains `amount[x]` (`Quantity`, `Range`, `string`), `amountType`, `amountText`, and `referenceRange.lowLimit/highLimit`.",
+          "R6 package index has no `StructureDefinition-SubstanceAmount.json`.",
+          "R6 candidate fields include `SubstanceDefinition.relationship.amount[x]` (`Quantity`, `Ratio`, `string`), `relationship.comparator`, `molecularWeight.amount` (`Quantity`), and `structure.representation.document` as `Reference(DocumentReference)`."
+        ],
+        "fmmEffect": "The low FMM/trial-use status makes the representation break less concerning than it would be for a mature datatype/resource. It still creates migration burden, but the stability expectation for the old amount and attachment shape is weak.",
+        "compatibilityMechanism": "R6-to-R4 loss: generic R6 amount choices and `DocumentReference`-based structure documents may not reconstruct the old `SubstanceAmount` and inline `Attachment` shape exactly; old-valid/new-invalid also applies to R4 payloads using the removed paths.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have retained a `SubstanceAmount`-compatible component and allowed `structure.representation.document[x]` to accept either inline `Attachment` or `Reference(DocumentReference)`. That would preserve more old payloads, but it would leave competing amount and document lifecycle patterns in the base model and still would not solve the surrounding resource/backbone redesign.",
+        "comparisonToExisting": "partially agree with the existing medium-impact/partial-alternative view: the mapping concern is valid, but the low maturity and reasonable R6 modeling direction make the break probably acceptable rather than a Revisit item."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -752,5 +797,17 @@
       "R4 SubstanceAmount usage replaced by generic amount choice elements",
       "R4 embedded Attachment changed to DocumentReference in structure representation candidates"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SubstancePolymer.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 3
+    }
   }
 }

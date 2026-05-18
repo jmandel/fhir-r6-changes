@@ -243,7 +243,23 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid is direct: any R4 resource instance with `resourceType = MolecularSequence` is outside the R6 core resource set found in the supplied package. Strict parsers may reject it as an unknown resource type, generated R6 model libraries may have no class, and REST servers may have no endpoint or search compartment for it. R6-to-R4 representability is marked not applicable because no R6 MolecularSequence artifact exists to reverse-map.",
       "migrationGuidanceMd": "Inventory all stored and exchanged R4 MolecularSequence resources. Decide whether to preserve them in R4 form, map them to an implementation-guide-defined R6 genomics profile, attach sequence data as documents/repository links, or represent clinical interpretations as Observations/DiagnosticReports. Test validators and resource registries explicitly for unknown-resource handling and ensure downstream systems do not silently drop genomic content.",
       "backwardCompatibilityAnalysisMd": "The removal may reflect a legitimate redesign of an immature Trial Use resource, but retaining a deprecated R6 resource or publishing a formal ConceptMap would have reduced breakage. Without an official migration artifact, the compatibility burden shifts to implementers.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MolecularSequence:ARTIFACT_IDENTITY:root:2f1c8e",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 defines `MolecularSequence` as a concrete resource, while the assigned R6 package has no same resource definition or exact index entry. That is a top-level R4-to-R6 break: an existing instance cannot be treated as a base R6 resource, and clients relying on resource-type dispatch have no core R6 target. FMM 1 makes removal of an immature trial-use resource more acceptable than it would be for mature content, but this is not merely speculative churn: HL7 genomics guidance and the HLA reporting IG show MolecularSequence as part of clinical genomics reporting patterns. Because a deprecated or retired R6 StructureDefinition could have preserved historical validation and dispatch while warning against new use, the complete resource identity removal deserves renewed standards/design review.",
+        "keyEvidence": [
+          "R4 StructureDefinition-MolecularSequence.json: url http://hl7.org/fhir/StructureDefinition/MolecularSequence, kind resource, type MolecularSequence, abstract false, FMM 1, trial-use.",
+          "R6 package: StructureDefinition-MolecularSequence.json is absent and exact MolecularSequence search in .index.json returned no entry.",
+          "R6 package genomics search found no obvious core successor resource; only familymemberhistory-genetic appeared as a genomics-like StructureDefinition.",
+          "HL7 Genomics Reporting IG Appendix G says MolecularSequence can hold clinically relevant sequence data and be used with IG profiles; it also notes overlap/redundancy under evaluation.",
+          "HLA Reporting IG says it constrains MolecularSequence to report sequencing results together with novel variants."
+        ],
+        "fmmEffect": "FMM 1/trial-use substantially softens the baseline stability expectation, so I did not infer broad production impact from removal alone. The clinical genomics/HLA IG evidence and safety-sensitive domain keep the concern material despite low maturity.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: an R4 resourceType MolecularSequence has no base R6 StructureDefinition, so validation, parser dispatch, conformance, and any resource-type keyed APIs lose the core target.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design exists: keep MolecularSequence as deprecated or retired for a transition release, ideally with migration guidance to the intended genomics reporting pattern. The tradeoff is real because it leaves an immature and possibly redundant model in core and may prolong parallel representations, but it would preserve historical instance validity and resource identity at modest technical cost.",
+        "comparisonToExisting": "partially agree with the existing Critical impact and Partial alternative judgment; the mechanism is real, but the fresh review gives more weight to FMM 1 and uses specific IG evidence rather than assuming broad prevalence."
+      }
     },
     {
       "findingId": "MolecularSequence:CONVERSION_OR_MAPPING:local-model:6b8b44",
@@ -405,7 +421,24 @@
       "migrationGuidanceMd": "Do not bulk-convert MolecularSequence resources into generic Observations without preserving coordinate convention, reference sequence identity, allele strings, quality metrics, repository access details, and structural variant intervals. Define a project-specific mapping, preferably backed by profiles/extensions and test cases for 0-based versus 1-based coordinates, referenceSeq alternatives, self-pointers, and structural variant boundaries.",
       "backwardCompatibilityAnalysisMd": "A formal compatibility profile or ConceptMap could have reduced ambiguity while still allowing the R6 model to move forward. Without such an artifact, implementers must infer the mapping from local business context, which increases interoperability risk.",
       "reviewerNotesMd": "Human review should confirm whether the current R6 ballot intentionally moved sequence details to a separate implementation guide or external terminology/model package not present in the supplied core package.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MolecularSequence:CONVERSION_OR_MAPPING:local-model:6b8b44",
+        "judgment": "Revisit",
+        "narrativeMd": "The R4 local model is not just a shell around common DomainResource fields; it contains required coordinate-system data, reference-sequence alternatives, variant alleles and coordinates, quality metrics, repository pointers, and structural-variant details. With no computable R6 core successor in the local package, migration into Observation, DiagnosticReport, DocumentReference, extensions, or an external genomics repository would require domain-specific choices. That makes this a lossy or expert-mediated migration risk for sequence facts used downstream by clinical genomics reports, even though the source resource is low maturity.",
+        "keyEvidence": [
+          "R4 MolecularSequence differential contains 69 local element definitions.",
+          "R4 MolecularSequence.coordinateSystem is required and constrained by msq-3 to values 0 or 1.",
+          "R4 referenceSeq has msq-5 and msq-6 governing genomeBuild/chromosome pairing and exactly one reference-sequence representation.",
+          "R4 element extraction showed local variant, observedSeq, quality, repository, pointer, and structureVariant content.",
+          "R6 package/index searches found no MolecularSequence or obvious core sequence/genomics successor StructureDefinition.",
+          "HL7 Genomics Reporting conversion guidance says older genomics profiles are superseded by the IG and that MolecularSequence/Observation boundaries were still under evaluation."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the expectation that every local detail remain stable. It does not eliminate the concern because the affected details include coordinate conventions and allele/quality/repository facts whose migration can require clinical genomics judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid with migration loss: no base R6 core model accepts the R4 local MolecularSequence backbone, and transforms to other resources or extensions may lose or reinterpret sequence coordinates, alleles, quality, or repository semantics.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design would either retain the deprecated R4 local model or provide a named R6 successor/profile with computable mappings for the key sequence, variant, quality, and repository fields. Retaining the entire model has significant cost because it preserves a broad low-maturity design and may conflict with the Observation-centered genomics direction, but providing no computable bridge leaves too much expert-dependent migration.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; I agree the migration risk is substantive, while tempering prevalence because the source artifact is FMM 1."
+      }
     },
     {
       "findingId": "MolecularSequence:TERMINOLOGY_BINDING:sequence-codes:49b0bd",
@@ -554,7 +587,23 @@
       "validationAndCompatibilityMd": "As pure R6 resources, old MolecularSequence instances are invalid because the resource is gone. If an implementer preserves these fields in R6 extensions or profiles, terminology validation is still a risk: same-id R6 core ValueSets were not found, so validators may need the R4 terminology package or explicit successor terminology.",
       "migrationGuidanceMd": "Preserve the original coding system URIs and versions when carrying historical MolecularSequence data forward. If mapping to new R6 profiles, define code mappings for sequence type, orientation, strand, quality type, repository type, and structural variant type; test enum generation and validation with all R4 codes.",
       "backwardCompatibilityAnalysisMd": "Keeping retired terminology would have been a relatively low-cost compatibility bridge even if the resource was removed. The tradeoff is that dormant code systems remain visible in the core package and may imply more support for legacy sequence modeling than R6 intends.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MolecularSequence:TERMINOLOGY_BINDING:sequence-codes:49b0bd",
+        "judgment": "No problem",
+        "narrativeMd": "The R4 MolecularSequence-specific code systems and value sets are not present in the R6 core package, but this is not a meaningful separate R6 base-model break once the resource and its bound elements have been removed. Historical R4 validation can still be performed against the R4 package, and a R6-only package has no current base element that needs these bindings. Implementers migrating old sequence data may need to load R4 terminology or map codes, but that is secondary to the resource/model migration rather than an independent reason to revisit R6 core terminology packaging.",
+        "keyEvidence": [
+          "R4 MolecularSequence.type has a required binding to http://hl7.org/fhir/ValueSet/sequence-type|4.0.1.",
+          "R4 required bindings also appear on referenceSeq.orientation, referenceSeq.strand, quality.type, repository.type, and structureVariant.variantType.",
+          "Exact R6 .index.json checks found no same-id R6 entries for sequence-type, orientation-type, strand-type, quality-type, repository-type, chromosome-human, sequence-referenceSeq, sequence-quality-standardSequence, or sequence-quality-method.",
+          "R6 package has no MolecularSequence StructureDefinition that would bind to these terminologies.",
+          "R4 package/index retains the historical terminology artifacts for R4 validation."
+        ],
+        "fmmEffect": "FMM 1/trial-use strongly softens the stability concern for terminology that was specific to a removed immature resource. I did not find a direct R6 base path whose validity depends on keeping these artifacts in the R6 core package.",
+        "compatibilityMechanism": "metadata/tooling: terminology resolvers or generated enums using only the R6 package may no longer find old MolecularSequence-specific artifacts, but there is no separate old-valid/new-invalid R6 instance effect beyond the removed resource itself.",
+        "lessBreakingAlternativeAssessment": "R6 could keep these CodeSystems and ValueSets as deprecated or retired historical terminology, and that would be a low-to-moderate cost convenience for mixed-version validators. However, because the old resource is absent and R4 packages remain the proper source for R4 historical validation, carrying unused terminology in R6 core is not necessary to meet the base R6 goal.",
+        "comparisonToExisting": "disagree with the existing Medium impact and Yes alternative judgment as an action signal; the alternative is feasible, but the fresh path-level assessment treats this as metadata/tooling churn rather than a separate compatibility problem."
+      }
     },
     {
       "findingId": "MolecularSequence:SERIALIZATION_OR_CODEGEN:resource-registry:91e2aa",
@@ -653,7 +702,22 @@
       "validationAndCompatibilityMd": "The instance-level validator will reject the resource type, while runtime systems may fail earlier at deserialization or routing. FHIRPath expressions and query builders referencing `MolecularSequence.referenceSeq.windowStart`, `variant.start`, or search parameters such as `chromosome` will not have R6 definitions to bind to.",
       "migrationGuidanceMd": "Before upgrading generated libraries, search code for `MolecularSequence`, `/MolecularSequence`, and MolecularSequence search parameter names. Add an explicit compatibility module for historical R4 data, or migrate data and APIs to selected R6 profiles. Include negative tests for unknown-resource rejection and positive tests for whatever compatibility path is chosen.",
       "backwardCompatibilityAnalysisMd": "The least disruptive runtime approach would be a separate legacy adapter rather than pretending MolecularSequence remains R6-conformant. That keeps R6 clean while making breakage explicit and testable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MolecularSequence:SERIALIZATION_OR_CODEGEN:resource-registry:91e2aa",
+        "judgment": "Revisit",
+        "narrativeMd": "This finding is the software-surface consequence of the resource removal, and it is independently important because generated R6 artifacts will not expose a MolecularSequence class, resource registry entry, REST endpoint, or MolecularSequence search constants. An implementation that used the R4 Genomics Reporting or HLA reporting patterns could fail at compile time or route/conformance time even before instance validation is considered. Low FMM means the standard was allowed to evolve, but for a clinically relevant genomics resource a transition surface would have reduced upgrade shock.",
+        "keyEvidence": [
+          "R4 package index includes StructureDefinition-MolecularSequence.json.",
+          "R4 package index includes 13 SearchParameter-MolecularSequence-* files, including identifier, patient, type, chromosome, variant coordinate, and window coordinate searches.",
+          "R6 package index exact checks found no MolecularSequence StructureDefinition and no SearchParameter-MolecularSequence-* entries.",
+          "HL7 Genomics Reporting IG and HLA Reporting IG document MolecularSequence use in clinical genomics reporting patterns."
+        ],
+        "fmmEffect": "FMM 1/trial-use lowers the expectation that generated APIs must be preserved forever. The clinical genomics implementation evidence and the breadth of the removed resource/search surface keep this from being dismissed as harmless churn.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 generation from the core package omits MolecularSequence models, parser registry cases, REST/search metadata, and search-parameter constants that R4 implementations could have compiled or configured against.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design would retain deprecated MolecularSequence and its search parameters in R6 conformance resources while marking them non-preferred for new use. This has the same tradeoff as the resource alternative: it preserves old APIs and endpoints but may encourage ongoing dependence on a retired low-maturity model and duplicate genomics representations.",
+        "comparisonToExisting": "partially agree with the existing High runtime impact and Partial alternative judgment; I agree the generated/API break is substantial, while tempering expected prevalence because the resource was FMM 1."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -813,5 +877,18 @@
       "R4 search parameters whose base resource no longer exists in R6",
       "Domain-specific R4 code systems removed together with retired resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MolecularSequence.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "No problem": 1
+    }
   }
 }

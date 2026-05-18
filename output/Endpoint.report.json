@@ -361,7 +361,22 @@
       "migrationGuidanceMd": "Inventory endpoints with `status=test`. Decide whether they are usable but non-production (`status=active` or `limited` plus `environmentType=test`) or not currently usable (`status=off`, `suspended`, or `error`). Down-conversion should preserve `limited` in an extension or profile-specific code map rather than silently mapping it to `active`.",
       "backwardCompatibilityAnalysisMd": "The semantic split between endpoint environment and operational status is useful, but the same goal could have been achieved by retaining `test` as deprecated in the R6 required value set while encouraging `environmentType`. That would have preserved R4 instance validity while giving implementers a transition path.",
       "reviewerNotesMd": "Human review is needed because `test` is not semantically identical to `limited`; the correct migration depends on whether the endpoint is non-production, partially available, internally tested, or intentionally disabled.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Endpoint:TERMINOLOGY_BINDING:Endpoint.status:status-codes",
+        "judgment": "Revisit",
+        "narrativeMd": "`Endpoint.status` is mandatory, modifier-significant, and required-bound, so removing the R4 `test` code creates a direct validation and enum/API break. The R6 direction is understandable: environment classification now has its own element and `limited` describes constrained operational use. But the migration from `test` is policy-dependent, and keeping `test` as a deprecated legacy code would have preserved R4-valid instances while still steering new implementations to `environmentType`.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Endpoint.status` is 1..1 `code` with required binding to `http://hl7.org/fhir/ValueSet/endpoint-status|4.0.1` and includes `test` in the listed status codes.",
+          "R6 StructureDefinition: `Endpoint.status` remains 1..1 `code` with required binding to `http://hl7.org/fhir/ValueSet/endpoint-status|6.0.0-ballot4` and lists `limited` instead of `test`.",
+          "Local CodeSystem-endpoint-status files confirm R4 has `test`; R6 has `limited` and omits `test`.",
+          "R6 adds `Endpoint.environmentType` with an environment code `test`, supporting a status/environment split."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral under the framework. They do not impose normative-level stability, but they also do not soften a mandatory required-bound modifier change enough to dismiss it.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `status` = `test` fail R6 required-value-set validation; R6 `limited` also creates R6-to-R4 loss and generated enum/switch churn.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could keep `test` in EndpointStatus as deprecated or legacy-compatible while adding `limited` and `environmentType`. The tradeoff is continued support for a status code that blends environment with operational state, but that is a modest transitional cost compared with invalidating existing mandatory status values.",
+        "comparisonToExisting": "agree: the prior report's high impact and Yes less-breaking alternative judgment match this independent assessment; the fresh-review action judgment is Revisit because the break is required-bound, mandatory, and avoidable."
+      }
     },
     {
       "findingId": "Endpoint:TYPE_DOMAIN:Endpoint.connectionType:coding-to-codeableconcept",
@@ -534,7 +549,21 @@
       "migrationGuidanceMd": "For R4→R6, wrap the R4 coding into `connectionType[0].coding[0]`. For R6→R4, only a single unambiguous coding can be mapped losslessly; preserve additional codings, text, or additional connection types in extensions or flag for manual review. Update tests to cover single-coding, multi-coding, and multi-connection-type cases.",
       "backwardCompatibilityAnalysisMd": "The richer R6 representation is useful, but replacing a mandatory datatype is disruptive. A backward-compatible transition could have added a new optional richer element and deprecated the old `Coding`, though that would require consumers to merge two representations.",
       "reviewerNotesMd": "Check generated model packages carefully; this is a same-path type replacement and may compile as a property type change rather than a missing/added field.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Endpoint:TYPE_DOMAIN:Endpoint.connectionType:coding-to-codeableconcept",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The unchanged path hides a real wire-shape and generated-model change: R4 has one mandatory `Coding`, while R6 has one or more `CodeableConcept` values. R4-to-R6 migration is usually mechanical for the common case by wrapping the coding, but strict parsers and generated clients still break. The R6 model supports multiple classifications, multiple codings, and text; preserving the old `Coding` beside the richer field would create duplicate protocol-classification locations with precedence and consistency problems.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Endpoint.connectionType` is 1..1 `Coding` with an extensible endpoint-connection-type binding.",
+          "R6 StructureDefinition: `Endpoint.connectionType` is 1..* `CodeableConcept` with an example endpoint-connection-type binding.",
+          "The element remains mandatory in both versions, so complete Endpoint instances and generated models must handle the changed shape."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. The decision rests mainly on the concrete codegen/wire-format break and on whether the richer R6 representation justifies it.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `Coding` object at `connectionType` is not the R6 repeating `CodeableConcept` shape; generated property types and reverse conversion of multiple/textual R6 concepts are also affected.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained the R4 `Coding` and added a new optional richer repeating element, but that would duplicate the same endpoint protocol fact and require rules for disagreement. It would preserve common R4 instances but would not cleanly meet the R6 goal.",
+        "comparisonToExisting": "agree: the prior high impact and Partial alternative judgment are appropriate, but the break appears proportionate given the material cost of carrying both representations."
+      }
     },
     {
       "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.payload:payload-backbone",
@@ -770,7 +799,22 @@
       "migrationGuidanceMd": "For R4→R6, create at least one `payload` entry and move `payloadType` to `payload.type` and `payloadMimeType` to `payload.mimeType`. If there are multiple payload types and MIME types, decide whether all combinations apply or whether multiple payload groups are needed. For R6→R4, only flatten when the grouping is unambiguous; preserve profile fields via extensions or manual review.",
       "backwardCompatibilityAnalysisMd": "The grouped R6 model better supports rich payload declarations, but removing mandatory R4 paths forces all clients to transform. Keeping deprecated direct fields during a transition would have been less breaking but would require consistency rules between direct and grouped forms.",
       "reviewerNotesMd": "The R6 `Endpoint.payload` parent is not marked summary even though `payload.type` and `payload.mimeType` are summary children. Implementations that depend on `_summary` extraction should verify actual serializer behavior.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.payload:payload-backbone",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 replaces R4's flat payload fields with grouped payload components. That invalidates untransformed R4 instances because top-level `payloadType` and `payloadMimeType` are no longer the R6 paths, and it changes generated APIs. The redesign has a coherent goal: group type, MIME type, and profile expectations so multiple payload descriptions can be represented without relying on ambiguous cross-products. Keeping the old flat fields in base R6 would ease validation but would duplicate payload metadata and require conflict rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Endpoint.payloadType` is a direct 1..* `CodeableConcept` and `Endpoint.payloadMimeType` is a direct 0..* `code`.",
+          "R6 StructureDefinition: `Endpoint.payload` is a 0..* `BackboneElement` with `payload.type` and `payload.mimeType` children.",
+          "R6 adds `Endpoint.payload.profileCanonical` and `Endpoint.payload.profileUri`, which have no direct base R4 counterpart.",
+          "R6 makes the payload group and `payload.type` optional, so R6-to-R4 flattening can require invented or lossy payload type data."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. The model is not highly stable, but the mandatory R4 payload path means the compatibility mechanism is still real.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 top-level payload fields are not valid R6 paths; R6 grouped payloads, profile fields, or missing payload types create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could retain deprecated top-level `payloadType` and `payloadMimeType` mapped to a default payload entry. That would preserve many R4 instances, but it would create duplicate flat and grouped payload metadata, ambiguous precedence, and incomplete support for profile-specific or multi-group payload semantics.",
+        "comparisonToExisting": "agree: the prior report's high impact and Partial alternative judgment are consistent with the direct path removal and the substantial tradeoffs of a dual model."
+      }
     },
     {
       "findingId": "Endpoint:SEMANTIC_OR_CONFORMANCE_TEXT:Endpoint.managingOrganization:technical-manager",
@@ -909,7 +953,21 @@
       "migrationGuidanceMd": "Review all uses of `managingOrganization`. If it currently stores data owner/steward, move or derive that relationship through directory resources such as `Organization.endpoint`, `PractitionerRole.endpoint`, or `Location.endpoint`, or preserve a profile/extension. If it stores help-desk responsibility, document that it already aligns with R6.",
       "backwardCompatibilityAnalysisMd": "Clarifying operational responsibility is useful, but changing an existing element's meaning is not fully backward compatible. A separate technical-support organization element would have reduced semantic ambiguity while retaining old data-steward uses.",
       "reviewerNotesMd": "This finding requires human review because local directory governance models vary; some R4 implementations may already have used the element in the R6 sense.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Endpoint:SEMANTIC_OR_CONFORMANCE_TEXT:Endpoint.managingOrganization:technical-manager",
+        "judgment": "Revisit",
+        "narrativeMd": "This is not a structural validation break, but it changes the meaning of an unchanged field. R4 points implementers toward the organization associated with the data, while R6 describes the technical management or help-desk organization and warns that it is not necessarily the data steward. Existing directory, support, outage, or governance workflows can silently reinterpret old data with no validator signal. A separate technical-management reference would have been a cleaner transition.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Endpoint.managingOrganization` is 0..1 `Reference(Organization)` and describes the organization associated with the data.",
+          "R6 StructureDefinition: the same path and type describe technical management/help-desk responsibility and distinguish it from data stewardship.",
+          "Cardinality, type, target profile, summary flag, and modifier flag are unchanged, so the compatibility issue is semantic rather than syntactic."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. It does not make every wording change suspect, but the unchanged path plus operational/business responsibility semantics gives this specific text change practical weight.",
+        "compatibilityMechanism": "semantic/documentation: the same valid instance can be interpreted as data-steward association in R4-era logic and technical support responsibility in R6-era logic, affecting runtime workflows without a validation error.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could preserve the R4-era `managingOrganization` meaning and add a new optional technical-manager or support-organization element. The tradeoff is one additional reference and migration guidance, which seems modest compared with redefining a populated field in place.",
+        "comparisonToExisting": "agree: the prior report's medium semantic impact and Yes less-breaking alternative are well supported; under the fresh rubric this deserves Revisit even though there is no hard instance break."
+      }
     },
     {
       "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.environmentType:added",
@@ -1061,7 +1119,21 @@
       "migrationGuidanceMd": "When migrating R4 `status=test`, consider whether `environmentType=test` should be populated. When down-converting R6, preserve `environmentType` in an extension and test that production/test filtering behavior remains correct.",
       "backwardCompatibilityAnalysisMd": "The addition itself is compatible in the forward direction and semantically useful. The compatibility problem is mainly due to R4 lacking a peer field and R6 also removing `status=test`.",
       "reviewerNotesMd": "Review together with the `Endpoint.status` finding; environment classification and operational status should not be conflated.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.environmentType:added",
+        "judgment": "No problem",
+        "narrativeMd": "`Endpoint.environmentType` is an optional additive R6 element. It does not invalidate any R4 Endpoint instance moving to R6. It can be important for round-trip or R6-to-R4 conversion, especially because `status=test` moved out of the status code set, but that concern belongs primarily to preservation policy and the separate status-code finding rather than to the optional addition itself.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `Endpoint.environmentType` element.",
+          "R6 StructureDefinition adds `Endpoint.environmentType` as 0..* `CodeableConcept` with an extensible binding.",
+          "Local R6 CodeSystem-endpoint-environment includes `prod`, `staging`, `dev`, `test`, and `train`."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. Because the change is optional and additive, maturity does not create a standards-design concern here.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 environment classifications have no base R4 field, but there is no R4-to-R6 validation, API, or semantic break from adding the optional element.",
+        "lessBreakingAlternativeAssessment": "Not applicable. The base R6 design is already forward-compatible for R4 instances. R4 extensions or conversion policy can preserve the new R6 data, but those are mitigations rather than less-breaking R6 base designs.",
+        "comparisonToExisting": "partially agree: the prior report correctly notes reverse-conversion loss and no needed less-breaking alternative, but I do not treat this optional addition itself as a medium R4-to-R6 problem."
+      }
     },
     {
       "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.availability:added",
@@ -1187,7 +1259,21 @@
       "migrationGuidanceMd": "Review any R4 `period` usage that encodes business hours or temporary downtime and migrate it to `availability` where possible. Down-conversion should preserve `availability` in an extension or omit it only with an explicit loss-of-information warning.",
       "backwardCompatibilityAnalysisMd": "The new element is justified by clearer modeling. A standard extension would be the backward-compatible route for R4, but it would not be as visible to generic clients as a base element.",
       "reviewerNotesMd": "The `Availability` datatype itself is outside this report and should be reviewed for additional datatype-level changes.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.availability:added",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The new `availability` element is optional, so there is no direct old-valid/new-invalid instance break. The compatibility issue is semantic: R6 adds a schedule/exception home and narrows `period` toward the general planned lifecycle of the endpoint. R4 systems that used `period` for downtime or availability windows need review, and R6 availability details cannot be represented in base R4. The change is still proportionate because a single `Period` cannot model recurring hours or exceptions well, and keeping both meanings broad would preserve ambiguity for generic clients.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Endpoint.period` is 0..1 `Period` with a broad expected-operational-interval definition.",
+          "R6 StructureDefinition: `Endpoint.availability` is added as 0..1 `Availability` for expected availability, transient downtime, and exceptions.",
+          "R6 StructureDefinition: `Endpoint.period` comment says temporary downtimes or short-term availability changes are not represented in `period`."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. The semantic migration concern matters, but the maturity level does not require preserving an ambiguous R4 use at the expense of a clearer R6 model.",
+        "compatibilityMechanism": "semantic/documentation: old `period` content remains structurally valid but may no longer carry the same intended availability meaning; R6-to-R4 loss also occurs for `availability` schedules and exceptions.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could add `availability` while leaving `period` broadly described as any operational interval. That would reduce semantic disruption for overloaded R4 uses, but it would weaken the separation between lifecycle period and detailed availability and leave generic clients unsure which element to trust.",
+        "comparisonToExisting": "agree: the prior report's medium impact and Partial alternative judgment fit the evidence; the fresh judgment is that the break is real but proportionate."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1386,5 +1472,19 @@
       "R6 Availability datatype adoption",
       "Payload metadata grouping and profile declarations"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Endpoint.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 3,
+      "No problem": 1
+    }
   }
 }

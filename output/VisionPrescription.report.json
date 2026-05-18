@@ -330,7 +330,22 @@
       "validationAndCompatibilityMd": "An R4-valid instance does not become invalid merely because R6 adds optional fields. A valid R6 instance containing `basedOn` or `groupIdentifier`, however, is not valid as an R4 `VisionPrescription` without extensions or data removal. Generated R4 models will usually have no properties for these fields, and strict JSON/XML validation against R4 will reject them as unknown elements.",
       "migrationGuidanceMd": "R4-to-R6 transforms can leave these fields absent unless request lineage is available elsewhere. R6-to-R4 transforms should decide whether to preserve them in official cross-version extensions, local extensions, companion resources, or an audit sidecar. Test conversions with multiple `basedOn` references and a populated `groupIdentifier` so silent data loss is detected.",
       "backwardCompatibilityAnalysisMd": "The R6 design is additive and optional, so it is backward-compatible for R4 instances moving forward. Native R4 round-trip compatibility could only be preserved by avoiding the new elements or standardizing extensions for R4; that alternative keeps older parsers happy but sacrifices first-class request-pattern semantics in R6.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "VisionPrescription:ELEMENT_PRESENCE_OR_IDENTITY:VisionPrescription.basedOn-groupIdentifier:fe6ad5",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional request-lineage and grouping fields (`basedOn` and `groupIdentifier`) to `VisionPrescription`. This does not invalidate any R4 instance and does not rename or narrow an existing R4 path. An R4 receiver or down-converter will not natively understand populated R6 values, so lineage or grouping could be dropped unless preserved by extensions or companion data, but that is the ordinary reverse-conversion cost of optional R6 expressiveness rather than a reason to revisit the base R6 design.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `VisionPrescription.basedOn` or `VisionPrescription.groupIdentifier` element.",
+          "R6 StructureDefinition defines `VisionPrescription.basedOn` as 0..* Reference(CarePlan | RequestOrchestration | NutritionOrder | ServiceRequest).",
+          "R6 StructureDefinition defines `VisionPrescription.groupIdentifier` as 0..1 Identifier.",
+          "R6 mappings align these elements with workflow `Request.basedOn` and `Request.groupIdentifier`."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral; it does not create a strong preservation burden, and optional additions are normally the compatibility-preserving way to add capability.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated R6 lineage or grouping has no native R4 slot, but there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for forward compatibility because the fields are optional additions. Avoiding the fields or using only extensions would make R4 receivers happier, but it would fail the R6 goal of first-class request-pattern linkage; extensions are a down-conversion mitigation, not a better base model.",
+        "comparisonToExisting": "partially agree with the existing report: it correctly identifies reverse-conversion loss and a not-applicable base alternative, but I would lower the action concern from Medium because the finding is purely additive for R4-to-R6 migration."
+      }
     },
     {
       "findingId": "VisionPrescription:ELEMENT_PRESENCE_OR_IDENTITY:VisionPrescription.priority:828219",
@@ -508,7 +523,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken by the addition. R6-to-R4 validation is affected whenever `priority` is present: a strict R4 validator rejects the unknown element, and a lossy transform that drops it changes `urgent`, `asap`, or `stat` into an implicit normal-priority request. R6 validators also enforce the required value set when the field is present.",
       "migrationGuidanceMd": "For R4-to-R6, populate `priority` only when reliable urgency data exists; otherwise omission has normal-priority semantics in R6. For R6-to-R4, do not silently drop non-routine priority. Preserve it in an official cross-version extension or local extension, route it through an associated request/order artifact, or flag the instance for manual review. Test all four codes and a missing-priority case.",
       "backwardCompatibilityAnalysisMd": "The optional R6 field is a reasonable additive design. The remaining compatibility problem is inherent to sending newer content to older R4 systems. A standard cross-version extension would be the most backward-compatible mitigation, but it depends on transformer and consumer support.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "VisionPrescription:ELEMENT_PRESENCE_OR_IDENTITY:VisionPrescription.priority:828219",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an optional, required-bound `priority` code to express how quickly the vision prescription should be addressed. Existing R4 instances remain valid by omitting it, but an R6 `urgent`, `asap`, or `stat` value has no native R4 destination; silently dropping it can change the fulfillment priority to the R6 missing-value default of normal priority. That reverse-conversion burden is real, but the R6 goal is coherent and an extension-only or no-field design would not provide a standard base urgency signal.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `VisionPrescription.priority` element.",
+          "R6 StructureDefinition defines `VisionPrescription.priority` as 0..1 code with required binding to `http://hl7.org/fhir/ValueSet/request-priority|6.0.0-ballot4`.",
+          "R6 `priority` has `meaningWhenMissing`: `If missing, this request should be performed with normal priority.`",
+          "Local R6 CodeSystem `request-priority` defines `routine`, `urgent`, `asap`, and `stat`."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. It supports taking the urgency-loss scenario seriously without treating this optional addition as disproportionate on maturity grounds alone.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated non-routine priority cannot be represented in base R4 VisionPrescription and may be rejected or lost by R4 validators, generated models, or converters.",
+        "lessBreakingAlternativeAssessment": "No strong less-breaking base R6 design is apparent. A standardized cross-version extension can preserve priority for R4 exchange, but making priority only an extension would undercut the R6 request-pattern goal; omitting it would avoid reverse loss only by not modeling the urgency signal.",
+        "comparisonToExisting": "partially agree with the existing High reverse-impact concern and not-applicable alternative judgment; I agree the priority loss can matter, but frame it as a proportionate reverse-conversion issue rather than a reason to revisit the R6 base design."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -690,5 +720,18 @@
       "Optional R6 `basedOn`, `groupIdentifier`, and `priority` additions across request-like resources",
       "Required bindings whose ValueSet URL is unchanged but version suffix changes from R4 to R6"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/VisionPrescription.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

@@ -318,7 +318,22 @@
       "validationAndCompatibilityMd": "An R4-valid `SupplyDelivery` instance becomes invalid as a native R6 instance before any child element is considered. Strict R6 validators should report an unknown resource type or missing StructureDefinition. Generated R6 model code may omit the class entirely, causing deserialization failures, dropped resources, or fallback to generic/unknown-resource handling. Native R6-to-R4 representability is not applicable because there is no R6 `SupplyDelivery` artifact to map back.",
       "migrationGuidanceMd": "Inventory all persisted, exchanged, searched, and referenced `SupplyDelivery` resources. Decide whether to retain them in an R4 archive, expose them through a compatibility profile/extension, or transform them to domain-specific R6 resources. Migration tests should include parsing, validation, search/index behavior, references from other resources, self-referential `partOf` chains, and audit/provenance preservation.",
       "backwardCompatibilityAnalysisMd": "The removal would have been less disruptive if R6 retained `SupplyDelivery` as deprecated or supplied an official compatibility StructureMap. That approach would preserve validation and parsing for old data while still allowing the standards process to steer new implementations toward replacement workflows. The inspected package does not include that compatibility surface.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SupplyDelivery:ARTIFACT_IDENTITY:root:8f24c9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 defines `SupplyDelivery` as a concrete resource, while the inspected R6 package has no matching StructureDefinition or package-index entry. That is a real top-level compatibility break: an R4 instance with `resourceType: \"SupplyDelivery\"` has no native R6 resource type, and generated classes, validators, search routes, and storage schemas for the resource disappear. I do not see enough evidence, however, to treat this low-maturity resource removal as disproportionate by itself. SupplyDelivery was FMM 1/trial-use, quick public evidence did not show dependence by prominent national IGs, and retaining the entire old resource as a deprecated R6 resource would preserve compatibility only by continuing an old generic workflow surface with ongoing implementation burden.",
+        "keyEvidence": [
+          "R4 StructureDefinition-SupplyDelivery.json: kind=resource, type=SupplyDelivery, abstract=false, FMM 1, standards-status trial-use.",
+          "R6 6.0.0-ballot4 package: StructureDefinition-SupplyDelivery.json is absent; package index has no SupplyDelivery StructureDefinition.",
+          "R6 supply-related filename/index search found no direct successor resource; only legal-status-of-supply terminology matched supply terms.",
+          "Targeted web search found SupplyDelivery in core FHIR documentation but no clear prominent US Core/AU Core/UK Core-style dependency; production prevalence remains weak/uncertain."
+        ],
+        "fmmEffect": "FMM 1 and trial-use materially soften the stability expectation. The break is real, but low maturity means removal should not be escalated merely because old instances become invalid absent stronger evidence of broad production reliance.",
+        "compatibilityMechanism": "old-valid/new-invalid, with runtime/API/codegen effects: R4 SupplyDelivery instances cannot validate as native R6 resources, and implementations lose the resource class, endpoint/search surface, and schema unless they add migration or custom support.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists in principle: keep SupplyDelivery in R6 as deprecated or legacy-compatible while steering new work to preferred resources. That would preserve most R4 instances, but it is not cost-free because it keeps a low-FMM generic resource in the base, creates parallel representations beside domain-specific resources, and obliges servers/tools to continue supporting it.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the report correctly identifies a hard resource-identity break and a possible deprecated-resource alternative, but its Critical framing and simple Yes alternative overstate the concern once FMM 1, weak production-use evidence, and the cost of retaining a whole legacy resource are considered."
+      }
     },
     {
       "findingId": "SupplyDelivery:CONVERSION_OR_MAPPING:root:3ab0a7",
@@ -500,7 +515,23 @@
       "migrationGuidanceMd": "Do not implement a single mechanical rename. Classify records by `suppliedItem.item[x]`, `type`, and workflow context. Medication events may be mapped to `MedicationDispense` only if required target fields and status semantics can be supplied. Device, substance, bulk-supply, or ambiguous events likely need extensions, an archival R4 representation, or a project-specific profile. Preserve original identifiers, source resource references, and provenance to support audit and rollback.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible path could have provided a published transform and compatibility extensions for elements that do not fit target resources. Without that, implementers must make local policy decisions that can be inconsistent across systems. The tradeoff is that official compatibility artifacts would constrain or complicate the R6 redesign, but they would sharply reduce migration risk.",
       "reviewerNotesMd": "The strongest candidate overlap found locally is with `MedicationDispense`, but that resource also existed independently in R4 and should not be assumed to be a rename of SupplyDelivery.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SupplyDelivery:CONVERSION_OR_MAPPING:root:3ab0a7",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The mapping issue is real for any implementer that used SupplyDelivery's generic event model. R4 can describe delivered medication, substance, or device supplies with authorization, event composition, patient, item, occurrence, supplier, destination, and receiver details. The inspected R6 package does not provide a single successor with that whole shape; MedicationDispense overlaps only for medication events and has its own mandatory medication/subject/status model, while DeviceRequest is a request rather than a completed delivery event. Still, for an FMM 1/trial-use resource with limited evidence of mainstream IG dependence, the need for explicit migration rules looks proportionate to a redesign/removal of an underused generic workflow resource.",
+        "keyEvidence": [
+          "R4 SupplyDelivery.suppliedItem.item[x]: CodeableConcept or Reference(Medication, Substance, Device).",
+          "R4 SupplyDelivery.basedOn targets SupplyRequest; R6 package has no SupplyRequest StructureDefinition.",
+          "R4 SupplyDelivery.partOf can target SupplyDelivery or Contract; R6 has no SupplyDelivery target for event chains.",
+          "R6 MedicationDispense.medication is medication-specific and required; MedicationDispense.subject and status are required, so it is not a transparent container for every R4 SupplyDelivery.",
+          "R6 DeviceRequest describes a request to provide a device, not a completed delivery event successor."
+        ],
+        "fmmEffect": "The low FMM/status reduces the burden to preserve every generic workflow shape. It does not erase migration work for active users, but it makes a domain-specific redesign/removal more acceptable without evidence that this model was central in production exchange.",
+        "compatibilityMechanism": "semantic/documentation, with conversion loss risk: the break is not a same-path cardinality or type change, but conversion from R4 SupplyDelivery to R6 requires choosing a target model and may lose or relocate item-domain, fulfillment-link, participant, destination, receiver, and event-chain semantics.",
+        "lessBreakingAlternativeAssessment": "The main less-breaking base design would be to retain a legacy SupplyDelivery resource for records that do not map cleanly. That preserves data but largely avoids the redesign rather than solving it, and it creates duplicate modeling choices between generic delivery events and domain-specific resources. StructureMaps, ConceptMaps, extensions, or local policies are useful mitigations but are not less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: I agree there is no single clean successor and that the alternative is at best partial, but the High impact should be read as conditional on actual SupplyDelivery use rather than a broad production expectation for an FMM 1 resource."
+      }
     },
     {
       "findingId": "SupplyDelivery:TERMINOLOGY_BINDING:status-type:0c94d2",
@@ -660,7 +691,22 @@
       "migrationGuidanceMd": "Create explicit ConceptMaps or mapping tables before transforming statuses and types. Preserve `entered-in-error` semantics. Treat `abandoned` as a policy decision, not a simple synonym. Use supplied-item references and local workflow context to distinguish medication, device, substance, and generic supply events. Include tests for each R4 status code, omitted status, medication/device type, and coded-vs-reference item representations.",
       "backwardCompatibilityAnalysisMd": "The likely backward-compatible alternative would be official ConceptMaps from R4 supplydelivery-status/type to target R6 value sets with equivalence annotations. Such maps would not fully remove the resource-removal break, but they would reduce inconsistent local mappings and make semantic losses visible.",
       "reviewerNotesMd": "The R4 `supplydelivery-type` element text says \"type of dispensing event\" while its local CodeSystem contains `medication` and `device`, which is closer to item category. This internal R4 ambiguity is another reason manual review is necessary.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SupplyDelivery:TERMINOLOGY_BINDING:status-type:0c94d2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 SupplyDelivery.status and SupplyDelivery.type do not have direct R6 continuations because the resource itself is absent. If an implementation maps a medication delivery to MedicationDispense, the status lifecycle and type binding are different: some codes can be mapped with judgment, but values such as `abandoned` and the old `medication`/`device` type split are not a safe mechanical transplant into target resources. This is a concrete migration/conformance risk, especially because status includes modifier semantics for `entered-in-error`. But it is secondary to the resource removal, and keeping the old terminology in base R6 would mainly require retaining the legacy resource or weakening target-resource terminology.",
+        "keyEvidence": [
+          "R4 SupplyDelivery.status is optional but required-bound to supplydelivery-status with codes in-progress, completed, abandoned, entered-in-error, and isModifier=true because entered-in-error nullifies business validity.",
+          "R4 supplydelivery-type CodeSystem contains medication and device despite the element text describing a dispense-event type.",
+          "R6 MedicationDispense.status is required and bound to medicationdispense-status with a different lifecycle including preparation, cancelled, on-hold, unfulfilled, declined, and unknown.",
+          "R6 MedicationDispense.type uses an example binding to v3 ActPharmacySupplyType rather than the R4 supplydelivery-type value set."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the need to preserve these local SupplyDelivery value sets exactly. The modifier status semantics still matter during migration, but low maturity and the ambiguous R4 type terminology make direct carry-forward less compelling.",
+        "compatibilityMechanism": "semantic/documentation, with potential old-valid/new-invalid effects after conversion: the absent resource is the direct validation break, while the terminology finding adds semantic mapping risk when old status/type codes are projected into candidate R6 resources with different bindings and lifecycle meanings.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base option would keep the old status/type bindings on a retained legacy SupplyDelivery resource. A narrower option would add legacy equivalents to target value sets where meanings are safe. Both have material tradeoffs: the first preserves the old generic model, and the second can weaken domain-specific validation while still not covering ambiguous concepts like abandoned or device cleanly.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the report correctly flags terminology migration risk and only a partial alternative, but High impact is likely overstated as an independent finding because the primary break is resource removal and the affected terminology belonged to FMM 1 trial-use content."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -826,5 +872,17 @@
       "MedicationDispense may be a partial medication-only migration target but should not be treated as a generic SupplyDelivery rename.",
       "Search parameters attached to removed resources should be assessed separately from the resource report."
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SupplyDelivery.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 3
+    }
   }
 }

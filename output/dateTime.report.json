@@ -273,7 +273,22 @@
       "validationAndCompatibilityMd": "An R4-valid dateTime with 10 or more fractional digits can become invalid in R6. This does not create an R6-to-R4 representability problem because any R6 value satisfying the 9-digit limit also satisfies R4's fractional-second portion, assuming the rest of the value is R4-compatible.",
       "migrationGuidanceMd": "Scan dateTime-valued elements for fractional seconds longer than 9 digits before R6 validation. Choose a precision policy and apply it consistently: reject, truncate, or round. If exact lexical preservation is required, store the original value in an extension or audit trail because normalized R6 dateTime strings cannot carry the extra digits.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by accepting the R4 lexical space and adding guidance or warnings for values beyond 9 digits. The tradeoff is that validators would not be able to rely on a bounded precision without additional policy.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "dateTime:VALUE_CONSTRAINT:dateTime.value:fractional-precision-9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 accepts a full dateTime with any positive number of fractional-second digits, while the R6 regex accepts only 1 through 9 digits. That means an exact R4 string such as `2020-05-20T12:34:56.1234567890Z` can fail R6 primitive validation. The affected artifact is a normative, widely reused primitive, so a hard lexical narrowing deserves a real justification. On balance, the break looks proportionate because sub-nanosecond lexical precision is uncommon in FHIR exchange, a 9-digit cap aligns with broadly implementable nanosecond precision, and leaving the base datatype unbounded would keep parser, database, and SDK precision burdens in place. Implementers still need an explicit migration policy for rare over-precision values, but the change does not appear to require redesign.",
+        "keyEvidence": [
+          "R4 StructureDefinition dateTime.value regex contains `(\\.[0-9]+)?`.",
+          "R6 StructureDefinition dateTime.value regex contains `(\\.[0-9]{1,9})?`.",
+          "Regex spot-check: `2020-05-20T12:34:56.1234567890Z` full-matches R4 and not R6; the 9-digit variant matches both.",
+          "R4 maturity context supplied as normative; local r4-maturity map also marks dateTime standardsStatus normative."
+        ],
+        "fmmEffect": "Normative status raises the compatibility bar for any old-valid/new-invalid primitive change. It did not change the mechanism, but it made me require a proportionate interoperability rationale; the rarity and bounded-precision benefit keep the concern below Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with more than 9 fractional-second digits in a dateTime value become invalid under the R6 regex, and exact lexical preservation may require rejection, rounding, truncation, or separate archival storage.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained the unbounded R4 fractional-second regex and added warning-level guidance or canonicalization advice above 9 digits. That would preserve all R4 strings, but it would not give base R6 validators or generated libraries a hard, uniform maximum precision.",
+        "comparisonToExisting": "agree with the existing medium-impact, hard-instance-break assessment and the partial less-breaking alternative judgment; the fresh review gives more weight to normative stability but reaches the same practical conclusion that the break is probably proportionate."
+      }
     },
     {
       "findingId": "dateTime:VALUE_CONSTRAINT:dateTime.value:offset-optionality",
@@ -437,7 +452,23 @@
       "migrationGuidanceMd": "Do not rely only on the R6 regex for cross-version exchange. For R6-to-R4 conversion, require full date-times to end in `Z` or a complete numeric offset before emitting R4. Reject sign-only offsets as malformed. Add regression tests for offset-less, `Z`, numeric-offset, and sign-only cases, and confirm the behavior of the specific R6 validator used in production.",
       "backwardCompatibilityAnalysisMd": "If the regex widening was accidental, the backward-compatible fix is straightforward: keep the R4 mandatory offset suffix while updating prose from `time zone` to `UTC offset`. If the widening was intentional to support local times, it should be expressed explicitly and accompanied by migration guidance because R4 has no equivalent lexical representation for a full date-time without an offset.",
       "reviewerNotesMd": "Human review should determine whether the R6 ballot regex intentionally permits offset-less full date-times and sign-only offsets. The current StructureDefinition evidence is internally inconsistent.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "dateTime:VALUE_CONSTRAINT:dateTime.value:offset-optionality",
+        "judgment": "Revisit",
+        "narrativeMd": "The R6 regex widens full dateTime lexical acceptance so that values with no UTC offset, and even values ending in only `+` or `-`, can match. That does not reject old R4 data, but it creates a central cross-version and conformance hazard: the R6 definition text still says a UTC offset SHALL be populated when hours and minutes are specified, while regex-driven validators or SDKs could accept values that R4 rejects and that are ambiguous or malformed for timestamp exchange. Because dateTime is normative and appears throughout clinical and operational resources, this inconsistency should be resolved in the base definition rather than left to implementers.",
+        "keyEvidence": [
+          "R4 dateTime definition says a time zone SHALL be populated when hours and minutes are specified, and the R4 regex requires `Z` or a numeric offset after the time.",
+          "R6 dateTime definition says a UTC offset SHALL be populated when hours and minutes are specified.",
+          "R6 dateTime.value regex uses an optional offset suffix and makes the numeric portion after `+` or `-` optional.",
+          "Regex spot-check: `2020-05-20T12:34:56`, `2020-05-20T12:34:56+`, and `2020-05-20T12:34:56-` full-match R6 but not R4.",
+          "Local R6 root comment says UTC offset is allowed for dates and partial dates, but the observed regex does not express that for date-only or partial-date forms."
+        ],
+        "fmmEffect": "Normative R4 status and the primitive's broad reuse increase the need for consistency between computable constraints and SHALL prose. The change is a widening rather than an R4-to-R6 rejection, but normative stability makes the reverse-exchange and validator-disagreement risk material.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 regex-valid full dateTimes without a real offset are not R4-representable, and regex-only R6 validation can disagree with R6 prose or permit semantically unsafe timestamp strings.",
+        "lessBreakingAlternativeAssessment": "Yes, if the widening was accidental: keep the R4-style mandatory `Z` or complete numeric UTC offset for full date-times while updating wording from time zone to UTC offset. If R6 intentionally wants local full dateTimes or offsets on partial dates, the base design should state that goal explicitly and adjust the regex coherently; that choice has real R6-to-R4 migration tradeoffs.",
+        "comparisonToExisting": "partially agree with the existing high-impact runtime and R6-to-R4 risk assessment, but disagree that a less-breaking design is simply not applicable; preserving the mandatory complete offset is a plausible lower-risk base R6 design even though this is not an old-valid/new-invalid R4-to-R6 break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -596,5 +627,18 @@
       "Other temporal primitives with fractional-second regex caps, especially instant",
       "Resources and profiles with dateTime-valued elements that may receive offset-less R6 values"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/dateTime.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 1
+    }
   }
 }

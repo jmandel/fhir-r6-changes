@@ -343,7 +343,23 @@
       "migrationGuidanceMd": "Inventory `Basic.code` codings before migration. Where an old Basic Resource Types code corresponds to a current or past FHIR resource, map to the R6 resource-type code and consider whether the Basic instance should instead be transformed to the actual resource. Where no R6 resource-type code applies, preserve the local coding and document why the extensible value set does not cover the concept. Add tests for old-only coding, dual coding, and R6-only coding.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified as terminology cleanup, but it is only partially backward-compatible. A published ConceptMap or a transitional dual-coding recommendation would have allowed R4 data to migrate with less local interpretation while still encouraging R6 resource-type codes.",
       "reviewerNotesMd": "Human review is needed because the key question for extensible bindings is not simply membership but applicability: if an R6 resource type accurately represents the Basic concept, R6 expects that code; if not, alternate codings can be justified.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Basic:TERMINOLOGY_BINDING:Basic.code:9df3a1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps `Basic.code` as the same mandatory `CodeableConcept` modifier, but changes the binding from an R4 example value set of Basic Resource Types to an extensible value set of current and historical FHIR resource type codes. An R4 instance using only the old `basic-resource-type` coding is still structurally parseable, and extensible bindings can still allow non-value-set codings when no suitable resource-type code applies. The real issue is conformance and interpretation: when the Basic concept is now covered by an R6 resource type, an old-only coding can trigger terminology findings and consumers that dispatch on `Basic.code` need a deliberate mapping. Because Basic is FMM 1/trial-use and a quick usage check did not show strong broad production dependence, this does not rise to Revisit. The R6 goal is coherent for a modifier element that says what kind of resource the Basic instance represents, and the obvious compatibility-preserving base alternatives have meaningful ambiguity costs.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Basic differential `Basic.code`: `1..1 CodeableConcept`, modifier, example binding to `http://hl7.org/fhir/ValueSet/basic-resource-type`.",
+          "R6 StructureDefinition-Basic differential `Basic.code`: same cardinality/type/modifier text, extensible binding to `http://hl7.org/fhir/ValueSet/version-independent-resource-types`.",
+          "R4 CodeSystem `basic-resource-type` contains lower-case/abbreviated codes such as `consent`, `referral`, `advevent`, `aptmtreq`, `account`, `invoice`, and `exposure`.",
+          "R6 ValueSet `version-independent-resource-types` composes current `resource-types` and `fhir-old-types`, not the R4 Basic Resource Types code system.",
+          "Lightweight web search did not identify strong, prominent production-use evidence for Basic beyond generic HL7 Basic guidance and IG-registry pointers."
+        ],
+        "fmmEffect": "R4 Basic is FMM 1 and trial-use, which softens the stability expectation and prevents escalating on binding change alone. The fact that `Basic.code` is mandatory and a modifier keeps this as a real migration concern, but the low maturity and lack of quick production-use evidence keep it below Revisit.",
+        "compatibilityMechanism": "warning-level: no JSON shape changed, but the stronger extensible binding can create R6 terminology conformance warnings or local errors for old-only codings when a resource-type code applies; there is also runtime interpretation work for systems that branch on the modifier code.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept the old Basic Resource Types value set in the R6 compose, retained an example/preferred binding, or explicitly allowed a transitional dual-coding pattern. Those approaches would preserve more old-only codings, but they also leave duplicate code representations for the same Basic type on a modifier element and weaken the cleanup toward version-independent resource type identifiers. A ConceptMap or migration note would help substantially, but by itself is migration tooling rather than a less-breaking base R6 design.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as not a structural hard break, identifies a partial less-breaking alternative, and gives it a medium rather than high impact. I would frame the mechanism mainly as extensible-binding conformance pressure plus modifier-code mapping, not as a clear old-valid/new-invalid instance break."
+      }
     },
     {
       "findingId": "Basic:TYPE_DOMAIN:Basic.created:2a64e8",
@@ -475,7 +491,23 @@
       "validationAndCompatibilityMd": "An R4 instance with `created: \"2026-05-17\"` remains compatible with R6 `dateTime` precision. An R6 instance with `created: \"2026-05-17T21:45:00+02:00\"` is not valid for R4 `date`. Strict R4 parsers, JSON schemas, database constraints, and generated model setters typed as date-only can reject the R6 value.",
       "migrationGuidanceMd": "For R4-to-R6, update generated models and tests to expect a dateTime-capable field. For R6-to-R4, decide whether to truncate to the calendar date, preserve the original timestamp in an extension, or reject records where time precision matters. Test date-only, partial-date, and full timestamp inputs.",
       "backwardCompatibilityAnalysisMd": "The change could have been made reverse-compatible by leaving `created` as `date` and adding a separate optional precise timestamp extension. That would avoid R4 downgrade loss but would keep a less precise base field for an element used for ordering.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Basic:TYPE_DOMAIN:Basic.created:2a64e8",
+        "judgment": "No problem",
+        "narrativeMd": "`Basic.created` widens from `date` to `dateTime`. Existing R4 date or partial-date values remain valid at date precision in R6 `dateTime`, so this is not an R4-to-R6 instance break. R6 can now carry time-of-day and offset information that cannot be represented losslessly in R4, and generated models may expose a date-time-capable type, but that is reverse-conversion/new-content handling on an optional low-FMM element rather than a problematic base R6 design.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Basic differential `Basic.created`: `0..1` type `date`.",
+          "R6 StructureDefinition-Basic differential `Basic.created`: `0..1` type `dateTime` with unchanged definition and requirements.",
+          "R6 `dateTime` datatype description says it is a date, date-time, or partial date, supporting date precision as well as timestamps.",
+          "R4 and R6 `SearchParameter/Basic-created` both remain type `date` with the same comparator set.",
+          "R4 maturity map lists Basic as FMM 1 and trial-use."
+        ],
+        "fmmEffect": "The FMM 1/trial-use status softens stability concern. Since the change preserves R4 values in R6 and affects an optional ordering/audit field, low maturity reinforces treating the reverse-only precision issue as low concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 timestamp such as a full date-time with offset must be truncated, extended, or rejected when downgrading to R4 `date`; there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `created` as `date` and added a separate precise timestamp element or extension, which would make downgrade easier. That would duplicate creation-time semantics and make the more precise value less discoverable. Because the actual R4-to-R6 direction is a type widening, no less-breaking base R6 design is needed.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the type widening and the R6-to-R4 precision loss, and its not-applicable alternative judgment is reasonable for forward compatibility. I disagree with treating this path as high impact under the fresh FMM-informed rubric."
+      }
     },
     {
       "findingId": "Basic:REFERENCE_TARGET:Basic.author:61b4c2",
@@ -644,7 +676,23 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation remains compatible for existing author references because all R4 target profiles are preserved. R6-to-R4 validation fails or becomes profile-nonconformant if `author.reference` resolves to `Device` or `CareTeam`. Some generated R4 clients may not reject the raw reference string immediately, but conformance-aware validators, resolvers, and typed APIs will treat the target as outside the R4 domain.",
       "migrationGuidanceMd": "For R6-to-R4 conversion, identify `author` references to `Device` or `CareTeam`. If the target can be represented by an Organization, Practitioner, or PractitionerRole without changing meaning, map it explicitly and preserve the original reference in an extension or Provenance. Otherwise, reject downgrade or require profile-specific handling. Add tests for each allowed author target.",
       "backwardCompatibilityAnalysisMd": "The change is a reasonable expressiveness improvement but not losslessly backward-compatible. The less-breaking approach would have used Provenance or extensions for device/team authorship, at the cost of making common attribution harder to discover in the base Basic resource.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Basic:REFERENCE_TARGET:Basic.author:61b4c2",
+        "judgment": "No problem",
+        "narrativeMd": "R6 only adds `Device` and `CareTeam` as allowed `Basic.author` targets; every R4 target remains allowed. Existing R4 instances with practitioner, patient, related-person, organization, or practitioner-role authors therefore continue to validate against the R6 target list. New R6 content can be outside the R4 target domain, and clients with exhaustive target-type handling need to account for the two added actor types, but that is additive expressiveness and reverse-conversion handling rather than a meaningful R4-to-R6 compatibility problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Basic differential `Basic.author` target profiles: Practitioner, PractitionerRole, Patient, RelatedPerson, Organization.",
+          "R6 StructureDefinition-Basic differential `Basic.author` preserves all R4 targets and adds Device and CareTeam.",
+          "R4 `SearchParameter/Basic-author` targets the same five R4 types; R6 search parameter adds Device and CareTeam while retaining the old targets.",
+          "R4 maturity map lists Basic as FMM 1 and trial-use.",
+          "No local core-package `resourceType: Basic` examples were found in the targeted package search."
+        ],
+        "fmmEffect": "Basic's FMM 1/trial-use status lowers the stability burden. The path is optional and the change is purely widening for R4 content, so low maturity supports a No problem judgment despite possible reverse-downgrade handling.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `author` references to Device or CareTeam are outside R4's targetProfile and search-target lists; all R4 author targets remain valid in R6, so there is no forward old-valid/new-invalid break.",
+        "lessBreakingAlternativeAssessment": "The downgrade-friendly alternative would be to omit Device/CareTeam from the base target list and require Provenance, extensions, or profiles for those authoring actors. That would reduce R6-to-R4 new-content loss, but it would also make valid device-generated or team-authored Basic resources less directly expressible. Since no R4 author target was removed, a less-breaking base design is not needed for R4-to-R6 compatibility.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the added targets and reverse representability issue, and its not-applicable alternative judgment is sound for forward compatibility. I disagree with the high-impact framing because this is an additive target-list widening on an FMM 1 optional element."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -799,5 +847,18 @@
       "Reference target list widened with Device or CareTeam",
       "Example binding strengthened to extensible with a different value set"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Basic.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1,
+      "No problem": 2
+    }
   }
 }

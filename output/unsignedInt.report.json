@@ -268,7 +268,22 @@
       "migrationGuidanceMd": "Audit persisted and test data for `unsignedInt` values outside `0..2147483647`. Tighten validators, database columns, and generated schemas to the explicit R6 range. If oversized historical values exist, they cannot be losslessly represented as R6 `unsignedInt`; systems should correct the source value, map it to a different datatype or extension where the owning artifact permits that, or reject/quarantine the record.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified because it makes an existing integer-derived limit directly computable on the specialized datatype. A backward-compatible alternative would have been advisory guidance rather than a formal value limit, but that would preserve ambiguity and inconsistent validation.",
       "reviewerNotesMd": "Human review should confirm against the rendered R6 datatype page or official diff whether the explicit max is intended as a normative tightening or as a correction of an omission in the R4 unsignedInt leaf StructureDefinition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "unsignedInt:VALUE_CONSTRAINT:unsignedInt.value:9d7c42",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds explicit `minValueUnsignedInt: 0` and `maxValueUnsignedInt: 2147483647` on `unsignedInt.value`, but the path, cardinality, and non-negative lexical regex are unchanged. The local evidence does not establish a conformant old-valid/new-invalid instance: R4 `unsignedInt` was already a normative specialization of `integer`, and R4 `integer.value` carried the same 32-bit upper bound while the `unsignedInt` regex excluded negative values. The change can expose oversized values accepted by permissive or leaf-only tooling, but that is better understood as making the existing datatype semantics computable at the leaf than as a new base-model restriction.",
+        "keyEvidence": [
+          "R4 StructureDefinition-unsignedInt.json: `unsignedInt.value` has regex `[0]|([1-9][0-9]*)`, cardinality 0..1, and base path `integer.value`.",
+          "R4 StructureDefinition-integer.json: `integer.value` has `minValueInteger: -2147483648` and `maxValueInteger: 2147483647`.",
+          "R6 StructureDefinition-unsignedInt.json: `unsignedInt.value` keeps the same regex and adds `minValueUnsignedInt: 0` and `maxValueUnsignedInt: 2147483647`.",
+          "R4 maturity map and StructureDefinition mark `unsignedInt` as normative with normative version 4.0.0."
+        ],
+        "fmmEffect": "Normative status raises the burden for true validation tightening, but here it also supports reading R4 `unsignedInt` through its existing normative `integer` base. Because the R6 constraint appears to preserve rather than change the effective range, FMM does not turn this metadata clarification into a revisit-worthy break.",
+        "compatibilityMechanism": "metadata/tooling: validators or schemas that ignored the R4 integer base and used only the leaf unsignedInt regex may newly reject oversized non-negative values, but no conformant R4 old-valid/new-invalid example is shown.",
+        "lessBreakingAlternativeAssessment": "No meaningful less-breaking base R6 design is needed. Leaving the leaf datatype without explicit bounds, or making the bounds advisory only, would preserve ambiguity for permissive tooling while failing the reasonable R6 goal of exposing the already-inherited range directly on `unsignedInt`.",
+        "comparisonToExisting": "partially agree with the existing evidence and the conclusion that the change is probably justified, but disagree with treating this as a Medium potential hard break. I also view the supposed less-breaking alternative as weak rather than a useful Partial alternative because it would perpetuate inconsistent validation."
+      }
     },
     {
       "findingId": "unsignedInt:SERIALIZATION_OR_CODEGEN:unsignedInt.value:2e91aa",
@@ -412,7 +427,22 @@
       "migrationGuidanceMd": "Review generated SDKs, schema artifacts, and primitive serializers for `unsignedInt`. Ensure they enforce integer semantics and `0..2147483647` bounds while still supporting primitive extension/id wrappers. Regression tests should cover JSON numeric values, XML attribute serialization, primitive extensions, zero, one, the upper bound, and out-of-range values.",
       "backwardCompatibilityAnalysisMd": "The change appears justified as a metadata correction toward the datatype's actual numeric semantics. The less-breaking alternative of keeping string-oriented metadata would avoid some generator churn but would leave the datatype ambiguous and less useful for validation.",
       "reviewerNotesMd": "The R6 snapshot still reports `System.String` while the R6 differential reports `System.Integer`; implementation impact depends on which representation a tool treats as authoritative.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "unsignedInt:SERIALIZATION_OR_CODEGEN:unsignedInt.value:2e91aa",
+        "judgment": "No problem",
+        "narrativeMd": "The metadata for `unsignedInt.value` moves toward the datatype's numeric identity: R6 changes the snapshot `structuredefinition-fhir-type` extension from `string` to `unsignedInt`, and the R6 differential uses FHIRPath `System.Integer`. The wire path, cardinality, XML attribute representation, regex, and primitive datatype identity remain stable, and the R4 differential already identified the FHIR type as `unsignedInt`. A generator that treated the R4 snapshot carrier metadata as a public string API might see churn, but that is a tooling interpretation issue rather than a change to valid instance content or datatype meaning.",
+        "keyEvidence": [
+          "R4 StructureDefinition-unsignedInt.json snapshot: `unsignedInt.value` type code is `http://hl7.org/fhirpath/System.String` with fhir-type extension `string`.",
+          "R4 StructureDefinition-unsignedInt.json differential: `unsignedInt.value` keeps `System.String` but already has fhir-type extension `unsignedInt`.",
+          "R6 StructureDefinition-unsignedInt.json snapshot: `unsignedInt.value` still has `System.String` as the low-level type code but fhir-type extension `unsignedInt`.",
+          "R6 StructureDefinition-unsignedInt.json differential: `unsignedInt.value` type code is `http://hl7.org/fhirpath/System.Integer`; path, cardinality, representation, and regex are unchanged."
+        ],
+        "fmmEffect": "Normative status makes broad public API churn worth checking carefully, but the actual datatype semantics and wire representation are preserved. Since R4 already signaled `unsignedInt` in the differential and R6 still has string carrier metadata in the snapshot, the maturity context does not imply a substantive compatibility break.",
+        "compatibilityMechanism": "metadata/tooling: snapshot-vs-differential metadata may change code generator choices for host-language value types, but this finding does not create an old-valid/new-invalid instance, R6-to-R4 data loss, or a changed FHIR element shape.",
+        "lessBreakingAlternativeAssessment": "No strong less-breaking base design exists beyond retaining the ambiguous R4 string-oriented metadata. That would reduce churn for a narrow class of generators but would conflict with the goal of making `unsignedInt`'s numeric semantics explicit and would preserve inconsistent signals between snapshot, differential, and datatype identity.",
+        "comparisonToExisting": "partially agree with the existing no-hard-instance-break assessment and the general justification, but disagree with the Medium runtime framing. The independent review treats this as low-risk metadata/tooling churn, and the less-breaking alternative is not compelling."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -556,5 +586,17 @@
       "Other primitive integer specializations with newly explicit min/max value limits",
       "Primitive value ElementDefinition snapshot-vs-differential type-code differences"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/unsignedInt.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 2
+    }
   }
 }

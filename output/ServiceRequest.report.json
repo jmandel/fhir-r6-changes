@@ -394,7 +394,21 @@
       "migrationGuidanceMd": "For R4→R6, wrap any existing `CodeableConcept` value as `code.concept`. For R6→R4, decide whether `code.reference` can be converted to a canonical/code through local metadata, represented by an extension, or rejected for manual review. Test coded, text-only, and reference-only cases.",
       "backwardCompatibilityAnalysisMd": "The breaking shape change was probably avoidable with an additive reference element, but the unified CodeableReference model reduces ambiguity in R6. Migration tooling should treat this as a deliberate representation change rather than a simple widening.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Human review is needed when `code.reference` points to definitional artifacts without a stable code or canonical mapping."
+      "reviewerNotesMd": "Human review is needed when `code.reference` points to definitional artifacts without a stable code or canonical mapping.",
+      "freshReview": {
+        "findingId": "ServiceRequest:TYPE_DOMAIN:code:9f7b01",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed the requested service to be carried directly as a `CodeableConcept`; R6 keeps the same path but changes the value to `CodeableReference`, so a common R4 `code.coding` object must be wrapped as `code.concept`. This is a real wire-format and generated-model break for a central order field, but the R6 goal of allowing either a coded service or a definitional reference is coherent. Keeping both a legacy `code` concept and a new reference field would preserve old JSON but would create competing representations of the requested service.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ServiceRequest.code`: 0..1 `CodeableConcept`, example `procedure-code` binding.",
+          "R6 StructureDefinition `ServiceRequest.code`: 0..1 `CodeableReference` targeting ActivityDefinition or PlanDefinition.",
+          "R6 CodeableReference has separate `concept` and `reference` children."
+        ],
+        "fmmEffect": "R4 ServiceRequest is FMM 2 and trial-use, so maturity is a neutral factor; the judgment is driven by the hard same-path shape change and the reasonableness of the R6 modeling goal.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `code.coding` or `code.text` directly under `ServiceRequest.code` do not match the R6 CodeableReference shape; R6 `code.reference` also creates R6-to-R4 loss unless mapped to a code or extension.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have kept `code` as `CodeableConcept` and added a separate optional definitional reference, but that would split one clinical meaning across two base elements and require conflict rules when both are present.",
+        "comparisonToExisting": "agree with the existing hard/high impact and partial less-breaking alternative assessment; the fresh judgment treats the break as proportionate rather than a standards-design problem."
+      }
     },
     {
       "findingId": "ServiceRequest:ELEMENT_PRESENCE:instantiates:21aef0",
@@ -517,7 +531,21 @@
       "migrationGuidanceMd": "Inventory uses of `instantiatesCanonical` and `instantiatesUri`. Map canonical definitional artifacts to `code.reference` only when the target is an appropriate ActivityDefinition/PlanDefinition instance and the semantics match the requested service; otherwise preserve the URI/canonical in an extension or migration side table and require human review.",
       "backwardCompatibilityAnalysisMd": "The removal could have been less disruptive by retaining the optional elements with deprecation language. A pure replacement is cleaner for the R6 model but shifts the burden to cross-version mapping and may lose external-protocol references.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "The intended R6 successor for external protocol URIs is not proven from the StructureDefinition alone."
+      "reviewerNotesMd": "The intended R6 successor for external protocol URIs is not proven from the StructureDefinition alone.",
+      "freshReview": {
+        "findingId": "ServiceRequest:ELEMENT_PRESENCE:instantiates:21aef0",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had explicit `instantiatesCanonical` and `instantiatesUri` fields for protocols, guidelines, order sets, and external definitions. R6 removes both without an equivalent URI/canonical replacement on ServiceRequest. Some canonical ActivityDefinition or PlanDefinition uses might be re-expressed through `code.reference`, but an external protocol URI or a guideline adhered to only in part is not the same as the requested service code.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ServiceRequest.instantiatesCanonical`: 0..* canonical(ActivityDefinition|PlanDefinition).",
+          "R4 StructureDefinition `ServiceRequest.instantiatesUri`: 0..* uri.",
+          "R6 ServiceRequest snapshot has no `instantiatesCanonical` or `instantiatesUri` element."
+        ],
+        "fmmEffect": "FMM 2/trial-use does not create a high stability presumption, but it also does not soften the concern; the loss of protocol/guideline attribution can affect audit, CDS, and order-set provenance.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 instance carrying either removed property is structurally invalid in R6 and can lose provenance if a permissive parser drops unknown fields.",
+        "lessBreakingAlternativeAssessment": "Yes: retaining these optional elements as deprecated compatibility fields, while recommending newer R6 modeling where applicable, would preserve R4 data with limited base-model cost. The tradeoff is some overlap with `code.reference` and other workflow links, but external URI instantiation has no clear base replacement.",
+        "comparisonToExisting": "agree with the existing high impact and yes alternative judgment; the fresh review also finds the removal disproportionate enough to revisit."
+      }
     },
     {
       "findingId": "ServiceRequest:SLICING_AND_CONTENT_MODEL:orderDetail:4c52d8",
@@ -742,7 +770,22 @@
       "migrationGuidanceMd": "Treat this as a semantic transform, not a field rename. Define local mappings from legacy CodeableConcept details to parameter `code` and `value[x]`; when no reliable parameter code exists, preserve the original concept in `valueCodeableConcept` with a generic/local code and flag for review. Test R4 detail-only, R6 multi-parameter, and missing-`code` cases.",
       "backwardCompatibilityAnalysisMd": "A transition element or retained CodeableConcept would have avoided old-valid/new-invalid instances but would leave R6 with duplicate representations. The chosen design favors a normalized parameter model at the cost of cross-version compatibility.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "The example binding is not validation-enforcing, but the content-model change is hard regardless of terminology expansion."
+      "reviewerNotesMd": "The example binding is not validation-enforcing, but the content-model change is hard regardless of terminology expansion.",
+      "freshReview": {
+        "findingId": "ServiceRequest:SLICING_AND_CONTENT_MODEL:orderDetail:4c52d8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `orderDetail` was a repeatable `CodeableConcept`; R6 keeps the path but changes each entry into a backbone that must contain at least one parameter, and each parameter requires a code and value. This is a hard shape break and migration is more than a rename. Still, the R6 model supports named, typed order parameters that the R4 free concept list could not represent well, and preserving a parallel legacy order-detail field would risk conflicting fulfillment instructions.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.orderDetail`: 0..* `CodeableConcept`, example `servicerequest-orderdetail` binding.",
+          "R6 `ServiceRequest.orderDetail`: 0..* `BackboneElement`.",
+          "R6 `ServiceRequest.orderDetail.parameter`: min 1; `parameter.code` min 1; `parameter.value[x]` min 1.",
+          "R6 request-orderdetail parameter CodeSystem includes parameter codes such as `catheter-insertion`, `body-elevation`, `device-configuration`, and `device-settings`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The path is operationally meaningful, but the R6 computability benefit offsets the neutral maturity pressure.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 array entries shaped as CodeableConcept lack the required R6 backbone children; runtime/API/codegen also changes because the same property name now has a different item type.",
+        "lessBreakingAlternativeAssessment": "Partial: adding a new structured parameter element while retaining CodeableConcept `orderDetail` would preserve old instances, but applications would need precedence and reconciliation rules when legacy text/codes and structured parameters disagree.",
+        "comparisonToExisting": "agree with the existing high impact and partial alternative judgment; the fresh judgment emphasizes that the richer parameter model makes the break probably acceptable despite real migration work."
+      }
     },
     {
       "findingId": "ServiceRequest:ELEMENT_PRESENCE:asNeeded:6a411c",
@@ -917,7 +960,22 @@
       "validationAndCompatibilityMd": "R4 instances using either choice serialization are invalid in R6 until renamed/split. R6 instances with multiple `asNeededFor` values or `asNeeded=false` plus reasons need special handling for R4 because R4 has only one choice value and no equivalent invariant.",
       "migrationGuidanceMd": "Map `asNeededBoolean` to `asNeeded`. Map `asNeededCodeableConcept` to `asNeededFor[0]` and set `asNeeded=true` if local policy wants an explicit Boolean. Reject or review any migrated R6 instance that violates `asn-1`, and define a lossy strategy for multiple R6 criteria when converting to R4.",
       "backwardCompatibilityAnalysisMd": "The split could have been introduced additively, but the R6 design avoids overloading a choice element with both Boolean and reason semantics. The compatibility cost is moderate because the forward transform is usually deterministic.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ServiceRequest:ELEMENT_PRESENCE:asNeeded:6a411c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 serialized this as `asNeededBoolean` or `asNeededCodeableConcept`; R6 splits the assertion into `asNeeded` and repeatable `asNeededFor` with an invariant tying reasons to a true or absent boolean. The old JSON names break, but the forward mapping is usually direct, and the R6 split removes the overloaded choice between a flag and criteria.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.asNeeded[x]`: 0..1 choice of boolean or CodeableConcept.",
+          "R6 `ServiceRequest.asNeeded`: 0..1 boolean.",
+          "R6 `ServiceRequest.asNeededFor`: 0..* CodeableConcept.",
+          "R6 root constraint `asn-1`: `asNeededFor` only when `asNeeded` is empty or true."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the narrow element-level mechanism and mostly mechanical forward transform dominate.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 choice property names are not R6 elements; R6-to-R4 loss occurs when multiple `asNeededFor` values must be reduced to one R4 CodeableConcept choice.",
+        "lessBreakingAlternativeAssessment": "Partial: a deprecated `asNeeded[x]` alias could have preserved old JSON, but it would duplicate the new boolean/reason model and require rules for conflicting old and new fields.",
+        "comparisonToExisting": "agree with the existing medium impact and partial alternative judgment."
+      }
     },
     {
       "findingId": "ServiceRequest:ELEMENT_PRESENCE:location:0c96ac",
@@ -1089,7 +1147,22 @@
       "validationAndCompatibilityMd": "R4 instances with `locationCode` or `locationReference` are invalid in R6. R6 instances are usually representable in R4 by splitting `location.concept` and `location.reference`, but clients must handle the wrapper and any CodeableReference entries containing both children according to local policy.",
       "migrationGuidanceMd": "Map each `locationCode` item to `location[].concept` and each `locationReference` item to `location[].reference`. Update FHIRPath, extraction, and search-index code that references the old paths. For reverse conversion, split concepts and references into the corresponding R4 arrays.",
       "backwardCompatibilityAnalysisMd": "The merge is semantically tidy but could have been introduced with deprecated aliases. Given the straightforward mapping, the compatibility concern is primarily wire-format and codegen rather than deep semantic loss.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ServiceRequest:ELEMENT_PRESENCE:location:0c96ac",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 represented requested location with two arrays, one coded and one referenced. R6 merges them into a single `location` array of CodeableReference(Location). Existing R4 fields are invalid in R6, but simple concept and Location-reference entries map cleanly to `location.concept` and `location.reference`, so the break is mainly wire-format and model-shape churn rather than semantic loss.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.locationCode`: 0..* CodeableConcept.",
+          "R4 `ServiceRequest.locationReference`: 0..* Reference(Location).",
+          "R6 `ServiceRequest.location`: 0..* CodeableReference(Location).",
+          "The example location role ValueSet remains attached to the concept side."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the direct path break matters, but the affected data domains are preserved and the migration is usually lossless.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `locationCode` and `locationReference` are removed field names; R6-to-R4 conversion is usually representable by splitting concepts and references.",
+        "lessBreakingAlternativeAssessment": "Partial: deprecated aliases for `locationCode` and `locationReference` could preserve R4 instances, but they would leave multiple same-resource ways to express preferred location and introduce duplicate/conflict handling.",
+        "comparisonToExisting": "agree with the existing medium impact and partial alternative judgment."
+      }
     },
     {
       "findingId": "ServiceRequest:ELEMENT_PRESENCE:reason:71e5db",
@@ -1287,7 +1360,21 @@
       "validationAndCompatibilityMd": "R4 instances using `reasonCode` or `reasonReference` fail R6 validation until transformed. R6 instances using newly allowed targets are not R4-representable under the base R4 target profile list. Generated clients and FHIRPath rules must also update from two old arrays to one CodeableReference array.",
       "migrationGuidanceMd": "Map `reasonCode` to `reason.concept` and `reasonReference` to `reason.reference`. For R6→R4, split supported targets back into `reasonReference`; preserve DetectedIssue, Procedure, and RiskAssessment reasons with extensions or manual review. Regression tests should cover coded-only, reference-only, mixed, and new-target reasons.",
       "backwardCompatibilityAnalysisMd": "The merge could have been staged through aliases, but the R6 CodeableReference design is internally consistent. The important migration issue is preserving the clinical meaning of each reason, not just moving JSON paths.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ServiceRequest:ELEMENT_PRESENCE:reason:71e5db",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 split justification into `reasonCode` and `reasonReference`; R6 uses one repeatable `reason` CodeableReference and also permits additional reason reference targets. This breaks old field names and affects a clinically and administratively important field, but the R6 consolidation has a clear model benefit and old R4 coded/reference reasons can be carried forward without loss by wrapping them.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.reasonCode`: 0..* CodeableConcept with example `procedure-reason` binding.",
+          "R4 `ServiceRequest.reasonReference`: 0..* Reference(Condition|Observation|DiagnosticReport|DocumentReference).",
+          "R6 `ServiceRequest.reason`: 0..* CodeableReference targeting the R4 resources plus DetectedIssue, Procedure, and RiskAssessment."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Reason is important for appropriateness, authorization, and interpretation, so the compatibility mechanism is taken seriously despite the non-mature status.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `reasonCode` and `reasonReference` fields are not R6 fields; R6-to-R4 loss occurs for newly allowed targets such as RiskAssessment unless constrained or extended.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have retained the two old arrays as aliases while adding `reason`, but reason/indication is safety- and billing-relevant, so duplicate representations would create real merge and conflict risk.",
+        "comparisonToExisting": "agree with the existing high impact and partial alternative judgment; the fresh review considers the break proportionate because the old information maps cleanly into the new CodeableReference shape."
+      }
     },
     {
       "findingId": "ServiceRequest:ELEMENT_PRESENCE:specimen:e93a64",
@@ -1412,7 +1499,21 @@
       "migrationGuidanceMd": "Identify all ServiceRequests with `specimen`. For each workflow, decide whether the specimen should become `supportingInfo.reference`, be represented through a Specimen-side link to the request, or be preserved with an extension. Include clinical review for existing-specimen orders and test reverse transforms explicitly.",
       "backwardCompatibilityAnalysisMd": "A deprecated compatibility element would have materially reduced migration risk. If the design goal was to avoid duplicating specimen workflow links, a clear replacement invariant or mapping would have improved safety.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "The best R6 destination for a specimen reference is not fully determinable from the ServiceRequest StructureDefinition alone."
+      "reviewerNotesMd": "The best R6 destination for a specimen reference is not fully determinable from the ServiceRequest StructureDefinition alone.",
+      "freshReview": {
+        "findingId": "ServiceRequest:ELEMENT_PRESENCE:specimen:e93a64",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had a dedicated `specimen` Reference(Specimen) relationship for lab-style service requests; R6 removes it. `supportingInfo` can structurally carry a Specimen reference in R6, but that is broader contextual information, not an explicit equivalent of the specimen the requested laboratory procedure will use. For specimen-driven workflows, a naive migration can lose a safety-relevant association.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.specimen`: 0..* Reference(Specimen), definition says one or more specimens the laboratory procedure will use.",
+          "R6 ServiceRequest snapshot has no `specimen` element.",
+          "R6 `ServiceRequest.supportingInfo` is CodeableReference(Resource) and mentions patient or specimen information, but is not a dedicated specimen link."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the concern comes from the clinical workflow, where specimen identity can affect what is performed and interpreted.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `specimen` are invalid in R6, and migration to a broader context field is semantic rather than mechanical.",
+        "lessBreakingAlternativeAssessment": "Yes: retaining `specimen` as deprecated, or adding an explicit equivalent R6 specimen relationship, would preserve R4 lab orders with modest cost. The main tradeoff is keeping a specialized lab-order field that may overlap broader supporting-context patterns.",
+        "comparisonToExisting": "agree with the existing high impact and yes alternative judgment."
+      }
     },
     {
       "findingId": "ServiceRequest:ELEMENT_PRESENCE:bodyStructure:08d73e",
@@ -1572,7 +1673,21 @@
       "validationAndCompatibilityMd": "R4 `bodySite` is not valid in R6. R4 multiple body-site entries exceed the new R6 max of one if mapped directly. R6 `bodyStructure.reference` cannot be represented as an R4 CodeableConcept without dereferencing to a code/text summary or using an extension.",
       "migrationGuidanceMd": "For one coded body site, map to `bodyStructure.concept`. For multiple R4 body sites, define whether to split requests, create/point to a composite BodyStructure, or preserve extra sites in extensions. For R6 BodyStructure references, decide whether to dereference to a coded concept for R4 or retain an extension.",
       "backwardCompatibilityAnalysisMd": "The richer BodyStructure model is useful, but a repeatable transitional field would have been less disruptive. The single-cardinality R6 design particularly needs review for multi-site orders.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ServiceRequest:ELEMENT_PRESENCE:bodyStructure:08d73e",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `bodySite` was repeatable CodeableConcept. R6 replaces it with a single `bodyStructure` CodeableReference(BodyStructure). The added ability to reference BodyStructure is useful, but the path replacement, datatype wrapper, and max change from `*` to `1` make multi-site R4 requests hard to preserve without combining anatomy, splitting requests, or extensions.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.bodySite`: 0..* CodeableConcept with example `body-site` binding.",
+          "R6 `ServiceRequest.bodyStructure`: 0..1 CodeableReference(BodyStructure) with the same example binding for concepts.",
+          "R6 CodeableReference supports concept/reference children, but only one `bodyStructure` element is allowed on ServiceRequest."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but anatomical target can be safety-relevant and the cardinality narrowing creates a concrete data-loss scenario.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 `bodySite` field is invalid in R6; R4 multiple body sites cannot be represented by the single R6 base element without policy decisions.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have kept repeatable `bodySite`, added `bodyStructure`, or at least made the new CodeableReference repeatable. Those options preserve more R4 data but require rules to prevent divergent coded body sites and BodyStructure references.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial alternative judgment; the fresh review places more weight on the repeatability reduction as a reason to revisit."
+      }
     },
     {
       "findingId": "ServiceRequest:TYPE_DOMAIN:supportingInfo:bf20a6",
@@ -1744,7 +1859,21 @@
       "validationAndCompatibilityMd": "R4 Reference objects are old-valid/new-invalid until wrapped. R6 concept-only supportingInfo is R6-valid but not base-R4-representable. FHIRPath and indexing expressions must be updated from `supportingInfo.reference` to `supportingInfo.reference.reference` for reference strings.",
       "migrationGuidanceMd": "Wrap each R4 reference as `supportingInfo[].reference`. For R6→R4, either materialize a resource for concept-only facts, use an extension, or document lossy dropping. Update search/index extraction and tests for reference-valued and concept-valued supporting information.",
       "backwardCompatibilityAnalysisMd": "The generalized datatype is useful, but an additive concept field would have kept old data valid. The selected design requires careful migration at a path likely used by order-entry integrations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ServiceRequest:TYPE_DOMAIN:supportingInfo:bf20a6",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `supportingInfo` was an array of Reference(Resource). R6 keeps the path but changes each item to CodeableReference(Resource), so old references must be nested under `reference`. This is a same-path datatype break and likely affects extraction/indexing code, but the target domain is preserved and the R6 concept-only option reasonably supports supporting facts that are not materialized as resources.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.supportingInfo`: 0..* Reference(Resource).",
+          "R6 `ServiceRequest.supportingInfo`: 0..* CodeableReference(Resource).",
+          "CodeableReference references are nested under `CodeableReference.reference`; concepts may be carried under `CodeableReference.concept`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; supporting information is commonly useful, but the forward transform for R4 references is straightforward.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 Reference objects at `supportingInfo[]` are not R6 CodeableReference objects; R6 concept-only entries are R6-to-R4 loss unless materialized or extended.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have kept `supportingInfo` as Reference(Resource) and added a separate concept-valued context element, but clients would then need to merge two supporting-information channels and handle duplicates.",
+        "comparisonToExisting": "agree with the existing high impact and partial alternative judgment; the fresh review treats the wrapper break as proportionate."
+      }
     },
     {
       "findingId": "ServiceRequest:TYPE_DOMAIN:patientInstruction:35d2a9",
@@ -1911,7 +2040,21 @@
       "validationAndCompatibilityMd": "R4 string values are invalid in R6. R6 markdown may be converted to plain string with formatting loss, while DocumentReference instructions require dereferencing or extension use for R4. R6 `_summary` output may omit patientInstruction where R4 summary-mode consumers may have seen it.",
       "migrationGuidanceMd": "Map an R4 string to one R6 `patientInstruction.instructionMarkdown`. For R6→R4, concatenate multiple markdown entries only if clinically safe and preserve DocumentReference entries by extension or manual review. Update summary-mode tests if clients rely on instruction visibility.",
       "backwardCompatibilityAnalysisMd": "A new structured element would have been less disruptive, but the R6 shape better supports multiple and document-backed instructions. Because patient instructions can be safety-relevant, lossy reverse conversion should be explicitly reviewed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ServiceRequest:TYPE_DOMAIN:patientInstruction:35d2a9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 carried one patient instruction string; R6 changes the same path to a repeatable backbone with markdown or DocumentReference instruction content, and the parent is no longer summary. Old string JSON is invalid, and reverse conversion can be lossy. The R6 goal is still reasonable because multiple/document-backed patient instructions are a real need, while keeping both primitive and structured instruction channels could create conflicting patient-facing guidance.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.patientInstruction`: 0..1 string, `isSummary=true`.",
+          "R6 `ServiceRequest.patientInstruction`: 0..* BackboneElement, `isSummary=false`.",
+          "R6 `ServiceRequest.patientInstruction.instruction[x]`: markdown or Reference(DocumentReference)."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Patient instructions can affect safety, but simple R4 strings map cleanly to one markdown instruction and the richer R6 model has a clear purpose.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 string-valued `patientInstruction` is not the R6 array/backbone shape; runtime/API/codegen and `_summary` expectations also change.",
+        "lessBreakingAlternativeAssessment": "Partial: keeping the primitive string and adding a new structured instruction element would preserve old JSON, but it would create duplicate patient-facing instruction paths with precedence and conflict risks.",
+        "comparisonToExisting": "agree with the existing high impact and partial alternative judgment; the fresh review considers the break acceptable if migration explicitly handles summary behavior and reverse loss."
+      }
     },
     {
       "findingId": "ServiceRequest:TERMINOLOGY_BINDING:status-ended:b712f4",
@@ -2077,7 +2220,22 @@
       "migrationGuidanceMd": "Add R6 `ended` to enum handling. For R6→R4, require a ConceptMap or local lifecycle rule using statusReason, fulfillment evidence, or audit history to choose `completed`, `revoked`, another R4 status, or an extension-preserved status. Test all status values and unknown-code handling.",
       "backwardCompatibilityAnalysisMd": "Adding a code to a required binding is a normal vocabulary evolution but not backward-compatible for down-conversion. A less disruptive alternative would model this as a reason/substatus until cross-version mappings were published.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "A terminology server expansion and official ConceptMap would improve confidence about all request-status code relationships."
+      "reviewerNotesMd": "A terminology server expansion and official ConceptMap would improve confidence about all request-status code relationships.",
+      "freshReview": {
+        "findingId": "ServiceRequest:TERMINOLOGY_BINDING:status-ended:b712f4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The required `status` binding still accepts R4 codes in R6, with R6 adding `ended` as a broader lifecycle state above `completed` and `revoked`. That means there is no R4-to-R6 instance rejection for existing status values, but R6 instances using `ended` cannot be faithfully represented in R4 without deciding whether work was completed, revoked, or simply no longer actionable.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.status`: 1..1 code, required `request-status|4.0.1`.",
+          "R6 `ServiceRequest.status`: 1..1 code, required `request-status|6.0.0-ballot4`.",
+          "R6 CodeSystem `request-status` includes `ended`; `completed` and `revoked` are nested concepts under `ended`.",
+          "R4 CodeSystem `request-status` has `completed` and `revoked` but no `ended`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but status is mandatory and modifier-significant, so reverse exchange and enum handling deserve attention.",
+        "compatibilityMechanism": "R6-to-R4 loss: `status=ended` is valid R6 but has no exact R4 code; runtime/API/codegen may also need enum updates.",
+        "lessBreakingAlternativeAssessment": "Not applicable for preserving R4-valid instances because R4 status codes remain valid in R6. A less disruptive vocabulary design could avoid a broad parent code, but that would reduce R6 lifecycle expressiveness rather than solve an old-valid/new-invalid break.",
+        "comparisonToExisting": "agree with the existing high reverse-impact assessment and the view that there is no R4-to-R6 hard instance break; the fresh evidence notes that R4 `completed` and `revoked` are retained as nested R6 concepts."
+      }
     },
     {
       "findingId": "ServiceRequest:TERMINOLOGY_BINDING:intent-newcodes:cf18aa",
@@ -2267,7 +2425,22 @@
       "migrationGuidanceMd": "Update intent enums and switch logic. For down-conversion, use an official or local ConceptMap to choose an R4 intent or preserve the R6 intent in an extension. Review policy logic that depends on legal authority or requestor type, especially around `directive` and `order`.",
       "backwardCompatibilityAnalysisMd": "The terminology change likely reflects broader workflow requirements, but a required-binding code addition is inherently incompatible with R4 validators. Extension-based transition would reduce validation breakage but make offer semantics less visible in the base code.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Official request-intent ConceptMaps would materially improve down-conversion guidance."
+      "reviewerNotesMd": "Official request-intent ConceptMaps would materially improve down-conversion guidance.",
+      "freshReview": {
+        "findingId": "ServiceRequest:TERMINOLOGY_BINDING:intent-newcodes:cf18aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps the R4 intent codes and adds offer-related intents under `proposal`, while also changing text for existing codes such as `directive` and `order`. Existing R4 instances still validate against R6, but R6 offer workflow instances and some business rules cannot down-convert cleanly to R4. Because `intent` is mandatory and modifier-significant, implementers need deliberate enum and policy handling, but the expanded workflow vocabulary is a plausible R6 goal.",
+        "keyEvidence": [
+          "R4 `ServiceRequest.intent`: 1..1 code, required `request-intent|4.0.1`.",
+          "R6 `ServiceRequest.intent`: 1..1 code, required `request-intent|6.0.0-ballot4`.",
+          "R6 CodeSystem `request-intent` includes `solicit-offer` and `offer-response` nested under `proposal`.",
+          "R6 definitions change `directive` from legally binding instruction to instruction, and `order` from Practitioner authorization to requestor authorization."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The modifier nature of `intent` increases practical care, but the lack of an R4-to-R6 validation break keeps this from being a revisit-level issue.",
+        "compatibilityMechanism": "R6-to-R4 loss: new offer-related intent codes are not R4 codes; semantic/documentation change also affects runtime rules that rely on the old meanings of `directive` or `order`.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have preserved old definitions and introduced more narrowly named new codes for broadened semantics, but that would increase vocabulary complexity and still would not make the new offer codes representable in base R4.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial alternative judgment; the fresh review agrees on reverse and semantic risk but treats the R6 expansion as proportionate."
+      }
     },
     {
       "findingId": "ServiceRequest:ELEMENT_PRESENCE:focus:a39219",
@@ -2368,7 +2541,21 @@
       "validationAndCompatibilityMd": "No R4→R6 validation break occurs. R6→R4 conversion is lossy unless focus is represented by extension, profile rule, or a related resource. Runtime code should not assume the request is only about `subject` when processing R6.",
       "migrationGuidanceMd": "For R6 consumers, update business logic to consider both `subject` and `focus`. For R6→R4, preserve `focus` with a cross-version extension or profile-specific mapping and require review for maternal-fetal, donor, device, or body-structure workflows.",
       "backwardCompatibilityAnalysisMd": "This addition is not a breaking design problem; it fills a modeling gap. The compatibility issue belongs in migration tooling and R4 extension strategy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ServiceRequest:ELEMENT_PRESENCE:focus:a39219",
+        "judgment": "No problem",
+        "narrativeMd": "`focus` is an optional R6 addition for cases where the true focus differs from the subject of record. It creates R6-to-R4 preservation work, especially for maternal-fetal or donor/device/body-structure scenarios, but it does not invalidate any R4 ServiceRequest and fills a real modeling gap.",
+        "keyEvidence": [
+          "R4 ServiceRequest has no `focus` element.",
+          "R6 `ServiceRequest.focus`: 0..* Reference(Resource), `isSummary=true`.",
+          "R6 definition describes the actual focus when it is not the subject of record."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; because the change is optional and additive, maturity does not create a base compatibility concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: base R4 has no native field for `focus`, but there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable: this is an additive base R6 element. R4 systems need an extension or profile mapping for down-conversion, but that is migration strategy rather than a less-breaking R6 design.",
+        "comparisonToExisting": "partially agree with the existing medium reverse-risk assessment; disagree with treating this as a material base-design problem because it is additive and justified."
+      }
     },
     {
       "findingId": "ServiceRequest:ELEMENT_PRESENCE:statusReason:164fbc",
@@ -2478,7 +2665,21 @@
       "validationAndCompatibilityMd": "No old R4 instance becomes invalid because of this addition. Valid R6 instances using `statusReason` lose data in base R4. Runtime logic that interprets status should incorporate statusReason when available rather than only reading `status`.",
       "migrationGuidanceMd": "For R6→R4, preserve statusReason in an extension or implementation-guide-specific field. Avoid mapping it blindly to `note` unless consumers understand the semantic downgrade. Test combinations of `status`, `statusReason`, and the new R6 `ended` status.",
       "backwardCompatibilityAnalysisMd": "This is a justified additive change. The backward-compatible question is not whether R6 should have added it, but whether cross-version tooling supplies a standard extension or mapping for R4 systems.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ServiceRequest:ELEMENT_PRESENCE:statusReason:164fbc",
+        "judgment": "No problem",
+        "narrativeMd": "`statusReason` is an optional R6 field explaining why the current request status applies. It may be important when down-converting R6 data, but adding a reason field does not break R4 instances and improves lifecycle expressiveness.",
+        "keyEvidence": [
+          "R4 ServiceRequest has no `statusReason` element.",
+          "R6 `ServiceRequest.statusReason`: 0..* CodeableConcept with example `servicerequest-status-reason` binding.",
+          "R6 status-reason CodeSystem includes examples such as `no-longer-clinically-necessary` and `pre-approval-denied`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; optional additive content does not raise an R4-to-R6 stability concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: base R4 cannot carry status rationale without extension or local mapping; no R4-to-R6 validation break exists.",
+        "lessBreakingAlternativeAssessment": "Not applicable: no less-breaking R6 base design is needed for an optional additive element. The relevant work is an R4 extension or exchange-profile strategy.",
+        "comparisonToExisting": "partially agree with the existing medium reverse-risk assessment; disagree with any implication that the base R6 addition itself is problematic."
+      }
     },
     {
       "findingId": "ServiceRequest:REFERENCE_TARGET:widened:aa5b7e",
@@ -2658,7 +2859,21 @@
       "validationAndCompatibilityMd": "R4 content remains valid with respect to these target lists. R6 content using the new targets is invalid in base R4 and may fail application code that assumes only the R4 target set. Some references may be convertible through related resources; others need extensions or rejection for R4 exchange.",
       "migrationGuidanceMd": "Update target-type allowlists and dispatch logic. For R6→R4, either constrain exchange profiles to the R4 target set or define extensions/mappings for the widened targets. Add tests for DocumentReference/RequestOrchestration lineage and Group requester/performer references.",
       "backwardCompatibilityAnalysisMd": "The widening appears justified and mostly unavoidable for broader R6 workflow support. The compatibility strategy should be profile- or exchange-specific rather than blocking the base R6 expansion.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ServiceRequest:REFERENCE_TARGET:widened:aa5b7e",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens several reference target lists, including broader request lineage targets and Group as requester/performer. Widening does not make R4 references invalid in R6. It does require R6-aware validators, generated unions, and R6-to-R4 exchange profiles to handle or constrain new target types, but that is normal additive expressiveness rather than a base breaking change.",
+        "keyEvidence": [
+          "R4 `basedOn` targets CarePlan, ServiceRequest, and MedicationRequest; R6 adds DocumentReference, RequestOrchestration, DeviceRequest, CommunicationRequest, NutritionOrder, and VisionPrescription.",
+          "R4 `replaces` targets ServiceRequest; R6 adds multiple request-like targets.",
+          "R6 adds Group to `requester` and `performer` target profiles."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; because the target changes are widening only, maturity does not turn the reverse-exchange concern into an R4-to-R6 problem.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using newly allowed target types can fail R4 validation; no old-valid/new-invalid R4-to-R6 mechanism exists.",
+        "lessBreakingAlternativeAssessment": "Not applicable: avoiding the widening would only reduce R6 expressiveness. R4-facing profiles can constrain targets when backward exchange is required.",
+        "comparisonToExisting": "partially agree with the existing medium reverse-risk assessment; disagree with treating widened targets as a material base compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2833,5 +3048,19 @@
       "patientInstruction primitive-to-backbone changes across request-like resources",
       "bodySite to bodyStructure replacements"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ServiceRequest.fresh-review.json",
+    "findingDecisionCount": 15,
+    "matchedFindingDecisionCount": 15,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 9,
+      "No problem": 3
+    }
   }
 }

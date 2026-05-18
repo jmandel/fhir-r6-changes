@@ -238,7 +238,21 @@
       "validationAndCompatibilityMd": "An R4-valid resource instance does not become invalid merely because `Resource` now specializes `Base`. R6-to-R4 instance representation is also unaffected. The compatibility concern is runtime/tooling: loaders, code generators, inheritance walkers, and differential validators need to handle `Base` before `Resource`.",
       "migrationGuidanceMd": "Update model generators and validators to treat `Base` as the R6 root and `Resource` as a specialization. Regression tests should include loading `StructureDefinition-Base.json`, walking from a concrete resource to `Resource` to `Base`, and ensuring no extra instance members are generated from `Base`.",
       "backwardCompatibilityAnalysisMd": "The change was probably made to make the FHIR type system more explicit and uniform. A compatibility-preserving alternative would have left `Resource.baseDefinition` absent and exposed `Base` only as explanatory metadata, but that would perpetuate special cases in the R6 model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Resource:ARTIFACT_IDENTITY:Resource:base-superclass",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 makes `Resource` a specialization of the new abstract `Base` StructureDefinition. That can break hierarchy walkers, differential processors, or generated model code that treated a missing `baseDefinition` on `Resource` as the root sentinel, but it does not change the `Resource` canonical identity or any resource instance wire content. Because `Base` has no local child elements, the direct compatibility issue is tooling/codegen adaptation rather than data migration.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Resource has no `baseDefinition` or `derivation`.",
+          "R6 StructureDefinition-Resource declares `baseDefinition` `http://hl7.org/fhir/StructureDefinition/Base` and `derivation` `specialization`.",
+          "R6 StructureDefinition-Base is an abstract complex type with a single root element and no local children."
+        ],
+        "fmmEffect": "R4 Resource is FMM 5 and normative, so a root hierarchy change deserves scrutiny. The stability concern is softened by the absence of an instance-shape change and by the formal type-system nature of the R6 change.",
+        "compatibilityMechanism": "runtime/API/codegen: processors or generated APIs that special-case Resource as having no superclass may need updates, but old resource instances are not made invalid.",
+        "lessBreakingAlternativeAssessment": "R6 could have left `Resource.baseDefinition` absent and described `Base` only as conceptual or auxiliary metadata. That would preserve older root-detection assumptions, but it would not deliver the same formal, computable `Base` -> `Resource` hierarchy and would keep a special case in the type model.",
+        "comparisonToExisting": "partially agree with the existing Medium runtime impact and partial alternative judgment; I agree this is a real tooling break, but I do not see an instance-level or safety-significant concern."
+      }
     },
     {
       "findingId": "Resource:SERIALIZATION_OR_CODEGEN:Resource.id:fhir-type",
@@ -368,7 +382,21 @@
       "migrationGuidanceMd": "Audit generated Resource base classes and validation code for the `id` property. Treat the R6 property as the FHIR `id` primitive and normalize legacy ids before migration. Include tests for ordinary ids, missing ids on create, conditional update cases, and invalid strings that contain whitespace or locale-like characters not allowed by an id validator.",
       "backwardCompatibilityAnalysisMd": "The R6 change is likely a correction toward the intended primitive semantics. A compatibility annotation could have eased generator migration, but retaining the generic marker would make every R6 resource continue to expose an overly broad id type.",
       "reviewerNotesMd": "The R4 package evidence conflicts with common human expectations that `Resource.id` is an `id` primitive. Human review should focus on actual validator and code-generator behavior rather than assuming all R4 systems treated it as arbitrary string.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Resource:SERIALIZATION_OR_CODEGEN:Resource.id:fhir-type",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Resource.id` keeps the same path, cardinality, summary flag, and JSON/XML scalar representation, but its computable `structuredefinition-fhir-type` hint changes from generic `string` to the narrower FHIR primitive `id`. A generator may produce a narrower property type, and an R6 validator may reject values that an R4 tool accepted because it treated the field as a generic string. The affected values are resource logical ids, so enforcing the intended id primitive is a proportionate interoperability improvement.",
+        "keyEvidence": [
+          "R4 `Resource.id` type code is `http://hl7.org/fhirpath/System.String` with `structuredefinition-fhir-type` value `string`.",
+          "R6 `Resource.id` type code remains `http://hl7.org/fhirpath/System.String` but the `structuredefinition-fhir-type` value is `id`.",
+          "R4 and R6 both keep `Resource.id` at 0..1 with the same logical-id definition and wire path."
+        ],
+        "fmmEffect": "R4 Resource is FMM 5 and normative, raising the burden for narrowing a computable type signal. The burden is met because the change aligns the base metadata with `Resource.id`'s long-standing logical-id semantics while leaving ordinary wire shape unchanged.",
+        "compatibilityMechanism": "old-valid/new-invalid: non-id-shaped logical id strings accepted by R4 string-based tooling can become invalid under R6 id-aware validation; generated APIs may also narrow from string to an id type.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could retain the `string` fhir-type marker and add prose, a warning-level rule, or a secondary annotation. That would preserve broad generated string APIs, but it would leave the authoritative primitive marker misleading or create competing metadata signals for generic tooling.",
+        "comparisonToExisting": "agree with the existing Medium/potential-hard assessment and partial alternative judgment; the compatibility risk is real but mostly limited to invalid or overly broad id handling."
+      }
     },
     {
       "findingId": "Resource:TERMINOLOGY_BINDING:Resource.language:binding-strength",
@@ -560,7 +588,21 @@
       "migrationGuidanceMd": "Inventory all resource instances with `language`. Normalize common legacy spellings such as `en_US` to BCP-47 `en-US`, reject or map local mnemonics, and document any private-use tags. Tests should cover omitted language, valid common tags, valid less-common BCP-47 tags, malformed tags, and underscore locale strings. A terminology service or BCP-47 validator should be used rather than a finite enum generated from Common Languages.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified because a base language tag should be a real BCP-47 tag. The backward-compatible alternative would have kept a preferred binding and enforced BCP-47 through profiles or warnings, preserving old data at the cost of weaker base interoperability.",
       "reviewerNotesMd": "A live terminology expansion was not run. Reviewers should confirm how their R6 terminology server validates BCP-47, including grandfathered, private-use, script, and region subtags.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Resource:TERMINOLOGY_BINDING:Resource.language:binding-strength",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Resource.language` remains optional and remains a `code`, but present values move from a preferred Common Languages binding in R4 to a required All Languages BCP-47 binding in R6. This is a genuine old-valid/new-invalid break for resources that used local, malformed, or otherwise non-BCP-47 language values. The change is broad because `Resource.language` is inherited by all resources, but the R6 goal is strong: language tags drive indexing, accessibility, generated presentations, and localization, and a base required binding makes the interoperable tag requirement machine-checkable.",
+        "keyEvidence": [
+          "R4 `Resource.language` binding strength is `preferred` with valueSet `http://hl7.org/fhir/ValueSet/languages` and a maxValueSet extension for `http://hl7.org/fhir/ValueSet/all-languages`.",
+          "R6 `Resource.language` binding strength is `required` with valueSet `http://hl7.org/fhir/ValueSet/all-languages|6.0.0-ballot4` and an additional starter binding to Common Languages.",
+          "R6 ValueSet-all-languages includes codes from `urn:ietf:bcp:47`."
+        ],
+        "fmmEffect": "R4 Resource is FMM 5 and normative, so this inherited hard validation break needs strong justification. The justification is credible because the affected element is specifically a language tag and invalid tags undermine cross-system presentation and accessibility behavior.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 resource with a present `Resource.language` value outside the BCP-47 All Languages value set can fail R6 required-binding validation.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept a preferred or extensible-style base binding, or used a best-practice warning while strict profiles required BCP-47. That would preserve legacy malformed or local codes, but it would not give receivers and generic validators a base guarantee that every present `Resource.language` is an interoperable language tag.",
+        "comparisonToExisting": "agree with the existing High hard-break assessment and partial/no-Yes alternative judgment; I would keep the concern visible but treat the stricter base rule as proportionate."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -747,5 +789,17 @@
       "R6 introduction of explicit Base superclass",
       "FHIRPath System.String elements whose structuredefinition-fhir-type marker changed"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Resource.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 3
+    }
   }
 }

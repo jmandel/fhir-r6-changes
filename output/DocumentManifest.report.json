@@ -274,7 +274,22 @@
       "migrationGuidanceMd": "Inventory stored resources, references, subscriptions, search clients, and API routes that mention `DocumentManifest`. Decide whether each manifest should become a `List`, a set of `DocumentReference` resources, a `Composition` in a document `Bundle`, a custom profile/extension, or a non-FHIR archive record. Test both payload validation and operational behavior such as reads, searches, reference resolution, and capability statements.",
       "backwardCompatibilityAnalysisMd": "The break could have been softened by retaining a deprecated resource definition or by publishing an official compatibility map. Because no such definition is present in the R6 core package, compatibility must be handled by migration tooling or profiles outside the base artifact.",
       "reviewerNotesMd": "The removal is high-confidence. The exact intended replacement is not established by the local computable artifacts, so migration guidance should not be treated as an official crosswalk.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DocumentManifest:ARTIFACT_IDENTITY:root:removed-r6",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 defines `DocumentManifest` as a concrete resource type, while the R6 ballot package has no `DocumentManifest` StructureDefinition and lists the name only in the old-types code system. That is a real top-level compatibility break: R4 instances with `resourceType: \"DocumentManifest\"`, generated model classes, REST routes, resource-type enums, and references to `DocumentManifest/{id}` do not have a base R6 resource identity. The break is still probably proportionate because the R4 artifact is trial-use/FMM 2 and the only true base-compatible alternative is to keep a deprecated resource with its operational surface alive, which would preserve duplicate document-collection modeling in core.",
+        "keyEvidence": [
+          "R4 StructureDefinition-DocumentManifest.json: type=DocumentManifest, kind=resource, abstract=false, baseDefinition=DomainResource.",
+          "R6 package .index.json has no StructureDefinition entry for DocumentManifest.",
+          "R6 CodeSystem-fhir-old-types contains DocumentManifest; R6 CodeSystem-fhir-types does not.",
+          "R4 maturity map and StructureDefinition extensions report FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral rather than a strong stability promise. It does not erase the hard resource-type break, but it makes retiring the resource more acceptable than it would be for mature or normative content.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: an R4-valid top-level DocumentManifest has no R6 base StructureDefinition, and implementations that expose DocumentManifest endpoints, generated classes, resource-type switches, or reference target checks must redesign.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could retain DocumentManifest as a deprecated or retired R6 resource for one transition release. That would preserve most R4 instances and APIs, but it is not low-cost: it keeps validators, generated models, REST/search surfaces, references, and overlapping document/list representations in the base specification. Migration maps or external profiles help implementers but are not base-compatible alternatives.",
+        "comparisonToExisting": "agree with the existing high-impact hard-break assessment and with treating the base-compatible alternative as only partial rather than clearly available; the fresh judgment frames the removal as breaking but probably OK because FMM 2 lowers the stability burden and the compatibility-preserving alternative has material tradeoffs."
+      }
     },
     {
       "findingId": "DocumentManifest:CONVERSION_OR_MAPPING:DocumentManifest.content:no-direct-r6-model",
@@ -434,7 +449,23 @@
       "migrationGuidanceMd": "Before converting, classify each R4 manifest by use case. For simple curated collections of resource references, consider an R6 `List` with a documented policy for `mode`, status mapping, identifiers, subject, date, and source. For actual document packages, assess `Composition` in a document `Bundle`. For XDS-style references, preserve or create `DocumentReference` resources and use a separate grouping mechanism. Preserve unmapped manifest metadata with extensions only after defining governance and round-trip expectations.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative would have been an official migration map plus extensions for fields without direct targets. This would not fully avoid semantic change because the possible target models emphasize different concepts, but it would reduce inconsistent local mappings and lower the cost of validating migrated instances.",
       "reviewerNotesMd": "Requires human review because the right target is deployment-specific and no official R6 ballot4 mapping was available in the local inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentManifest:CONVERSION_OR_MAPPING:DocumentManifest.content:no-direct-r6-model",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "At the affected path, R4 `DocumentManifest.content` is a required repeating `Reference(Resource)` list of the manifest parts. R6 has no same resource or same path. `List.entry.item` and `Composition.section.entry` can carry resource references, while `DocumentReference.content` represents formats or metadata for one document rather than a manifest of independent resources. A converter therefore needs workflow-specific choices, especially for whether the R4 manifest should become a List, a document Bundle/Composition pattern, or another local representation. That is real semantic migration work, but it is largely a consequence of retiring the trial-use resource and does not show a separate low-cost base design beyond retaining the old resource.",
+        "keyEvidence": [
+          "R4 DocumentManifest.content: min=1, max=*, type=Reference(Resource), definition is the list of resources that are parts of the manifest.",
+          "R4 DocumentManifest.content comment cites XDS-style sets of DocumentReference resources and EN 13606 usage with List and Composition resources.",
+          "R6 List.entry.item is Reference(Resource), but List also has required status and mode with list-specific semantics.",
+          "R6 DocumentReference.content is about the referenced document and alternate formats/attachment metadata, not a multi-resource manifest.",
+          "A local R6 package search found DocumentManifest only in CodeSystem-fhir-old-types, not in a mapping or replacement StructureDefinition."
+        ],
+        "fmmEffect": "FMM 2/trial-use keeps the stability concern moderate. The required content list is central to the old resource, but the artifact maturity does not by itself justify carrying the old content model indefinitely.",
+        "compatibilityMechanism": "semantic/documentation with conversion loss risk: this is not an additional structural validation break separate from the removed resource, but transformed R6 data can lose the intended grouping semantics or require local policy to choose List, Composition/Bundle, DocumentReference grouping, status, mode, and metadata mappings.",
+        "lessBreakingAlternativeAssessment": "For this path alone, the only strong base-compatible alternative is to keep a deprecated DocumentManifest resource with its `content` element. An official map or recommended profile could reduce inconsistent migration, but it would not make R4 instances valid R6 base instances. Keeping the old content model would preserve semantics but duplicate R6 collection/document patterns and create long-term ambiguity about the preferred carrier.",
+        "comparisonToExisting": "partially agree with the existing medium-impact, no-direct-model assessment. The fresh path-level review agrees that migration is not lossless, but it treats the finding as a semantic conversion burden after the resource removal rather than an independent hard break, and it views the less-breaking option as only partial."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -553,5 +584,17 @@
       "References to removed resource types in profiles, examples, CapabilityStatements, and extensions",
       "SearchParameter and REST endpoint removals for deleted resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DocumentManifest.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2
+    }
   }
 }

@@ -430,7 +430,22 @@
       "validationAndCompatibilityMd": "An R6 StructureDefinition validator rejects legacy defaultValueBoolean/defaultValueCodeableConcept/etc. as unknown elements, and rejects direct non-string values on defaultValue. Code generators change from a choice-discriminated property family to a scalar string property.",
       "migrationGuidanceMd": "Scan source rules for defaultValue* members. Convert defaultValueString to defaultValue. For every other suffix, decide whether the R6 map should use a string literal, a new const, a transform parameter, or custom preprocessing.",
       "backwardCompatibilityAnalysisMd": "A tolerant importer can accept old suffixes and emit warnings, but a strict R6 instance cannot preserve arbitrary R4 typed defaults without extensions or out-of-band metadata.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureMap:TYPE_DOMAIN:group.rule.source.defaultValue:choice-to-string",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed `StructureMap.group.rule.source.defaultValue[x]` as a broad choice, while R6 narrows the base element to a single string-valued `defaultValue`. An R4 map that used a typed default such as an integer, boolean, date, or Coding would need a transform or expression rewrite before it validates or runs as an R6 map. That is a real path-level migration break, but the affected resource was R4 FMM 2/trial-use and local core examples did not show this pattern. The R6 design appears to favor expression/text-based map defaults over carrying the full FHIR primitive/complex choice set in the map metadata, so preserving every old typed default in the base model would keep a large and probably underused type surface.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `StructureMap.group.rule.source.defaultValue[x]` has many FHIR choice types.",
+          "R6 StructureDefinition: `StructureMap.group.rule.source.defaultValue` is `string`.",
+          "Targeted local R4 StructureMap example search did not find `defaultValue[x]` use.",
+          "Supplied maturity context: R4 StructureMap FMM 2, trial-use."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral under the framework: it does not erase the old-valid/new-invalid break, but it lowers the stability burden compared with mature or normative content.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances using non-string `defaultValue[x]` properties are outside the R6 element shape and require conversion before validation or execution.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained `defaultValue[x]`, or at least retained the old choice with deprecation. That would preserve old maps but would also keep broad typed default semantics in a map language that R6 appears to simplify to string expressions; the tradeoff is material rather than obviously low cost.",
+        "comparisonToExisting": "partially agree: the existing report is right that this is a hard type-domain break and that a compatibility-preserving alternative is possible, but I would soften the concern because the path is FMM 2/trial-use and no local examples showed use of typed defaults."
+      }
     },
     {
       "findingId": "StructureMap:ELEMENT_PRESENCE_OR_IDENTITY:group.rule.target.contextType:removed",
@@ -587,7 +602,22 @@
       "migrationGuidanceMd": "For each target, drop contextType only when it is 'variable' and the context value is still meaningful. For contextType='type', rewrite the map to create or bind the target explicitly using R6 variable-based syntax and verify execution behavior.",
       "backwardCompatibilityAnalysisMd": "An R6 parser could ignore contextType as a legacy field, but silently doing so for type contexts risks changing transform output. A downgrade converter must choose a contextType and may need to normalize context values to R4 id syntax.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Local R4 examples in the package use target.contextType, increasing confidence that this affects real R4 maps."
+      "reviewerNotesMd": "Local R4 examples in the package use target.contextType, increasing confidence that this affects real R4 maps.",
+      "freshReview": {
+        "findingId": "StructureMap:ELEMENT_PRESENCE_OR_IDENTITY:group.rule.target.contextType:removed",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 target contexts carried both `target.context` and required `target.contextType` to say whether the context named a type or a variable. R6 removes `contextType` and changes the target context semantics toward a string variable. Existing R4 maps that say `contextType = variable` become structurally invalid even though their meaning can often be preserved by simply dropping the redundant discriminator. Maps that used `contextType = type` need a more semantic rewrite. Because the old element was required whenever context was present, this is a direct wire-format/API break on a central StructureMap target construct, and the common `variable` case looks avoidable.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `StructureMap.group.rule.target.contextType` is bound to `type | variable` and R4 invariant `smp-2` requires it when `target.context` is present.",
+          "R6 StructureDefinition: no `target.contextType` element; `target.context` is a `string` described as `Variable this rule applies to`.",
+          "R4 core examples `StructureMap-example.json` and `StructureMap-supplyrequest-transform.json` both use `contextType: variable`.",
+          "Supplied maturity context: R4 StructureMap FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, so I do not treat the break as automatically unacceptable. The path is still central to executable map targets, and local examples show use.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 maps with `target.contextType` fail the R6 structure and generated model property expectations; dropping or rewriting the discriminator is needed before engines can process the R6 form.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design is to keep `contextType` as optional/deprecated, accepting `variable` as equivalent to omission and defining a clear migration for `type`. That preserves the common R4 wire form with little duplication because the element is only a discriminator for the adjacent context.",
+        "comparisonToExisting": "agree: the existing report's high concern and less-breaking-alternative judgment are directionally right, though the fresh rationale emphasizes the avoidable `variable` case and the local R4 examples rather than the whole resource."
+      }
     },
     {
       "findingId": "StructureMap:CONVERSION_OR_MAPPING:group.rule.dependent.variable:parameter",
@@ -719,7 +749,22 @@
       "validationAndCompatibilityMd": "R6 validation rejects dependent.variable as unknown and requires dependent.parameter when a dependent component is present. R4 validation rejects dependent.parameter because the element does not exist.",
       "migrationGuidanceMd": "Rewrite each dependent.variable entry to dependent.parameter. Use valueId when the old value is a variable identifier; use valueString or another value[x] type only when the mapping language semantics require a literal typed parameter. Preserve ordering.",
       "backwardCompatibilityAnalysisMd": "A bidirectional converter can preserve simple variable-name calls, but R6 typed parameters cannot be represented in R4 without degrading them to strings or using extensions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureMap:CONVERSION_OR_MAPPING:group.rule.dependent.variable:parameter",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 represented dependent group call arguments as repeatable strings in `group.rule.dependent.variable`; R6 replaces that with `group.rule.dependent.parameter`, reusing the target parameter backbone and its typed `value[x]`. Existing R4 maps must rename and re-shape each argument before they validate as R6. The migration is usually mechanical for simple variable names, but can require policy if a string was being used ambiguously as a variable name versus a literal or expression. The R6 model is more consistent with other StructureMap parameter handling, so the break looks proportionate despite the real migration work.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `StructureMap.group.rule.dependent.variable` is `1..* string`.",
+          "R6 StructureDefinition: `StructureMap.group.rule.dependent.parameter` is `0..*` and content-references `StructureMap.group.rule.target.parameter`.",
+          "R6 target parameter uses typed `value[x]` choices, so this is more than a simple wire-name rename.",
+          "Supplied maturity context: R4 StructureMap FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it supports accepting a coherent model cleanup when the migration burden is narrow and mostly mechanical.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 `variable` array entries are not valid R6 dependent arguments and generated code must use the new `parameter` backbone.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `variable` as a deprecated alias for the simple variable-name case, but that would duplicate the new typed parameter representation and require conflict rules if both old and new forms appear. The alternative is feasible but not clearly better for the base model.",
+        "comparisonToExisting": "partially agree: the existing report correctly sees a hard mapping-shape change and a possible partial compatibility design, but I would not rate it as needing renewed design attention because the R6 parameter model has a coherent goal and the alias alternative has real duplication costs."
+      }
     },
     {
       "findingId": "StructureMap:TERMINOLOGY_BINDING:group.typeMode:none-removed",
@@ -913,7 +958,22 @@
       "validationAndCompatibilityMd": "R6 validation fails because 'none' is no longer in the required value set. R4 validation fails for an omitted typeMode because R4 requires the element. R6-to-R4 downgrade must choose a value, likely 'none' for omitted typeMode.",
       "migrationGuidanceMd": "Replace typeMode='none' by omitting group.typeMode in R6, subject to manual review that the group is not intended as a default type mapping. Preserve 'types' and 'type-and-types' unchanged.",
       "backwardCompatibilityAnalysisMd": "A compatibility parser could accept 'none' as a legacy synonym for absence, but standards-based R6 required-binding validation will still report it unless compatibility handling is explicit.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureMap:TERMINOLOGY_BINDING:group.typeMode:none-removed",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 required every group to carry `group.typeMode`, and the code system included `none` for groups that were not default type mappings. R6 makes `typeMode` optional and removes the `none` code. This invalidates ordinary R4 maps that explicitly set the required R4 value `none`, even though the R6 representation appears to express the same state by omission. Because this looks like a mechanical cleanup from required sentinel code to optional absence, R6 could likely have preserved the old wire form while still encouraging omission.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `StructureMap.group.typeMode` is `1..1` with required binding to `map-group-type-mode`.",
+          "R4 CodeSystem `map-group-type-mode` includes `none`, `types`, and `type-and-types`.",
+          "R6 StructureDefinition: `group.typeMode` is `0..1`; R6 CodeSystem removes `none`.",
+          "R4 core examples both use `typeMode: none`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the path was mandatory in R4 and local examples show the removed code was a normal representation, so the compatibility mechanism matters more than low maturity.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 maps with `typeMode = none` use a required-bound code that no longer exists in R6 and must be transformed to omission.",
+        "lessBreakingAlternativeAssessment": "A low-cost less-breaking design would keep `none` as a deprecated synonym for absence, or permit it with guidance to omit it in new maps. That avoids invalidating the mandatory R4 sentinel without preserving a complex obsolete model.",
+        "comparisonToExisting": "agree: the existing report's hard-break concern and `Yes` less-breaking-alternative direction match the fresh path-level assessment."
+      }
     },
     {
       "findingId": "StructureMap:TERMINOLOGY_BINDING:target.listMode:collate-single",
@@ -1090,7 +1150,22 @@
       "validationAndCompatibilityMd": "Validators enforce required code membership. Execution engines may also branch on the code, so old engines will not understand 'single' and new engines will not understand 'collate' unless they implement compatibility behavior.",
       "migrationGuidanceMd": "Inventory uses of listMode. Preserve first/share/last. For collate, review intended target-list behavior and choose an R6 representation explicitly. For R6-to-R4, decide whether single can be approximated or must be rejected as non-representable.",
       "backwardCompatibilityAnalysisMd": "No lossless backward-compatible encoding exists in the standard R4/R6 element without a compatibility code map or extension.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureMap:TERMINOLOGY_BINDING:target.listMode:collate-single",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 permitted `target.listMode = collate`; R6 removes `collate` and adds `single`. The published code definitions do not make this a safe rename: R4 `collate` says to reuse the first list item and keep adding content, while R6 `single` describes sharing target instances generated by another rule. A map using `collate` therefore needs an engine-level semantic decision, not just a textual code replacement. Since list assembly affects transformation output, a removed required-bound code with unclear replacement semantics deserves standards review unless there is stronger rationale elsewhere.",
+        "keyEvidence": [
+          "R4 CodeSystem `map-target-list-mode` includes `collate`: `re-use the first item in the list, and keep adding content to it`.",
+          "R6 CodeSystem `map-target-list-mode` removes `collate` and adds `single`: sharing target instances generated by another rule.",
+          "The binding is required in the StructureMap target list-mode path.",
+          "Targeted local R4 StructureMap examples did not show `listMode: collate`, so prevalence was not established from local core examples."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral and prevents assuming broad deployment from the break alone, but transformation list semantics are directly executable and migration may require expert judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 maps using `collate` fail R6 terminology validation and engines cannot safely infer whether `single` is the intended behavior.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could retain `collate` as deprecated, or explicitly define `single` as an alias if that was the intent. Retaining a list assembly mode may carry engine burden, but the current evidence does not show that the burden outweighs preserving old maps.",
+        "comparisonToExisting": "partially agree: the existing report is right to flag a high-impact terminology break and only a partial alternative, but the fresh review treats the exact semantics of `collate` versus `single` as the key reason for renewed review."
+      }
     },
     {
       "findingId": "StructureMap:VALUE_CONSTRAINT:source.min-max:tightened",
@@ -1222,7 +1297,22 @@
       "validationAndCompatibilityMd": "R6 validators fail negative min values, non-numeric non-star max values, and cases where min exceeds numeric max. R4 validators did not have these StructureMap-owned invariants.",
       "migrationGuidanceMd": "Normalize source cardinalities before R6 validation. Remove invalid min/max values if they were not meaningful, or correct them to the intended non-negative cardinality range.",
       "backwardCompatibilityAnalysisMd": "This is backward compatible for semantically well-formed maps and breaking only for maps that relied on permissive R4 structural validation of nonsensical cardinality values.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "StructureMap:VALUE_CONSTRAINT:source.min-max:tightened",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 tightens source cardinality metadata by making `source.min` an `unsignedInt` and adding error constraints that `min` must not exceed numeric `max`, and that `max` must be `*` or an integer. That can reject R4 instances that were structurally allowed but semantically suspect, such as negative minima, nonnumeric maxima, or `min > max`. This is a real validator behavior change, but it aligns the computable model with the stated meaning of cardinality and avoids executable maps with impossible source occurrence rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `StructureMap.group.rule.source.min` is `integer`; `source.max` is `string` with prose `Specified maximum cardinality... - a number or a *`.",
+          "R6 StructureDefinition: `source.min` is `unsignedInt`.",
+          "R6 constraints `smp-2` and `smp-3` enforce `min <= max` and `max` being an integer or `*`.",
+          "Supplied maturity context: R4 StructureMap FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It does not demand preserving malformed cardinality values when the R6 constraint improves consistency of executable map rules.",
+        "compatibilityMechanism": "old-valid/new-invalid: some R4 maps that passed structural validation because of loose integer/string typing now fail R6 validation when cardinality values are nonsensical.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could make these warnings rather than errors, but that would allow impossible cardinality metadata to remain valid in executable maps. The stricter base invariant is a reasonable safety/computability tradeoff.",
+        "comparisonToExisting": "partially agree: the existing report correctly identified a validator-tightening break, but the fresh assessment views it as proportionate and mostly limited to bad or ambiguous cardinality values."
+      }
     },
     {
       "findingId": "StructureMap:TYPE_DOMAIN:target.parameter.value:date-time-added",
@@ -1383,7 +1473,22 @@
       "validationAndCompatibilityMd": "R4 validation rejects valueDate, valueTime, and valueDateTime under target.parameter. R4-generated code usually lacks those choice branches. R6 validation accepts them.",
       "migrationGuidanceMd": "For R6-to-R4 conversion, decide whether a date/time parameter can safely become valueString or whether the map must remain R6-only. Preserve date/time typing for R6-native execution where possible.",
       "backwardCompatibilityAnalysisMd": "This change does not break existing R4 instances when moving forward to R6, but it expands the valid R6 instance space beyond R4's model.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureMap:TYPE_DOMAIN:target.parameter.value:date-time-added",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds `date`, `time`, and `dateTime` choices to `target.parameter.value[x]`. That is a widening for R4-to-R6 migration: every R4 parameter value type remains available, and old R4 maps are not made invalid by the added choices. A new R6 map that uses one of the added temporal choices may not be representable in an R4-only StructureMap processor, but that is a reverse-direction/new-feature issue rather than a problem with migrating R4 content forward.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `StructureMap.group.rule.target.parameter.value[x]` includes the older set of primitive/complex choices but not `date`, `time`, or `dateTime`.",
+          "R6 StructureDefinition: `target.parameter.value[x]` includes added `date`, `time`, and `dateTime` choices.",
+          "No R4 element is narrowed or removed by this specific change.",
+          "Supplied maturity context: R4 StructureMap FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use does not materially affect the judgment because the change is additive for forward compatibility.",
+        "compatibilityMechanism": "R6-to-R4 loss: only maps that choose the new R6 temporal parameter types have downgrade problems; R4-to-R6 validation is not broken.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed. Omitting useful new value types would be more restrictive, and adding them does not invalidate R4 maps.",
+        "comparisonToExisting": "disagree: the existing report's reverse-conversion concern is technically real, but as a fresh R4-to-R6 path-level review this additive widening is not a meaningful breaking change."
+      }
     },
     {
       "findingId": "StructureMap:CARDINALITY:group.rule-name:min-relaxed",
@@ -1484,7 +1589,22 @@
       "validationAndCompatibilityMd": "R4 validation fails when group.rule is absent or rule.name is absent. R6 validation allows both. R4-based generated code may have non-null assumptions for these fields.",
       "migrationGuidanceMd": "For R6-to-R4 downgrades, reject empty groups or anonymous rules unless a deterministic, semantically safe placeholder can be supplied. Do not invent executable rules just to satisfy R4 cardinality.",
       "backwardCompatibilityAnalysisMd": "No R4-to-R6 break exists for this change, but it is a material representability and codegen risk for consumers that accept R6 and then emit or process R4.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "StructureMap:CARDINALITY:group.rule-name:min-relaxed",
+        "judgment": "No problem",
+        "narrativeMd": "R6 relaxes required cardinalities for rules and rule names. That means some R6 maps may not downgrade cleanly to R4, but it does not invalidate any R4 map or remove an R4 wire element. Forward migration from R4 to R6 can keep the existing rule names and rules unchanged. Any risk is limited to R4-era tooling making assumptions while consuming new R6 maps, not to the R4-to-R6 compatibility of existing content.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `StructureMap.group.rule` and `StructureMap.group.rule.name` have minimum cardinality 1.",
+          "R6 StructureDefinition: the same paths have minimum cardinality 0.",
+          "No R4-valid instance becomes invalid because of a minimum-cardinality relaxation.",
+          "Supplied maturity context: R4 StructureMap FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use does not raise concern because the change is relaxing, not tightening, for R4 content moving forward.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 map that omits rules or rule names may not be expressible as R4, but R4 maps remain valid with respect to this path.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for R4-to-R6. Keeping R6 names mandatory would avoid reverse downgrade loss but would also block the R6 relaxation without preserving any R4 instance that would otherwise fail.",
+        "comparisonToExisting": "disagree: the existing report correctly notices a downgrade issue, but its impact framing overstates the relevance to R4-to-R6 compatibility."
+      }
     },
     {
       "findingId": "StructureMap:CONVERSION_OR_MAPPING:const:added",
@@ -1576,7 +1696,22 @@
       "validationAndCompatibilityMd": "R4 validation rejects StructureMap.const as an unknown root element. R4 engines that parse only R4 map definitions will not resolve R6 constants unless they implement an extension convention or preprocessing step.",
       "migrationGuidanceMd": "For R6-to-R4 conversion, inline constant values or store them in an agreed extension only after verifying every reference site. Prefer keeping maps that rely on const as R6-native when exact behavior matters.",
       "backwardCompatibilityAnalysisMd": "The addition is safe for R4-to-R6 import but creates a non-representable R6 feature for R4 export.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureMap:CONVERSION_OR_MAPPING:const:added",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds an optional root-level `StructureMap.const` backbone for named FHIRPath expressions. This does not make any R4 StructureMap invalid and does not require existing maps to add constants. It is a new R6 authoring feature; the only compatibility issue is that R6 maps using `const` cannot be interpreted by R4-only processors without expansion or transformation. I also did not find the old report's claimed required child burden in the R6 StructureDefinition: the added `const.name` and `const.value` children are optional in the base definition.",
+        "keyEvidence": [
+          "R4 StructureDefinition: no `StructureMap.const` element.",
+          "R6 StructureDefinition: `StructureMap.const` is added as `0..*`.",
+          "R6 StructureDefinition: `StructureMap.const.name` and `StructureMap.const.value` are each `0..1`, not required in the base element definition.",
+          "Supplied maturity context: R4 StructureMap FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use has little effect because the change is optional and additive for forward migration.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 maps that rely on `const` need expansion or transformation for R4 processors, but existing R4 maps do not break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed. Adding an optional construct is already the compatibility-preserving way to introduce constants; requiring authors to avoid constants would merely suppress a new feature.",
+        "comparisonToExisting": "disagree: the existing report treats the addition as a higher conversion problem and appears to overstate the child cardinalities; the fresh evidence shows an optional additive feature with only reverse/new-feature impact."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1747,5 +1882,19 @@
       "Required-binding code removals in conformance resources",
       "Choice-to-scalar serialization changes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/StructureMap.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 3,
+      "No problem": 3
+    }
   }
 }

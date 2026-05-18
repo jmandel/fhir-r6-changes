@@ -4,6 +4,10 @@ This checklist covers FHIR behavior outside the resource/datatype data model.
 Use it to drive the `OperationDefinitions`, `SearchParameters`, and
 `HttpRestBehavior` auxiliary reports.
 
+Batch execution plan and scripts now live in
+`/home/jmandel/hobby/r6breaks/docs/behavior-batch-plan.md`. Use that plan for
+parallel operation fanout and local rendered-page source preparation.
+
 Authoritative computable inputs are the local package files:
 
 - R4: `/home/jmandel/hobby/r6breaks/fhir-definitions/r4-4.0.1/package`

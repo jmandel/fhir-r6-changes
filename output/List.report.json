@@ -310,7 +310,22 @@
       "migrationGuidanceMd": "During R4→R6 migration, wrap any populated `List.subject` object in a one-item array and update generated model accessors and tests. During R6→R4 conversion, reject, split, or extension-map Lists with more than one subject; do not silently choose the first subject because that can alter compartment and access-control semantics.",
       "backwardCompatibilityAnalysisMd": "The model goal appears to be first-class support for multi-subject Lists. A backward-compatible alternative would have preserved `List.subject` as singleton and added a separate repeating element or extension for additional subjects. That would have avoided the JSON shape break but would also have made multi-subject discovery and generic processing less uniform.",
       "reviewerNotesMd": "This finding intentionally separates the singleton-to-array representation break from the separate target-profile widening on the same element.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "List:SERIALIZATION_OR_CODEGEN:List.subject:6b3f2a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `List.subject` was an optional singleton, so a populated JSON instance used an object; R6 makes the same path repeating, so the R6 JSON shape is an array even for one subject. That is a real old-valid/new-invalid and generated-API break: an R4 medicine or problem list with `subject: {\"reference\":\"Patient/123\"}` needs array wrapping before R6 validation, and R6 multi-subject lists cannot round-trip to the R4 base path. The R6 goal of representing multiple common subjects is coherent, and the required migration for existing single-subject instances is mechanical. Given the R4 artifact's low maturity, this does not look disproportionate enough to require standards redesign.",
+        "keyEvidence": [
+          "R4 StructureDefinition-List.json: `List.subject` max `1`, target profiles Patient, Group, Device, Location.",
+          "R6 StructureDefinition-List.json: `List.subject` max `*`, target profile Resource, with a comment warning that multiple subjects can challenge subject-based access control.",
+          "R4 maturity map: List is FMM 1 and trial-use.",
+          "Targeted web check found some implementation relevance, not broad normative reliance: HL7 AU Base R4 AU Medicine List profile describes a patient medicine list and examples serialize `subject` as an R4 singleton object; MuleSoft FHIR R4 List library describes List use for allergies, medications, workflow lists, and patient-specific curated lists."
+        ],
+        "fmmEffect": "R4 List is FMM 1/trial-use, which substantially softens the stability concern. The AU Base and vendor examples show the path can matter in implemented exchanges, but they do not overcome the low-FMM expectation or the mechanical nature of the single-subject migration.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: populated R4 JSON uses an object where R6 expects an array, and generated models change from a nullable/reference property to a collection. There is also R6-to-R4 loss for multiple subjects.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept `List.subject` as 0..1 and added a new repeating `additionalSubject`-style element. That would preserve most R4 instances, but it would split one subject concept across two paths and force generic search, compartment, display, and access-control logic to merge them. A FHIR-JSON singleton exception would be even broader and inconsistent with normal repeating-element encoding. The alternatives have material interoperability and security-processing tradeoffs.",
+        "comparisonToExisting": "partially agree with the existing report: the hard JSON/codegen break and high reverse-conversion risk are real, but the existing High impact framing gives too little weight to FMM 1/trial-use and to the tradeoffs of the less-breaking alternatives."
+      }
     },
     {
       "findingId": "List:REFERENCE_TARGET:List.subject:4aa218",
@@ -447,7 +462,22 @@
       "migrationGuidanceMd": "Update validators, generated target-type unions, authorization logic, and search/indexing code to allow arbitrary resource targets or to enforce a local profile if the system still requires a narrower set. For R6→R4, reject or extension-map non-R4 targets rather than rewriting them to an imprecise allowed target.",
       "backwardCompatibilityAnalysisMd": "The broad target domain was not the only possible design. HL7 could have added a smaller set of likely target profiles or relied on extensions/profiles for uncommon subjects. The chosen base-model flexibility is useful but shifts safety and interoperability checks to implementation guides and business rules.",
       "reviewerNotesMd": "Review with compartment and search-parameter analyses; broad subjects may alter which patient or organizational contexts a List participates in.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "List:REFERENCE_TARGET:List.subject:4aa218",
+        "judgment": "No problem",
+        "narrativeMd": "The target-domain change by itself widens `List.subject` from Patient, Group, Device, and Location to any Resource. Every R4-allowed target remains allowed in R6, so this specific finding does not make old instances invalid. Implementers consuming new R6 data may need to handle subject references to resource types that R4 code did not expect, and such instances do not down-convert cleanly to R4, but that is a reverse/new-content concern rather than a breaking R4-to-R6 base compatibility issue. The separate array-shape break is covered by the serialization finding.",
+        "keyEvidence": [
+          "R4 StructureDefinition-List.json: `List.subject` target profiles are Patient, Group, Device, and Location.",
+          "R6 StructureDefinition-List.json: `List.subject` target profile is Resource.",
+          "R6 comment on `List.subject` flags access-control challenges for multiple subjects; that concern is mainly tied to multiplicity and local policy, not to invalidating R4 target references.",
+          "R4 maturity map: List is FMM 1 and trial-use."
+        ],
+        "fmmEffect": "Low FMM further reduces the case for revisiting a pure widening. The production-use evidence found for List does not show that the R4 base target set needs to remain closed for compatibility.",
+        "compatibilityMechanism": "R6-to-R4 loss and possible runtime/API/codegen broadening only: R6 subjects outside the four R4 targets cannot be represented in the R4 base element, but no R4 target becomes invalid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed to preserve R4 instances because the change is target widening. A narrower R6 target list or profile-level constraints might improve static validation for some communities, but that would constrain the R6 goal rather than avoid an R4-to-R6 break.",
+        "comparisonToExisting": "disagree with the existing High impact judgment for this finding. I agree that broad targets can create reverse-conversion and policy work, but the independent path-level assessment finds no meaningful R4-to-R6 compatibility problem from the target widening itself."
+      }
     },
     {
       "findingId": "List:REFERENCE_TARGET:List.source:2e93bd",
@@ -607,7 +637,22 @@
       "validationAndCompatibilityMd": "An R4 instance with a Practitioner, PractitionerRole, Patient, or Device source remains structurally compatible with R6. An R6 instance using Organization, RelatedPerson, CareTeam, or Group as the source is invalid against R4 core target constraints unless the data is moved to an extension or constrained by a compatible profile.",
       "migrationGuidanceMd": "Update source-target validation and generated reference wrappers to include the four added targets. For down-conversion, preserve the actor via an extension or reject the conversion if the receiving R4 system cannot accept non-core targets.",
       "backwardCompatibilityAnalysisMd": "The change is a reasonable base-model widening for author/source accountability. It could have been less disruptive by using extensions, but that would hide the source from generic processing and make common institutional authorship less interoperable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "List:REFERENCE_TARGET:List.source:2e93bd",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds Organization, RelatedPerson, CareTeam, and Group as allowed `List.source` targets while preserving the R4 Practitioner, PractitionerRole, Patient, and Device targets and the same 0..1 wire shape. Existing R4 instances remain valid at this path. R6 instances using one of the new author/source actors may not fit the R4 base model, and strongly typed generated code may broaden its accepted target union, but those are expected effects of an additive target widening rather than a concerning R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 StructureDefinition-List.json: `List.source` targets Practitioner, PractitionerRole, Patient, and Device.",
+          "R6 StructureDefinition-List.json: `List.source` also allows Organization, RelatedPerson, CareTeam, and Group.",
+          "HL7 AU Base R4 AU Medicine List used an extension for RelatedPerson authorship instead of `List.source`, illustrating that at least one R4 IG had to work around the narrower source target set.",
+          "R4 maturity map: List is FMM 1 and trial-use."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens any stability objection, and the change is widening rather than restrictive. The low maturity plus plausible authorship/accountability use cases support treating this as acceptable.",
+        "compatibilityMechanism": "R6-to-R4 loss only, with minor runtime/API/codegen broadening: new R6 source targets may not map to R4 core `List.source`, but all R4 source targets remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is applicable because R4 instances are preserved. Keeping the new actors in extensions or profiles would reduce base-model breadth, but it would also keep common source/accountability cases out of generic processing and would not improve R4-to-R6 compatibility.",
+        "comparisonToExisting": "partially agree with the existing report: the reverse-mapping gap is real, but the Medium impact framing overstates the R4-to-R6 concern for a pure additive target change."
+      }
     },
     {
       "findingId": "List:VALUE_CONSTRAINT:List.root:91c0af",
@@ -770,7 +815,22 @@
       "migrationGuidanceMd": "Decide whether the receiving system will accept the R6 relaxation or retain R4-compatible policy as a local profile. For R6→R4, either reject these combinations, remove the incompatible entry metadata with explicit loss accounting, or transform to a profile/extension that the R4 receiver understands. Test mode combinations for `working`, `snapshot`, and `changes` with and without `deleted` and `date`.",
       "backwardCompatibilityAnalysisMd": "If the goal was broader use of entry metadata, a warning-level invariant or profile-based relaxation would have been more backward-compatible than removing the hard constraints from the base resource. The tradeoff is that retaining warnings may continue to discourage valid R6 use cases.",
       "reviewerNotesMd": "Because `entry.deleted` is a modifier, human review should confirm that local UI, reconciliation, and completeness logic does not silently treat deleted entries as active list members.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "List:VALUE_CONSTRAINT:List.root:91c0af",
+        "judgment": "No problem",
+        "narrativeMd": "R4 had hard invariants tying `entry.deleted` to `mode = changes` and `entry.date` to `mode = working`; R6 removes those constraints and related condition text. This is a validation relaxation, so R4-valid Lists remain valid with respect to these rules. New R6 combinations may be rejected by R4 validators or by local profiles that keep the old policy, and consumers still need to honor `entry.deleted` as a modifier, but the change does not create an old-valid/new-invalid break. Without stronger evidence of production reliance on the exact R4 invariants, the low-FMM context makes this a reverse/semantic policy concern rather than a standards revisit issue.",
+        "keyEvidence": [
+          "R4 StructureDefinition-List.json root constraints include `lst-2` (`mode = 'changes' or entry.deleted.empty()`) and `lst-3` (`mode = 'working' or entry.date.empty()`).",
+          "R6 StructureDefinition-List.json root constraints retain `lst-1` but omit `lst-2` and `lst-3`.",
+          "R4 `List.entry.deleted` condition includes `lst-2`; R6 `List.entry.deleted` has no such condition but remains a modifier explaining deleted display semantics.",
+          "R4 and R6 `List.mode` text both say mode is a modifier because a change list must not be misunderstood as a complete list."
+        ],
+        "fmmEffect": "FMM 1/trial-use reduces the stability burden for relaxing mode-dependent constraints. The modifier nature of `entry.deleted` keeps this worth noticing, but it is not enough to treat a non-restrictive change as a material R4-to-R6 break.",
+        "compatibilityMechanism": "R6-to-R4 loss and semantic/conformance relaxation: R6 permits combinations R4 rejected, but no R4-valid instance is newly invalid in R6.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the old rules as warnings or moved the relaxation to profiles, but that would preserve conformance pressure rather than preserve R4 instances. Retaining the hard constraints would fail the apparent R6 goal of allowing broader entry metadata use. Local profiles can still reimpose the R4 policy when needed.",
+        "comparisonToExisting": "disagree with the existing Medium impact and human-review emphasis for R4-to-R6 compatibility. I agree with the factual finding that the constraints were removed, but independently judge the result as a low-FMM relaxation with primarily reverse-direction effects."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -935,5 +995,18 @@
       "Reference target sets widened to Resource or broader actor sets",
       "Removed mode-dependent constraints involving modifier elements"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/List.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1,
+      "No problem": 3
+    }
   }
 }

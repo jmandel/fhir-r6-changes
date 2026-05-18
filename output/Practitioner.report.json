@@ -374,7 +374,23 @@
       "migrationGuidanceMd": "Transform each R4 `communication` item to an R6 object with `language` equal to the old CodeableConcept. Decide whether any local extensions or business rules can populate `preferred`. For reverse conversion, unwrap `language` and preserve `preferred` in an extension if it matters. Update generated models, serializers, FHIRPath expressions, and tests that address `Practitioner.communication.coding` directly.",
       "backwardCompatibilityAnalysisMd": "The break was partly avoidable if preference had been modeled as an extension, but a backbone element is a reasonable base-model choice once per-language metadata is required. The tradeoff is a non-compatible wire-format change for a previously simple repeating datatype.",
       "reviewerNotesMd": "The same path name can hide the break in shallow diffs; type-aware comparison is required.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Practitioner:TYPE_DOMAIN:Practitioner.communication:ca8305",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `Practitioner.communication` was a repeating `CodeableConcept`; R6 keeps the path but makes each repetition a `BackboneElement` with mandatory `language` and optional `preferred`. That is a real wire-format and generated-model break: an R4 item with `communication[0].coding` is not the R6 shape and SDKs will expose a component rather than a `CodeableConcept`. The forward migration is usually mechanical by wrapping the old value as `communication.language`, and the R6 goal of supporting per-language metadata is coherent, so the break looks proportionate despite the migration burden.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot element `Practitioner.communication`: `0..* CodeableConcept`, preferred binding to `ValueSet/languages`.",
+          "R6 StructureDefinition snapshot element `Practitioner.communication`: `0..* BackboneElement`.",
+          "R6 StructureDefinition snapshot child `Practitioner.communication.language`: `1..1 CodeableConcept`.",
+          "R6 StructureDefinition snapshot child `Practitioner.communication.preferred`: `0..1 boolean`.",
+          "R4 maturity map: Practitioner is FMM 3 and standards status trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use means this mature resource deserves compatibility scrutiny, but not the near-normative burden of FMM 5. The hard shape break matters, especially for provider-directory language data, but the maturity level does not by itself make a coherent restructuring unacceptable.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `coding` or `text` directly under each `communication[]` item do not match the R6 BackboneElement shape; runtime/API/codegen also changes from a simple `CodeableConcept` array to a component array.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have kept `Practitioner.communication` as `CodeableConcept` and added a separate base preference mechanism or a new richer element, but that would create parallel representations and conflict rules for the same language facts. A core extension alone would be a mitigation, not an equally strong base design.",
+        "comparisonToExisting": "agree with the existing hard/high impact assessment and partially agree with its Partial alternative judgment; the break is real, but the alternative has enough duplication cost that the final judgment is Breaking but probably OK."
+      }
     },
     {
       "findingId": "Practitioner:TERMINOLOGY_BINDING:Practitioner.communication:435fa0",
@@ -531,7 +547,23 @@
       "migrationGuidanceMd": "Normalize communication languages to IETF BCP 47 where possible before or during migration. Keep original local text/codings as additional CodeableConcept content or extensions when needed, but include at least one valid BCP 47 coding for R6. Test text-only, local-code, common-language, and regional-tag cases with a terminology server.",
       "backwardCompatibilityAnalysisMd": "The stronger binding improves computability but could have been introduced less disruptively through guidance or profiles. The base-model strengthening is more interoperable but imposes data cleanup on legacy R4 instances.",
       "reviewerNotesMd": "Confidence is medium rather than high because no live expansion or official terminology diff was run.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Practitioner:TERMINOLOGY_BINDING:Practitioner.communication:435fa0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "After the structural migration, the language CodeableConcept is no longer merely preferred-bound. R6 requires `Practitioner.communication.language` to draw from `all-languages`, so legacy text-only or locally coded language entries that were R4-valid can fail strict R6 terminology validation. The interoperability goal is strong because BCP 47 language tags are the standard computable representation, and the R6 value set is broader than the R4 starter/common language list, so this looks like justified cleanup rather than a disproportionate break.",
+        "keyEvidence": [
+          "R4 `Practitioner.communication.binding`: strength `preferred`, value set `http://hl7.org/fhir/ValueSet/languages`, with maxValueSet extension to all-languages.",
+          "R6 `Practitioner.communication.language.binding`: strength `required`, value set `http://hl7.org/fhir/ValueSet/all-languages|6.0.0-ballot4`, with starter value set `languages`.",
+          "R6 `ValueSet/all-languages`: compose includes system `urn:ietf:bcp:47`.",
+          "R4 `ValueSet/languages`: compose includes 56 starter/common BCP 47 concepts.",
+          "R4 maturity map: Practitioner is FMM 3 and standards status trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use keeps the burden meaningful because language data is a plausible directory and workflow concern. It does not make a required BCP 47 binding suspect by default, especially where the R6 goal is computable interoperability.",
+        "compatibilityMechanism": "old-valid/new-invalid: a migrated text-only or local-code `CodeableConcept` that satisfied an R4 preferred binding may fail the R6 required all-languages binding unless it includes a valid BCP 47 coding.",
+        "lessBreakingAlternativeAssessment": "Partial: keeping the binding preferred or making it extensible would preserve more legacy data, or R6 could have used warning/profile guidance. Those alternatives materially weaken the base guarantee that every R6 communication language is computable as a BCP 47 tag.",
+        "comparisonToExisting": "agree with the existing medium/potential impact and Partial alternative judgment; the risk is narrower than the structural break but still real for strict validators and text/local-code data."
+      }
     },
     {
       "findingId": "Practitioner:SEMANTIC_OR_CONFORMANCE_TEXT:Practitioner.communication:44f3d5",
@@ -664,7 +696,24 @@
       "migrationGuidanceMd": "Classify existing `Practitioner.communication` values by business meaning. Keep administrative/correspondence language on Practitioner; move or copy role-specific patient language capability to PractitionerRole.communication where that role resource is available. Add manual review for provider directories and scheduling workflows that use language matching.",
       "backwardCompatibilityAnalysisMd": "The change improves conceptual separation but could have been made less disruptive with deprecation guidance and a transition period. Because the same path remains, semantic migration rules are more important than simple field mapping.",
       "reviewerNotesMd": "A full PractitionerRole assessment should verify the corresponding target element and its shape across versions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Practitioner:SEMANTIC_OR_CONFORMANCE_TEXT:Practitioner.communication:44f3d5",
+        "judgment": "Revisit",
+        "narrativeMd": "The same path now carries a different business meaning. R4 described `Practitioner.communication` as languages the practitioner can use in patient communication; R6 describes languages used to communicate with the practitioner for correspondence/administrative purposes and sends patient-facing publication to `PractitionerRole.communication`. A simple structural transform can therefore produce R6-valid data with the wrong semantics, and correct migration may require creating or updating PractitionerRole records. Because the path is likely relevant to provider directories, scheduling, and patient language matching, the semantic redirect deserves renewed design or transition review.",
+        "keyEvidence": [
+          "R4 `Practitioner.communication.definition`: `A language the practitioner can use in patient communication.`",
+          "R4 `Practitioner.communication.requirements`: knowing which language a practitioner speaks helps communication with patients.",
+          "R6 `Practitioner.communication.definition`: language used to communicate with the practitioner, often for correspondence/administrative purposes.",
+          "R6 `Practitioner.communication.definition`: says `PractitionerRole.communication` should be used for publishing patient communication languages per organization/role.",
+          "R6 `PractitionerRole.communication`: `0..* CodeableConcept`, definition covers patient communication and directory publication; R4 PractitionerRole had no such element.",
+          "R4 maturity map: Practitioner is FMM 3 and standards status trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not prohibit semantic refactoring, but mature provider-directory semantics need a clearer transition story than silently changing the meaning of an existing path.",
+        "compatibilityMechanism": "semantic/documentation: instances may validate after migration, but values formerly meaning patient-facing language capability may need relocation to `PractitionerRole.communication`; R6 data read by R4 systems may also be interpreted with the old patient-communication meaning.",
+        "lessBreakingAlternativeAssessment": "Yes: R6 could have preserved the old patient-communication meaning at `Practitioner.communication`, added `PractitionerRole.communication` for role-specific publication with transitional guidance, and introduced a new administrative/correspondence-language element if needed. The tradeoff is overlap and precedence rules, but it would avoid silently changing the meaning of same-path data.",
+        "comparisonToExisting": "partially agree with the existing medium impact and Partial alternative judgment; the existing report correctly identifies semantic risk, but the same-path meaning shift and need for role-level migration make this more deserving of Revisit."
+      }
     },
     {
       "findingId": "Practitioner:FLAGS_AND_MODIFIERS:Practitioner.active:3506e5",
@@ -787,7 +836,23 @@
       "validationAndCompatibilityMd": "No ordinary R4 instance becomes invalid solely because of this flag. The compatibility break is behavioral: R6 processors must surface and honor the modifier semantics. R6 data is representable in R4 because the field already exists, but an R4 consumer will not learn from the R4 definition that this is a modifier.",
       "migrationGuidanceMd": "Regenerate R6 models and update generic resource handling so `Practitioner.active` is included in modifier checks. Audit business rules that select practitioners for directories, assignment, prescribing, or authorization to ensure inactive records are excluded or reviewed according to policy.",
       "backwardCompatibilityAnalysisMd": "Because the element already carried status semantics, marking it as a modifier is a justified conformance strengthening. There is no equally effective backward-compatible alternative other than weaker narrative guidance.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Practitioner:FLAGS_AND_MODIFIERS:Practitioner.active:3506e5",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Practitioner.active` keeps its R4 cardinality, type, and meaning, but R6 marks it as a modifier because an inactive or erroneous record should not be treated as normally valid. This is not an instance-format break, but it is a runtime and generated-metadata break for modifier-aware processors. The underlying R4 requirements already said the element exists to mark records not to be used when created in error, so formalizing that non-ignorable status is justified.",
+        "keyEvidence": [
+          "R4 `Practitioner.active`: `0..1 boolean`, `isModifier=false`, `isSummary=true`.",
+          "R6 `Practitioner.active`: `0..1 boolean`, `isModifier=true`, `isSummary=true`.",
+          "R6 `isModifierReason`: status element can indicate a record should not be treated as valid.",
+          "R4 and R6 definitions and meaningWhenMissing for `active` are otherwise materially stable.",
+          "R4 maturity map: Practitioner is FMM 3 and standards status trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use means runtime behavior changes should be justified, but the safety/workflow rationale is already present in the R4 element purpose and does not require normative-level proof.",
+        "compatibilityMechanism": "runtime/API/codegen: modifier-aware clients, serializers, generated models, summary views, and business rules must now classify `active` as non-ignorable; no R4 instance becomes invalid solely from the flag change.",
+        "lessBreakingAlternativeAssessment": "No: stronger prose without the modifier flag would be less disruptive, but it would not meet the R6 goal of making inactive/invalid status computably non-ignorable to generic processors.",
+        "comparisonToExisting": "agree with the existing high runtime impact and No alternative judgment; the change is behavioral rather than wire-format, but the modifier rationale is strong."
+      }
     },
     {
       "findingId": "Practitioner:ELEMENT_PRESENCE_OR_IDENTITY:Practitioner.deceased[x]:def16a",
@@ -916,7 +981,23 @@
       "migrationGuidanceMd": "When upgrading, leave absent unless source data has a known deceased fact. When downgrading, preserve the value using a cross-version or implementation-specific extension and ensure consumers understand it; do not silently drop it. Add tests for both boolean and dateTime forms and for workflows that should exclude deceased practitioners from active use.",
       "backwardCompatibilityAnalysisMd": "The base addition is useful and probably justified, but it creates unavoidable R6-to-R4 loss unless a standard extension is used. A pure extension design would have been easier to backport but less safe for R6-native consumers.",
       "reviewerNotesMd": "Check whether the broader R6 cross-version extension set defines an official extension for this element before implementing downgrade transforms.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Practitioner:ELEMENT_PRESENCE_OR_IDENTITY:Practitioner.deceased[x]:def16a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional `Practitioner.deceased[x]` with boolean and dateTime choices and marks it as a modifier. This does not invalidate any R4 Practitioner during upgrade, but it creates a serious downgrade and mixed-version risk: an R6 deceased value has no base R4 slot, and dropping it can make a historical-only record look usable. The addition is still proportionate because deceased status is safety- and workflow-relevant and should be visible to R6-native generic clients.",
+        "keyEvidence": [
+          "R4 Practitioner snapshot has no `Practitioner.deceased[x]` element.",
+          "R6 `Practitioner.deceased[x]`: `0..1`, types `boolean` and `dateTime`.",
+          "R6 `Practitioner.deceased[x]`: `isModifier=true`, `isSummary=true`.",
+          "R6 `isModifierReason`: once marked deceased, the record should only be used/retained for historical purposes.",
+          "R4 maturity map: Practitioner is FMM 3 and standards status trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use softens the stability burden compared with normative content, and the forward-compatible optional addition is not a hard R4-to-R6 break. The modifier and safety semantics still make downgrade loss worth treating seriously.",
+        "compatibilityMechanism": "R6-to-R4 loss: `deceasedBoolean` or `deceasedDateTime` cannot be represented in base R4 Practitioner; because it is a modifier, silent omission during downgrade can change safe use of the record.",
+        "lessBreakingAlternativeAssessment": "Not applicable for forward R4-to-R6 compatibility because the element is optional and preserves R4 instances. An extension-only R6 design would ease backporting but would make a safety-relevant status less visible and less computably non-ignorable in R6.",
+        "comparisonToExisting": "agree with the existing high R6-to-R4/runtime risk and Not applicable alternative judgment, while framing the final decision as proportionate rather than requiring design revisit."
+      }
     },
     {
       "findingId": "Practitioner:ELEMENT_PRESENCE_OR_IDENTITY:Practitioner.qualification.status:c77ef5",
@@ -1081,7 +1162,23 @@
       "validationAndCompatibilityMd": "R4-to-R6: no old instance is invalidated by the optional addition. R6-to-R4: an R6 instance with `qualification.status` is not base-R4-representable and will need an extension or lossy drop. The binding is preferred, so non-value-set codes are not a hard validation failure by themselves.",
       "migrationGuidanceMd": "For upgrade, populate status only when source data distinguishes qualification lifecycle state from period. For downgrade, preserve status in an extension and review credentialing/business rules before dropping values such as `suspended` or `revoked`. Test status plus period combinations.",
       "backwardCompatibilityAnalysisMd": "The addition is reasonable because status and validity period answer different questions. It could have been extension-only to ease backporting, but first-class modeling is useful for credentialing interoperability.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Practitioner:ELEMENT_PRESENCE_OR_IDENTITY:Practitioner.qualification.status:c77ef5",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `Practitioner.qualification.status` as a non-modifier `CodeableConcept` with a preferred binding. Existing R4 qualifications remain valid without it, and the new element fills a real modeling gap for in-progress, suspended, revoked, or temporary qualifications. R6-to-R4 conversion may need an extension or may lose useful credentialing detail, but this is ordinary downgrade handling for an optional additive field rather than a problematic R4-to-R6 base design.",
+        "keyEvidence": [
+          "R4 `Practitioner.qualification` has identifier, code, period, and issuer children but no `status` child.",
+          "R6 `Practitioner.qualification.status`: `0..1 CodeableConcept`, `isModifier=false`, `isSummary=false`.",
+          "R6 `Practitioner.qualification.status.binding`: strength `preferred`, value set `http://hl7.org/fhir/ValueSet/qualification-status`.",
+          "R6 `CodeSystem/qualification-status`: includes active, inactive, in-progress, pending, temporary, conditional, suspended, and revoked.",
+          "R4 maturity map: Practitioner is FMM 3 and standards status trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use warrants awareness of credentialing impact, but the additive optional, non-modifier design preserves R4 upgrade compatibility and does not need heightened standards concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 `qualification.status` value has no base R4 location, but no R4 instance is made invalid and the element is non-modifier with a preferred binding.",
+        "lessBreakingAlternativeAssessment": "Not applicable: no less-breaking base R6 design is needed for forward compatibility because this is an optional addition. Using an R4 extension is an appropriate downgrade mitigation, not a reason to avoid the R6 base element.",
+        "comparisonToExisting": "partially agree with the existing medium R6-to-R4 impact and Not applicable alternative judgment; the downgrade concern is real, but I would not treat this optional non-modifier addition as a meaningful R4-to-R6 compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1260,5 +1357,19 @@
       "PractitionerRole.communication as migration target for patient-facing language capability",
       "Required all-languages binding behavior across communication elements"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Practitioner.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 4,
+      "No problem": 1
+    }
   }
 }

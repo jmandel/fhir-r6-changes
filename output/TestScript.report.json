@@ -260,7 +260,22 @@
       "migrationGuidanceMd": "Treat TestScript assets as R4 compatibility artifacts unless an official external successor is identified. Inventory stored TestScript resources, preserve their canonical URLs and versions, and decide whether to keep an R4 validation/runtime path, export them out-of-band, or manually translate selected documentation/capability concepts to adjacent R6 resources. Test strict parsing, repository indexing, canonical-reference resolution, and any test-runner execution path with real TestScript examples.",
       "backwardCompatibilityAnalysisMd": "The less-breaking alternative would have been to keep `TestScript` in R6 core with a deprecated or retired status, then add guidance for replacement. That would preserve instance validity and generated APIs while signaling that new projects should avoid it. Full removal may be justified if the work group intentionally moved test scripting out of core, but the supplied package evidence alone cannot establish that rationale.",
       "reviewerNotesMd": "Confirm against official R6 ballot change notes or rendered pages before treating this as final retirement. If TestScript moved to an IG, the migration answer should point to that package rather than to a custom local model.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "TestScript:ARTIFACT_IDENTITY:root:2a7f31",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 defines `TestScript` as a concrete conformance-testing resource, while the supplied R6 core package has no `StructureDefinition-TestScript`, no package-index entry, and no `TestScript` resource-type code. That is a hard type-level break for validators, generated SDKs, repositories, and REST surfaces that previously handled TestScript assets. FMM 2/trial-use keeps this from being a normative-stability violation and the affected production footprint is probably specialized, but deleting a whole resource with no core successor is still a material break for conformance and certification workflows and deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition-TestScript: url http://hl7.org/fhir/StructureDefinition/TestScript, kind=resource, abstract=false, type=TestScript, FMM 2, standards-status trial-use.",
+          "R6 package check: no StructureDefinition-TestScript file and zero TestScript entries in .index.json.",
+          "R6 resource type checks: CodeSystem-fhir-types and resource-type ValueSets contain zero TestScript codes.",
+          "Official CI check: build.fhir.org/testscript.html returned 404; build.fhir.org resource index did not show TestScript among conformance resources checked."
+        ],
+        "fmmEffect": "FMM 2/trial-use is a neutral-to-softening factor: it lowers the stability burden compared with normative resources, but does not make a whole-resource identity removal harmless for implementers that adopted the trial-use resource.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with resourceType `TestScript` have no R6 core resource definition; also runtime/API/codegen because R6 generators and servers will not expose a TestScript class, endpoint, or search surface.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design was plausible: retain TestScript as a deprecated, retired, or legacy resource for at least one release while documenting any move to external testing frameworks. The tradeoff is continued maintenance of a specialized, trial-use executable testing model and its terminology/search surface, but that cost appears narrower than an immediate type-level removal for existing test assets.",
+        "comparisonToExisting": "partially agree with the existing hard-break/high-impact conclusion, but the old critical framing overstates broad production impact given FMM 2 and specialized use; I disagree with the absence of a less-breaking alternative because deprecated legacy retention is a plausible base design."
+      }
     },
     {
       "findingId": "TestScript:CONVERSION_OR_MAPPING:TestScript.setup-test-teardown:9c84d2",
@@ -449,7 +464,22 @@
       "migrationGuidanceMd": "Inventory which TestScript features are actually used. If the content is used for executable tests, keep an R4 TestScript runtime or move to a non-FHIR test framework with explicit provenance back to the original canonical URL. If the content is mostly documentation, manually map narrative/capability pieces to `Requirements`, `CapabilityStatement`, or `ExampleScenario` only after confirming the semantics; that mapping is not lossless.",
       "backwardCompatibilityAnalysisMd": "A backwards-compatible path could have retained the resource while discouraging new use, or split executable semantics into a companion package with explicit mappings. Full removal avoids carrying an underused testing grammar but forces every existing TestScript library into manual triage.",
       "reviewerNotesMd": "The content-model impact is high only for systems that actually use TestScript. If an organization never stored or executed TestScript, this will surface mainly as generated-code/API churn.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "TestScript:CONVERSION_OR_MAPPING:TestScript.setup-test-teardown:9c84d2",
+        "judgment": "Revisit",
+        "narrativeMd": "The executable `setup`/`test`/`teardown` model is central to R4 TestScript, not an incidental child path. R4 defines ordered actions with operations and assertions, with `test` and `teardown` reusing setup operation/assert structures through content references. In the supplied R6 core package, adjacent resources such as ExampleScenario, CapabilityStatement, Requirements, PlanDefinition, Questionnaire, and ArtifactAssessment do not provide a direct runnable structural landing place. A migrated conformance suite would need a rewrite or an external tool-specific format, so this is a material path-level loss rather than a mechanical rename.",
+        "keyEvidence": [
+          "R4 snapshot contains TestScript.setup, TestScript.test, and TestScript.teardown; setup.action and test.action are 1..* and include operation/assert branches.",
+          "R4 TestScript.test.action.operation and assert contentReference the setup operation/assert definitions.",
+          "R6 adjacent-resource check found no direct successor for executable TestScript content in Requirements, ExampleScenario, CapabilityStatement, PlanDefinition, Questionnaire, or ArtifactAssessment.",
+          "R6 package has no TestScript StructureDefinition, so there are no R6 paths for setup/test/teardown."
+        ],
+        "fmmEffect": "FMM 2/trial-use moderates the compatibility expectation for the resource as a whole, but this finding affects the resource's core purpose. The maturity status softens breadth, not the severity for actual TestScript users.",
+        "compatibilityMechanism": "runtime/API/codegen: generated R6 models and test runners have no setup/test/teardown/action.operation/action.assert paths to address; old-valid/new-invalid also occurs because the containing resource is absent.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the legacy executable substructure inside a deprecated TestScript resource, or introduced a core successor with a computable mapping for setup/test/teardown. Those alternatives carry real maintenance and possible duplication costs if HL7 wants testing semantics outside core, but they would preserve substantially more R4 executable content than removal without a structural landing place.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment for affected conformance-test tooling, but disagree with treating there as no less-breaking base option; legacy retention or a mapped core successor would have been less disruptive, even if not cost-free."
+      }
     },
     {
       "findingId": "TestScript:SEMANTIC_OR_CONFORMANCE_TEXT:local-rules-and-bindings:5b16aa",
@@ -604,7 +634,22 @@
       "migrationGuidanceMd": "Carry the R4 TestScript StructureDefinition and its related terminology artifacts with any legacy test-runner path. Add regression tests for each local invariant family, especially operation/assert mutual exclusivity, variable source exclusivity, response-vs-request assertion rules, and required assertion/operation codes. If moving to a non-FHIR test framework, document how each code system and invariant maps or why it is intentionally dropped.",
       "backwardCompatibilityAnalysisMd": "The rules could have been preserved in a backward-compatible way by retaining TestScript or publishing a companion compatibility package. Removing them from core may simplify R6 but creates a hidden semantic break for systems that continue to use historical scripts.",
       "reviewerNotesMd": "Terminology conclusions are based on local package artifacts and exact searches, not live terminology expansion or THO history.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "TestScript:SEMANTIC_OR_CONFORMANCE_TEXT:local-rules-and-bindings:5b16aa",
+        "judgment": "No problem",
+        "narrativeMd": "R4 does have many TestScript-specific invariants and required/extensible bindings, and those artifacts are not present as an R6 TestScript validation surface. However, because R6 core no longer accepts TestScript at all, this is not an independent base compatibility break: a strict R6 validator rejects the legacy resource instead of accepting a malformed TestScript without the old rules. Systems that deliberately preserve or execute legacy TestScript outside R6 core need to keep the R4 package, terminology, and validators as compatibility policy, but that is derivative of the resource removal rather than a separate R6 design problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition-TestScript contains tst-0 through tst-13 constraints, including operation/assert exclusivity, variable choice rules, compare-to-source rules, and request/response consistency rules.",
+          "R4 local bindings include required bindings for publication status, defined types, MIME types, HTTP operations, assert direction/operator/response codes, and extensible TestScript operation/profile bindings.",
+          "R4 package includes TestScript/assert CodeSystem and ValueSet files; the R6 package file check found no TestScript/assert terminology counterparts except unrelated asserter search parameters.",
+          "R6 package has no TestScript StructureDefinition, so there is no R6 core instance context in which these constraints would otherwise be evaluated."
+        ],
+        "fmmEffect": "FMM 2/trial-use softens escalation here because the finding is derivative and does not identify a separate safety, billing, or public-health rule that R6 silently weakens while still accepting TestScript instances.",
+        "compatibilityMechanism": "none: no independent old-valid/new-invalid or runtime/API break beyond the TestScript resource removal; the remaining risk is local legacy-validation policy outside base R6.",
+        "lessBreakingAlternativeAssessment": "For this finding alone, there is no separate less-breaking base design short of retaining TestScript itself, which is already covered by the resource-identity finding. Publishing external migration guidance or requiring R4 validation for preserved legacy tests may be useful mitigation, but it is not a distinct base R6 structural alternative.",
+        "comparisonToExisting": "disagree with the existing high runtime/potential-hard-impact framing because it conflates the top-level resource removal with a derivative loss of validation rules. I agree with the factual observation that the R4 constraints, bindings, and terminology are absent from R6 core."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -740,5 +785,18 @@
       "Companion SearchParameters for removed resources",
       "Terminology artifacts only referenced by removed resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/TestScript.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "No problem": 1
+    }
   }
 }

@@ -320,7 +320,22 @@
       "migrationGuidanceMd": "R4→R6 transforms do not need to change existing Patient candidates. For R6→R4 exchange, detect `candidate` references whose target resource type is `Group`. There is no lossless base R4 mapping: either retain the semantics through an extension/profile-specific convention, split into patient-specific enrollment requests only when that is business-correct, or reject/quarantine the record for manual review. Tests should include absent candidate, Patient candidate, and Group candidate cases.",
       "backwardCompatibilityAnalysisMd": "The change is additive for forward migration and probably reflects a real need for group enrollment. The backward-compatible alternative would have been an extension or profile while keeping the base target Patient-only. That alternative would reduce R4 backport risk but would make Group support less visible and less consistently validated in the R6 core resource.",
       "reviewerNotesMd": "Human review is mainly needed for deployment-specific R6→R4 policy, not for identifying the computable delta.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EnrollmentRequest:REFERENCE_TARGET:EnrollmentRequest.candidate:group-added",
+        "judgment": "No problem",
+        "narrativeMd": "`EnrollmentRequest.candidate` was widened from a Patient-only reference in R4 to a Patient-or-Group reference in R6, with the same path and 0..1 cardinality. Existing R4 instances that point at a Patient remain structurally valid under the R6 target list. The only concrete incompatibility is reverse or mixed-version exchange: a new R6 EnrollmentRequest that names a Group would not fit the R4 Patient-only target and could require policy-specific expansion into member Patients. Given the additive shape, the resource's R4 FMM 0 status, and no quick evidence that this path is a production-critical exchange surface, this does not warrant renewed standards attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition EnrollmentRequest.candidate: Reference targetProfile is Patient only; definition is \"Patient Resource.\"",
+          "R6 StructureDefinition EnrollmentRequest.candidate: Reference targetProfiles are Patient and Group; definition is \"The subject or group of subjects to be enrolled.\"",
+          "R4 maturity map and assigned input report EnrollmentRequest as FMM 0, standards-status trial-use.",
+          "Quick public check found HL7's published EnrollmentRequest page describing the resource as not yet properly reviewed/stub/incomplete/draft; no specific production-use evidence for Group candidates was found."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use substantially softens the stability concern. The financial-enrollment domain can be business-relevant, but this particular path change is additive for R4-to-R6 migration and lacks quick evidence of broad production reliance.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 data using candidate=Group cannot be represented as the single Patient reference allowed in R4 without lossy or policy-specific mapping; there is no old-valid/new-invalid break for R4 instances moving to R6.",
+        "lessBreakingAlternativeAssessment": "No compelling less-breaking base R6 design is apparent. Keeping candidate Patient-only would fail the R6 goal of direct group enrollment. Adding a separate groupCandidate-style element would create duplicate subject representations and would still be unknown to R4 consumers, while using extensions or migration maps would be mitigation rather than a less-breaking base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the reverse R6-to-R4 hazard and does not show a strong less-breaking alternative, but its high-impact framing overstates the concern for a forward R4-to-R6 review because the change is additive, low-FMM, and not backed by quick production-use evidence."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -465,5 +480,17 @@
       "Reference target additions that introduce Group where R4 permitted only Patient",
       "Resources whose trial-use metadata became normative without local cardinality changes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/EnrollmentRequest.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

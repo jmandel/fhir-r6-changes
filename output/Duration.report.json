@@ -324,7 +324,23 @@
       "validationAndCompatibilityMd": "An R4-valid `Duration` instance does not become invalid in R6 because of this local change. Conversely, the local Duration binding change does not create new R6 instance content that cannot be represented in R4. The compatibility issue is limited to conformance-resource processing: tools must read R6 `binding.additional` to preserve the same validation intent.",
       "migrationGuidanceMd": "Update StructureDefinition parsers and validation metadata extraction to map R4 `elementdefinition-maxValueSet` and R6 `binding.additional[purpose=maximum]` to the same internal concept. Regression tests should verify that the primary extensible binding and maximum all-time-units binding are both detected for `Duration` in R6.",
       "backwardCompatibilityAnalysisMd": "The change was probably part of a general R6 move to first-class additional bindings. A backward-compatible transition could have retained the legacy extension in R6, but that would duplicate binding metadata and risk conflicts. Since the instance semantics are unchanged, updating tooling is the cleaner long-term approach.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Duration:TERMINOLOGY_BINDING:Duration:8c4a1e",
+        "judgment": "No problem",
+        "narrativeMd": "The R4 and R6 `Duration` root binding continue to use the same extensible `duration-units` ValueSet and the same maximum `all-time-units` ValueSet. The change is that R4 expressed the maximum binding through the legacy `elementdefinition-maxValueSet` extension, while R6 expresses it through `ElementDefinition.binding.additional[purpose=maximum]`. A StructureDefinition reader that only scans the R4 extension could miss the maximum binding until updated, but R4-valid Duration instance data is not made invalid and the semantic constraint is preserved.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Duration.json differential/snapshot `Duration.binding` has `valueSet=http://hl7.org/fhir/ValueSet/duration-units` plus `elementdefinition-maxValueSet=http://hl7.org/fhir/ValueSet/all-time-units`.",
+          "R6 StructureDefinition-Duration.json snapshot `Duration.binding` has the same primary ValueSet and `binding.additional[0].purpose=maximum` with `valueSet=http://hl7.org/fhir/ValueSet/all-time-units`.",
+          "R4 and R6 ValueSet-duration-units.json list the same UCUM concepts: ms, s, min, h, d, wk, mo, a.",
+          "R4 and R6 ValueSet-all-time-units.json both use the same UCUM canonical filter `canonical = a`.",
+          "Local R4 maturity metadata marks Duration as normative with normativeVersion 4.0.0."
+        ],
+        "fmmEffect": "Duration is normative in R4, so direct instance or semantic breaks would need strong justification. Here the normative stability concern is softened because the instance-level binding target and maximum binding meaning are unchanged; the burden is limited to metadata consumers learning the R6-native additional-binding representation.",
+        "compatibilityMechanism": "metadata/tooling: conformance tooling that reads raw ElementDefinition JSON and only recognizes the R4 maxValueSet extension may miss the maximum binding in R6, but validators using the R6 StructureDefinition model can read the equivalent `binding.additional` metadata and no old-valid/new-invalid Duration instance break is apparent.",
+        "lessBreakingAlternativeAssessment": "Dual-publishing the old maxValueSet extension alongside the R6 `binding.additional` entry could reduce friction for legacy metadata readers, but it would duplicate the same constraint in two places, create consistency risk, and prolong dependence on an R4-era extension. Because instance compatibility is already preserved and the R6-native representation is the relevant base-model goal, no less-breaking base R6 design is needed.",
+        "comparisonToExisting": "agree with the existing low-impact/runtime-tooling assessment and with the conclusion that no instance-preserving alternative is needed; the fresh judgment frames this as metadata/tooling churn rather than a meaningful compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -478,5 +494,17 @@
       "R4 elementdefinition-maxValueSet extension represented as R6 binding.additional[purpose=maximum]",
       "Inherited Quantity comparator code additions on Quantity specializations"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Duration.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

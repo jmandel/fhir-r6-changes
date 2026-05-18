@@ -304,7 +304,21 @@
       "migrationGuidanceMd": "Derive `type` from business rules or a single consistent R4 `detail.type`; flag no-detail or mixed-detail-category instances for manual review. Test single, absent, and mixed category cases.",
       "backwardCompatibilityAnalysisMd": "Keeping root `type` optional or retaining per-detail required type would have avoided the base validation break. The R6 choice improves consistency but forces a semantic migration decision.",
       "reviewerNotesMd": "No official ConceptMap was available for root type derivation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.type:32b8fd",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 adds a required root `PaymentReconciliation.type` that has no root-level R4 counterpart. R4 only had required `detail.type` inside each optional detail row, so a no-detail R4 instance, or one with mixed detail types, cannot be migrated to the new required root category without business judgment. This is an old-valid/new-invalid validation break on a financial reconciliation resource, and the granularity shift makes the migration more than a mechanical rename.",
+        "keyEvidence": [
+          "R4 `PaymentReconciliation.detail.type` is 1..1 CodeableConcept with example `payment-type` binding.",
+          "R6 `PaymentReconciliation.type` is 1..1 CodeableConcept with extensible `payment-type` binding.",
+          "R6 `PaymentReconciliation.allocation.type` is 0..1, so the category moved from required per-line data toward a required root fact."
+        ],
+        "fmmEffect": "R4 FMM 2 and trial-use status are neutral: they do not create normative stability pressure, but they also do not excuse an avoidable mandatory-field break in a business/payment artifact.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances lack the required R6 root `type`; R6-to-R4 loss is also possible when a root category has no detail-level counterpart.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have introduced root `type` as optional, or required it only in profiles while retaining line-level type semantics. That would weaken the R6 guarantee of a single computable payment category and would need rules for mixed line categories, but it would preserve many R4-valid instances and is plausible enough to revisit.",
+        "comparisonToExisting": "agree with the existing high-impact assessment and partial less-breaking alternative judgment; the fresh review independently confirms the new mandatory root category is the core concern."
+      }
     },
     {
       "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.paymentDate-date:54a1d6",
@@ -441,7 +455,21 @@
       "validationAndCompatibilityMd": "R4 instances with `paymentDate` are invalid against R6 because `date` is missing. R6 `date` can be renamed back for R4.",
       "migrationGuidanceMd": "Rename `paymentDate` to `date` in R4→R6 and reverse it in R6→R4. Test required-date validation.",
       "backwardCompatibilityAnalysisMd": "An alias/deprecation period could have avoided the validation break; the tradeoff would be duplicate names for the same concept.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.paymentDate-date:54a1d6",
+        "judgment": "Revisit",
+        "narrativeMd": "The same required date concept moved from `paymentDate` to `date` with the same cardinality, type, short text, and definition. Raw R4 instances therefore carry an unknown element name and are missing the required R6 element, while generated APIs and FHIRPath expressions also change. The apparent goal is naming cleanup, not a substantive model change.",
+        "keyEvidence": [
+          "R4 `PaymentReconciliation.paymentDate` is 1..1 `date` with short `When payment issued`.",
+          "R6 `PaymentReconciliation.date` is 1..1 `date` with the same short and definition.",
+          "No same-path R6 `paymentDate` element exists."
+        ],
+        "fmmEffect": "FMM 2/trial-use keeps the stability burden moderate, but a required-path rename of an unchanged business date is still a direct compatibility problem.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 JSON has `paymentDate` while R6 requires `date`, and generated model/FHIRPath names change.",
+        "lessBreakingAlternativeAssessment": "The base model could have kept `paymentDate` and clarified its wording or aliases. Supporting both names would introduce duplicate representations, but simply retaining the old name has low cost relative to breaking every R4 instance at this required path.",
+        "comparisonToExisting": "agree with the existing high-impact assessment and Yes less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.paymentAmount-amount:57bc7d",
@@ -591,7 +619,21 @@
       "migrationGuidanceMd": "Rename when present. For R6→R4, reject or manually review resources without `amount`; do not default to zero unless business policy proves it.",
       "backwardCompatibilityAnalysisMd": "Retaining the R4 name or keeping amount required would be more compatible. The R6 choice supports broader workflows but creates lossy reverse conversion.",
       "reviewerNotesMd": "Human review is needed for R6 instances without amount.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.paymentAmount-amount:57bc7d",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 required the total payment amount at `paymentAmount`; R6 represents the same concept as optional `amount`. The rename creates an R4-to-R6 wire break even when the amount is present, and the relaxed cardinality creates a reverse-direction gap for R6 instances that omit the amount. Because total payment amount is central financial data, the avoidable name change deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 `PaymentReconciliation.paymentAmount` is 1..1 `Money` with definition `Total payment amount as indicated on the financial instrument.`",
+          "R6 `PaymentReconciliation.amount` is 0..1 `Money` with the same short and definition.",
+          "R4 has no `amount` root element and R6 has no `paymentAmount` root element."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the affected field is a central business amount, so the compatibility cost remains meaningful.",
+        "compatibilityMechanism": "old-valid/new-invalid plus R6-to-R4 loss: R4 instances must rename `paymentAmount`, and R6 instances without `amount` cannot satisfy R4's required `paymentAmount` without inventing a value.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `paymentAmount` while relaxing it to 0..1 if optionality was the goal. That would not solve reverse conversion of omitted amounts, but it would avoid the forward path break and only retain a longer legacy name.",
+        "comparisonToExisting": "agree with the existing high-impact assessment and Yes less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.detail-allocation:414cc4",
@@ -780,7 +822,21 @@
       "migrationGuidanceMd": "Rename `detail[]` to `allocation[]`, map same-definition children, and treat `type`, `request`, and `response` using separate rules. Update FHIRPath/search/profile references.",
       "backwardCompatibilityAnalysisMd": "A transitional alias would have preserved R4 instances but introduced duplicate representations. R6 favors model cleanup over wire compatibility.",
       "reviewerNotesMd": "Inherited BackboneElement differences are not included.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.detail-allocation:414cc4",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `detail[]` and R6 `allocation[]` have the same backbone cardinality, short text, definition, and many equivalent children, but the wire path changed. Any R4 instance with detail rows becomes invalid until transformed, and codegen, FHIRPath, profile, and mapping logic all need path updates. The new R6 allocation fields are reasonable, but they could have been added under the existing backbone path.",
+        "keyEvidence": [
+          "R4 `PaymentReconciliation.detail` is 0..* BackboneElement, `Settlement particulars`, distribution of the payment amount.",
+          "R6 `PaymentReconciliation.allocation` is 0..* BackboneElement with the same short and definition.",
+          "Several children are preserved conceptually while R6 adds `target`, `targetItem[x]`, `encounter`, `account`, and `noteNumber`."
+        ],
+        "fmmEffect": "FMM 2/trial-use moderates stability expectations, but a backbone rename for settlement allocation is still a broad path-level break in the artifact's core financial detail structure.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: `detail[]` is removed as a valid R6 path; R6-only allocation children also create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained `detail[]`, clarified it as allocation details, and added the new R6 children there. This preserves old wire paths without duplicate backbones; the main tradeoff is carrying a less precise legacy name.",
+        "comparisonToExisting": "agree with the existing high-impact assessment and Yes less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "PaymentReconciliation:REFERENCE_TARGET:PaymentReconciliation.detail.request-response:bc0f2e",
@@ -976,7 +1032,21 @@
       "migrationGuidanceMd": "Inspect each old detail request/response target resource type. Map only allowed targets automatically; route others to extensions or manual review. Test out-of-set references.",
       "backwardCompatibilityAnalysisMd": "The target narrowing could have been expressed as profile guidance rather than base restriction. That would preserve old data but reduce R6 conformance clarity.",
       "reviewerNotesMd": "The request-to-target mapping is semantic and should be reviewed against local financial workflows.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PaymentReconciliation:REFERENCE_TARGET:PaymentReconciliation.detail.request-response:bc0f2e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 detail request/response links allowed `Reference(Resource)`, while R6 narrows the corresponding allocation links to specific payable/payment resources: `allocation.target` is limited to Claim, Account, Invoice, Encounter, or Contract, and `allocation.response` to ClaimResponse. This can reject R4 data that used out-of-set resource types, but the R4 base target was extremely broad and the R6 design gives validators and applications a more computable payment-target model.",
+        "keyEvidence": [
+          "R4 `detail.request` is `Reference(Resource)` and is described as a request giving rise to payment.",
+          "R4 `detail.response` is `Reference(Resource)` and is described as a response committing to payment.",
+          "R6 `allocation.target` targets Claim, Account, Invoice, Encounter, and Contract; R6 `allocation.response` targets ClaimResponse."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral and allows more model cleanup than mature/normative content, while the business-domain nature still makes out-of-set references worth migration review.",
+        "compatibilityMechanism": "old-valid/new-invalid, potential: R4 references outside the narrowed R6 target lists will fail after migration; runtime/API semantics also shift from broad request/response links toward payment subjects.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept broad `Reference(Resource)` fields or retained deprecated request/response compatibility fields beside the new target model. Those alternatives preserve more old data, but they materially weaken computable target validation or create duplicate/ambiguous linkage paths, so the less-breaking design has significant tradeoffs.",
+        "comparisonToExisting": "partially agree with the existing impact and partial alternative judgment: the compatibility break is real, but the fresh review sees the target narrowing as proportionate rather than a likely design problem."
+      }
     },
     {
       "findingId": "PaymentReconciliation:TERMINOLOGY_BINDING:PaymentReconciliation.outcome:286176",
@@ -1116,7 +1186,21 @@
       "validationAndCompatibilityMd": "Known R4 outcome codes should still validate lexically in R6. Systems tied to the old ValueSet/CodeSystem canonical or generated enum class may need updates.",
       "migrationGuidanceMd": "Regenerate terminology bindings and verify all four outcome codes. Use an approved ConceptMap or local policy before treating remittance-outcome and payment-outcome as equivalent.",
       "backwardCompatibilityAnalysisMd": "A retained alias or formal ConceptMap would reduce disruption. The rename is probably a terminology cleanup but still affects code-system integrations.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "PaymentReconciliation:TERMINOLOGY_BINDING:PaymentReconciliation.outcome:286176",
+        "judgment": "No problem",
+        "narrativeMd": "The required binding canonical changed from `remittance-outcome` to `payment-outcome`, but the inspected primitive code set is the same: `queued`, `complete`, `error`, and `partial`. Since `PaymentReconciliation.outcome` remains an optional primitive `code`, ordinary R4 instance values should still validate by lexical code in R6. The remaining concern is terminology metadata or generated enum naming, not a material base instance break.",
+        "keyEvidence": [
+          "R4 outcome binding is required to `ValueSet/remittance-outcome|4.0.1`.",
+          "R6 outcome binding is required to `ValueSet/payment-outcome|6.0.0-ballot4`.",
+          "Inspected R4 and R6 CodeSystems both contain `queued`, `complete`, `error`, and `partial` with matching displays/definitions."
+        ],
+        "fmmEffect": "FMM 2/trial-use does not elevate a same-code terminology canonical rename into a significant compatibility issue.",
+        "compatibilityMechanism": "metadata/tooling: canonical URLs and generated terminology artifacts may change, but there is no meaningful old-valid/new-invalid instance mechanism for the inspected codes.",
+        "lessBreakingAlternativeAssessment": "A terminology alias or ConceptMap would reduce tooling churn, but no less-breaking base resource shape is needed because the element path, type, cardinality, binding strength, and usable code values are preserved.",
+        "comparisonToExisting": "partially agree: the existing report correctly found no hard instance break and matching code values, but the fresh review rates the remaining runtime/canonical churn as too small for a Medium compatibility concern."
+      }
     },
     {
       "findingId": "PaymentReconciliation:REFERENCE_TARGET:PaymentReconciliation.paymentIssuer:788cdc",
@@ -1259,7 +1343,21 @@
       "validationAndCompatibilityMd": "Old Organization references remain valid. New Patient/RelatedPerson references are R6-valid but not base-R4-valid in this field.",
       "migrationGuidanceMd": "Update generated types and validators. For R6→R4, reject, extend, or policy-map non-Organization issuers.",
       "backwardCompatibilityAnalysisMd": "A separate optional field would preserve old type assumptions but fragment the issuer concept. The R6 widening is simpler for new workflows.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "PaymentReconciliation:REFERENCE_TARGET:PaymentReconciliation.paymentIssuer:788cdc",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens `paymentIssuer` from Organization-only to Organization, Patient, or RelatedPerson while keeping the same path, cardinality, and definition. Existing R4 Organization references remain valid in R6. New R6 Patient or RelatedPerson issuers may not down-convert to base R4, but that is a reverse-direction expressiveness issue from an additive widening, not a break for R4 adopters moving forward.",
+        "keyEvidence": [
+          "R4 `paymentIssuer` is 0..1 `Reference(Organization)`.",
+          "R6 `paymentIssuer` is 0..1 `Reference(Organization | Patient | RelatedPerson)`.",
+          "The short/definition remains `Party generating payment` / `The party who generated the payment.`"
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral and does not make an additive target widening problematic.",
+        "compatibilityMechanism": "R6-to-R4 loss: newly allowed Patient/RelatedPerson issuers cannot be represented in the base R4 element, but old R4 Organization issuers remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6 compatibility. Keeping Organization-only would be more restrictive, while adding separate fields would fragment the issuer concept; reverse exchange can be handled by profiles, rejection policy, or extensions.",
+        "comparisonToExisting": "partially agree: the existing report correctly identified no hard break and no applicable less-breaking alternative, but the fresh review treats the reverse-only risk as not a material problem."
+      }
     },
     {
       "findingId": "PaymentReconciliation:TYPE_DOMAIN:PaymentReconciliation.processNote.text:87efd3",
@@ -1389,7 +1487,21 @@
       "validationAndCompatibilityMd": "Not a typical old-valid/new-invalid break because wire shape is still a JSON string. Runtime handling may differ if markdown is rendered.",
       "migrationGuidanceMd": "Regenerate models and decide how to render or escape markdown-sensitive text. Test characters such as `*`, `_`, links, and line breaks.",
       "backwardCompatibilityAnalysisMd": "Using markdown is computably clearer; keeping string would have avoided type churn but hidden formatting intent.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "PaymentReconciliation:TYPE_DOMAIN:PaymentReconciliation.processNote.text:87efd3",
+        "judgment": "No problem",
+        "narrativeMd": "`processNote.text` changes from `string` to `markdown`, but the element remains optional at the same path and still serializes as a JSON string. Existing plain-text note values remain representable; the main practical changes are generated primitive wrapper types and rendering/sanitization expectations if markdown features are used. That is useful implementation awareness, not a base compatibility problem.",
+        "keyEvidence": [
+          "R4 `processNote.text` is 0..1 `string` with definition `The explanation or description associated with the processing.`",
+          "R6 `processNote.text` is 0..1 `markdown` with the same definition.",
+          "The existing report checked `StructureDefinition-markdown` and found it derives from string without a narrower local regex."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; combined with unchanged wire shape and optional cardinality, it softens any concern about the primitive type refinement.",
+        "compatibilityMechanism": "runtime/API/codegen: generated types or markdown renderers may change behavior, but old JSON string values remain structurally representable.",
+        "lessBreakingAlternativeAssessment": "Keeping the type as `string` would avoid codegen churn but would lose the computable signal that markdown rendering rules apply. Adding a second markdown field would duplicate the note text. The R6 choice is proportionate.",
+        "comparisonToExisting": "partially agree with the existing low-impact assessment; the fresh review does not view the partial less-breaking alternatives as needed for base compatibility."
+      }
     },
     {
       "findingId": "PaymentReconciliation:CONVERSION_OR_MAPPING:PaymentReconciliation.optional-r6-payment-details:236b63",
@@ -1528,7 +1640,21 @@
       "migrationGuidanceMd": "Define a per-field R6→R4 policy: preserve in extensions, store externally, or drop with audit logging. R4→R6 systems may populate these fields from local payment records but are not required to.",
       "backwardCompatibilityAnalysisMd": "Optional base additions are less disruptive than mandatory fields, but standard cross-version extensions would reduce reverse-conversion loss.",
       "reviewerNotesMd": "Allocation-specific additions overlap with the allocation findings but are grouped here for conversion planning.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PaymentReconciliation:CONVERSION_OR_MAPPING:PaymentReconciliation.optional-r6-payment-details:236b63",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 status, payment-source, payment-instrument, amount, note, and allocation fields are optional additions. They do not make any R4 PaymentReconciliation instance invalid when moving to R6. If an R6 system uses them, down-conversion to base R4 may require extensions or data loss decisions, but that is expected for new optional expressiveness.",
+        "keyEvidence": [
+          "R6 adds optional root elements including `statusReason`, `kind`, `enterer`, `issuerType`, `location`, `method`, `cardBrand`, `accountNumber`, `expirationDate`, `processor`, `referenceNumber`, `authorization`, `tenderedAmount`, and `returnedAmount`.",
+          "R6 adds optional `processNote.class` and `processNote.number`.",
+          "R6 adds optional allocation-related fields such as `targetItem[x]`, `encounter`, `account`, and `noteNumber`; no same-path R4 native elements exist."
+        ],
+        "fmmEffect": "FMM 2/trial-use does not turn optional additive expressiveness into an R4-to-R6 breaking concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: new optional R6 fields may not have native R4 slots, but there is no R4-to-R6 old-valid/new-invalid mechanism.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed to preserve R4 instances because all listed fields are optional additions. R4 backport extensions or sidecar storage can mitigate reverse conversion, but those are migration mechanisms rather than better base R6 designs.",
+        "comparisonToExisting": "partially agree: the existing report correctly identified reverse representability risk and no applicable less-breaking alternative, but the fresh review classifies the finding as not a compatibility problem for the R4-to-R6 base model."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1722,5 +1848,19 @@
       "Financial resources moving category/type between line and root levels",
       "R4 detail backbone renamed to R6 allocation"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/PaymentReconciliation.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 1,
+      "No problem": 4
+    }
   }
 }

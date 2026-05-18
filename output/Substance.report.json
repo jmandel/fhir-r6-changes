@@ -350,7 +350,22 @@
       "validationAndCompatibilityMd": "An R4 instance containing `Substance.code.coding` directly is old-valid/new-invalid under the R6 StructureDefinition. R6 instances that use `Substance.code.reference` are not cleanly representable in R4 without dereferencing to a `CodeableConcept` or preserving the reference in an extension. Runtime failures are likely in strict parsers and enum/search code that expected `Substance.code` to be a `CodeableConcept`.",
       "migrationGuidanceMd": "Update models and transforms so R4 `Substance.code` maps to R6 `Substance.code.concept`. For R6-to-R4, decide whether `code.reference` can be resolved to a code from the referenced `SubstanceDefinition`; if not, use a cross-version extension or manual review. Test both concept-only and reference-only R6 examples.",
       "backwardCompatibilityAnalysisMd": "The change is probably motivated by the richer R6 substance-definition model, but it is not wire-compatible. A separate optional reference element would have preserved R4 instances while adding R6 capability; the tradeoff would be a more redundant model and a need to define precedence between concept and reference.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Substance:TYPE_DOMAIN:Substance.code:7f3c2a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `Substance.code` is a mandatory `CodeableConcept`; R6 keeps the same path and cardinality but changes the wire shape to `CodeableReference`, with the old concept form now under `code.concept` and a new possible reference to `SubstanceDefinition`. An R4 Substance with `code.coding` directly under `code` needs transformation before R6 validation or generated-model deserialization, and an R6 reference-only code cannot be represented in R4 without resolving the referenced definition or carrying extra data. The break is real and central to Substance identity, but the R6 goal of allowing either terminology identity or a definitional resource in one semantic slot is coherent. Separate legacy and reference fields would preserve more R4 payloads but introduce duplicate identity slots and precedence rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Substance.code` is 1..1 `CodeableConcept` with example binding to `ValueSet/substance-code`.",
+          "R6 StructureDefinition: `Substance.code` is 1..1 `CodeableReference` targeting `SubstanceDefinition` with the same example binding.",
+          "R6 CodeableReference defines `concept` 0..1 `CodeableConcept` and `reference` 0..1 `Reference`.",
+          "R6 adds `SearchParameter/Substance-code-reference` for `Substance.code.reference` while token code search moves to `Substance.code.concept`."
+        ],
+        "fmmEffect": "R4 Substance is FMM 2/trial-use, so maturity is neutral rather than a strong stability guarantee; the central required path and hard wire-shape change still make this a real migration burden.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 concept-shaped JSON at `Substance.code` is not the R6 CodeableReference child shape, and generated models/search expressions change; R6 reference-only values also create R6-to-R4 loss unless resolved.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept `code` as `CodeableConcept` and added an optional `definition` or `codeReference`. That would preserve R4 instances but would split one identity concept across two fields, require consistency and precedence rules, and make reference-only identity awkward.",
+        "comparisonToExisting": "agree with the existing high-impact assessment and its partial less-breaking alternative judgment; the break is substantial, but the alternative has material design tradeoffs."
+      }
     },
     {
       "findingId": "Substance:ELEMENT_PRESENCE_OR_IDENTITY:Substance.instance:5a91bd",
@@ -533,7 +548,22 @@
       "migrationGuidanceMd": "Identify all R4 `Substance.instance` use. For one repetition, map `instance.identifier` to `identifier`, `instance.expiry` to `expiry`, and `instance.quantity` to `quantity`, while also applying the `code` `CodeableReference` transform. For multiple repetitions, define policy: split into multiple R6 resources, preserve repetitions in extensions, or migrate to a domain-specific inventory/package artifact. Test multiple-instance records explicitly.",
       "backwardCompatibilityAnalysisMd": "The flattening may simplify the base resource but discards a repeatable local structure. The least disruptive alternative would have been to keep the backbone as deprecated and add top-level fields; this would have allowed old instances to validate while implementers gradually adopted the flatter model.",
       "reviewerNotesMd": "The StructureDefinitions prove removal and top-level additions, but they do not prove the intended official handling of multiple package/container instances.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Substance:ELEMENT_PRESENCE_OR_IDENTITY:Substance.instance:5a91bd",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed repeatable `Substance.instance` groups for package/container-specific identifier, expiry, and quantity. R6 removes the backbone and exposes only single top-level `expiry` and `quantity`, while package/container identifiers appear to be folded into the repeated top-level `identifier`. A single R4 instance can often be mechanically flattened, but repeatable R4 package groups lose grouping and may require splitting one Substance into multiple resources or using extensions. That is more than a simple cleanup because package labels, amounts, and expiry are operational traceability facts.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Substance.instance` is 0..* BackboneElement with `identifier`, `expiry`, and `quantity` children.",
+          "R6 StructureDefinition: no `Substance.instance`; `Substance.expiry` and `Substance.quantity` are top-level 0..1 elements.",
+          "R4 search expressions for `expiry` and `quantity` point to `Substance.instance.expiry` and `Substance.instance.quantity`; R6 expressions point to top-level `Substance.expiry` and `Substance.quantity`.",
+          "R4 has a separate `container-identifier` search on `Substance.instance.identifier`; R6 has no analogous separate container search in the local package."
+        ],
+        "fmmEffect": "FMM 2/trial-use does not by itself demand preserving the old backbone, but it also does not soften a lossy, operationally relevant migration enough to dismiss it.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: any R4 payload using `Substance.instance` is invalid as R6, and multiple package/container groups cannot be faithfully represented by the single top-level R6 fields without splitting resources or adding non-base data.",
+        "lessBreakingAlternativeAssessment": "Retaining `Substance.instance` as deprecated while adding preferred top-level fields would preserve R4 instances and permit staged migration. The tradeoff is duplicate representations and conflict rules between old grouped data and new flattened data, but that seems a plausible transitional base design given the loss of repeatable package grouping.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment, but disagree that the partial alternative is enough to call the removal probably justified without renewed review; the lossy multi-instance case is the concern."
+      }
     },
     {
       "findingId": "Substance:ELEMENT_PRESENCE_OR_IDENTITY:Substance.ingredient:0d4e8f",
@@ -698,7 +728,22 @@
       "migrationGuidanceMd": "Inventory R4 data that uses `Substance.ingredient`. For each use, decide whether it represents a product ingredient, a substance-definition relationship, a concentration relationship, or local descriptive data. Map to `Ingredient`, `SubstanceDefinition.relationship`, an extension, or manual review as appropriate. Do not silently drop ingredient quantities.",
       "backwardCompatibilityAnalysisMd": "A dedicated model split is understandable, but removal from the base resource is breaking. Keeping the old element as deprecated while adding clearer target artifacts would have allowed R4 instances to remain valid and would have given implementers a gradual migration path.",
       "reviewerNotesMd": "Official migration guidance would materially improve confidence about whether `Ingredient` or `SubstanceDefinition.relationship` is the preferred target for each R4 pattern.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Substance:ELEMENT_PRESENCE_OR_IDENTITY:Substance.ingredient:0d4e8f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `Substance.ingredient` was an optional repeatable inline composition backbone with an optional concentration ratio and a required ingredient substance by code or Substance reference. R6 removes this inline content from `Substance`; related composition information appears to move to more specialized R6 artifacts such as `Ingredient` and `SubstanceDefinition.relationship`. Existing R4 instances with inline ingredients will fail R6 structural validation and generated code that expected inline composition must migrate. The break is meaningful, but moving composition and ingredient strength into dedicated structures is a reasonable model direction, and retaining the old inline backbone would create competing sources of truth for safety-relevant composition data.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Substance.ingredient` is 0..* BackboneElement.",
+          "R4 `Substance.ingredient.substance[x]` is 1..1 `CodeableConcept` or `Reference(Substance)`; `quantity` is 0..1 `Ratio`.",
+          "R6 Substance snapshot has no `Substance.ingredient` element.",
+          "R6 Ingredient has `Ingredient.substance.code` as a required `CodeableReference`; R6 SubstanceDefinition has repeatable `relationship` with a related substance and amount fields."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it lowers the expectation compared with mature/normative content, but composition can still be clinically or regulatory significant where used.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 inline ingredient content is not accepted on R6 Substance, and business logic or SDK properties for inline composition disappear. Reverse loss is limited for this path because R6 Substance has no replacement inline ingredient field.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `Substance.ingredient` as a deprecated optional backbone while recommending `Ingredient` or `SubstanceDefinition.relationship` for new content. That would preserve R4 instances, but it would maintain overlapping composition models and require reconciliation rules when inline and dedicated-resource facts disagree.",
+        "comparisonToExisting": "agree with the existing high-impact and partial-alternative assessment; the break is real, but the cleaner R6 composition model makes the less-breaking option costly."
+      }
     },
     {
       "findingId": "Substance:TYPE_DOMAIN:Substance.description:2c6ab1",
@@ -829,7 +874,21 @@
       "validationAndCompatibilityMd": "A normal R4 string value should generally remain valid as an R6 markdown string, so this is not counted as hard instance-breaking. However, strict generated APIs may expose a different primitive type, and R6 markdown content may be rendered or interpreted differently when converted back to R4 systems that treat the field as plain text.",
       "migrationGuidanceMd": "Map the string value directly, but update code generation, serializers, UI rendering, and security review to treat the R6 field as markdown. Include test cases with plain text, markdown punctuation, line breaks, and any application-specific sanitization rules.",
       "backwardCompatibilityAnalysisMd": "The change could have been avoided by retaining `string`, but the compatibility cost is modest compared with the benefit of standard markdown semantics. A separate extension would reduce generated-type churn but would make formatted descriptions less interoperable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Substance:TYPE_DOMAIN:Substance.description:2c6ab1",
+        "judgment": "No problem",
+        "narrativeMd": "R4 `Substance.description` was an optional `string`; R6 changes it to optional `markdown` with the same cardinality and JSON primitive representation. Ordinary R4 plain-text descriptions remain representable as R6 markdown. Some generated APIs, renderers, or sanitization policies may need to notice the primitive type name, but this is not a base instance-compatibility problem and the field is descriptive rather than a core computable safety field.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Substance.description` is 0..1 `string`.",
+          "R6 StructureDefinition: `Substance.description` is 0..1 `markdown` with the same definition text.",
+          "FHIR primitive markdown is still serialized as a string value; no cardinality or binding change is involved."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; because there is no old-valid/new-invalid change for normal string values, maturity does not create a reason to revisit the design.",
+        "compatibilityMechanism": "runtime/API/codegen only at most: generated primitive wrappers or rendering policy may change, but the wire representation remains a JSON string and plain text remains valid markdown.",
+        "lessBreakingAlternativeAssessment": "Keeping `string` would avoid minor type-name churn, but no less-breaking base design is needed to preserve R4 instances; using markdown gives a standard way to express formatted descriptive text.",
+        "comparisonToExisting": "partially agree with the existing runtime-risk observation, but disagree with treating it as a meaningful medium compatibility concern; it is not a substantive base break."
+      }
     },
     {
       "findingId": "Substance:SEMANTIC_OR_CONFORMANCE_TEXT:Substance.identifier:9e2f44",
@@ -968,7 +1027,22 @@
       "migrationGuidanceMd": "When moving R4 `instance.identifier` values into R6 `identifier`, tag them with `Identifier.type`, system conventions, profile slices, or extensions so consumers can tell package/container labels from substance-kind identifiers. Add tests for search, deduplication, and display logic that uses identifiers.",
       "backwardCompatibilityAnalysisMd": "The semantic broadening was probably an attempt to avoid losing package labels after removing `Substance.instance`, but a dedicated element or retained deprecated child would have been clearer and more backward-compatible.",
       "reviewerNotesMd": "This finding is intentionally separate from the `Substance.instance` removal because code can pass validation while still misinterpreting identifiers.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Substance:SEMANTIC_OR_CONFORMANCE_TEXT:Substance.identifier:9e2f44",
+        "judgment": "Revisit",
+        "narrativeMd": "The `Substance.identifier` wire shape did not change, but its R6 meaning broadened. In R4, the top-level identifier was for the substance kind and the comment explicitly contrasted it with `Substance.instance.identifier` for package/container labels. In R6, after removal of `instance.identifier`, the same top-level repeated identifier is described as often being associated with the package/container. That preserves structural validity but creates a semantic collision for search, matching, traceability, and R6-to-R4 mapping: a receiver cannot reliably tell whether an identifier denotes the material or a particular package unless profiles or identifier typing conventions fill the gap.",
+        "keyEvidence": [
+          "R4 `Substance.identifier` definition: unique identifier for the substance; comment contrasts it with `Substance.instance.identifier` for package/container.",
+          "R6 `Substance.identifier` definition: unique identifier for the substance, often associated with the package/container of the substance instance.",
+          "R4 had separate `SearchParameter/Substance-container-identifier` on `Substance.instance.identifier`; R6 local package has only `Substance.identifier` for `Substance.identifier`.",
+          "R6 removes `Substance.instance.identifier` as a distinct path."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the affected meaning is operationally important for package traceability and matching, so the semantic break should not be dismissed as low maturity experimentation.",
+        "compatibilityMechanism": "semantic/documentation and R6-to-R4 loss: validation does not fail, but the same field now mixes material identifiers and package/container identifiers, making old assumptions and reverse mapping ambiguous.",
+        "lessBreakingAlternativeAssessment": "A distinct optional `containerIdentifier` element, or a deprecated retained `instance.identifier`, would preserve the R4 top-level identifier meaning while still supporting package labels. The tradeoff is an extra element and mapping/search guidance, which appears modest compared with overloading one identifier field.",
+        "comparisonToExisting": "agree with the existing avoidable-break assessment and its yes less-breaking alternative judgment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1167,5 +1241,19 @@
       "R4 nested backbone elements removed and replaced by top-level scalar fields",
       "Substance-family model split across SubstanceDefinition and Ingredient"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Substance.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

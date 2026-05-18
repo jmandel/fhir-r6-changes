@@ -323,7 +323,21 @@
       "migrationGuidanceMd": "Implement an explicit bidirectional transform: R4 `Account.partOf` -> R6 `Account.parent`, and R6 `Account.parent` -> R4 `Account.partOf`. Test records with no parent, a valid parent reference, contained/reference edge cases, and downstream roll-up behavior. Avoid dropping the relationship because it can affect billing account aggregation.",
       "backwardCompatibilityAnalysisMd": "The apparent goal could have been achieved less disruptively by keeping `partOf` and improving its definition or by adding `parent` as an optional replacement while retaining `partOf` as deprecated. The tradeoff would be temporary duplicate semantics in the base resource, but it would avoid a hard instance and codegen break.",
       "reviewerNotesMd": "The mapping is high-confidence because cardinality and target type match exactly; nevertheless, confirm no ballot narrative gives `parent` subtly different semantics before treating the transform as always lossless.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Account:ELEMENT_PRESENCE_OR_IDENTITY:Account.partOf:7a6a56",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Account.partOf` and R6 `Account.parent` describe the same parent-account relationship with the same cardinality and target type, but the wire element name changed. A strict R6 validator or generated model will not accept an R4 Account that still carries `partOf`, and billing roll-up logic that reads the old property can lose the hierarchy unless a transform is applied. Because this looks mostly like a naming cleanup, the compatibility cost deserves renewed design review.",
+        "keyEvidence": [
+          "R4 StructureDefinition Account snapshot has `Account.partOf` as 0..1 Reference(Account), definition `Reference to a parent Account.`",
+          "R6 StructureDefinition Account snapshot has no `Account.partOf` and adds `Account.parent` as 0..1 Reference(Account), definition `Reference to an associated parent Account which has this account as a sub-account.`",
+          "R4 maturity map and StructureDefinition extensions show Account as FMM 2, trial-use."
+        ],
+        "fmmEffect": "R4 Account is FMM 2 / trial-use, so maturity is neutral: it does not impose normative-level stability, but it also is not low-FMM 0-1 content where the break would be strongly discounted. The direct wire-name break and low-cost alternative drive the judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 Account instance with `partOf` uses an element not present in the R6 Account definition; generated APIs, FHIRPath, indexes, and mappers also need the `parent` name.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept `partOf` and clarified its description, or kept it as a deprecated alias if `parent` was preferred. The alias option has duplicate-representation risk, but simply retaining the existing element name appears to meet the same parent-account goal with much less disruption.",
+        "comparisonToExisting": "agree: the existing high impact and Yes alternative judgment match the fresh assessment, though the core concern is specifically the avoidable path rename rather than the whole Account migration."
+      }
     },
     {
       "findingId": "Account:SERIALIZATION_OR_CODEGEN:Account.description:2df66e",
@@ -455,7 +469,21 @@
       "validationAndCompatibilityMd": "Most R4 plain-string descriptions should still be R6-compatible. Potential validation differences depend on primitive datatype rules and terminology/server implementation, so this is marked potential rather than definite hard instance-breaking. R6 markdown content can be represented syntactically as an R4 string, but the markdown semantics are not native to R4 Account.",
       "migrationGuidanceMd": "Regenerate models and update code that treats `description` as a plain string primitive. For R6-to-R4 conversion, either preserve the markdown source text as a string with documented rendering loss or strip/escape formatting according to consumer policy. Test descriptions with plain text, markdown emphasis/links, and primitive extensions on `_description`.",
       "backwardCompatibilityAnalysisMd": "Changing the primitive type in place gives clean R6 semantics but creates codegen churn. A less-breaking approach would have kept `string` and added a markdown extension, but that would make formatted descriptions less visible and less interoperable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Account:SERIALIZATION_OR_CODEGEN:Account.description:2df66e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Account.description` keeps the same path, cardinality, and JSON scalar shape, but its primitive type changes from `string` to `markdown`. Plain R4 descriptions should remain acceptable as R6 markdown values, especially because the R6 markdown primitive specializes string. The real burden is regenerated SDK/API typing and rendering policy: consumers may now treat the value as markdown-capable text and need appropriate display or sanitization behavior.",
+        "keyEvidence": [
+          "R4 Account snapshot has `Account.description` 0..1 with type `string`.",
+          "R6 Account snapshot has `Account.description` 0..1 with type `markdown` and unchanged short/definition.",
+          "R6 `StructureDefinition-markdown.json` has baseDefinition `http://hl7.org/fhir/StructureDefinition/string` and says systems are not required to have markdown support."
+        ],
+        "fmmEffect": "R4 Account FMM 2 / trial-use is neutral. It supports taking codegen churn seriously, but does not require preserving the exact primitive type when the R6 semantic goal is reasonable and ordinary instances keep the same JSON string representation.",
+        "compatibilityMechanism": "runtime/API/codegen: generated model types and renderer assumptions can change from string to markdown, but this is not a clear old-valid/new-invalid instance break for ordinary string values.",
+        "lessBreakingAlternativeAssessment": "Partial. Keeping `description` as `string` would reduce codegen churn, but it would hide the intended markdown rendering/sanitization semantics. A parallel markdown field would duplicate one description. Because markdown is a string specialization, the chosen design has a meaningful compatibility story despite API churn.",
+        "comparisonToExisting": "partially agree: the existing medium runtime/codegen concern and Partial alternative are reasonable, but the potential hard-instance-break framing is too strong given the unchanged JSON string shape and markdown's string base."
+      }
     },
     {
       "findingId": "Account:CARDINALITY:Account.guarantor.party:5fb2ad",
@@ -635,7 +663,21 @@
       "migrationGuidanceMd": "For R4-to-R6, no data repair is required for `party`; existing party references can be preserved. For R6-to-R4, define extensions or a rejection policy for account-only guarantors and for responsibility/limit/rank. Update null-safety in generated-model consumers and add tests for guarantors with party only, account only, both party and account, and neither.",
       "backwardCompatibilityAnalysisMd": "The new financial details are useful but the cardinality relaxation weakens a previously reliable invariant. A backward-compatible compromise would have kept party required unless an account was supplied, enforced by an invariant. That would still break R4-to-R6 less than a rename but would better protect consumers from empty guarantor entries.",
       "reviewerNotesMd": "Because the R6 comment uses “expected” rather than a formal constraint, local profiles may need to enforce `party.exists() or account.exists()` if empty guarantors are not meaningful.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Account:CARDINALITY:Account.guarantor.party:5fb2ad",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 relaxes `Account.guarantor.party` from required to optional and adds account-based and financial allocation details. Existing R4 guarantor entries with a party still fit the R6 shape, so this is not a forward validation break. The compatibility burden appears when R6 data is consumed by R4-era code or down-converted: a guarantor can be meaningful through `guarantor.account`, `responsibility`, `limit`, or `rank` even when no party is present.",
+        "keyEvidence": [
+          "R4 `Account.guarantor.party` is 1..1 Reference(Patient | RelatedPerson | Organization).",
+          "R6 `Account.guarantor.party` is 0..1 with the same target profiles and comment `A party and/or an account is expected to be present on the guarantor.`",
+          "R6 adds `Account.guarantor.account` 0..1 Reference(Account), `responsibility` SimpleQuantity, `limit` Money, and `rank` positiveInt."
+        ],
+        "fmmEffect": "R4 Account FMM 2 / trial-use is neutral. The maturity does not make this permissive change suspect by itself, but the billing-liability path is business-relevant enough to count the mixed-version migration burden.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 guarantor entries can omit `party` or use R6-only account/limit/rank/responsibility fields that R4 Account cannot represent natively; R6 consumers also need null-handling for a formerly required child.",
+        "lessBreakingAlternativeAssessment": "No strong less-breaking base alternative. Keeping `party` mandatory would preserve older assumptions but would fail the account-only guarantor use case. A computable `party.exists() or account.exists()` invariant could improve R6 data quality, but it is not a less-breaking alternative for R4-to-R6 compatibility because R4 entries already satisfy it.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as no old-valid/new-invalid break with meaningful runtime and R6-to-R4 representability risk, and the Not applicable alternative judgment is appropriate."
+      }
     },
     {
       "findingId": "Account:CONVERSION_OR_MAPPING:Account.diagnosis-procedure-covers:cc31bd",
@@ -832,7 +874,21 @@
       "migrationGuidanceMd": "For R4-to-R6, leave these fields absent unless billing data can be derived from local systems or related resources. For R6-to-R4, decide whether to use extensions, map to Claim/Encounter/Condition/Procedure, or reject records requiring lossless conversion. Test CodeableReference concept-only and reference forms, date constraints, multiple sequence values, and device-linked procedures.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the least disruptive way to add this R6 capability for forward validation, but they necessarily create R6-to-R4 representability gaps. Keeping all content as extensions would have reduced cross-version base-model differences but at the cost of weaker standardization.",
       "reviewerNotesMd": "The exact best mapping may depend on whether a workflow treats Account as pre-Claim billing context or derives these details from Claim/Encounter resources.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Account:CONVERSION_OR_MAPPING:Account.diagnosis-procedure-covers:cc31bd",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional Account-level coverage, diagnosis, and procedure structures for billing context. R4 Accounts are not made invalid, but an R6 Account that uses these fields cannot be represented in base R4 Account without extensions, related-resource mapping, or loss. Because the added content supports claim preparation and account-specific sequencing, dropping it can be business-significant; however, the R6 goal is coherent and the additions are optional.",
+        "keyEvidence": [
+          "R4 Account snapshot has no `covers`, `diagnosis`, or `procedure` elements.",
+          "R6 adds `Account.covers` 0..* Reference(Encounter | EpisodeOfCare), summary=true.",
+          "R6 adds `Account.diagnosis.condition` 1..1 CodeableReference(Condition) and `Account.procedure.code` 1..1 CodeableReference(Procedure), with Account-specific constraints `act-1` and `act-2`."
+        ],
+        "fmmEffect": "R4 Account FMM 2 / trial-use is neutral. It does not raise the burden to normative levels, but billing and audit relevance keep the R6-to-R4 loss from being dismissed as trivial.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated R6 `covers`, `diagnosis`, or `procedure` content has no native R4 Account slot and will be rejected by strict R4 parsers unless transformed or carried in extensions.",
+        "lessBreakingAlternativeAssessment": "Not applicable for a forward base break. These are optional R6 additions, so no less-breaking R6 base design is needed to preserve R4-valid instances. Using extensions or mapping to Claim, Encounter, Condition, or Procedure are down-conversion strategies, not better base R6 compatibility designs.",
+        "comparisonToExisting": "agree: the existing no-hard-break, medium impact, high R6-to-R4 risk, and Not applicable alternative assessment align with the fresh review."
+      }
     },
     {
       "findingId": "Account:CONVERSION_OR_MAPPING:Account.billing-balance:91e303",
@@ -1028,7 +1084,21 @@
       "migrationGuidanceMd": "Do not silently discard populated R6 financial fields in R6-to-R4 conversion unless the workflow explicitly tolerates loss. Prefer cross-version extensions for lossless storage, or map to local finance models outside FHIR Account. Validate ISO currency codings, `Money.currency` consistency, balance term/aggregate values, and stale `calculatedAt` handling.",
       "backwardCompatibilityAnalysisMd": "Optional base additions were backward-compatible for R4-to-R6 validation. The unavoidable cost is R6-to-R4 representability. Extensions would have reduced base-model change but weakened standard support for common financial data.",
       "reviewerNotesMd": "A terminology-server expansion would improve confidence for the external ISO 4217 currency value set, but the presence and binding strength are clear from the local StructureDefinition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Account:CONVERSION_OR_MAPPING:Account.billing-balance:91e303",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional financial state on Account: billing lifecycle, default currency, balance rows, and calculation time. This is not an R4-to-R6 instance break because all top-level additions are optional. It is still a real mixed-version migration issue because balances, currency, and timestamps can affect payment collection, patient/guarantor liability, and audit trails if silently discarded during R6-to-R4 conversion.",
+        "keyEvidence": [
+          "R4 Account snapshot has no `billingStatus`, `currency`, `balance`, or `calculatedAt` elements.",
+          "R6 adds `Account.billingStatus` 0..1 CodeableConcept with example binding `ValueSet/account-billing-status`.",
+          "R6 adds `Account.currency` 0..1 CodeableConcept with required `ValueSet/currencies|6.0.0-ballot4`, `Account.balance` 0..* with required child `amount` 1..1 Money, and `Account.calculatedAt` 0..1 instant."
+        ],
+        "fmmEffect": "R4 Account FMM 2 / trial-use is neutral. The maturity level does not argue for revisiting optional financial fields, but the business importance of money and currency makes loss-aware migration necessary.",
+        "compatibilityMechanism": "R6-to-R4 loss: strict R4 Account has no base representation for populated R6 billing status, currency, balances, or calculated-at timestamp; dropping them can change financial behavior.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 base compatibility. Optional base elements are already the compatibility-preserving way to add standardized R6 financial data. Extensions or external finance models may mitigate down-conversion, but they would reduce standardization rather than provide a clearly less-breaking base design.",
+        "comparisonToExisting": "agree: the existing report correctly identifies no forward hard break, meaningful R6-to-R4 representability risk, high business relevance, and no applicable less-breaking base alternative."
+      }
     },
     {
       "findingId": "Account:SEMANTIC_OR_CONFORMANCE_TEXT:Account.subject:a9450f",
@@ -1194,7 +1264,21 @@
       "migrationGuidanceMd": "Review local Account, Encounter, Claim, and Patient matching logic. Do not assume Account.subject Patient must equal Encounter.subject Patient. Add tests for linked but distinct billing and clinical Patient records, and decide how to expose this in user interfaces and privacy/audit workflows.",
       "backwardCompatibilityAnalysisMd": "Because the element shape did not change, this is a low-disruption way to clarify semantics. The backward-compatible alternative would be narrative-only guidance, but that would be easier to miss and less useful to implementers reading generated element documentation.",
       "reviewerNotesMd": "Confidence is medium rather than high for impact because this is a comment-level semantic change; actual breakage depends on local business rules.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Account:SEMANTIC_OR_CONFORMANCE_TEXT:Account.subject:a9450f",
+        "judgment": "No problem",
+        "narrativeMd": "`Account.subject` keeps the same cardinality and reference targets. R6 adds explanatory text allowing a billing-demographics Patient to differ from the clinical Patient and recommending `Patient.link` type `seealso`. That may prompt local policy review, but the base element shape did not change and R4-shaped Account instances remain structurally compatible.",
+        "keyEvidence": [
+          "R4 and R6 `Account.subject` are both 0..* Reference(Patient | Device | Practitioner | PractitionerRole | Location | HealthcareService | Organization), summary=true.",
+          "R4 comment discusses non-patient and unallocated accounts.",
+          "R6 comment adds that Account may reference a different Patient resource instance than clinical resources when billing demographics differ, and recommends linking Patient resources with `seealso`."
+        ],
+        "fmmEffect": "R4 Account FMM 2 / trial-use is neutral. Because the change is documentation-level and not a computable restriction, maturity does not turn it into a material compatibility concern.",
+        "compatibilityMechanism": "semantic/documentation: the guidance changes identity expectations for some workflows, but there is no old-valid/new-invalid instance pattern and no new R6-only field on `subject`.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Moving the same guidance out of the element comment and into narrative text would be less visible, not more compatible. The current design clarifies semantics without changing the base wire shape.",
+        "comparisonToExisting": "partially agree: the existing evidence and Not applicable alternative judgment are sound, but the medium runtime impact is overstated for a comment-only clarification with unchanged cardinality and target profiles."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1361,5 +1445,19 @@
       "New R6 `CodeableReference` elements replacing extension/resource-link patterns",
       "Primitive `string` to `markdown` changes in descriptive fields"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Account.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 4,
+      "No problem": 1
+    }
   }
 }

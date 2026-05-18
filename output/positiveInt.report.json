@@ -283,7 +283,21 @@
       "migrationGuidanceMd": "Regenerate primitive datatype bindings from R6 and review any custom logic that special-cases `positiveInt.value` as a string. Add tests for numeric parsing, serialization, extension-only primitive values, and boundary values. Where cross-version code must support both R4 and R6 metadata, normalize `positiveInt` to a numeric primitive at the application model layer while preserving FHIR's wire-format rules.",
       "backwardCompatibilityAnalysisMd": "The change appears aimed at correcting ambiguous R4 metadata rather than changing the datatype's semantics. A backward-compatible alternative would have been to keep the old string-like metadata and publish an advisory extension or migration note, but that would preserve ambiguity for code generators and validators.",
       "reviewerNotesMd": "Human review is useful because R6's snapshot and differential expose different type-code views: snapshot `System.String` remains, while the differential changes to `System.Integer`. Tooling policy should decide which view is authoritative for generated scalar models.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "positiveInt:SERIALIZATION_OR_CODEGEN:positiveInt.value:7f88da",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "At `positiveInt.value`, the JSON/XML value shape, cardinality, and positive-integer lexical regex are not materially changed. The compatibility concern is for tools that generated a string-like primitive wrapper from R4 metadata and now regenerate from R6 metadata that is more `positiveInt`/integer-specific. That can be a real source/API migration for datatype libraries, validators, serializers, or schema generators, especially because `positiveInt` is normative. Still, the change aligns the primitive metadata with the fact that `positiveInt` specializes `integer`; preserving string-like base metadata would mainly keep an ambiguity that R6 appears to be removing. I would treat this as a real but proportionate codegen/tooling break rather than a reason to reopen the datatype design.",
+        "keyEvidence": [
+          "R4 StructureDefinition-positiveInt.json: `positiveInt.value` snapshot type code is `http://hl7.org/fhirpath/System.String` with fhir-type extension `string`; differential type code is also `System.String`.",
+          "R6 StructureDefinition-positiveInt.json: `positiveInt.value` snapshot fhir-type extension is `positiveInt`, and differential type code is `http://hl7.org/fhirpath/System.Integer`; the value remains `0..1` with regex `[1-9][0-9]*`.",
+          "R4 and R6 positiveInt StructureDefinitions carry standards-status `normative` and normative-version `4.0.0`; r4-maturity also records positiveInt as normative."
+        ],
+        "fmmEffect": "The supplied R4 status is normative, so metadata changes that affect generated APIs deserve a higher justification burden. Because the wire format and validity of conformant instances are unchanged, that stability pressure does not by itself make this a Revisit.",
+        "compatibilityMechanism": "runtime/API/codegen: tools that derive scalar wrapper types or FHIRPath assumptions from StructureDefinition metadata may change generated APIs from string-like handling to positiveInt/integer-specific handling, even though old conformant instances still serialize the same way.",
+        "lessBreakingAlternativeAssessment": "A less-disruptive design could keep the R4 string-like `type.code` metadata everywhere while adding clarifying prose, but that would not meet the apparent R6 goal of making the primitive's numeric nature computable. Supporting both string-like and integer-like interpretations as base aliases would add precedence and generator complexity. I do not see a low-cost base R6 design that preserves old codegen behavior while achieving the same numeric metadata cleanup.",
+        "comparisonToExisting": "partially agree with the existing impact judgment: I agree this is not a hard instance break and that the practical risk is codegen/runtime migration, but I would frame it as proportionate for a numeric primitive rather than as a broad medium-risk concern. I agree that there is no clear less-breaking base alternative."
+      }
     },
     {
       "findingId": "positiveInt:VALUE_CONSTRAINT:positiveInt.value:2a738b",
@@ -403,7 +417,21 @@
       "validationAndCompatibilityMd": "Strict R4 validation already had enough information to reject values outside the 32-bit integer range through the `integer` base. R6-valid positiveInt values from `1` through `2147483647` are representable in R4. The only old-valid/new-invalid pattern is for implementations whose R4 validation was incomplete rather than fully conformant.",
       "migrationGuidanceMd": "Audit validators and import pipelines for boundary handling. Test `0`, `1`, `2147483647`, `2147483648`, and negative values. Do not transform valid in-range values. For out-of-range historical data, treat the issue as data cleanup or non-conformance remediation rather than a lossy R4-to-R6 datatype mapping problem.",
       "backwardCompatibilityAnalysisMd": "Because the explicit R6 bounds restate the inherited integer semantics, preserving backward compatibility by omitting them would mainly benefit incomplete processors. The tradeoff is that local positiveInt validation would remain easier to misimplement.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "positiveInt:VALUE_CONSTRAINT:positiveInt.value:2a738b",
+        "judgment": "No problem",
+        "narrativeMd": "The explicit R6 `1..2147483647` range does not make conformant R4 `positiveInt` values invalid. R4 `positiveInt` already derives from `integer`, R4 `integer.value` already has the same 32-bit upper bound, and the R4 `positiveInt` regex already excludes zero and negatives. The only affected cases are implementations that did not apply the inherited integer bound and accepted oversized positive numbers; those values were already outside the R4 base datatype contract. This is best understood as making an inherited constraint directly visible on `positiveInt.value`, not as a new R4-to-R6 compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition-positiveInt.json: `positiveInt.value` has regex `[1-9][0-9]*` and no local `minValuePositiveInt` or `maxValuePositiveInt`.",
+          "R4 StructureDefinition-integer.json: `integer.value` has `minValueInteger=-2147483648` and `maxValueInteger=2147483647`.",
+          "R6 StructureDefinition-positiveInt.json: differential `positiveInt.value` adds `minValuePositiveInt=1` and `maxValuePositiveInt=2147483647`."
+        ],
+        "fmmEffect": "The normative status raises the compatibility bar, but here the added local range restates constraints already implied by the normative R4 integer base and the R4 positiveInt regex. FMM/status therefore does not turn this into a meaningful break.",
+        "compatibilityMechanism": "none: conformant R4 instances remain valid under the R6 range; only data accepted by incomplete or lax R4 validation would be newly rejected by a validator that now sees the bound directly on positiveInt.",
+        "lessBreakingAlternativeAssessment": "R6 could omit the explicit positiveInt min/max fields, but that would reduce computable clarity without preserving any conformant R4 instances. No less-breaking base design is needed for this clarification.",
+        "comparisonToExisting": "partially agree with the existing low-impact assessment and lack of a clear alternative, but disagree with calling this a potential hard instance break for conformant R4 content because the inherited integer range was already part of the R4 datatype model."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -578,5 +606,18 @@
       "Sibling integer-derived primitives such as unsignedInt show similar R6 differential type-code and explicit min/max metadata changes.",
       "Generated models that used R4 snapshot `structuredefinition-fhir-type=string` for primitive value elements may need normalization across numeric primitives."
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/positiveInt.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

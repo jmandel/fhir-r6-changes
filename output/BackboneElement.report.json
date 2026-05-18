@@ -305,7 +305,22 @@
       "migrationGuidanceMd": "Audit generated model base classes and any code that special-cases `BackboneElement`. In R6-aware code, route resource-contained backbone components through `BackboneElement` and modifier-capable datatype components through `BackboneType`. Cross-version StructureDefinition converters should include an explicit mapping between R4 datatype bases that used `BackboneElement` and R6 `BackboneType`. Regression tests should cover `Dosage`, `Timing`, and `ElementDefinition` because these are common infrastructure/datatype examples.",
       "backwardCompatibilityAnalysisMd": "The split was probably necessary to make the formal model match the semantic distinction already present in the `BackboneElement` definition. The less-breaking alternative would be a compatibility interface or alias so generated code could preserve old `BackboneElement` checks while still exposing `BackboneType`. That alternative reduces migration pain but risks preserving ambiguous hierarchy semantics.",
       "reviewerNotesMd": "Confirm against official ballot migration notes if available. Also review concrete datatype reports because some affected datatypes changed for reasons beyond the abstract base split.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BackboneElement:ARTIFACT_IDENTITY:root:b7f4d2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 does not rename or remove the `BackboneElement` canonical, and ordinary R4 instances are not invalidated because abstract base types are not serialized. The substantive break is in the formal hierarchy used by generated APIs, validators, and StructureDefinition tooling: several R4 complex datatypes that formally derived from `BackboneElement` now derive from the new R6 `BackboneType` branch. Code that dispatched on `BackboneElement` to handle `Dosage`, `Timing`, or `ElementDefinition` would need an R6-aware update. That is a real compatibility burden on normative infrastructure, but the R6 design goal appears proportionate because it separates resource-contained backbone elements from datatype-side structures and places the latter under `DataType`.",
+        "keyEvidence": [
+          "R4 and R6 StructureDefinition-BackboneElement.json keep the same canonical URL and direct baseDefinition `Element`; the local root and modifierExtension shape is not the instance-format break.",
+          "R6 StructureDefinition-BackboneType.json introduces `BackboneType` as an abstract complex type derived from `DataType` for data types allowed to carry modifier extensions.",
+          "Local package baseDefinition scan found R4 `Dosage`, `ElementDefinition`, `MarketingStatus`, `Population`, `ProdCharacteristic`, `ProductShelfLife`, `SubstanceAmount`, and `Timing` under `BackboneElement`; R6 uses `BackboneType` for `Dosage`, `ElementDefinition`, `MarketingStatus`, `ProductShelfLife`, `Timing`, and related new types.",
+          "R4 maturity/status evidence checked: BackboneElement is normative; ElementDefinition and Timing are also normative, while several affected datatype-side artifacts are trial-use or draft."
+        ],
+        "fmmEffect": "Normative BackboneElement status raises the stability burden for changes to the formal model hierarchy. It did not make this a hard instance break, but it kept the runtime/API/codegen impact from being dismissed as mere cleanup.",
+        "compatibilityMechanism": "runtime/API/codegen: generated class hierarchies, reflection metadata, validators, and cross-version StructureDefinition converters may no longer treat datatype-side structures such as `Dosage` or `Timing` as `BackboneElement` descendants; normal instance validation is not old-valid/new-invalid solely from this split.",
+        "lessBreakingAlternativeAssessment": "No clearly better base R6 design was found. Keeping the affected datatypes under `BackboneElement`, or making `BackboneType` an alias/subtype that preserves old `BackboneElement` ancestry, would reduce generated-API churn but would fail or muddy the apparent R6 goal of making these modifier-capable reusable structures true datatype-side descendants under `DataType`. Compatibility interfaces or converter mappings are useful migration mitigations, not less-breaking base StructureDefinition designs.",
+        "comparisonToExisting": "partially agree with the existing High runtime impact and No less-breaking-alternative conclusion, but the fresh assessment emphasizes that the impact is concentrated in SDK/tooling and R6-to-R4 metadata conversion rather than ordinary instance validity."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -489,5 +504,17 @@
       "Codegen assumptions that all modifierExtension-bearing non-resources derive from BackboneElement",
       "Snapshot constraint projection for Extension-sourced invariants"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/BackboneElement.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1
+    }
   }
 }

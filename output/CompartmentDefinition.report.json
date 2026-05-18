@@ -297,7 +297,21 @@
       "validationAndCompatibilityMd": "R4-valid instances with `resource.documentation` become R6-invalid because the element is no longer part of the content model. This does not create an R6→R4 problem because R6 has no such element. Runtime risk is mostly for generated models, serializers, and documentation tooling that expect the field.",
       "migrationGuidanceMd": "Inventory all R4 CompartmentDefinition instances for `resource.documentation`. If the text is needed, map it to an implementation-defined extension or external documentation before R6 validation; otherwise drop it intentionally and document the loss. Add tests with and without `documentation` to ensure unknown-property handling is explicit.",
       "backwardCompatibilityAnalysisMd": "The removal was avoidable from a wire-compatibility standpoint because the element was optional, non-modifier, and non-summary. Deprecating it would have preserved existing instances while still discouraging new use.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CompartmentDefinition:ELEMENT_PRESENCE_OR_IDENTITY:CompartmentDefinition.resource.documentation:6bf83a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed optional per-resource-row `resource.documentation`; R6 removes that element. An R4 CompartmentDefinition instance that populated it becomes old-valid/new-invalid under strict R6 validation, but the field is non-modifier explanatory prose and local package evidence shows it only on the R4 example rows, not on the main R4 compartment definitions. Given FMM 1/trial-use, this is a real but low-value migration break rather than a finding that clearly deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition has `CompartmentDefinition.resource.documentation` as 0..1 string.",
+          "R6 StructureDefinition has no `CompartmentDefinition.resource.documentation` element.",
+          "R4 package count: only `CompartmentDefinition-example.json` has documentation rows (2); Device, Encounter, Patient, Practitioner, and RelatedPerson definitions have 0."
+        ],
+        "fmmEffect": "FMM 1 and trial-use status substantially soften the stability concern; no local evidence showed broad production reliance beyond an example instance.",
+        "compatibilityMechanism": "old-valid/new-invalid: strict R6 validators and generated R6 models have no place for `resource.documentation`, so populated R4 rows need deletion, extension mapping, or out-of-band preservation.",
+        "lessBreakingAlternativeAssessment": "Yes, R6 could have retained the optional string as deprecated legacy prose. That would be a low-cost compatibility design, but it would also keep a marginal documentation-only field in a low-FMM artifact, so the removal still appears proportionate.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the hard break and plausible less-breaking design are real, but the current Medium impact overstates the practical concern after applying FMM 1 and the observed rarity of the field."
+      }
     },
     {
       "findingId": "CompartmentDefinition:TERMINOLOGY_BINDING:CompartmentDefinition.resource.code:2e4f7d",
@@ -649,7 +663,21 @@
       "migrationGuidanceMd": "Build a version-aware mapping table for every `resource.code` value before validating migrated instances. Some rows may be dropped because the resource no longer exists; others may map to renamed or replacement resources; some require manual review. Preserve the original code in an extension or audit log when the mapping is lossy, and test both official core CompartmentDefinition instances and local custom definitions.",
       "backwardCompatibilityAnalysisMd": "The change is largely tied to the FHIR version's resource inventory, so a fully backward-compatible R6 required binding would be misleading. However, explicit cross-version ConceptMaps or a standard extension carrying the prior release's resource code would reduce migration ambiguity.",
       "reviewerNotesMd": "The detailed semantics of each added/removed resource code should be owned by the corresponding resource or terminology reports. This finding only covers the local consequence of the required binding on CompartmentDefinition instances.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CompartmentDefinition:TERMINOLOGY_BINDING:CompartmentDefinition.resource.code:2e4f7d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`resource.code` remains required, but its required binding now points at the R6 resource-type universe. R4 rows naming resource types that no longer exist in R6 will fail the R6 required binding, and generated enums or compartment-routing code must be updated. That is a concrete break, but the element's purpose is to identify resources available in the current FHIR release; preserving removed R4 resource names in the R6 base value set would weaken validation and keep obsolete compartment rows alive.",
+        "keyEvidence": [
+          "R4 `CompartmentDefinition.resource.code` binding is required to `ValueSet/resource-types|4.0.1`; R6 binding is required to `ValueSet/resource-types|6.0.0-ballot4`.",
+          "Local terminology comparison found 41 R4 resource-type codes absent from the R6 value set and 20 R6 codes absent from the R4 code system.",
+          "Actual compartment row comparison found many R4 package row codes absent from R6, including `CatalogEntry`, `ChargeItem`, `DeviceUseStatement`, `Media`, `RequestGroup`, `TestScript`, and `VerificationResult`."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the expectation of wire compatibility, but this path is required on every compartment resource row and affects compartment search/access logic, so the break remains meaningful.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances using removed resource-type codes fail the R6 required binding; runtime/API/codegen updates are also likely for enum switches and compartment-routing tables.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would union legacy R4 resource codes into the R6 binding or add a legacy-code branch. That would preserve more R4 instances but materially conflicts with the R6 goal of describing the R6 resource inventory and would accumulate stale enum values and duplicate representations.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the report is right that this is a hard, high-confidence break with only a tradeoff-heavy alternative, but FMM 1 and the strong release-universe rationale support `Breaking but probably OK` rather than a revisit."
+      }
     },
     {
       "findingId": "CompartmentDefinition:ELEMENT_PRESENCE_OR_IDENTITY:CompartmentDefinition.resource.startParam-endParam:1c70e8",
@@ -810,7 +838,21 @@
       "validationAndCompatibilityMd": "R4 instances remain structurally acceptable with respect to these additions. R6 instances containing `startParam` or `endParam` are not cleanly representable in R4 unless the information is moved to extensions or out-of-band metadata. Generated R6 models will also have new properties that R4 models lack.",
       "migrationGuidanceMd": "For R6→R4 conversion, decide whether `$everything` date-window behavior must be preserved. If yes, map `startParam` and `endParam` to extensions or a sidecar configuration and ensure runtime code reads that preserved metadata. If no, document the loss and test `$everything` queries around date filters.",
       "backwardCompatibilityAnalysisMd": "First-class R6 elements are justified for computable interoperability, but cross-version compatibility would be better with standardized extensions usable in R4. The tradeoff is that extensions require profiles and explicit runtime support.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CompartmentDefinition:ELEMENT_PRESENCE_OR_IDENTITY:CompartmentDefinition.resource.startParam-endParam:1c70e8",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `resource.startParam` and `resource.endParam` fields for mapping `$everything.start` and `$everything.end`. Because they are optional additions, R4 CompartmentDefinition instances remain valid going forward. Down-converting richer R6 compartment definitions to R4 can lose operational date-window metadata, but that is a reverse-conversion limitation rather than an R4-to-R6 base compatibility problem.",
+        "keyEvidence": [
+          "R6 defines `CompartmentDefinition.resource.startParam` and `.endParam` as 0..1 uri elements.",
+          "R4 has no corresponding elements.",
+          "R6 package compartment definitions populate start/end mappings widely (local summary found hundreds of rows and 58 unique resource/date-param pairs)."
+        ],
+        "fmmEffect": "FMM 1/trial-use further reduces concern for a reverse-only representability gap; the additions are not destabilizing for existing R4 instances.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4 has no native fields for the new date-window mapping, but there is no old-valid/new-invalid forward break.",
+        "lessBreakingAlternativeAssessment": "Not applicable for a forward-breaking assessment. Using prose, extensions, or sidecar metadata instead of first-class optional R6 fields would be less computable and would not better preserve R4-to-R6 compatibility.",
+        "comparisonToExisting": "disagree with the existing impact judgment while agreeing on the alternative assessment: the report's High impact treats R6-to-R4 loss as too central for this path-level R4-to-R6 review."
+      }
     },
     {
       "findingId": "CompartmentDefinition:TERMINOLOGY_BINDING:CompartmentDefinition.code:8bb4f2",
@@ -976,7 +1018,21 @@
       "migrationGuidanceMd": "For R6→R4, either reject new compartment types, map them to extensions or out-of-band configuration, or define a profile-specific compatibility policy. Review the R6 ballot package's `Group` compartment inconsistency before finalizing enum handling.",
       "backwardCompatibilityAnalysisMd": "Adding the code to the base value set is probably necessary if the core R6 spec defines the compartment. A profile or extension would have been more backward-compatible but less interoperable as a base compartment definition.",
       "reviewerNotesMd": "Human review should verify whether `Group` is intentionally a new compartment type omitted from the inspected CodeSystem, or a ballot packaging defect.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CompartmentDefinition:TERMINOLOGY_BINDING:CompartmentDefinition.code:8bb4f2",
+        "judgment": "No problem",
+        "narrativeMd": "For the binding itself, R6 widens the required compartment-type code system from the five R4 compartment codes to include `EpisodeOfCare`. Existing R4 `CompartmentDefinition.code` values remain valid in R6, so there is no R4-to-R6 validation break. An R6 instance using a new compartment code cannot round-trip to R4 without extension or other handling, and the R6 package's `Group` compartment instance is inconsistent with the inspected R6 code system, but those are not reasons to treat the `EpisodeOfCare` code addition as a breaking R4-to-R6 design problem.",
+        "keyEvidence": [
+          "R4 `CodeSystem-compartment-type` codes are Patient, Encounter, RelatedPerson, Practitioner, and Device.",
+          "R6 `CodeSystem-compartment-type` retains those five and adds `EpisodeOfCare`.",
+          "R6 `CompartmentDefinition-group.json` has `code: Group` even though `Group` is not present in the inspected R6 compartment-type CodeSystem."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens any reverse-conversion or package-consistency concern; the actual binding widening is compatibility-preserving for R4 instances.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 compartment codes are not representable in the R4 required binding; no old-valid/new-invalid R4-to-R6 mechanism is present for the added code.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for the code addition. Excluding new R6 compartment categories would make R6 less expressive, while the `Group` inconsistency looks like a separate ballot-package quality issue rather than a compatibility-preserving alternative.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: agree this is forward-compatible and reverse-only, but the current Medium impact is too high for the specific binding widening."
+      }
     },
     {
       "findingId": "CompartmentDefinition:ELEMENT_PRESENCE_OR_IDENTITY:CompartmentDefinition.versionAlgorithm-title:a1d92c",
@@ -1122,7 +1178,21 @@
       "validationAndCompatibilityMd": "R4 instances are not invalidated. R6 instances containing these fields cannot be represented as pure R4 JSON/XML without information loss or extensions. Choice-element code generators must create `versionAlgorithmString` and `versionAlgorithmCoding` accessors or equivalents.",
       "migrationGuidanceMd": "For R6→R4, preserve `title` and `versionAlgorithm[x]` in extensions if round-trip fidelity or artifact dependency resolution matters. Add parser tests for both string and Coding forms of `versionAlgorithm[x]`.",
       "backwardCompatibilityAnalysisMd": "The additions are not disruptive for forward migration, but first-class R6 elements are not backward-compatible on the wire. Standard cross-version extensions would reduce round-trip loss.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CompartmentDefinition:ELEMENT_PRESENCE_OR_IDENTITY:CompartmentDefinition.versionAlgorithm-title:a1d92c",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional canonical-resource metadata: `title` and `versionAlgorithm[x]`. These additions do not make any R4 CompartmentDefinition instance invalid in R6. R6 instances that use the new fields may require extensions or loss-tolerant handling when converted back to R4, but the forward compatibility concern is metadata/tooling churn only.",
+        "keyEvidence": [
+          "R6 defines `CompartmentDefinition.title` as 0..1 string.",
+          "R6 defines `CompartmentDefinition.versionAlgorithm[x]` as 0..1 string or Coding with an extensible version-algorithm binding.",
+          "R4 has no corresponding `title` or `versionAlgorithm[x]` elements."
+        ],
+        "fmmEffect": "FMM 1/trial-use reinforces that optional metadata additions should not be treated as a serious stability issue.",
+        "compatibilityMechanism": "metadata/tooling: R6 serializers and generated models gain optional fields, and R4 has no native reverse-conversion slots; there is no forward validation break.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Leaving these as extensions would reduce consistency with other R6 canonical resources and would not improve R4-to-R6 compatibility.",
+        "comparisonToExisting": "disagree with the existing Medium impact while agreeing that no less-breaking alternative is applicable; this should be treated as metadata-only/no-problem for the specific finding."
+      }
     },
     {
       "findingId": "CompartmentDefinition:VALUE_CONSTRAINT:CompartmentDefinition.name-url:9a6d4e",
@@ -1240,7 +1310,21 @@
       "validationAndCompatibilityMd": "This is not a hard old-valid/new-invalid break under normal FHIR validation semantics because warning constraints do not make an instance invalid. It can still break warning-as-error build pipelines, generated artifact publication checks, or systems that use invariant keys in suppression lists.",
       "migrationGuidanceMd": "Audit CompartmentDefinition `name` and `url` values before R6 publication. Update warning suppressions from `cpd-0` to `cnl-0` where necessary, and avoid `|`, `#`, and spaces in canonical URLs.",
       "backwardCompatibilityAnalysisMd": "Because these are warnings, the design is mostly backward-compatible. The avoidable part is the changed invariant key and stricter regex, which can surprise automated tooling even when instance validation remains non-fatal.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CompartmentDefinition:VALUE_CONSTRAINT:CompartmentDefinition.name-url:9a6d4e",
+        "judgment": "No problem",
+        "narrativeMd": "R6 changes the machine-friendly name warning and adds a warning that canonical URLs should not contain `|`, `#`, or spaces. These are warning-level constraints, not hard validity rules, so ordinary R6 validation does not reject R4 instances solely because of them. Warning-as-error publication or CI pipelines may need policy updates, but that is local conformance pressure rather than a base model break.",
+        "keyEvidence": [
+          "R4 root constraint `cpd-0` is warning-level and uses `name.matches('[A-Z]([A-Za-z0-9_]){0,254}')`.",
+          "R6 root constraint `cnl-0` is warning-level and uses an anchored expression requiring at least two machine-friendly characters.",
+          "R6 `CompartmentDefinition.url` adds warning-level `cnl-1` against `|`, `#`, and spaces."
+        ],
+        "fmmEffect": "FMM 1/trial-use makes warning-level hygiene changes especially low concern; even higher maturity would not turn these warnings into hard breaks.",
+        "compatibilityMechanism": "warning-level: base instances remain structurally valid, though warning-as-error workflows or warning suppression keys may be affected.",
+        "lessBreakingAlternativeAssessment": "A less disruptive design could leave the stricter checks as prose or profile guidance, but warning-level invariants are already the compatibility-preserving form of automated feedback and have clear tooling value.",
+        "comparisonToExisting": "agree with the existing low-impact assessment overall, while treating the partial less-breaking alternative as not sufficient to change the judgment."
+      }
     },
     {
       "findingId": "CompartmentDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:CompartmentDefinition.resource.param:4d09bc",
@@ -1359,7 +1443,21 @@
       "validationAndCompatibilityMd": "Instance validation does not change because the element remains `0..* string`. Runtime behavior can change if a server previously treated local CapabilityStatement SearchParameter codes as authoritative for compartment membership. This affects query planning, authorization filters, and `$everything` inclusion rules.",
       "migrationGuidanceMd": "Review compartment-membership code for any use of server-specific SearchParameter aliases. Normalize `resource.param` values to the core HL7 code before evaluating membership, and add tests where local server codes differ from base codes. Access-control tests should include both alias and base-code paths.",
       "backwardCompatibilityAnalysisMd": "The clarification may have been necessary for interoperable compartment behavior, but it could have been introduced with explicit alias-mapping support to ease migration for existing servers.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CompartmentDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:CompartmentDefinition.resource.param:4d09bc",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The element remains a repeatable string, but R6 makes the semantics much more explicit: `resource.param` is the core specification SearchParameter code, not a server-specific alias from CapabilityStatement. Implementations that populated or interpreted compartment rules using local aliases can change runtime behavior during migration, especially for compartment search, authorization scoping, or `$everything`. The R6 clarification appears proportionate because stable base codes reduce ambiguity in exactly those safety-sensitive membership calculations.",
+        "keyEvidence": [
+          "R4 `resource.param` definition says it is the name of a search parameter and only notes that no parameters means the resource is not linked.",
+          "R6 `resource.param` definition says it is the core specification search parameter `code` representing the link to the compartment.",
+          "R6 comment explicitly distinguishes a server alias such as `doc` from the base `performer` code and says inclusion rules use the base HL7 code."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the stability expectation, but the path is central to compartment membership behavior, so the runtime migration risk remains credible while still proportionate.",
+        "compatibilityMechanism": "runtime/API/codegen: JSON shape does not change, but server algorithms or generated rule tables that used local SearchParameter aliases must align to core HL7 codes to preserve compartment behavior.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would preserve broad alias-friendly wording and add explicit alias-mapping support. That would ease migration for alias-based systems but creates conflicting representations and ambiguity about which code controls membership, authorization, and `$everything` behavior.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: agree the runtime risk and alias-mapping tradeoff are real, but with FMM 1 and a strong interoperability rationale the finding is `Breaking but probably OK` rather than needing renewed design attention."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1553,5 +1651,18 @@
       "Warning-level canonical URL/name constraints",
       "SearchParameter alias versus base-code interpretation"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/CompartmentDefinition.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 3,
+      "No problem": 4
+    }
   }
 }

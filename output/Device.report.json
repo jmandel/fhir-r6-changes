@@ -261,7 +261,20 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: an R4 Reference object is not valid for an R6 canonical primitive. R6-to-R4 is lossy when a canonical includes a version or cannot be resolved as a resource Reference.",
       "migrationGuidanceMd": "Resolve R4 References to DeviceDefinition canonical URLs; flag contained, identifier-only, or unresolved references. For R6→R4, define an extension or reference-resolution policy.",
       "backwardCompatibilityAnalysisMd": "A transitional choice or sibling canonical element would have reduced breakage, but at the cost of two ways to link DeviceDefinition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Device:TYPE_DOMAIN:Device.definition:ref-canonical",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 instances can carry `Device.definition` as a Reference object, while R6 expects a canonical string. That is a real validator and generated-model break, and versioned or unresolved canonicals can be lossy when converting back. Still, the field points to a definitional artifact, so moving to canonical identification is a coherent R6 design goal; retaining both Reference and canonical forms in the base resource would create precedence and consistency problems.",
+        "keyEvidence": [
+          "R4 StructureDefinition Device.definition: 0..1 Reference(DeviceDefinition)",
+          "R6 StructureDefinition Device.definition: 0..1 canonical(DeviceDefinition)"
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 / trial-use is neutral under the framework: it does not create a normative stability burden, but it also does not erase the concrete path-level break.",
+        "compatibilityMechanism": "old-valid/new-invalid: a valid R4 Reference object at `definition` is not valid against the R6 canonical primitive; R6-to-R4 may also require resolving a canonical to a concrete reference.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep the Reference and add a canonical sibling, but that would leave two authoritative ways to identify the same DeviceDefinition and require conflict rules. That tradeoff makes the break proportionate.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a hard/high break with only a partial less-breaking alternative."
+      }
     },
     {
       "findingId": "Device:CARDINALITY:Device.udiCarrier:di-issuer-required",
@@ -356,7 +369,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid occurs when `udiCarrier` is present without both required children. Devices with no UDI carrier are unaffected.",
       "migrationGuidanceMd": "Parse DI and issuer from HRF/AIDC where possible; otherwise quarantine, backfill, or preserve partial data with an extension and data-quality flag.",
       "backwardCompatibilityAnalysisMd": "Profiles or warning invariants could have preserved partial base data while encouraging complete UDI capture.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Device:CARDINALITY:Device.udiCarrier:di-issuer-required",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "A partial R4 UDI carrier, such as one that only stores the scanned HRF/AIDC string, no longer satisfies base R6 because each carrier must include both the device identifier and issuer. That can require parsing or data cleanup, but the required fields are the core traceability components of a UDI. For a safety- and regulatory-relevant identifier, making the base model guarantee those parts is a reasonable burden.",
+        "keyEvidence": [
+          "R4 Device.udiCarrier.deviceIdentifier and Device.udiCarrier.issuer: min 0",
+          "R6 Device.udiCarrier.deviceIdentifier and Device.udiCarrier.issuer: min 1",
+          "R6 adds Device.udiCarrier.deviceIdentifierSystem as optional namespace support"
+        ],
+        "fmmEffect": "FMM 2 / trial-use is neutral; the judgment is driven by the concrete old-valid/new-invalid mechanism and the safety/regulatory traceability value of complete UDI data.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `udiCarrier` repetition without `deviceIdentifier` or without `issuer` is rejected by R6; R6 `deviceIdentifierSystem` also has no R4 base field.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the two children optional and used warnings or profiles for completeness. That would preserve partial historical scans, but it would fail the base-level guarantee that each UDI carrier is traceable to a DI and issuing agency.",
+        "comparisonToExisting": "agree: the existing high impact and partial-alternative assessment matches the fresh path-level review."
+      }
     },
     {
       "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.deviceName:name",
@@ -493,7 +520,22 @@
       "validationAndCompatibilityMd": "R4 `deviceName` content is invalid in R6 until renamed. R6 CodeableConcept name types and display metadata are not cleanly representable in R4 primitive `type`.",
       "migrationGuidanceMd": "Rename `deviceName` to `name`, move `name` to `value`, convert primitive codes to CodeableConcept, map removed codes with human-reviewed rules, and set at most one `display=true`.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias or transition period could have preserved old data but would create duplicate name representations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.deviceName:name",
+        "judgment": "Revisit",
+        "narrativeMd": "This is more than a cosmetic rename. R4 uses `deviceName.name` plus a required primitive name-type code; R6 uses `name.value`, a CodeableConcept type with an extensible binding, a preferred-display flag, and an invariant limiting display names. Common R4 name records will not validate until transformed, and several R4 name-type codes do not exist in the R6 complete code system. The richer model is useful, but the old wire names could plausibly have been retained while adding richer typing or display metadata.",
+        "keyEvidence": [
+          "R4 Device.deviceName.name: required string; Device.deviceName.type: required code bound to R4 device-nametype",
+          "R6 Device.name.value: required string; Device.name.type: required CodeableConcept; Device.name.display: optional boolean",
+          "R6 Device root invariant dev-1 limits `name.where(display=true).count()` to one",
+          "R4 device-nametype includes udi-label-name, manufacturer-name, model-name, other; R6 device-nametype includes registered-name, user-friendly-name, patient-reported-name"
+        ],
+        "fmmEffect": "FMM 2 is neutral, but device names are a plausible common display/search field, so the avoidable wire-format churn carries real migration cost even without mature/normative stability pressure.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `deviceName` and `deviceName.name` are not R6 element names, and R4 primitive codes require conversion to an R6 CodeableConcept and possibly new code semantics.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep `deviceName.name` as the wire shape, add an optional display flag, and either retain old name-type codes or introduce a richer optional type representation. That would have some duplicate-type risk, but simply preserving the old path names looks relatively low cost.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a high hard break, but the fresh review gives more weight to the avoidability of the path rename and code churn."
+      }
     },
     {
       "findingId": "Device:SLICING_AND_CONTENT_MODEL:Device.property.value:choice-required",
@@ -651,7 +693,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid occurs for property entries without a value or with R4 value element names. R6 strings/booleans/integers/ranges/attachments are R6-valid but not R4-representable without extensions or lossy text.",
       "migrationGuidanceMd": "Rename value elements, reject or enrich empty properties, fan out multi-valued properties, and consider DeviceMetric/Observation for dynamic settings.",
       "backwardCompatibilityAnalysisMd": "A transitional optional `value[x]` plus deprecated old fields would have reduced migration breaks but prolonged ambiguous modeling.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Device:SLICING_AND_CONTENT_MODEL:Device.property.value:choice-required",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed a property entry with zero or many `valueQuantity` and `valueCode` repetitions. R6 requires exactly one `value[x]` per property, changes the CodeableConcept JSON name, adds more datatypes, and narrows the prose toward static characteristics while directing dynamic observations elsewhere. That is substantial migration work, but the normalized one-property-one-value model is clearer and the less-breaking options would preserve ambiguous empty and multi-valued property entries.",
+        "keyEvidence": [
+          "R4 Device.property.valueQuantity: 0..* Quantity",
+          "R4 Device.property.valueCode: 0..* CodeableConcept",
+          "R6 Device.property.value[x]: 1..1 with Quantity, CodeableConcept, string, boolean, integer, Range, Attachment",
+          "R6 Device.property definition/comment distinguish static characteristics from dynamic DeviceMetric/Observation data"
+        ],
+        "fmmEffect": "FMM 2 / trial-use is neutral. It keeps this from being a normative-stability concern, while the concrete instance and mapper break still matter.",
+        "compatibilityMechanism": "old-valid/new-invalid: empty R4 property repetitions and R4 `valueCode`/multi-value shapes are not valid as R6 `value[x]`; new R6 value types are lossy to base R4.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the old optional repeating value fields and added new choices, or made the new choice optional during transition. That would preserve more R4 data but keep duplicate/ambiguous representations and weaken the R6 normalization goal.",
+        "comparisonToExisting": "agree: the existing high impact and partial-alternative framing is consistent with the fresh review, even though the final judgment treats the break as proportionate."
+      }
     },
     {
       "findingId": "Device:SEMANTIC_OR_CONFORMANCE_TEXT:Device.status:availability-record-split",
@@ -782,7 +839,22 @@
       "validationAndCompatibilityMd": "R4 instances with `statusReason` are invalid in R6. R4 instances with only `status` may validate but can be semantically wrong unless transformed to record status, availabilityStatus, or DeviceAssociation.",
       "migrationGuidanceMd": "Do not copy status blindly. Classify old values as record lifecycle, availability, association, or operational state; populate R6 Device.status, Device.availabilityStatus, and/or DeviceAssociation accordingly.",
       "backwardCompatibilityAnalysisMd": "A new `recordStatus` element with deprecated old availability status would have avoided silent semantic drift but added another status field.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Device:SEMANTIC_OR_CONFORMANCE_TEXT:Device.status:availability-record-split",
+        "judgment": "Revisit",
+        "narrativeMd": "This change is risky because the same `active` and `inactive` codes can continue to validate while their meaning changes from physical availability/implantation state to record lifecycle. R4 `statusReason` is also removed, and the R6 availability replacement uses a different field and different code set. A migration that copies status mechanically can silently corrupt business or clinical interpretation.",
+        "keyEvidence": [
+          "R4 Device.status definition: status of device availability; R4 device-status active means available/implanted",
+          "R6 Device.status definition: record status, explicitly not availability",
+          "R4 Device.statusReason exists as 0..* CodeableConcept; R6 Device.statusReason is absent",
+          "R6 Device.availabilityStatus exists as 0..1 CodeableConcept with availability codes such as lost, damaged, destroyed, available"
+        ],
+        "fmmEffect": "FMM 2 is neutral, but status is a central modifier-like workflow field and the semantic drift is safety/business relevant, so FMM does not soften the concern enough to accept the design.",
+        "compatibilityMechanism": "semantic/documentation: the highest-risk mechanism is same-code semantic drift; additionally, R4 instances with `statusReason` are old-valid/new-invalid in R6.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have kept `Device.status` and `statusReason` for availability, marked them deprecated if needed, and added a distinct `recordStatus` for lifecycle. That would add another status field but avoid silent reinterpretation of existing codes.",
+        "comparisonToExisting": "agree: the existing report identifies this as a high-impact hard and semantic break with a plausible less-breaking design."
+      }
     },
     {
       "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.patient-owner:association-resource",
@@ -913,7 +985,22 @@
       "validationAndCompatibilityMd": "R4 `patient`/`owner` fields are old-valid/new-invalid. R6 DeviceAssociation can represent multiple, perioded, statused associations that cannot fully collapse into R4 single fields.",
       "migrationGuidanceMd": "Create DeviceAssociation resources with relationship `patient` or `owner`, populate required status, and update clients/searches to query associations.",
       "backwardCompatibilityAnalysisMd": "Keeping deprecated inline fields during transition would have reduced breakage but risked conflicting association sources.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.patient-owner:association-resource",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 lets the Device directly identify the patient it is associated with and the owning organization. R6 removes those inline fields and expects relationship data to live in DeviceAssociation, which changes resource boundaries, transactions, queries, and client models. DeviceAssociation is a stronger model for multiple and time-varying relationships, but the base spec could plausibly have retained deprecated inline shortcuts for the simple current patient/owner cases while introducing the association resource.",
+        "keyEvidence": [
+          "R4 Device.patient: 0..1 Reference(Patient)",
+          "R4 Device.owner: 0..1 Reference(Organization)",
+          "R6 Device has no patient or owner elements",
+          "R6 DeviceAssociation.device is required, subject can reference Patient or Organization, relationship includes patient and owner codes, and status is required"
+        ],
+        "fmmEffect": "FMM 2 is neutral, but patient/device association is clinically and operationally important enough that a resource-boundary move deserves heightened scrutiny.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `patient` and `owner` properties are rejected on R6 Device; migration requires creating separate DeviceAssociation resources and updating APIs/searches.",
+        "lessBreakingAlternativeAssessment": "Keeping deprecated inline `patient` and `owner` while adding DeviceAssociation would preserve many R4 instances and simple reads. The tradeoff is duplicate sources of truth and harder consistency/search rules, but that may be preferable for a staged transition.",
+        "comparisonToExisting": "partially agree: the existing report correctly sees a high hard break and a partial alternative, but the fresh review judges the resource-boundary migration as important enough to revisit."
+      }
     },
     {
       "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.version:deviceVersion",
@@ -1014,7 +1101,21 @@
       "validationAndCompatibilityMd": "R4 `version` is invalid in R6 until renamed. R6 `deviceVersion.installDate` is not representable in R4 without extension.",
       "migrationGuidanceMd": "Rename `version` to `deviceVersion` and copy `type`, `component`, and `value`; preserve installDate in an extension for R6→R4.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias would have avoided a hard break with modest complexity.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.version:deviceVersion",
+        "judgment": "Revisit",
+        "narrativeMd": "The shared content of the version backbone maps cleanly, but the wire name changed from `version` to `deviceVersion`. The likely goal is to avoid confusion with resource metadata versions, yet that goal could be met by clarifying the existing element definition and adding the optional install date without invalidating existing payloads.",
+        "keyEvidence": [
+          "R4 Device.version: 0..* backbone with required value",
+          "R6 Device.deviceVersion: 0..* backbone with required value",
+          "R6 Device.deviceVersion.installDate added as optional dateTime"
+        ],
+        "fmmEffect": "FMM 2 / trial-use is neutral; because this appears primarily to be a naming cleanup, the absence of mature status does not make the hard rename cost disappear.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `version` array is not an R6 `deviceVersion` array; generated models and persistence columns also change names.",
+        "lessBreakingAlternativeAssessment": "The base spec could have retained `Device.version`, clarified that it is the device/software version, and added `version.installDate`. That is a low-cost alternative whose main drawback is preserving a less explicit element name.",
+        "comparisonToExisting": "agree: the existing medium impact and yes-alternative assessment align with this being an avoidable hard rename."
+      }
     },
     {
       "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.specialization:conformsTo",
@@ -1125,7 +1226,21 @@
       "validationAndCompatibilityMd": "R4 `specialization` is invalid in R6. R6 `conformsTo.category` is R6-valid/not-R4-representable in base Device.",
       "migrationGuidanceMd": "Map `specialization.systemType` to `conformsTo.specification`, copy version, and infer category only with reliable rules.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias or official ConceptMap would have reduced ambiguity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.specialization:conformsTo",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `specialization.systemType` and R6 `conformsTo.specification` both describe standards or specifications the device supports. R6 broadens the wording and adds category, but the base model could have kept the old backbone and child names while broadening definitions and adding an optional category. The rename invalidates existing content for a relatively modest terminology/modeling cleanup.",
+        "keyEvidence": [
+          "R4 Device.specialization: 0..* backbone; systemType is required CodeableConcept; version is optional",
+          "R6 Device.conformsTo: 0..* backbone; specification is required CodeableConcept; category and version are optional",
+          "R6 conformsTo definition covers standards, specifications, formal guidances, certification, and related capabilities"
+        ],
+        "fmmEffect": "FMM 2 is neutral. The field may be less common, but standards/protocol conformance can affect interoperability workflows, and the rename has a plausible lower-cost alternative.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `specialization` and `systemType` are not valid R6 paths; R6 `category` has no R4 base destination.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could retain `specialization.systemType`, update its definitions to include formal guidance and certifications, and add `specialization.category`. That preserves old instances with little ambiguity beyond living with older names.",
+        "comparisonToExisting": "agree: the existing report's medium impact and yes-alternative judgment fit the fresh assessment."
+      }
     },
     {
       "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.distinctIdentifier:biologicalSourceEvent",
@@ -1224,7 +1339,21 @@
       "validationAndCompatibilityMd": "R4 `distinctIdentifier` is invalid in R6. R6 `biologicalSourceEvent.system` and other Identifier metadata cannot be represented in R4 string without loss.",
       "migrationGuidanceMd": "Map old strings to `biologicalSourceEvent.value` only when they identify the source event; populate Identifier.system where known and review ambiguous values.",
       "backwardCompatibilityAnalysisMd": "Keeping the old string as deprecated would have eased migration but duplicated traceability fields.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.distinctIdentifier:biologicalSourceEvent",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 used a plain string for a regulated distinct identifier on human cell, tissue, or cellular/tissue-based products. R6 replaces that with an Identifier for the biological source event, with comments emphasizing donor/source-to-recipient traceability and anonymity. That invalidates old strings and can require expert mapping, but the target model is meaningfully more computable for a safety- and regulatory-relevant traceability concept.",
+        "keyEvidence": [
+          "R4 Device.distinctIdentifier: 0..1 string for a regulatory distinct identification string",
+          "R6 Device.biologicalSourceEvent: 0..1 Identifier for donor, donation, or pooling event",
+          "R6 comment states the element supports mandatory traceability from donor/source to recipient while satisfying donor anonymity"
+        ],
+        "fmmEffect": "FMM 2 is neutral, but the domain is safety/regulatory traceability; that supports accepting a structured replacement despite the trial-use maturity.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 string at `distinctIdentifier` is not valid in R6; R6 Identifier metadata such as system/type cannot be represented in the R4 string without loss.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained a deprecated `distinctIdentifier` string and added `biologicalSourceEvent`. That would ease migration, but it risks two divergent identifiers for safety-critical traceability and does not ensure the old string actually identifies the source event.",
+        "comparisonToExisting": "agree: the existing medium impact and partial-alternative assessment is consistent with treating the break as real but proportionate."
+      }
     },
     {
       "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.url:removed",
@@ -1303,7 +1432,21 @@
       "validationAndCompatibilityMd": "R4 instances with `url` are invalid in R6. There is no R6-to-R4 issue for this path because R6 has no local replacement field.",
       "migrationGuidanceMd": "Inventory `Device.url` use and identify the appropriate R6 endpoint/communication model or use a governed extension.",
       "backwardCompatibilityAnalysisMd": "A deprecated element or official extension would have preserved old endpoint data.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.url:removed",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Device.url` carried a direct network address, including a possible FHIR server base URL for the device. R6 removes the field and the local evidence did not show a same-path replacement. Because it was optional and could have been deprecated with guidance toward the intended endpoint/communication model, outright deletion looks more breaking than necessary.",
+        "keyEvidence": [
+          "R4 Device.url: 0..1 uri, defined as a network address on which the device may be contacted directly",
+          "R4 Device.url comment mentions a device FHIR server base URL",
+          "R6 Device snapshot has no Device.url element"
+        ],
+        "fmmEffect": "FMM 2 is neutral. The path may be rare, but the lack of a clear replacement and the low cost of keeping an optional deprecated field support revisiting the deletion.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 Device with `url` is invalid against the R6 Device StructureDefinition, with no local R6 Device field to receive the value.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep `Device.url` optional and mark it deprecated or narrowly scoped while documenting the preferred endpoint model. The tradeoff is carrying a potentially stale direct-address field for one more transition.",
+        "comparisonToExisting": "agree: the existing report's medium impact and yes-alternative assessment match the fresh review."
+      }
     },
     {
       "findingId": "Device:CARDINALITY:Device.type:max-widened",
@@ -1409,7 +1552,21 @@
       "validationAndCompatibilityMd": "No old-valid/new-invalid case exists. R6-valid multiple `type` values are not representable in R4 base Device without choosing one or using extensions.",
       "migrationGuidanceMd": "Update models and schemas to treat `type` as repeating. For R6→R4 choose a primary type and preserve extras in extensions if needed.",
       "backwardCompatibilityAnalysisMd": "Extensions could have preserved scalar compatibility but would make multiple classifications less interoperable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Device:CARDINALITY:Device.type:max-widened",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens `Device.type` from a single CodeableConcept to a repeating one. Existing R4 instances with zero or one type remain representable by R6, and the migration is normally just wrapping the old value in an array/list-aware model. The only real issue is reverse conversion or scalar application code encountering multiple R6 types.",
+        "keyEvidence": [
+          "R4 Device.type: 0..1 CodeableConcept",
+          "R6 Device.type: 0..* CodeableConcept",
+          "R6 comment explains multiple types for devices categorized in more than one context"
+        ],
+        "fmmEffect": "FMM 2 is neutral, and because this is an R4-to-R6 widening rather than a rejection of old content, maturity does not create a reason to revisit the design.",
+        "compatibilityMechanism": "R6-to-R4 loss: multiple R6 type values cannot fit into base R4 without choosing one or using extensions; R4-to-R6 instance validation is not broken.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6 compatibility. Keeping the max at 1 would preserve scalar models but fail the stated multi-classification use case.",
+        "comparisonToExisting": "partially agree: the existing report is right about reverse loss and no applicable less-breaking alternative, but its medium impact overstates the R4-to-R6 concern."
+      }
     },
     {
       "findingId": "Device:TERMINOLOGY_BINDING:Device.udiCarrier.entryType:electronic-transmission",
@@ -1499,7 +1656,21 @@
       "validationAndCompatibilityMd": "No R4→R6 break for retained codes. R6→R4 validation breaks when `entryType` is `electronic-transmission` under a required binding.",
       "migrationGuidanceMd": "Update enum handling. For R6→R4, reject, map to `unknown`, or preserve original code in an extension; `unknown` loses information.",
       "backwardCompatibilityAnalysisMd": "The addition is justified because no R4 code precisely conveys electronic transmission.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Device:TERMINOLOGY_BINDING:Device.udiCarrier.entryType:electronic-transmission",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds `electronic-transmission` to the required UDI entry type code system while retaining the R4 codes. That does not invalidate R4 instances moving to R6. R4 receivers of R6 data may reject the new code, but that is a reverse-version interoperability issue and the new code captures a distinct capture mechanism that would be lossy if forced into an older value.",
+        "keyEvidence": [
+          "R4 CodeSystem udi-entry-type lacks electronic-transmission and includes barcode, rfid, manual, card, self-reported, unknown",
+          "R6 CodeSystem udi-entry-type adds electronic-transmission and retains the R4 codes",
+          "R6 definition: UDI information received electronically from the device through a communication protocol such as IEEE 11073 over Bluetooth or USB"
+        ],
+        "fmmEffect": "FMM 2 is neutral; since this is additive for R4-to-R6 and not a base rejection of old data, maturity does not increase concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 `entryType` of `electronic-transmission` is outside the R4 required value set; old R4 codes remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed. Mapping electronic transmission to `unknown` or using only an extension would be less interoperable and less precise.",
+        "comparisonToExisting": "partially agree: the existing report correctly marks the alternative as not applicable, but its medium impact is too high for an additive R4-to-R6 terminology change."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1710,5 +1881,19 @@
       "Scalar-to-repeating widenings",
       "property/value[x] restructurings"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Device.fresh-review.json",
+    "findingDecisionCount": 12,
+    "matchedFindingDecisionCount": 12,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 6,
+      "Breaking but probably OK": 4,
+      "No problem": 2
+    }
   }
 }

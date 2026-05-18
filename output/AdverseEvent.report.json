@@ -305,7 +305,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: any minimal R4 AdverseEvent with `actuality` and `subject` but no status is invalid in R6. Runtime compatibility is also affected for parsers and generated classes because R6 code must expose and honor the modifier element. R6-valid content cannot be represented in core R4 without an extension because R4 has no corresponding element.",
       "migrationGuidanceMd": "Populate `AdverseEvent.status` during R4-to-R6 migration using reliable lifecycle metadata when available. Use `unknown` only when no better value exists, and treat `entered-in-error` as semantically significant. For R6-to-R4, preserve status in an extension or conversion sidecar and test downstream systems for entered-in-error handling.",
       "backwardCompatibilityAnalysisMd": "The underlying need for lifecycle state appears reasonable, especially for entered-in-error semantics. A backward-compatible design could have added an optional status first and relied on profiles or warnings for requiredness, but that would leave base R6 consumers unable to rely on the field.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.status:5b5f9d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds `AdverseEvent.status` as a mandatory modifier code where R4 had no corresponding element. A valid R4 AdverseEvent without lifecycle status will fail R6 validation, and migration requires choosing completed, in-progress, entered-in-error, or unknown rather than applying a purely syntactic transform. The break is real, but the R6 goal is strong because entered-in-error changes whether consumers should treat the event as a valid clinical fact.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `AdverseEvent.status`; R6 defines `AdverseEvent.status` 1..1 code, required binding, `isModifier=true`.",
+          "R6 status value set contains in-progress, completed, entered-in-error, and unknown.",
+          "R6 AdverseEvent definition identifies clinical care and clinical research trial management as major domains.",
+          "HL7 Adverse Event Clinical Research R4 Backport IG states it supports regulated clinical trials, EHR/PHR collection, sponsors, regulatory agencies, CROs, and post-market surveillance."
+        ],
+        "fmmEffect": "R4 AdverseEvent is FMM 0 trial-use, so compatibility pressure is weak. The safety and regulated-reporting role of adverse-event status keeps the break meaningful, but the low maturity makes a mandatory lifecycle addition more acceptable than it would be for mature content.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances lacking `status` are invalid in R6; runtime/API/codegen: R6 models and business logic must expose and honor a modifier status; R6-to-R4 loss: core R4 has no status slot.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have made `status` optional or profile-required. That would preserve R4 payloads, but it would undercut the universal modifier signal for entered-in-error and make generic R6 consumers unable to rely on lifecycle state.",
+        "comparisonToExisting": "agree with the existing high-impact, partial-alternative assessment; the low FMM softens the stability concern but does not change the conclusion that the break is proportionate."
+      }
     },
     {
       "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.event-code:7c0f6a",
@@ -448,7 +463,22 @@
       "validationAndCompatibilityMd": "An R4 instance containing `AdverseEvent.event` is not valid R6 JSON unless the value is moved to `code`. Conversely, R6 `code` content has no R4 property with the same name. The example binding means validators generally will not reject out-of-set codings, but generated enums, pick lists, and analytics keyed to the old path may break.",
       "migrationGuidanceMd": "Map `event` to `code` for R4-to-R6 and `code` back to `event` for R6-to-R4 when the value is a CodeableConcept. Review local terminology assumptions because the example SNOMED scope changed. Update FHIRPath expressions, search indexes, serializers, and generated accessor names.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative was available: keep `event` and add `code` as an alias or preferred replacement with clear deprecation guidance. That would have avoided strict JSON breakage but would require duplicate-handling rules.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.event-code:7c0f6a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `AdverseEvent.event` and R6 `AdverseEvent.code` are both optional CodeableConcepts describing the specific adverse event. Populated R4 instances using `event` become invalid R6 JSON and generated APIs lose the R4 property name. The terminology expression also changes, but the base structural issue is a same-purpose rename that appears avoidable.",
+        "keyEvidence": [
+          "R4 `AdverseEvent.event` is 0..1 CodeableConcept with example binding `adverse-event-type`.",
+          "R6 `AdverseEvent.code` is 0..1 CodeableConcept with the same binding name and event/incident semantics.",
+          "R4 type value set uses SNOMED is-a 404684003; R6 uses SNOMED is-a 370894009 plus code 1912002.",
+          "HL7 AE research IG describes event characterization as part of clinical research adverse-event exchange."
+        ],
+        "fmmEffect": "FMM 0 trial-use lowers the general compatibility burden. Even so, the element is central to identifying the event, and the change is a low-value wire/API rename rather than a necessary safety correction.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 JSON with `event` is invalid in R6; runtime/API/codegen: generated clients and serializers must move from `event` to `code`; semantic/documentation: the example value set focus changes.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained `event` with updated wording and terminology guidance, or kept it as a deprecated legacy element while introducing `code` with an invariant preventing divergent values. The tradeoff is carrying a non-preferred or duplicate name, but that seems modest compared with breaking an optional same-type element.",
+        "comparisonToExisting": "agree with the existing view that a less-breaking alternative exists, but the low FMM reduces the severity from a broad high-impact concern to a focused revisit-worthy rename."
+      }
     },
     {
       "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.date-effect:0ce119",
@@ -592,7 +622,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: `date` is not an R6 element. R6-valid `effectPeriod` is not cleanly representable in R4 because R4 only has one dateTime. Generated code changes from a scalar `date` property to a choice-type property, which can break serializers, FHIRPath, and API clients.",
       "migrationGuidanceMd": "Map R4 `date` to R6 `effectDateTime` only when the old value truly represented effect timing. When R6 has `effectPeriod`, preserve the interval in an extension or choose a lossy policy for R4 conversion. Update FHIRPath from `AdverseEvent.date` to `AdverseEvent.effect` / `effectDateTime` / `effectPeriod`.",
       "backwardCompatibilityAnalysisMd": "A less-breaking path would have added `effect[x]` while retaining `date` as deprecated with guidance about precedence. That would avoid JSON breakage but carry two overlapping timing concepts.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.date-effect:0ce119",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `AdverseEvent.date` is replaced by R6 `AdverseEvent.effect[x]`, changing both the wire name and the allowed timing shape. Existing R4 payloads with `date` must be rewritten to `effectDateTime`, while R6 can represent an `effectPeriod` that R4 cannot round-trip. The semantic change from event timing to effect timing means migration can need domain review when the source distinguishes exposure, event, and effect dates.",
+        "keyEvidence": [
+          "R4 `AdverseEvent.date` is 0..1 `dateTime` defined as when the adverse event occurred.",
+          "R6 `AdverseEvent.effect[x]` is 0..1 `dateTime` or `Period` defined as when the effect of the adverse event occurred.",
+          "R6 AdverseEvent definition covers unintended effects in clinical care and research participant contexts."
+        ],
+        "fmmEffect": "FMM 0 trial-use softens expectations for preserving the legacy `date` field. Timing is clinically relevant, but the R6 semantic refinement and period support are plausible goals for immature content.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 JSON with `date` is invalid in R6 and must become `effectDateTime`; R6-to-R4 loss: `effectPeriod` cannot be represented directly in R4; runtime/API/codegen: the property becomes a choice element.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained deprecated `date` and added `effect[x]`, or widened `date` to a choice. Those designs preserve old JSON but create overlapping timing fields and precedence questions when event timing and effect timing differ.",
+        "comparisonToExisting": "partially agree with the existing high-impact, partial-alternative assessment; I give more weight to FMM 0 and to the semantic cleanup, so the break looks proportionate rather than needing revisit."
+      }
     },
     {
       "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.resultingCondition-resultingEffect:bc89ef",
@@ -764,7 +808,22 @@
       "validationAndCompatibilityMd": "R4 instances with `resultingCondition` become invalid in R6. R6 instances with `resultingEffect.reference` to Observation or `resultingEffect.concept` cannot be faithfully represented in R4 without creating or choosing a Condition, using an extension, or losing data.",
       "migrationGuidanceMd": "For R4-to-R6, convert each Condition reference to `resultingEffect.reference`. For R6-to-R4, only Condition references map cleanly back. Observation references and concept-only entries need manual review, generated Condition resources, or extensions depending on the receiving system's rules.",
       "backwardCompatibilityAnalysisMd": "A less disruptive design could have retained `resultingCondition` and added `resultingEffect` for broader cases. The tradeoff would be duplicate ways to express a Condition effect and possible inconsistencies.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.resultingCondition-resultingEffect:bc89ef",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `resultingCondition` is a repeating bare Reference to Condition. R6 replaces it with `resultingEffect`, a repeating CodeableReference that can point to Condition or Observation or carry only a coded clinical finding. R4 Condition references need both a field rename and wrapping into `CodeableReference.reference`; R6 Observation and concept-only effects cannot be represented in the R4 field.",
+        "keyEvidence": [
+          "R4 `AdverseEvent.resultingCondition` is 0..* Reference constrained to Condition.",
+          "R6 `AdverseEvent.resultingEffect` is 0..* CodeableReference constrained to Condition or Observation and example-bound to clinical findings.",
+          "R6 CodeableReference has optional `concept` and `reference` children rather than the bare Reference shape.",
+          "HL7 AE research IG says adverse events are characterized by outcome and clinical effects in regulated clinical research workflows."
+        ],
+        "fmmEffect": "FMM 0 trial-use weakens the stability claim. The resulting effect is clinically important, but the broader R6 model is a reasonable maturation of immature content.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `resultingCondition` payloads are invalid in R6 without renaming and wrapping; runtime/API/codegen: a Reference list becomes a CodeableReference list; R6-to-R4 loss: Observation targets and concept-only findings do not fit R4.",
+        "lessBreakingAlternativeAssessment": "A transitional base design could have kept deprecated `resultingCondition` alongside `resultingEffect`. It would preserve R4 Condition references, but it would leave two paths for the same Condition effect and require conflict handling between legacy and richer R6 representations.",
+        "comparisonToExisting": "agree with the existing high-impact and partial-alternative assessment, with FMM 0 supporting the conclusion that the break is probably acceptable."
+      }
     },
     {
       "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.severity:3a91de",
@@ -877,7 +936,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: any R4 AdverseEvent with `severity` contains an unknown R6 property. This is primarily an R4-to-R6 validation and migration break. It does not create a direct R6-to-R4 local-field problem because R6 no longer carries this field, but R6 systems may express severity elsewhere in referenced resources.",
       "migrationGuidanceMd": "Do not drop severity without policy. If the R4 severity describes a resulting Condition, consider populating `Condition.severity` on the referenced effect. If it is event-level severity, preserve it in an extension or implementation-guide-specific mapping and flag for clinical review.",
       "backwardCompatibilityAnalysisMd": "The removal might be semantically justified if severity belongs to a resulting condition rather than the adverse event itself. A backward-compatible alternative would have kept `severity` with deprecation guidance or provided an explicit replacement path.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.severity:3a91de",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 has a top-level `severity` CodeableConcept with required mild, moderate, and severe codes; R6 removes that local element. Populated R4 instances become invalid, and there is no direct AdverseEvent replacement slot. Moving severity to a resulting Condition or Observation may be clinically better in some cases, but it is not a mechanical conversion and can lose the original event-level assertion.",
+        "keyEvidence": [
+          "R4 `AdverseEvent.severity` is 0..1 CodeableConcept with required `adverse-event-severity|4.0.1` binding.",
+          "R4 severity code system contains mild, moderate, and severe.",
+          "No R6 `AdverseEvent.severity` element exists in the assigned StructureDefinition.",
+          "HL7 AE research backport IG says adverse events in clinical research are characterized by seriousness, severity, and outcome."
+        ],
+        "fmmEffect": "Although FMM 0 trial-use reduces stability expectations, severity has explicit clinical research and regulated-reporting relevance. The low maturity does not justify silent loss of a central clinical classification without a local replacement.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 payloads containing `severity` are invalid in R6; runtime/API/codegen: generated R6 models drop the property; R6-to-R4 loss is not the main issue because the element was removed from R6.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained `severity` as deprecated or legacy, with guidance to prefer severity on the resulting Condition or Observation when available. The tradeoff is preserving an arguably ambiguous event-level field, but that is lower cost than forcing extensions or expert judgment for existing severity data.",
+        "comparisonToExisting": "agree with the existing high-impact and yes-alternative assessment; this is one of the findings that remains revisit-worthy despite FMM 0."
+      }
     },
     {
       "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.contributor-participant:9d2755",
@@ -1058,7 +1132,22 @@
       "validationAndCompatibilityMd": "R4 `contributor` entries are invalid in R6 because the element is gone. R6 `participant` entries are invalid in R4 without transformation and may be impossible to reduce to R4 when the actor target is outside the old target set or when function semantics matter.",
       "migrationGuidanceMd": "For R4-to-R6, create one `participant` per `contributor`, copy the reference to `actor`, and populate `function` only when source data supports a reliable code. For R6-to-R4, only actor references to Practitioner, PractitionerRole, or Device map cleanly; preserve other actors and functions in extensions or reject with review.",
       "backwardCompatibilityAnalysisMd": "A less breaking approach would have kept `contributor` as an alias for participant entries with contributor-like function. That would ease old data migration but leave two paths for similar information.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.contributor-participant:9d2755",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `contributor` is a repeating bare Reference limited to Practitioner, PractitionerRole, or Device. R6 replaces it with `participant` backbone entries with required `actor` and optional `function`, and broadens actor targets. Old references can often become `participant.actor`, but the R6 shape and generated API are different, and role/function may be absent or need inference.",
+        "keyEvidence": [
+          "R4 `AdverseEvent.contributor` is 0..* Reference to Practitioner, PractitionerRole, or Device.",
+          "R6 `AdverseEvent.participant` is 0..* BackboneElement; `participant.actor` is 1..1 Reference with broader targets.",
+          "R6 `participant.function` is 0..1 CodeableConcept for the type of involvement.",
+          "R6 participant definition says it indicates who or what participated and how they were involved."
+        ],
+        "fmmEffect": "FMM 0 trial-use makes a structural remodeling more acceptable. The affected path can matter operationally, but the R6 participant/function model is a plausible maturation rather than an arbitrary removal.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `contributor` arrays are invalid in R6; runtime/API/codegen: a Reference list becomes a backbone list with required `actor`; R6-to-R4 loss: new actor target types and functions have no exact R4 contributor representation.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept deprecated `contributor` as a shortcut for participant entries. That would preserve simple R4 payloads but duplicate participant representation and leave unclear reconciliation rules if both `contributor` and `participant` are present.",
+        "comparisonToExisting": "agree with the existing high-impact and partial-alternative assessment, while treating the break as probably acceptable because of the low FMM and reasonable modeling goal."
+      }
     },
     {
       "findingId": "AdverseEvent:CONVERSION_OR_MAPPING:AdverseEvent.history-supportingInfo:2e6fd4",
@@ -1253,7 +1342,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: R4 payloads with `subjectMedicalHistory` or `referenceDocument` contain unknown R6 elements. R6-to-R4 is lossy for concept-only CodeableReferences, new target types, and distinctions among supporting, contributing, preventive, and mitigating information, because R4 has only broader buckets.",
       "migrationGuidanceMd": "Build mapping rules that classify each R4 reference by clinical role. Defaulting all history and documents to `supportingInfo.reference` is syntactically easy but may understate causality or actions. Preserve unclassifiable roles in extensions and include clinical review cases for causal factors, preventive actions, and mitigating actions.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition could have kept `subjectMedicalHistory` and `referenceDocument` while adding the new R6 fields. The tradeoff would be ambiguity and possible duplicate information across old and new buckets.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AdverseEvent:CONVERSION_OR_MAPPING:AdverseEvent.history-supportingInfo:2e6fd4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `subjectMedicalHistory` and `referenceDocument` are removed and R6 uses CodeableReference-based fields such as `supportingInfo`, `contributingFactor`, `preventiveAction`, and `mitigatingAction`. Many R4 history and document references can map mechanically to `supportingInfo.reference`, but old payloads still need renaming and wrapping, and overloaded R4 use can require deciding whether an item is only background support or an actual contributing factor/action.",
+        "keyEvidence": [
+          "R4 `subjectMedicalHistory` is 0..* Reference to Condition, Observation, AllergyIntolerance, FamilyMemberHistory, Immunization, Procedure, Media, or DocumentReference.",
+          "R4 `referenceDocument` is 0..* Reference to DocumentReference.",
+          "R6 `supportingInfo` is 0..* CodeableReference and explicitly covers subject medical history and relevant documents, while distinguishing it from contributing factors and actions.",
+          "R6 also defines `contributingFactor`, `preventiveAction`, and `mitigatingAction` as separate CodeableReference lists."
+        ],
+        "fmmEffect": "FMM 0 trial-use reduces the obligation to preserve broad, immature R4 buckets. The clinical/regulatory context means misclassification can matter, but R6 is adding a more precise model rather than simply deleting the information.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 history/document elements are invalid in R6 and must be mapped to new CodeableReference fields; runtime/API/codegen: old Reference lists disappear; R6-to-R4 loss: concept-only entries and some new target/resource roles do not downgrade cleanly.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have retained deprecated `subjectMedicalHistory` and `referenceDocument` while adding the R6-specific buckets. That preserves old instances, but it also keeps catch-all fields that blur the distinction R6 is trying to make and creates duplicate-classification rules.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative assessment; the forward break is real, but the direct R4-to-R6 path is often `supportingInfo`, so I view it as proportionate for FMM 0 content."
+      }
     },
     {
       "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.suspectEntity.instance:6f8204",
@@ -1414,7 +1518,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: R4 `suspectEntity.instance` as a bare Reference is invalid in R6. R6-valid concept-only suspect entities or references to SubstanceDefinition, BiologicallyDerivedProduct, or ResearchStudy cannot be represented in the R4 field. Generated models must change the property type even though the element name did not change.",
       "migrationGuidanceMd": "Wrap R4 references as `suspectEntity.instance.reference` during R4-to-R6 conversion. For R6-to-R4, unwrap only if the CodeableReference has a supported Reference target. Preserve concept-only values or newly allowed target types using extensions or manual review.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative was to make `instance[x]` allow both Reference and CodeableReference-like concept representation or to add a sibling coded element. That would reduce JSON breakage but increase model complexity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.suspectEntity.instance:6f8204",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`AdverseEvent.suspectEntity.instance` keeps its path and cardinality but changes from a bare Reference to a CodeableReference. Existing R4 JSON such as an `instance.reference` string is not the R6 shape, which nests the Reference under `instance.reference.reference`. R6 gains concept-only suspect entities and additional targets, which are useful when no concrete resource instance exists.",
+        "keyEvidence": [
+          "R4 `suspectEntity.instance` is 1..1 Reference with target profiles including Immunization, Procedure, Substance, Medication, MedicationAdministration, MedicationStatement, and Device.",
+          "R6 `suspectEntity.instance` is 1..1 CodeableReference with additional targets including SubstanceDefinition, BiologicallyDerivedProduct, and ResearchStudy.",
+          "R6 CodeableReference can carry either `concept` or `reference` children.",
+          "HL7 AE research IG describes cause-and-effect assessment and related treatments/devices as essential adverse-event context."
+        ],
+        "fmmEffect": "FMM 0 trial-use softens the stability concern. The suspect entity is central to safety and regulatory analysis, but the CodeableReference expansion addresses a legitimate modeling gap in immature content.",
+        "compatibilityMechanism": "old-valid/new-invalid: the populated R4 Reference shape is invalid as an R6 CodeableReference; runtime/API/codegen: generated types change at the same path; R6-to-R4 loss: concept-only or new-target suspect entities cannot be represented directly in R4.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have kept the Reference field and added a coded suspect-entity sibling or choice. That would preserve R4 JSON but split one fact across multiple fields and introduce consistency rules that CodeableReference avoids.",
+        "comparisonToExisting": "agree with the existing high-impact and partial-alternative assessment; the break is substantial but appears proportionate."
+      }
     },
     {
       "findingId": "AdverseEvent:CARDINALITY:AdverseEvent.suspectEntity.causality:420e7a",
@@ -1585,7 +1704,22 @@
       "validationAndCompatibilityMd": "R4 instances with two causality entries under one suspect entity are invalid in R6. R4 child fields `assessment`, `method`, and `productRelatedness` are not R6 fields. R6 entries authored by Patient or RelatedPerson cannot be represented in the R4 author target list.",
       "migrationGuidanceMd": "For each suspect entity, map `assessment` to `entityRelatedness` and `method` to `assessmentMethod`. If there are multiple causality entries, define a deterministic selection, merge strategy, or preserve extras in extensions. Map `productRelatedness` to CodeableConcept text, note, or extension only with review.",
       "backwardCompatibilityAnalysisMd": "A compatibility-preserving design could have retained repeatability and old child aliases while adding clearer R6 names. That would preserve data but maintain a more complex backbone.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AdverseEvent:CARDINALITY:AdverseEvent.suspectEntity.causality:420e7a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allows repeating `suspectEntity.causality` entries; R6 reduces the backbone to 0..1 and renames/removes key children. In FHIR JSON this is not only a max-cardinality issue: populated R4 `causality` is an array, while R6 expects a single object. Multiple assessments by different methods or authors must be collapsed or discarded, and R4 free-text `productRelatedness` has no direct R6 child.",
+        "keyEvidence": [
+          "R4 `suspectEntity.causality` is 0..* BackboneElement with children including `assessment`, `productRelatedness`, `author`, and `method`.",
+          "R6 `suspectEntity.causality` is 0..1 BackboneElement with `entityRelatedness`, `assessmentMethod`, and broader `author` targets.",
+          "Causality assessment is called out by the HL7 AE research IG as a key part of clinical research adverse-event characterization.",
+          "R4 free-text `productRelatedness` is not present as a local R6 child."
+        ],
+        "fmmEffect": "FMM 0 would normally soften a breaking remodel, but causality is central to pharmacovigilance and regulated adverse-event reporting. The reduction from many assessments to one creates data-loss and expert-judgment risk that low maturity does not erase.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 causality arrays and especially multiple entries are invalid in R6; runtime/API/codegen: a repeating backbone becomes a singleton with renamed children; R6-to-R4 loss: new author targets and renamed semantics do not fully round-trip.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep `causality` repeatable and retain `assessment`, `method`, and `productRelatedness` as deprecated or alias-like fields while adding clearer R6 names. The tradeoff is a larger backbone and alias handling, but it avoids collapsing independent causality judgments.",
+        "comparisonToExisting": "agree with the existing high-impact and yes-alternative assessment; this remains revisit-worthy."
+      }
     },
     {
       "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.category:114ac2",
@@ -1755,7 +1889,22 @@
       "migrationGuidanceMd": "Do not assume category code semantics are unchanged. Review dashboards, search filters, decision rules, and profile bindings that depended on the R4 category set. A ConceptMap or site-specific mapping table is likely needed for old product-use categories versus newer mishap categories.",
       "backwardCompatibilityAnalysisMd": "If the goal was to broaden terminology, retaining extensible strength with a broader value set or publishing an explicit ConceptMap would have been more migration-friendly. Weakening to example avoids validation failures but can reduce interoperability guarantees.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "A complete comparison needs the external terminology.hl7.org R6 CodeSystem or expansion; only R4 local concepts and R6 element text were available."
+      "reviewerNotesMd": "A complete comparison needs the external terminology.hl7.org R6 CodeSystem or expansion; only R4 local concepts and R6 element text were available.",
+      "freshReview": {
+        "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.category:114ac2",
+        "judgment": "No problem",
+        "narrativeMd": "`AdverseEvent.category` stays a repeating CodeableConcept. R6 weakens the binding from extensible to example and updates the visible category examples. That relaxes base validation rather than invalidating R4 instances; the remaining concern is semantic guidance and analytics consistency, not a hard compatibility break.",
+        "keyEvidence": [
+          "R4 `category` is 0..* CodeableConcept with extensible binding to `adverse-event-category`.",
+          "R6 `category` is 0..* CodeableConcept with example binding to the same value-set URL.",
+          "The R4 local category code system includes product and use-error categories; the R6 element short text lists mishap-oriented examples.",
+          "No cardinality or JSON shape change occurs on `category`."
+        ],
+        "fmmEffect": "FMM 0 trial-use reinforces that this terminology-guidance change should not be escalated. The base binding is weaker in R6, so low maturity and lack of a forward validation break point to no problem.",
+        "compatibilityMechanism": "semantic/documentation: category examples and conformance expectations shift, but R4 category payloads remain structurally valid and R6 validation is less restrictive.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for forward compatibility because the binding is relaxed. A compatibility value set or ConceptMap could help analytics, but that is guidance rather than a base-model alternative.",
+        "comparisonToExisting": "disagree with the existing medium-impact framing; the existing not-applicable alternative judgment is fine, but the change is better treated as no meaningful compatibility problem."
+      }
     },
     {
       "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.outcome:788a13",
@@ -1931,7 +2080,22 @@
       "migrationGuidanceMd": "For R6-to-R4, define a selection or prioritization rule when multiple outcomes exist, and map SNOMED outcomes to one of the R4 codes only where clinically defensible. Preserve unmapped or additional outcomes in extensions or reject with manual review.",
       "backwardCompatibilityAnalysisMd": "The R4 TODO-like binding description suggests the required binding may have been too restrictive. A less disruptive path would have included an official ConceptMap and perhaps retained the old value set as a preferred compatibility layer.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "SNOMED expansion was not available, so exact overlap with the six R4 outcome codes was not determined."
+      "reviewerNotesMd": "SNOMED expansion was not available, so exact overlap with the six R4 outcome codes was not determined.",
+      "freshReview": {
+        "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.outcome:788a13",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 widens `outcome` from 0..1 to 0..* and weakens the binding from required local codes to example SNOMED-based terminology. The binding change is forward-compatible, but the cardinality change changes the FHIR JSON and generated API shape: an R4 single `outcome` object must become an R6 `outcome` array. R6 can also express multiple or SNOMED-coded outcomes that R4 cannot represent cleanly.",
+        "keyEvidence": [
+          "R4 `AdverseEvent.outcome` is 0..1 CodeableConcept with required binding to six local outcome codes.",
+          "R6 `AdverseEvent.outcome` is 0..* CodeableConcept with example binding to `adverse-event-outcome`.",
+          "R6 outcome value set uses SNOMED descendent-of 405533003; R4 value set includes the local adverse-event-outcome code system.",
+          "In FHIR JSON, repeating elements are represented as arrays, so max 1 to max * is a wire-shape change when populated."
+        ],
+        "fmmEffect": "FMM 0 trial-use softens the concern. Outcome is clinically and reporting relevant, but the R6 change expands expressivity and relaxes terminology rather than narrowing valid coded meanings.",
+        "compatibilityMechanism": "old-valid/new-invalid: populated R4 `outcome` is a single object while R6 expects an array; runtime/API/codegen: scalar outcome becomes a collection; R6-to-R4 loss: multiple or SNOMED-only outcomes do not fit R4's single required-code slot.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept single `outcome` and added an `additionalOutcome` or similar repeating field, but that would create an awkward split representation. Keeping the conventional single repeating `outcome` path is a reasonable tradeoff despite the wire break.",
+        "comparisonToExisting": "partially agree with the existing high overall impact, but disagree with its no-hard-break premise; the max-cardinality increase changes JSON/API shape for populated R4 outcomes."
+      }
     },
     {
       "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.actuality:51f0c4",
@@ -2077,7 +2241,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 compatibility is good for existing values. R6-to-R4 is not clean when `actuality='unknown'` because R4 requires the element and does not permit that code. R4 enum switches should add a defensive path if they ingest R6 data.",
       "migrationGuidanceMd": "When converting R6 `unknown` to R4, avoid inventing `actual` or `potential` unless source evidence supports it. Preserve the R6 code in an extension or reject for manual completion. Test enum parsing for the new code.",
       "backwardCompatibilityAnalysisMd": "Using an extension would have preserved R4 required-code compatibility but made the unknown state less integrated into base R6. The R6 comment suggests the change is intentionally narrow and discouraged.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.actuality:51f0c4",
+        "judgment": "No problem",
+        "narrativeMd": "R4 `actuality` remains a required modifier code at the same path, and R6 adds `unknown` while retaining `actual` and `potential`. Existing R4 values remain valid in R6. The new `unknown` code can affect R6-to-R4 downgrades or enum-based clients, but R6 explicitly frames it as legacy support and strongly discourages use.",
+        "keyEvidence": [
+          "R4 `actuality` is 1..1 code required-bound to actual and potential.",
+          "R6 `actuality` is 1..1 code required-bound to actual, potential, and unknown.",
+          "R6 comment says unknown is included to support legacy data and is strongly discouraged.",
+          "The path, cardinality, and datatype do not change."
+        ],
+        "fmmEffect": "FMM 0 trial-use further lowers concern. Because this is a widening for R4-to-R6 and the added value is discouraged, it does not warrant renewed design attention.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 `unknown` value cannot be represented in R4's required two-code value set; none for forward R4-to-R6 instances using actual or potential.",
+        "lessBreakingAlternativeAssessment": "No less-breaking forward design is needed because R4 values are preserved. Using an extension or data-absent-reason instead of a base code might help downgrade consumers, but it would make the R6 legacy state less explicit.",
+        "comparisonToExisting": "partially agree with the existing not-applicable alternative assessment, but the existing medium-impact framing overstates a reverse-only, discouraged-value concern."
+      }
     },
     {
       "findingId": "AdverseEvent:CARDINALITY:AdverseEvent.identifier:d68180",
@@ -2179,7 +2358,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe for single identifiers. R6-to-R4 requires choosing one identifier, using an extension, or producing multiple related resources, any of which can lose or distort identity information.",
       "migrationGuidanceMd": "Update generated R6 models and serializers to treat `identifier` as a collection. For R6-to-R4, establish a priority order by system/use or preserve additional identifiers in extensions.",
       "backwardCompatibilityAnalysisMd": "A less disruptive approach would have left max 1 and relied on profiles for repetitions, but that would limit base R6 expressivity and is less aligned with FHIR identifier patterns.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AdverseEvent:CARDINALITY:AdverseEvent.identifier:d68180",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes `identifier` from 0..1 to 0..*. This is a useful expressivity improvement, but for populated instances it changes the FHIR JSON shape from a single Identifier object to an array and changes generated APIs from scalar to collection. R6 instances with multiple identifiers cannot be downgraded to core R4 without selecting one or using extensions.",
+        "keyEvidence": [
+          "R4 `AdverseEvent.identifier` has max `1`; R6 `AdverseEvent.identifier` has max `*`.",
+          "The definition and business-identifier rationale are otherwise substantially the same.",
+          "In FHIR JSON, repeating elements are arrays, so max 1 to max * changes wire shape for populated identifiers."
+        ],
+        "fmmEffect": "FMM 0 trial-use makes this cardinality widening acceptable despite the wire/API break. Multiple business identifiers are a common FHIR pattern and the safety/business risk is comparatively low.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with a scalar `identifier` object need an R6 array; runtime/API/codegen: scalar identifier becomes a collection; R6-to-R4 loss: multiple identifiers require selection or extension.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have kept `identifier` single and added a separate additional-identifiers element, but that would be inconsistent with normal FHIR modeling and would complicate search and client expectations. Widening the existing path is a reasonable tradeoff.",
+        "comparisonToExisting": "partially agree with the existing conclusion that the change is probably justified, but disagree with the no-hard-break implication and medium-only impact because populated R4 JSON changes shape."
+      }
     },
     {
       "findingId": "AdverseEvent:CONVERSION_OR_MAPPING:AdverseEvent.new-optional-fields:aa0998",
@@ -2297,7 +2490,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 is not broken by these additions. R6-to-R4 conversion is potentially lossy: notes could be dropped or moved to extensions, suspect-entity occurrence has no R4 slot, and expected-in-study status has no R4 boolean equivalent.",
       "migrationGuidanceMd": "Define cross-version extensions or profile-specific mappings for each new field before round-tripping R6 data to R4. Do not silently discard research expectation or suspect-entity timing if they are part of downstream safety or trial reporting workflows.",
       "backwardCompatibilityAnalysisMd": "Adding optional fields is the usual backward-compatible mechanism for forward evolution. The remaining risk is not avoidability of the R6 additions but the lack of standard R4 representation in the supplied inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AdverseEvent:CONVERSION_OR_MAPPING:AdverseEvent.new-optional-fields:aa0998",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional fields such as `expectedInResearchStudy`, `note`, and `suspectEntity.occurrence[x]`. These additions do not make any R4 AdverseEvent invalid in R6. They create ordinary downgrade and round-trip gaps when R6 systems use the new data, but that is expected for additive expressivity.",
+        "keyEvidence": [
+          "R6 adds `expectedInResearchStudy` 0..1 boolean.",
+          "R6 adds `note` 0..* Annotation.",
+          "R6 adds `suspectEntity.occurrence[x]` 0..1 dateTime or Period.",
+          "No matching R4 core elements exist, but all listed R6 fields are optional."
+        ],
+        "fmmEffect": "FMM 0 trial-use strongly favors not escalating optional additive fields. Low maturity plus no forward validation break makes this a normal version evolution concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: new optional R6 data has no native R4 field; none for R4-to-R6 validation because the additions are optional.",
+        "lessBreakingAlternativeAssessment": "No less-breaking forward design is required. Keeping these concepts only in extensions would improve R4 round-tripping but would reduce discoverability and consistency in R6 base.",
+        "comparisonToExisting": "disagree with the existing medium-impact framing; the not-applicable alternative judgment is right, but this is an additive reverse-only concern and should be no problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2460,5 +2668,19 @@
       "R4 required terminology bindings weakened to example in R6",
       "dateTime fields changed to dateTime|Period choice elements"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/AdverseEvent.fresh-review.json",
+    "findingDecisionCount": 14,
+    "matchedFindingDecisionCount": 14,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 8,
+      "No problem": 3
+    }
   }
 }

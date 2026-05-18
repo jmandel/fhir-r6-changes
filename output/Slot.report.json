@@ -369,7 +369,22 @@
       "migrationGuidanceMd": "For R4→R6, transform every `Slot.serviceType[n]` CodeableConcept to `Slot.serviceType[n].concept`. Update FHIRPath and search indexing from `Slot.serviceType` to the appropriate R6 child path, normally `Slot.serviceType.concept` for token search and `Slot.serviceType.reference` for reference search. For R6→R4, unwrap `concept` values and define an explicit policy for `reference` values: preserve them in an extension, resolve the referenced HealthcareService to one or more service codes, or reject/down-scope the export as lossy. Test slots with absent serviceType, coded serviceType, reference serviceType, and mixed coded/reference repetitions.",
       "backwardCompatibilityAnalysisMd": "The change was probably made to express the long-standing text that service type may ideally be an identifiable service. A backward-compatible alternative was available in principle: keep `serviceType` as CodeableConcept and add a new optional reference element or extension. That alternative avoids breaking existing payloads but leaves two fields to reconcile and weakens the unified CodeableReference modeling style used in R6.",
       "reviewerNotesMd": "Review local policies for whether a HealthcareService reference should be preserved, dereferenced, or converted to a service-type code during R6→R4 exchange. This is likely implementation-specific and may require business-owner input.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Slot:TYPE_DOMAIN:Slot.serviceType:b7d4a1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Slot.serviceType` is a real wire-format break for populated R4 Slots: the R4 array item is a `CodeableConcept`, while R6 makes the item a `CodeableReference` whose coded value lives under `concept` and whose new reference option points to `HealthcareService`. That will fail strict R6 validation and generated-model deserialization until R4 values are mechanically wrapped. The change still appears proportionate because the old Slot text already described an ideally identifiable service, R6 preserves coded service types via `concept`, and the new reference search surface shows the reference branch is an intentional base capability rather than incidental churn.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Slot.json snapshot `Slot.serviceType`: `0..*` `CodeableConcept`, example binding `http://hl7.org/fhir/ValueSet/service-type`.",
+          "R6 StructureDefinition-Slot.json snapshot `Slot.serviceType`: `0..*` `CodeableReference` targeting `http://hl7.org/fhir/StructureDefinition/HealthcareService`, same example binding.",
+          "R4 search parameter `Slot-service-type` expression is `Slot.serviceType`; R6 token search uses `Slot.serviceType.concept` and adds `service-type-reference` over `Slot.serviceType.reference` targeting `HealthcareService`.",
+          "R4 maturity map records Slot as FMM 3 and trial-use."
+        ],
+        "fmmEffect": "R4 Slot is FMM 3/trial-use, so this mature scheduling element deserves compatibility scrutiny, but it is not normative/FMM 5. That raises the justification burden above experimental content while still allowing a well-motivated modeling correction with a deterministic R4-to-R6 transform.",
+        "compatibilityMechanism": "old-valid/new-invalid: a valid R4 `serviceType` object with direct `coding` or `text` children is not a valid R6 `CodeableReference` item until moved under `concept`; R6 reference-valued entries also create R6-to-R4 loss unless an implementation maps or preserves the `HealthcareService` reference.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design is plausible but only partial: R6 could have kept `serviceType` as `CodeableConcept` and added a sibling reference element for `HealthcareService`. That would preserve old payloads, but it would split one scheduling concept across two fields, require conflict and precedence rules when both appear, complicate search/indexing, and miss the unified `CodeableReference` pattern.",
+        "comparisonToExisting": "agree: the existing report correctly treated this as a hard/high compatibility issue and identified only a partial less-breaking alternative with material tradeoffs; my independent review reaches the same overall judgment."
+      }
     },
     {
       "findingId": "Slot:CARDINALITY:Slot.appointmentType:6a21ce",
@@ -551,7 +566,23 @@
       "migrationGuidanceMd": "For R4→R6, wrap existing generated code accessors in collection-aware APIs or update application code to use the first/only element only when that is a documented local invariant. For R6→R4, decide whether to reject multi-valued slots, choose one value by priority, split the slot into multiple R4 slots, or preserve additional values in an extension. Test absent, singleton, and multi-valued cases.",
       "backwardCompatibilityAnalysisMd": "The R6 change is likely justified by the newly documented business case that a slot can support multiple appointment types. A backward-compatible extension-based design could have avoided changing the base cardinality, but would have made the multi-type behavior less visible and less interoperable across base implementations.",
       "reviewerNotesMd": "The local R6 comment has a minor wording issue (`may be allow`), but the intended semantic is clear. Review R4 export requirements before deciding whether multi-valued R6 slots need manual adjudication.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Slot:CARDINALITY:Slot.appointmentType:6a21ce",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Slot.appointmentType` widens from optional singleton to repeating `CodeableConcept`. Existing R4 instances with zero or one appointment type remain valid in R6, so this is not an old-valid/new-invalid instance break. The practical burden is that generated R6 APIs and business rules must treat the field as a collection, and data created in R6 with multiple appointment types cannot be represented exactly in the R4 base slot. The R6 comment gives a concrete scheduling rationale: a slot can allow several appointment styles even though a booked appointment uses one.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Slot.json snapshot `Slot.appointmentType`: `0..1` `CodeableConcept`, preferred binding `http://terminology.hl7.org/ValueSet/v2-0276`.",
+          "R6 StructureDefinition-Slot.json snapshot `Slot.appointmentType`: `0..*` `CodeableConcept`, same preferred binding.",
+          "R6 `Slot.appointmentType` comment states that a slot may allow multiple appointment types, but when booked would use one of them.",
+          "R4 and R6 `Slot-appointment-type` search parameters both remain token searches over `Slot.appointmentType`.",
+          "R4 maturity map records Slot as FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes generated API churn and scheduling semantics worth noting, but because the change is a cardinality widening that preserves all R4-valid instances, the maturity context does not make it a standards-design concern.",
+        "compatibilityMechanism": "runtime/API/codegen: R4-to-R6 validation compatibility is preserved, but R6 model APIs expose a collection instead of a singleton and R6-to-R4 conversion is lossy if multiple appointment types are present.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for R4-to-R6 instance compatibility. Keeping `0..1` and using an extension or profile rule for additional appointment types would reduce singleton API and R6-to-R4 churn, but it would make the intended multi-type scheduling capability less visible, less consistently searchable, and less interoperable in the base resource.",
+        "comparisonToExisting": "agree: the existing report correctly identified no hard R4-to-R6 instance break, a real runtime/R6-to-R4 compatibility burden, and no useful less-breaking base alternative for preserving R4 instance validity."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -725,5 +756,17 @@
       "Singleton-to-repeating cardinality changes in appointment metadata",
       "R6 reference branches with no native R4 counterpart"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Slot.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2
+    }
   }
 }

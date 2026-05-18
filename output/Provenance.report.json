@@ -418,7 +418,21 @@
       "migrationGuidanceMd": "Do not blindly rename `reason` to `why`. Classify each R4 reason value: map purpose-of-use/security codes to `authorization`, convert only appropriate human-readable rationale to `why`, and preserve unmappable codings in an extension or cross-version mapping note. Test multiple reasons, coded-only reasons, text-only reasons, and round-trip R6→R4 behavior.",
       "backwardCompatibilityAnalysisMd": "The conceptual split is understandable, but removal of `reason` was not the only option. Keeping a deprecated `reason` element or defining an explicit cross-version extension would have allowed older instances to validate while new systems adopted clearer fields.",
       "reviewerNotesMd": "The supplied package did not include an official change note explaining the split; the mapping judgement is inferred from R6 element names, aliases, definitions, and bindings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Provenance:ELEMENT_PRESENCE_OR_IDENTITY:Provenance.reason:be90a8",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Provenance.reason` was a repeatable coded reason with an extensible PurposeOfUse binding. In R6 the path is absent and the apparent successors split the content between coded `authorization` and single markdown `why`. A strict R6 parser or validator will not accept an R4 instance containing `reason`, and a safe transform is not just a rename because coded purpose-of-use, general rationale text, repeats, and binding strength all changed. This is audit/security-relevant enough that the deletion deserves renewed standards attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Provenance.reason` is 0..* CodeableConcept with extensible `v3-PurposeOfUse` binding.",
+          "R6 StructureDefinition: no `Provenance.reason`; `Provenance.authorization` is 0..* CodeableConcept with example PurposeOfUse binding.",
+          "R6 StructureDefinition: `Provenance.why` is 0..1 markdown with alias `reason`."
+        ],
+        "fmmEffect": "R4 Provenance is FMM 3/trial-use, so it is not normative, but mature audit/security content has a real stability expectation; this raises the burden for removing a path with lossy migration.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with `reason` uses a member not defined by the R6 base resource; there is also R6-to-R4 loss for `authorization` and `why`.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking R6 base design was to retain `reason` as the repeatable coded authorization/purpose-of-use element, possibly deprecated or clarified, and add `why` only for textual rationale. The tradeoff is preserving an imprecise legacy name, but it avoids a hard wire-format break and much of the expert-dependent split.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as high-impact and identifies a plausible less-breaking base design, though the fresh rationale emphasizes the binding-strength weakening and lossy split rather than relying on the prior wording."
+      }
     },
     {
       "findingId": "Provenance:TERMINOLOGY_BINDING:Provenance.entity.role:54055e",
@@ -647,7 +661,22 @@
       "migrationGuidanceMd": "Inventory all `Provenance.entity.role` values. Map R4 `derivation` only after checking whether the entity was a source, a revised version, an instantiating definition, or some other relationship. Preserve original codes in an extension or audit note when the transform is uncertain. Add round-trip tests for each role code.",
       "backwardCompatibilityAnalysisMd": "A compatible path was available by retaining `derivation` as deprecated while adding R6-specific codes. That would have avoided invalidating old instances but would have allowed less precise data to persist.",
       "reviewerNotesMd": "Code comparison used the local complete CodeSystem resources rather than a live terminology server expansion.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Provenance:TERMINOLOGY_BINDING:Provenance.entity.role:54055e",
+        "judgment": "Revisit",
+        "narrativeMd": "`Provenance.entity.role` remains a required `code`, but R6 removes the R4 `derivation` code and adds `instantiates` and `other`. Because the binding is required, historical R4 data using the broad parent `derivation` value can become invalid in R6, and the correct replacement may depend on whether the entity was a source, revision, instantiating definition, quotation, removal, or something else. That is a real validation and audit-meaning break on mature trial-use content.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Provenance.entity.role` is 1..1 `code` with required binding to `provenance-entity-role|4.0.1`.",
+          "R4 CodeSystem `provenance-entity-role` includes `derivation` with child codes `revision`, `quotation`, `source`, and `removal`.",
+          "R6 StructureDefinition: the same path is required-bound to `provenance-entity-role|6.0.0-ballot4`.",
+          "R6 CodeSystem includes `revision`, `quotation`, `source`, `instantiates`, `removal`, and `other`; `derivation` is absent."
+        ],
+        "fmmEffect": "FMM 3/trial-use means compatibility should matter for this central Provenance relationship, especially because the role code affects audit interpretation.",
+        "compatibilityMechanism": "old-valid/new-invalid: the required R6 binding excludes an R4 code that was valid in the required R4 binding; generated enums and switch logic can also break.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `derivation` as a deprecated or legacy code while adding `instantiates` and `other`. That would preserve old instances and allow gradual precision improvements. The cost is continued support for a broad code that may delay cleaner role classification, but that tradeoff looks modest for a required-binding break.",
+        "comparisonToExisting": "agree: the existing high-impact judgment and less-breaking alternative are supported by the primary terminology artifacts."
+      }
     },
     {
       "findingId": "Provenance:REFERENCE_TARGET:Provenance.agent.onBehalfOf:6c650f",
@@ -841,7 +870,22 @@
       "validationAndCompatibilityMd": "Strict R6 validators can reject `onBehalfOf.reference` values whose resource type is Device or RelatedPerson. R6 CareTeam, Group, and HealthcareService references are not valid R4 targets. Generated model unions or profile validators may surface this as parse, assignment, or validation failures.",
       "migrationGuidanceMd": "Find all R4 `agent.onBehalfOf` references to Device or RelatedPerson. Determine whether they represent a delegating agent, a beneficiary, a device acting as who, or contextual information that belongs elsewhere or in an extension. For retained types, test accountability logic because the R6 definition is delegation-specific.",
       "backwardCompatibilityAnalysisMd": "Removing target types from the base resource is strongly breaking. A profile-level restriction or staged deprecation would have given implementations a path to clean data without rejecting existing instances immediately.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Provenance:REFERENCE_TARGET:Provenance.agent.onBehalfOf:6c650f",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 narrows `agent.onBehalfOf` by removing `Device` and `RelatedPerson` targets while also changing the meaning from the party for whom the change was made to the agent that delegated authority. This is both a structural target-list break for old instances and a semantic migration issue for accountability logic. The RelatedPerson removal is particularly worth rechecking because proxy/caregiver delegation is a plausible audit scenario, and target-list narrowing alone does not guarantee correct delegation semantics.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `agent.onBehalfOf` permits Practitioner, PractitionerRole, RelatedPerson, Patient, Device, and Organization.",
+          "R4 definition: `The individual, device, or organization for whom the change was made.`",
+          "R6 StructureDefinition: `agent.onBehalfOf` permits Practitioner, PractitionerRole, Organization, CareTeam, Patient, Group, and HealthcareService; Device and RelatedPerson are removed.",
+          "R6 definition: `The agent that delegated authority to perform the activity performed by the agent.who element.`"
+        ],
+        "fmmEffect": "FMM 3/trial-use does not forbid cleanup, but Provenance delegation and accountability are central enough that target removals need a stronger compatibility rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `onBehalfOf` referencing Device or RelatedPerson can fail R6 target validation; retained targets also need semantic review because the field now means delegated authority.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base option was to retain Device and RelatedPerson as deprecated legacy targets for one transition, or to add a distinct delegation-specific element while preserving legacy `onBehalfOf`. The tradeoff is ambiguity and possible duplicate representations, but a staged target cleanup would preserve data while R6 clarifies delegation semantics.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the target removal and semantic shift, but the fresh review is less convinced that the partial alternatives are too costly and therefore escalates this to Revisit."
+      }
     },
     {
       "findingId": "Provenance:REFERENCE_TARGET:Provenance.agent.who:4cafcc",
@@ -977,7 +1021,20 @@
       "validationAndCompatibilityMd": "R4→R6 validation is safe for this target-list change. R6→R4 conversion is not lossless when `who` uses one of the new targets unless an extension, contained proxy, or policy-specific mapping is used.",
       "migrationGuidanceMd": "Update generated type unions, reference validators, and business rules to accept the new R6 actor types. When downgrading to R4, use an explicit extension or reject records where the actor cannot be represented without changing accountability semantics.",
       "backwardCompatibilityAnalysisMd": "Adding targets is the normal forward-compatible way to broaden a reference. The unavoidable compatibility issue is with older R4 consumers that cannot natively represent the new actors.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Provenance:REFERENCE_TARGET:Provenance.agent.who:4cafcc",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens `agent.who` by retaining all R4 target types and adding CareTeam, Group, and HealthcareService. Existing R4 instances remain valid for this path. The only compatibility burden is for older R4 consumers or down-converters receiving new R6 actor types, which is normal for an additive target-list expansion.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `agent.who` permits Practitioner, PractitionerRole, RelatedPerson, Patient, Device, and Organization.",
+          "R6 StructureDefinition: `agent.who` retains those targets and adds CareTeam, Group, and HealthcareService."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not raise concern because the change preserves the R4 target set and improves expressiveness.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using the new target types cannot be represented as base R4 without extension or policy, but there is no R4-to-R6 old-valid/new-invalid break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed. Adding optional target types is already the compatibility-preserving way to broaden the actor model; R4 backport extensions are migration aids, not better R6 base designs.",
+        "comparisonToExisting": "partially agree: the existing report correctly notes reverse-direction mapping risk, but the fresh judgment treats this as no standards design problem for R4-to-R6 compatibility."
+      }
     },
     {
       "findingId": "Provenance:VALUE_CONSTRAINT:Provenance.agent:eda0a8",
@@ -1121,7 +1178,21 @@
       "migrationGuidanceMd": "Run R6 validation with reference resolution enabled on representative Provenance data. Where violations are found, remove redundant `onBehalfOf`, correct the referenced delegator, or preserve the original assertion in an extension if it reflected a local business convention rather than true delegation.",
       "backwardCompatibilityAnalysisMd": "The checks improve data quality but could have been introduced as warnings or profile constraints first. Base error constraints maximize interoperability at the cost of stricter migration requirements.",
       "reviewerNotesMd": "Constraint impact depends on validator resolver behavior and availability of referenced resources.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Provenance:VALUE_CONSTRAINT:Provenance.agent:eda0a8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds four local error constraints that reject self-delegation or same-party delegation patterns when references can be resolved. This can invalidate some R4 data, but the affected data represents confusing accountability assertions under the R6 delegation model. The constraints are also resolver-dependent, so they will not always fire; that limits both the practical breakage and the guarantee they provide. On balance, making the base resource reject resolvable self-delegation appears proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Provenance.agent` has no local `prov-*` constraints beyond inherited element rules.",
+          "R6 StructureDefinition: `prov-1` through `prov-4` are error constraints on `Provenance.agent`.",
+          "R6 `prov-1` human text: `Who and onBehalfOf cannot be the same`; the expressions rely on `resolve()`."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises compatibility concern, but the safety/accountability purpose of rejecting nonsensical delegation is strong enough for a targeted constraint change.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance can fail R6 validation when `who` and `onBehalfOf` resolve to the same or equivalent party; runtime behavior depends on validator reference resolution.",
+        "lessBreakingAlternativeAssessment": "Warnings, best-practice constraints, or profile-only enforcement would be less disruptive, but they would not let base R6 consumers rely on these delegation patterns being excluded. Because the invalid patterns are narrow and accountability-significant, the less-breaking alternatives have material interoperability cost.",
+        "comparisonToExisting": "agree: the existing potential-break assessment and partial-alternative judgment are consistent with the fresh path-level review."
+      }
     },
     {
       "findingId": "Provenance:CARDINALITY:Provenance.recorded:bdb567",
@@ -1236,7 +1307,20 @@
       "validationAndCompatibilityMd": "Valid R6 instances can omit `recorded` and therefore fail R4 validation. R4 generated models may expose `recorded` as required/non-null and fail when ingesting R6. Existing R4 instances are not invalidated by this relaxation.",
       "migrationGuidanceMd": "For R6→R4 conversion, decide whether missing `recorded` should block conversion, be backfilled from `meta.lastUpdated` or another audit timestamp, or be carried with an extension explaining that the true recorded time is unknown. Avoid silently fabricating audit timestamps.",
       "backwardCompatibilityAnalysisMd": "Relaxing cardinality is backward-compatible in the forward direction but creates an unavoidable representability gap for old R4 consumers. A profile could require `recorded` for exchange partners that need R4 round-trip compatibility.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Provenance:CARDINALITY:Provenance.recorded:bdb567",
+        "judgment": "No problem",
+        "narrativeMd": "The minimum cardinality of `recorded` decreases from required to optional. That is forward-compatible for R4-to-R6 migration because valid R4 Provenance instances already contain `recorded`. Valid R6 instances that omit it cannot be represented as base R4 without a policy decision, and audit systems should not silently invent timestamps, but this is a reverse-direction conversion issue rather than a problematic R6 base break.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Provenance.recorded` is 1..1 `instant`.",
+          "R6 StructureDefinition: `Provenance.recorded` is 0..1 `instant` with a definition allowing the information to have been recorded or updated in another form."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes audit timestamp changes worth noticing, but the compatibility concern is softened because the base change relaxes validation for old instances.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 data may omit a timestamp required by R4; there is no old-valid/new-invalid R4-to-R6 mechanism for this path.",
+        "lessBreakingAlternativeAssessment": "Keeping `recorded` mandatory would preserve easier R4 round-tripping but would block the R6 goal of representing Provenance when the in-resource recorded instant is unknown or recorded elsewhere. Profiles can require `recorded` where round-trip compatibility or audit policy needs it.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies reverse-direction risk, but the fresh judgment downgrades the design concern because this cardinality relaxation preserves all R4-valid instances."
+      }
     },
     {
       "findingId": "Provenance:ELEMENT_PRESENCE_OR_IDENTITY:Provenance.basedOn|Provenance.patient|Provenance.encounter:be7e3f",
@@ -1376,7 +1460,21 @@
       "validationAndCompatibilityMd": "R4→R6 validation is safe. R6→R4 validation fails if these unknown members are left in a base R4 instance, and silently dropping them can change semantics. Generated R4 models need extension mapping or a rejection policy.",
       "migrationGuidanceMd": "Map these elements to well-defined R4 extensions when down-converting, or reconstruct them from target resources only when deterministic. Pay particular attention to `patient` because the R6 requirements text says it SHALL be accurate when populated and SHALL NOT be populated when the target data has no subject.",
       "backwardCompatibilityAnalysisMd": "Adding optional elements is relatively compatible, but R4 round-trip compatibility would require published cross-version extensions and explicit transformation rules.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Provenance:ELEMENT_PRESENCE_OR_IDENTITY:Provenance.basedOn|Provenance.patient|Provenance.encounter:be7e3f",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional workflow, patient, and encounter context elements. These additions do not invalidate R4 Provenance instances. They can create R6-to-R4 mapping work, especially because `patient` and `encounter` may affect access control and compartment behavior, but optional additions are the normal non-breaking way to add base expressiveness.",
+        "keyEvidence": [
+          "R4 StructureDefinition: no base `Provenance.basedOn`, `Provenance.patient`, or `Provenance.encounter` elements.",
+          "R6 StructureDefinition: `basedOn` is 0..* Reference(Resource), `patient` is 0..1 Reference(Patient), and `encounter` is 0..1 Reference(Encounter).",
+          "R6 `patient` requirements state it SHALL be accurate when populated and SHALL NOT be populated when target data has no subject; R6 `encounter` requirements mention access control."
+        ],
+        "fmmEffect": "FMM 3/trial-use supports adding explicit context when it preserves existing instances; the access-control relevance affects migration guidance, not the base judgment.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 members have no native R4 element and need extensions, derived context, or rejection on down-conversion; no R4-to-R6 old-valid/new-invalid break exists.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed because the elements are optional additions. Published cross-version extensions and transforms would be useful support, but they are not less-breaking alternatives to the R6 base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly calls out R6-to-R4 access-control risk, but the fresh review treats the base addition itself as no problem."
+      }
     },
     {
       "findingId": "Provenance:FLAGS_AND_MODIFIERS:Provenance._summary:db610e",
@@ -1473,7 +1571,20 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid. The change can alter runtime behavior for `_summary=true`, `_elements`, summary serializers, caches, and clients that assumed summary Provenance omitted agent/entity details.",
       "migrationGuidanceMd": "Review server summary projection tests and client expectations. Treat this as an API behavior change: verify payload size, privacy exposure of agents/entities, and UI assumptions for summary-mode Provenance.",
       "backwardCompatibilityAnalysisMd": "This is a metadata behavior change rather than an avoidable structural break. Implementations can mitigate by documenting summary behavior and using explicit `_elements` when exact projections are required.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Provenance:FLAGS_AND_MODIFIERS:Provenance._summary:db610e",
+        "judgment": "No problem",
+        "narrativeMd": "R6 marks more Provenance elements as summary content. This can change `_summary=true` projections, payload size, cache assumptions, and privacy review for agent/entity details, but it does not change instance validity or the normal resource wire shape. It is an API behavior awareness item rather than a path-level breaking design issue.",
+        "keyEvidence": [
+          "R4 StructureDefinition: local `activity`, `agent`, `entity`, and `occurred[x]` are not summary elements.",
+          "R6 StructureDefinition: local `activity`, `agent`, `entity`, and `occurred[x]` are summary; new `patient` is also summary."
+        ],
+        "fmmEffect": "FMM 3/trial-use means runtime API changes should be noticed, but the lack of validation or representation break keeps this from being a standards concern.",
+        "compatibilityMechanism": "runtime/API/codegen: summary projections and generated summary serializers may include more data; no old-valid/new-invalid or R6-to-R4 structural loss is created by the flag change itself.",
+        "lessBreakingAlternativeAssessment": "There is no meaningful less-breaking base design for instance compatibility. Servers and clients can use explicit `_elements`, documentation, and privacy policy to manage exact summary projections.",
+        "comparisonToExisting": "agree: the existing low-impact/no-alternative assessment is consistent with the fresh review."
+      }
     },
     {
       "findingId": "Provenance:SEMANTIC_OR_CONFORMANCE_TEXT:Provenance.agent.role:e028f2",
@@ -1605,7 +1716,22 @@
       "migrationGuidanceMd": "Review every use of `agent.role`. Move functional participation concepts to `agent.type` where appropriate, keep structural competency/position concepts in `agent.role`, and update terminology picklists and mappings. Do not infer that the two-code R6 example value set is an exhaustive allowed set.",
       "backwardCompatibilityAnalysisMd": "The R6 clarification could have been introduced through narrative guidance while preserving the old example value set, but the stronger semantic separation likely improves long-term interoperability.",
       "reviewerNotesMd": "A live terminology expansion would improve confidence about the full intended example sets, especially for external security-role terminology.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Provenance:SEMANTIC_OR_CONFORMANCE_TEXT:Provenance.agent.role:e028f2",
+        "judgment": "Revisit",
+        "narrativeMd": "`agent.role` keeps the same wire shape and example binding strength, but R6 repurposes the element toward structural roles or competencies while `agent.type` is described as the functional role. Because example bindings will not usually cause validation failures, old R4 data can remain syntactically valid while being interpreted on the wrong role axis. For audit, authorization, and accountability workflows, that silent semantic migration risk is more concerning than a simple example ValueSet update.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `agent.role` is 0..* CodeableConcept with example binding to `security-role-type`.",
+          "R4 definition says `The function of the agent with respect to the activity. The security role enabling the agent with respect to the activity.`",
+          "R6 StructureDefinition: `agent.role` remains 0..* CodeableConcept with example binding, now to `security-role-type-example`.",
+          "R6 definition and requirements describe structural roles, competencies, and the distinction between structural and functional roles."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the burden for a silent semantic shift in an audit/security element even though the binding is only example.",
+        "compatibilityMechanism": "semantic/documentation: base validation still accepts old CodeableConcepts, but authorization, audit displays, picklists, and generated terminology helpers may interpret the same field differently.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained `agent.role` for the older broad/security-role semantics and introduced a separate structural-role element, or staged the change with explicit transition guidance. That would add model complexity and possible duplicate role representations, but it would avoid silently reclassifying existing data.",
+        "comparisonToExisting": "partially agree: the existing report identifies semantic/runtime risk, but the fresh review disagrees that no less-breaking base alternative is applicable and escalates the issue to Revisit."
+      }
     },
     {
       "findingId": "Provenance:TERMINOLOGY_BINDING:Provenance.activity|Provenance.agent.type:2eaefe",
@@ -1727,7 +1853,22 @@
       "migrationGuidanceMd": "Review terminology picklists, enum generation, validation policy, and analytics using `activity` or `agent.type`. Map R4 activity codes to R6 lifecycle concepts where possible and distinguish `agent.type` functional participation from `agent.role` structural competency.",
       "backwardCompatibilityAnalysisMd": "The spec avoided hard terminology breaks by weakening the binding. More explicit ConceptMaps or transitional union value sets would make migration safer without over-constraining R6.",
       "reviewerNotesMd": "External value set expansions and official ConceptMaps were not available locally, so detailed code-level mapping is limited.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Provenance:TERMINOLOGY_BINDING:Provenance.activity|Provenance.agent.type:2eaefe",
+        "judgment": "No problem",
+        "narrativeMd": "R6 changes the recommended terminology for `activity` and `agent.type`, but it also weakens both bindings from extensible to example. That avoids making R4-coded instances invalid in base R6. Implementations with generated picklists, closed enums, analytics, or local warning-as-error policy need migration work, but the base R6 model is not imposing a harder validation constraint.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Provenance.activity` binding is extensible to `provenance-activity-type`; R6 binding is example to the same canonical with changed compose.",
+          "R4 ValueSet `provenance-activity-type` includes v3 DocumentCompletion, ActCode, DataOperation, and ParticipationType content.",
+          "R6 ValueSet `provenance-activity-type` includes selected `iso-21089-lifecycle` concepts.",
+          "R4 `agent.type` is extensible to `provenance-agent-type`; R6 `agent.type` is example to `participation-role-type` and defined as the Functional Role."
+        ],
+        "fmmEffect": "FMM 3/trial-use supports careful terminology migration, but weakening to example substantially softens the base compatibility concern.",
+        "compatibilityMechanism": "semantic/documentation: terminology recommendations, picklists, and analytics can change; no old-valid/new-invalid terminology mechanism exists because R6 uses example bindings.",
+        "lessBreakingAlternativeAssessment": "A transitional union value set or official ConceptMap would help implementers, but those are migration supports rather than necessary less-breaking base designs. The base model already chose the less restrictive binding strength.",
+        "comparisonToExisting": "partially agree: the existing report correctly notes runtime terminology risk, but the fresh judgment downgrades it to no problem for base compatibility because the bindings are weaker in R6."
+      }
     },
     {
       "findingId": "Provenance:SEMANTIC_OR_CONFORMANCE_TEXT:Provenance.entity.agent:2cf303",
@@ -1818,7 +1959,21 @@
       "validationAndCompatibilityMd": "Instances remain structurally valid, but behavior can differ in audit displays, responsibility calculations, and transformations that derive W3C PROV relationships. The risk is still-valid-but-behaviorally-different rather than old-valid/new-invalid.",
       "migrationGuidanceMd": "Review any mapping from `Provenance.entity.agent` to audit, PROV-O, or responsibility models. Confirm whether your R4 data used the field for source-entity custodianship, generation responsibility, or access mediation, and document the interpretation during migration.",
       "backwardCompatibilityAnalysisMd": "This appears to be a semantic clarification that could not be represented as a purely structural addition. A transition note would have helped identify affected mappings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Provenance:SEMANTIC_OR_CONFORMANCE_TEXT:Provenance.entity.agent:2cf303",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The shape of `entity.agent` is unchanged, but the explanatory sentence changes from responsibility for the activity that generated the entity to responsibility for the activity that used the entity. That can affect mappings to PROV-style responsibility relationships and audit displays while leaving instances valid. The R6 wording appears to align better with the surrounding `Provenance.entity` concept, which is an entity used in the activity, so the semantic correction looks proportionate even though migration notes would be valuable.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Provenance.entity` is defined as an entity used in the activity.",
+          "R4 `entity.agent` definition says the agent was responsible for the activity which generated the entity.",
+          "R6 `entity.agent` definition says the agent was responsible for the activity which used the entity."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes silent semantic shifts relevant, but the apparent correction of an internally inconsistent explanation reduces the case for revisiting the base design.",
+        "compatibilityMechanism": "semantic/documentation: the same JSON can validate in both versions while downstream attribution logic may change.",
+        "lessBreakingAlternativeAssessment": "R6 could have broadened the prose to mention both generation responsibility and use responsibility, or added a separate attribution relationship. Those alternatives would soften surprise but would also preserve ambiguity in an element nested under an entity used by the current activity.",
+        "comparisonToExisting": "agree: the existing report's semantic-risk and probably-justified posture is consistent with the fresh review."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1973,5 +2128,19 @@
       "Resource-specific summary flag expansions",
       "Reference target removals from existing Reference elements"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Provenance.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 2,
+      "No problem": 5
+    }
   }
 }

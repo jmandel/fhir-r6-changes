@@ -294,7 +294,21 @@
       "validationAndCompatibilityMd": "An R4-valid instance containing either removed element becomes R6-invalid because unknown elements are not allowed in the base resource. This affects JSON/XML parsers, generated models, FHIRPath expressions, and summary projections that referenced the old fields.",
       "migrationGuidanceMd": "Scan R4 data for both fields. If the metadata is clinically or operationally important, preserve it in an agreed extension, Provenance/QuestionnaireResponse linkage, or implementation-specific mapping rather than silently dropping it. Regression tests should include instances with each removed field.",
       "backwardCompatibilityAnalysisMd": "Because the old fields were optional, retaining them as deprecated elements would have been backward compatible. Removing them gives a cleaner R6 model but forces migration policy for historical protocol-adherence metadata.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:instantiates:7f2c10",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 let a FamilyMemberHistory point to protocol, guideline, order-set, questionnaire, measure, or other defining material through `instantiatesCanonical` and `instantiatesUri`; R6 has no base element for either property. A strict R6 parser or generated model will reject old instances carrying those fields. At this path, however, the removed content is optional protocol/provenance metadata rather than the family-history facts themselves, and I found only general implementation-guide exposure rather than evidence that these fields are central in deployed exchange. With the supplied low maturity, the break looks real but proportionate.",
+        "keyEvidence": [
+          "R4 snapshot: `FamilyMemberHistory.instantiatesCanonical` is 0..* canonical to PlanDefinition, Questionnaire, ActivityDefinition, Measure, or OperationDefinition; `instantiatesUri` is 0..* uri; both are summary elements.",
+          "R6 snapshot: no `FamilyMemberHistory.instantiatesCanonical` or `FamilyMemberHistory.instantiatesUri` element is present.",
+          "Quick public check: current QI-Core STU7/FHIR R4 includes a `qicore-familymemberhistory` profile that exposes the inherited instantiates elements, but the page did not show path-specific must-use evidence: https://hl7.org/fhir/us/qicore/StructureDefinition-qicore-familymemberhistory.html"
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/status unknown softens the stability concern. I did not treat the mere removal of optional low-use metadata as enough for Revisit without stronger production or safety evidence.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing either removed property become invalid against the R6 base resource, and R6 generated APIs do not expose those fields.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: keep the two optional fields as deprecated legacy elements while steering new implementations to the preferred R6 provenance or workflow mechanism. That would preserve old instances, but it also keeps resource-surface clutter for optional metadata on a low-FMM resource, so the alternative is not compelling enough by itself.",
+        "comparisonToExisting": "partially agree: I agree the finding is a hard R4-to-R6 wire-format break and that a base-retention alternative exists, but I would not give that alternative Revisit-level weight under FMM 1 and likely rare path use."
+      }
     },
     {
       "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:estimatedAge:0d9b62",
@@ -440,7 +454,22 @@
       "migrationGuidanceMd": "Identify all records with `estimatedAge`. If `age[x]` is already a string such as \"about 70\", retaining the string may be adequate for display but not for algorithms. For computable preservation, define a cross-version extension or map to a `Range` only when the source semantics support that conversion. Review decision-support tests that depend on age precision.",
       "backwardCompatibilityAnalysisMd": "The removal was avoidable from a wire-format compatibility perspective because the element was optional. A deprecated element or standard extension would have allowed old data to remain valid while nudging new implementations toward preferred age representations.",
       "reviewerNotesMd": "Manual review is advisable before dropping the flag because it can alter risk algorithms that distinguish exact from estimated ages.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:estimatedAge:0d9b62",
+        "judgment": "Revisit",
+        "narrativeMd": "`estimatedAge` carried a separate boolean assertion that the recorded age was estimated. R6 keeps `age[x]` as Age, Range, or string, but it removes the native flag, so an R4 instance with `ageAge` plus `estimatedAge: true` cannot be represented without changing the age value, using text, or adding an extension. Because age precision is directly relevant to family-history interpretation and risk algorithms, this is more than cosmetic field cleanup even though the resource is low maturity.",
+        "keyEvidence": [
+          "R4 snapshot: `FamilyMemberHistory.estimatedAge` is 0..1 boolean with definition `If true, indicates that the age value specified is an estimated value` and meaningWhenMissing that it is unknown whether age is estimated.",
+          "R4 root invariant fhs-2 allows `estimatedAge` only when `age[x]` is present; R6 has no `estimatedAge` element.",
+          "R4 and R6 both retain `FamilyMemberHistory.age[x]` as 0..1 Age, Range, or string, so the removed boolean is not replaced by a same-shape element.",
+          "Official R4 genetics profile describes FamilyMemberHistory as adding data needed for genetics-based risk analysis: https://www.hl7.org/fhir/R4/familymemberhistory-genetic.profile.json.html"
+        ],
+        "fmmEffect": "Supplied R4 FMM 1 reduces the general presumption against breaking change, but this path qualifies a core clinical datum and has a plausible genetics/risk-analysis use case, so low maturity does not eliminate the concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: old instances with `estimatedAge` fail R6 validation, and migration is semantically lossy unless the estimate qualifier is moved to a non-base extension or encoded indirectly.",
+        "lessBreakingAlternativeAssessment": "A straightforward less-breaking design would keep `estimatedAge` as an optional deprecated element while recommending Range or string for new approximate ages. The tradeoff is continued ambiguity between a flag and approximate-age representations, but the cost seems modest compared with losing a computable precision qualifier.",
+        "comparisonToExisting": "partially agree: I agree with the hard-break finding and the Yes alternative assessment; I would emphasize the clinical precision loss more strongly and judge the path as worth revisiting despite FMM 1."
+      }
     },
     {
       "findingId": "FamilyMemberHistory:VALUE_CONSTRAINT:age-deceased:fhs3:4a60ab",
@@ -591,7 +620,21 @@
       "migrationGuidanceMd": "Before R6 validation, detect instances with both fields. If `deceased[x]` already carries age/date at death, preserve `deceased[x]` and remove or annotate `age[x]`. If `age[x]` is the only age information and `deceasedBoolean=true`, manual policy is needed: it might be age at death, age when history was recorded, or approximate current-age data entered inconsistently. Include regression cases for all `deceased[x]` choice types.",
       "backwardCompatibilityAnalysisMd": "The change could have been staged as a warning or profile constraint to avoid base validation failures. The hard R6 invariant is more consistent but requires explicit migration decisions for historical records.",
       "reviewerNotesMd": "This is the most likely local hard validation break for clinically meaningful existing data.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "FamilyMemberHistory:VALUE_CONSTRAINT:age-deceased:fhs3:4a60ab",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 adds an error invariant that rejects any FamilyMemberHistory carrying both `age[x]` and `deceased[x]`. That can invalidate R4 records that separately state a relative's age or approximate age and also state that the relative is deceased or give death timing. The goal of avoiding ambiguous live-age versus death-age data is understandable, but the base rule is broad enough to force migration choices that may require clinical interpretation, especially when `deceased[x]` is only a boolean.",
+        "keyEvidence": [
+          "R4 root constraints include fhs-1 and fhs-2, but no age/deceased mutual-exclusion invariant.",
+          "R6 root constraint fhs-3 has severity error, human text `Can have age[x] or deceased[x], but not both`, and expression `age.empty() or deceased.empty()`.",
+          "The R4 and R6 definitions of `age[x]` and `deceased[x]` keep the same broad choice shapes, so the break comes from the new invariant rather than a type change."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1 softens the stability expectation, but age and deceased status are central family-history clinical facts. The potential need to decide which fact to keep or reinterpret makes this safety-relevant enough to override the low-FMM caution.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with both paths populated is rejected by an R6 validator because fhs-3 is an error-level invariant.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could use a warning-level/best-practice rule first, or a narrower invariant that targets clearly conflicting age-at-death encodings while allowing combinations such as `age[x]` plus `deceasedBoolean`. The tradeoff is a weaker computable guarantee against ambiguous age semantics, but the current rule appears overbroad.",
+        "comparisonToExisting": "partially agree: I agree with the high validation impact and a partial less-breaking alternative; my fresh rationale puts more weight on the overbreadth and expert-dependent migration than on prevalence estimates."
+      }
     },
     {
       "findingId": "FamilyMemberHistory:CONVERSION_OR_MAPPING:reason:8e41d0",
@@ -837,7 +880,21 @@
       "migrationGuidanceMd": "Map each R4 `reasonCode` entry to one R6 `reason.concept` and each R4 `reasonReference` entry to one R6 `reason.reference`. For R6-to-R4, split simple concept-only and reference-only entries back to the corresponding arrays, but flag entries containing both children or extensions for manual review or extension-based preservation.",
       "backwardCompatibilityAnalysisMd": "The change is understandable as a standardization on `CodeableReference`, but a compatibility transition with deprecated old fields would have avoided immediate validation failures. The tradeoff would be duplicate fields and potential synchronization rules.",
       "reviewerNotesMd": "Check downstream serializers and FHIRPath expressions for both old field names; this change is easy to miss because the business label \"reason\" stayed the same.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "FamilyMemberHistory:CONVERSION_OR_MAPPING:reason:8e41d0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 used two repeating properties, `reasonCode` and `reasonReference`; R6 uses a single repeating `reason` of type CodeableReference. Old JSON/XML property names and generated accessors therefore break, while simple forward migration is usually mechanical: codes become `reason.concept` entries and references become `reason.reference` entries. R6-to-R4 conversion can lose the association when one CodeableReference carries both concept and reference, but the R6 design goal of using the common CodeableReference pattern is coherent.",
+        "keyEvidence": [
+          "R4 snapshot: `reasonCode` is 0..* CodeableConcept with example binding to clinical-findings; `reasonReference` is 0..* Reference to Condition, Observation, AllergyIntolerance, QuestionnaireResponse, DiagnosticReport, or DocumentReference.",
+          "R6 snapshot: `FamilyMemberHistory.reason` is 0..* CodeableReference with the same example binding and the same reference target list.",
+          "R6 CodeableReference has optional `concept` and optional `reference` children, each 0..1."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/status unknown lowers the burden for accepting a shape cleanup. The reason path is useful workflow context, but it is optional and not the central family-history condition data.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 reason properties are not valid R6 names; runtime/API/codegen: two generated fields become one CodeableReference field; R6-to-R4 loss: a concept/reference pair in one R6 item has no item-level equivalent in R4 arrays.",
+        "lessBreakingAlternativeAssessment": "Keeping deprecated `reasonCode` and `reasonReference` alongside `reason` would preserve old instances, but it would create duplicate representations for the same business concept and require precedence or synchronization rules. That is a meaningful tradeoff, so the less-breaking alternative is only partial.",
+        "comparisonToExisting": "agree: the existing high mechanical impact and Partial alternative judgment are consistent with the evidence, but the break still appears proportionate to the R6 CodeableReference unification goal."
+      }
     },
     {
       "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:procedure:2d75a4",
@@ -973,7 +1030,21 @@
       "migrationGuidanceMd": "For R6-to-R4 interfaces, define a standard extension or profile rule for `procedure` before data exchange. If only a narrative note is possible, mark the conversion as lossy. Test procedure entries with `performedAge`, `performedDateTime`, outcomes, and contributed-to-death flags.",
       "backwardCompatibilityAnalysisMd": "Adding an optional base element is backward compatible for R4-to-R6 but not for down-conversion. A cross-version extension would be more compatible but less visible and less likely to be implemented consistently.",
       "reviewerNotesMd": "Do not map procedures into `condition` unless a local clinical governance rule explicitly accepts that semantic loss.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:procedure:2d75a4",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds an optional `procedure` backbone for family procedure history. That does not invalidate any R4 FamilyMemberHistory instance or remove any R4 API surface. R6 instances that use the new backbone cannot be represented natively in R4 without an extension, note, or separate mapping convention, but that reverse-version gap is the expected cost of adding new optional functionality and is not a reason to avoid a clinically useful base element.",
+        "keyEvidence": [
+          "R4 FamilyMemberHistory snapshot has no `FamilyMemberHistory.procedure` element.",
+          "R6 snapshot adds `FamilyMemberHistory.procedure` as 0..* BackboneElement.",
+          "R6 `FamilyMemberHistory.procedure.code` is 1..1 within the optional procedure backbone, with optional performed, contributedToDeath, and note subelements."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1 further reduces any expectation that R6 must avoid optional additive capabilities for the sake of R4 down-conversion.",
+        "compatibilityMechanism": "R6-to-R4 loss: only new R6 procedure content lacks a native R4 FamilyMemberHistory field; there is no R4-to-R6 validation or runtime break.",
+        "lessBreakingAlternativeAssessment": "Not adding the element, or using only extensions/profiles, would reduce R6-to-R4 loss but would also fail the base-model goal of standardizing family procedure history. That is not a less-breaking R4-to-R6 alternative because no old R4 instance is broken.",
+        "comparisonToExisting": "disagree: the existing report correctly identifies reverse representability loss, but its Medium impact overstates the compatibility concern for an optional additive element."
+      }
     },
     {
       "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:recorder-asserter:11c09f",
@@ -1112,7 +1183,21 @@
       "validationAndCompatibilityMd": "R4 data remains valid when converted to R6. R6 data using `recorder` or `asserter` is not cleanly representable in the R4 base resource and will be lost unless an extension or Provenance mapping is defined.",
       "migrationGuidanceMd": "For R6-to-R4 exchange, decide whether to create R4 Provenance resources, use cross-version extensions, or omit the actor data with a lossy-conversion flag. Test all allowed target resource types, especially `Device` on `asserter` because it has no matching `recorder` target in R6.",
       "backwardCompatibilityAnalysisMd": "Optional additions are generally backward-compatible upward, but cross-version compatibility would have been better served by standard extensions or Provenance guidance. Direct elements trade down-conversion simplicity for R6 usability.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:recorder-asserter:11c09f",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `recorder` and `asserter` actor references. Existing R4 instances remain valid after ordinary version migration because no old element is removed or tightened. A down-converter may need Provenance or extensions to preserve these new R6 actor roles in R4, but the finding is additive provenance detail rather than an R4-to-R6 break.",
+        "keyEvidence": [
+          "R6 snapshot adds `FamilyMemberHistory.recorder` 0..1 Reference to Practitioner, PractitionerRole, Patient, RelatedPerson, Organization, CareTeam, or Group.",
+          "R6 snapshot adds `FamilyMemberHistory.asserter` 0..1 Reference to the same actor set plus Device.",
+          "R4 FamilyMemberHistory has no same-named local recorder or asserter elements."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1 softens cross-version stability expectations, and these optional actor fields are provenance/audit context rather than required clinical payload.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 actor fields have no native R4 FamilyMemberHistory slots; no old-valid/new-invalid or codegen break is introduced for R4 content moving to R6.",
+        "lessBreakingAlternativeAssessment": "A Provenance-only or extension-only design would help uniform down-conversion, but it would make common actor roles less visible in the base resource. Because the change is additive, this is not a needed less-breaking base R6 design.",
+        "comparisonToExisting": "disagree: I agree there is a reverse mapping gap, but the existing Medium overall impact is too strong for optional additions with no R4-to-R6 break."
+      }
     },
     {
       "findingId": "FamilyMemberHistory:SEMANTIC_OR_CONFORMANCE_TEXT:condition.code:6b8f20",
@@ -1253,7 +1338,21 @@
       "migrationGuidanceMd": "For R6-to-R4 conversion, identify entries that are allergies or intolerances and decide whether to preserve them with an extension, narrative note, or local profile. Update displays and decision support so they do not assume every condition backbone entry is a diagnosis.",
       "backwardCompatibilityAnalysisMd": "The broadening could have been less ambiguous with a distinct element or explicit classifier. Reusing `condition` minimizes structural change but pushes semantic discrimination to terminology and local business rules.",
       "reviewerNotesMd": "This finding depends on semantic text, not cardinality/type. Human clinical review may be needed to decide whether allergy/intolerance content belongs in R4 exports.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "FamilyMemberHistory:SEMANTIC_OR_CONFORMANCE_TEXT:condition.code:6b8f20",
+        "judgment": "No problem",
+        "narrativeMd": "The computable shape of `condition.code` is unchanged: it remains a required CodeableConcept within each condition backbone, with an example binding. R6 broadens the wording from condition/diagnosis to condition, allergy, or intolerance. That can affect how consumers label or categorize R6 data, but it does not reject old R4 instances and the R4 example binding did not structurally prevent allergy-like coded text anyway.",
+        "keyEvidence": [
+          "R4 snapshot: `FamilyMemberHistory.condition.code` is 1..1 CodeableConcept with example binding to `http://hl7.org/fhir/ValueSet/condition-code` and definition `The actual condition specified`.",
+          "R6 snapshot: `condition.code` keeps the same cardinality, type, and example binding, while the short/definition mention condition, allergy, or intolerance.",
+          "No required binding, type restriction, cardinality change, or invariant change was found on this specific element."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1 reinforces treating this as low-risk semantic broadening rather than a stability problem. The path is clinically meaningful, but the compatibility mechanism is only semantic/documentation-level.",
+        "compatibilityMechanism": "semantic/documentation: R6 wording broadens intended meaning; base validation and old R4 wire shape are unchanged.",
+        "lessBreakingAlternativeAssessment": "A separate allergy/intolerance backbone or classifier could be semantically clearer, but it would add model surface and is not needed to preserve R4-valid instances. Keeping the old wording would also fail the apparent R6 goal of explicitly allowing family allergy/intolerance history.",
+        "comparisonToExisting": "disagree: the existing report's Medium semantic/reverse risk is higher than warranted because the computable constraints did not narrow or invalidate old data."
+      }
     },
     {
       "findingId": "FamilyMemberHistory:FLAGS_AND_MODIFIERS:condition-summary:de33ac",
@@ -1357,7 +1456,21 @@
       "validationAndCompatibilityMd": "This is not old-valid/new-invalid. It is a runtime/API compatibility issue: summary views may include condition content in R6 where R4 clients did not expect it, and privacy filters based on summary flags may need reassessment.",
       "migrationGuidanceMd": "Review `_summary`, `_elements`, generated lightweight models, caching, and redaction rules. Add tests comparing summary responses for FamilyMemberHistory with conditions so client contracts are explicit.",
       "backwardCompatibilityAnalysisMd": "The change is reasonable if condition code is considered essential summary data. A backward-compatible alternative would keep summary flags unchanged and let implementations opt in, at the cost of less informative default summaries.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "FamilyMemberHistory:FLAGS_AND_MODIFIERS:condition-summary:de33ac",
+        "judgment": "No problem",
+        "narrativeMd": "R6 marks `condition` and `condition.code` as summary elements where R4 did not. That may change default `_summary=true` payloads or generated summary views, but it does not change instance validity, cardinality, type, or meaning. Including the condition code in summaries is also a plausible clinical-summary improvement rather than a compatibility defect.",
+        "keyEvidence": [
+          "R4 snapshot: `FamilyMemberHistory.condition` and `FamilyMemberHistory.condition.code` have `isSummary: false`.",
+          "R6 snapshot: `FamilyMemberHistory.condition` and `FamilyMemberHistory.condition.code` have `isSummary: true`.",
+          "The element cardinalities and types are otherwise unchanged for this finding."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1 softens any concern about summary-behavior continuity. The change is metadata/tooling behavior, not a structural or semantic hard break.",
+        "compatibilityMechanism": "metadata/tooling: summary flags can affect `_summary` responses, generated DTOs, and documentation, but no R4 instance becomes invalid.",
+        "lessBreakingAlternativeAssessment": "R6 could leave the flags false and require clients to request `_elements=condition`, but that would make default summaries less clinically useful. This is a behavior tradeoff, not a less-breaking alternative needed to preserve old data.",
+        "comparisonToExisting": "agree: the existing report treated this as low runtime-only impact with no backward-compatible alternative needed; I would simply classify it as No problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1527,5 +1640,19 @@
       "new age/deceased mutual-exclusion constraints",
       "optional procedure/history expansions not present in R4"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/FamilyMemberHistory.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 2,
+      "No problem": 4
+    }
   }
 }

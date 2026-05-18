@@ -270,7 +270,22 @@
       "migrationGuidanceMd": "Scan for `Coding` objects with `display` but no `code`. If an actual code is known, populate `system` and `code` and keep `display` as the code display. If the value is free text, move it to the containing `CodeableConcept.text` or an appropriate profile-specific text element. Update validation policy deliberately so R6 warnings are reviewed without accidentally blocking all legacy records unless that is intended.",
       "backwardCompatibilityAnalysisMd": "The change was probably justified because it addresses a known semantic hazard without making the pattern a hard error. A fully backward-compatible alternative would have been narrative guidance only, but that would not help generic validators identify unsafe display-only codings.",
       "reviewerNotesMd": "Human review should focus on whether local validation policy treats warnings as failures and whether any display-only codings are intentional legacy text that should migrate to a containing CodeableConcept rather than be given artificial codes.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Coding:VALUE_CONSTRAINT:Coding:cod-1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds a root-level `cod-1` invariant saying a `Coding` SHOULD NOT carry `display` when `code` is absent. This can affect validation pipelines that treat warnings as failures, but it is not an old-valid/new-invalid base instance break because the invariant severity is `warning` and the wire shape of `Coding.code` and `Coding.display` is unchanged. For a display-only exchange, the likely migration work is to move free text to `CodeableConcept.text`, provide an actual code, or accept the warning. The safety/computability rationale is strong: a display string alone is ambiguous and should not be processed as coded meaning.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-Coding.json` root `Coding` constraints include inherited `ele-1` only.",
+          "R6 `StructureDefinition-Coding.json` differential adds `cod-1` on `Coding` with severity `warning` and expression `code.exists().not() implies display.exists().not()`.",
+          "R6 marks `Coding.code` and `Coding.display` with condition `cod-1`, while both elements remain 0..1 with the same `code` and `string` types.",
+          "R4 maturity metadata for Coding shows standardsStatus `normative` and normativeVersion `4.0.0`."
+        ],
+        "fmmEffect": "Coding is normative in R4, so even warning-level conformance pressure deserves a real compatibility check. The normative status raises the justification burden, but the non-error severity and patient-safety/computability rationale make the burden proportionate.",
+        "compatibilityMechanism": "warning-level: R4 display-only Codings remain structurally representable in R6, but R6 validators or QA gates that fail on warnings may reject or require cleanup of instances that R4 accepted without this warning.",
+        "lessBreakingAlternativeAssessment": "A less disruptive base design would have been prose-only guidance or an IG/profile-specific warning, but that would not give generic validators a computable signal for a broadly unsafe pattern. Keeping the invariant at warning severity is already the less-breaking version of an enforceable constraint.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the prior report correctly identifies no hard instance break and a warning/policy migration risk, but I would frame the design as proportionate rather than as a finding needing more standards attention."
+      }
     },
     {
       "findingId": "Coding:SEMANTIC_OR_CONFORMANCE_TEXT:Coding.system:absolute-system-uri",
@@ -399,7 +414,22 @@
       "migrationGuidanceMd": "Inventory `Coding.system` values and identify local, relative, or environment-specific aliases. Replace them with stable absolute URIs only when the mapping preserves code identity; changing `system` changes the meaning namespace for every `code`. Maintain alias maps, update terminology services, and test round trips so old and new identifiers do not accidentally merge distinct code systems.",
       "backwardCompatibilityAnalysisMd": "The clarification was probably justified to improve global interoperability. A more backward-compatible approach would have been separate guidance rather than changing the element comment, but the lack of a hard computable constraint keeps the practical disruption low.",
       "reviewerNotesMd": "Human review is needed before rewriting `system` values because a syntactic normalization can become a semantic remapping of coded data.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Coding:SEMANTIC_OR_CONFORMANCE_TEXT:Coding.system:absolute-system-uri",
+        "judgment": "No problem",
+        "narrativeMd": "R6 changes the `Coding.system` comment from saying non-OID/UUID systems should reference a clear definition to saying they should be an absolute reference to that definition. The element remains `uri` with cardinality 0..1 and no new invariant, regex, binding, or type narrowing. This is useful conformance clarification around stable code-system identity, but by itself it does not invalidate R4 instances or change generated model shape.",
+        "keyEvidence": [
+          "R4 `Coding.system` is 0..1 type `uri` and says other URIs should reference a definition establishing the system clearly and unambiguously.",
+          "R6 `Coding.system` remains 0..1 type `uri` and changes the comment to say the URI should be an absolute reference to such a definition.",
+          "R6 `Coding.system` has only inherited `ele-1`; no computable absolute-URI invariant or type change accompanies the prose.",
+          "Package indexes confirm the compared artifacts are `StructureDefinition-Coding.json` for R4 4.0.1 and R6 6.0.0-ballot4."
+        ],
+        "fmmEffect": "Coding's normative R4 status raises sensitivity to true compatibility breaks, but here the change is non-computable guidance rather than a structural or validation restriction. Normative status does not turn this prose clarification into a hard migration problem.",
+        "compatibilityMechanism": "semantic/documentation: the base structure and validation constraints are unchanged; only the explanatory comment strengthens the recommended interpretation of `Coding.system` identifiers.",
+        "lessBreakingAlternativeAssessment": "Retaining the R4 wording would be less textually disruptive, but it would also preserve ambiguity about relative/local system identifiers. Because the R6 change is prose-only and supports clearer terminology identity, there is no meaningful less-breaking base design issue.",
+        "comparisonToExisting": "agree with the existing impact and alternative judgment: the prior report treats this as no hard break with at most low policy/terminology-governance risk, and I find no base-model compatibility problem requiring a different alternative assessment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -570,5 +600,18 @@
       "Other terminology-bearing elements whose system identifier guidance now requires or recommends absolute references",
       "Global datatype hierarchy changes from Element to DataType"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Coding.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

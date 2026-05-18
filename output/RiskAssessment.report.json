@@ -412,7 +412,22 @@
       "migrationGuidanceMd": "For R4-to-R6, transform each `reasonCode` repetition to `{ \"concept\": <CodeableConcept> }` and each `reasonReference` repetition to `{ \"reference\": <Reference> }` under `reason[]`. For R6-to-R4, split concept and reference children into the two R4 arrays and decide how to record any lost association, for example with an extension, Provenance, or manual review when both children appear in one `CodeableReference`.",
       "backwardCompatibilityAnalysisMd": "The change was probably justified by a cleaner shared pattern, but it was not wire-compatible. Keeping deprecated R4 element names alongside `reason` would have allowed old instances to validate while giving implementers time to migrate, at the cost of duplicated representations and reconciliation rules.",
       "reviewerNotesMd": "Human review is recommended for R6-to-R4 downgrade policy when a single `reason` repetition contains both a concept and a reference.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RiskAssessment:ELEMENT_PRESENCE_OR_IDENTITY:RiskAssessment.reason:1a4f7b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 instances that carry `reasonCode` or `reasonReference` have an old-valid/new-invalid wire-name break in R6, where the base element is `reason` with `CodeableReference`. A straightforward R4-to-R6 mapper can usually emit one `CodeableReference` per old code or reference, but R6 can also pair a concept and a reference in one repetition, which cannot be represented with the same association in R4's two independent arrays. That is real migration work and can affect clinical explanation or audit trails, but the R6 design uses the common CodeableReference pattern to model concept-or-instance reasons directly, and keeping both old fields plus the new field would create duplicate representations and precedence questions.",
+        "keyEvidence": [
+          "R4 StructureDefinition defines `RiskAssessment.reasonCode` as 0..* CodeableConcept and `RiskAssessment.reasonReference` as 0..* Reference(Condition, Observation, DiagnosticReport, DocumentReference).",
+          "R6 StructureDefinition defines `RiskAssessment.reason` as 0..* CodeableReference with the same reference targets.",
+          "R6 CodeableReference has optional `concept` and `reference` children.",
+          "Quick public check found implementation relevance: HL7 US eLTSS v2.0.0 R4 profile lists `RiskAssessment.reasonReference` in its profile definitions, but this is not definitive broad production deployment evidence (https://hl7.org/fhir/us/eltss/StructureDefinition-RiskAssessment-eltss-definitions.html)."
+        ],
+        "fmmEffect": "R4 RiskAssessment is trial-use/FMM 1, so the hard break does not by itself create a strong stability objection. The path is clinically explanatory and appears in at least one official R4 IG profile, so FMM softens but does not erase the migration concern.",
+        "compatibilityMechanism": "old-valid/new-invalid plus R6-to-R4 loss: old R4 element names are not legal R6 base elements, and an R6 CodeableReference repetition with both concept and reference loses its pairing if flattened to separate R4 arrays.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained deprecated `reasonCode` and `reasonReference` while adding `reason`, which would preserve more old instances. That alternative has material tradeoffs: two ways to express the same reason, possible conflicts, unclear precedence, and continued codegen/API burden. A StructureMap or migration guide is useful mitigation but is not a less-breaking base model.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment: the forward hard break and reverse pairing loss are real, but the existing report gives too little weight to FMM 1 and to the duplicate-representation cost of the obvious compatibility alternative."
+      }
     },
     {
       "findingId": "RiskAssessment:TERMINOLOGY_BINDING:RiskAssessment.status:5c923e",
@@ -615,7 +630,22 @@
       "migrationGuidanceMd": "R4-to-R6 migration does not need to change existing status codes. R6-to-R4 downgrade should use a deliberate mapping policy, likely mapping `appended` to `amended`, considering whether `specimen-in-process` maps to `registered` or `preliminary`, and deciding whether `cannot-be-obtained` maps to `cancelled`, `unknown`, or an extension-preserved value. Test all new R6 status codes against validators and enum parsers.",
       "backwardCompatibilityAnalysisMd": "Adding codes to a required binding is backward compatible for R4-to-R6 validation but not for reverse compatibility or generated code. The less disruptive alternative would be extension-based finer states, but that would weaken uniform support for the new lifecycle distinctions in R6.",
       "reviewerNotesMd": "No official ConceptMap was available, so downgrade mappings for new Observation Status codes require governance review.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RiskAssessment:TERMINOLOGY_BINDING:RiskAssessment.status:5c923e",
+        "judgment": "No problem",
+        "narrativeMd": "The required binding remains ObservationStatus, and the R6 value set includes the R4 codes while adding more specific statuses such as `specimen-in-process`, `appended`, and `cannot-be-obtained`. Existing R4 instances remain valid with respect to this path when moving to R6. The concern is mainly that an R4 validator, generated enum, or down-converter will not accept a newly valid R6 status, but that is an additive terminology expansion rather than a forward compatibility break.",
+        "keyEvidence": [
+          "R4 `RiskAssessment.status` is 1..1 code with required binding to `http://hl7.org/fhir/ValueSet/observation-status|4.0.1`.",
+          "R6 `RiskAssessment.status` is 1..1 code with required binding to `http://hl7.org/fhir/ValueSet/observation-status|6.0.0-ballot4`.",
+          "R4 ObservationStatus includes registered, preliminary, final, amended/corrected, cancelled, entered-in-error, and unknown; R6 retains those and adds statuses including specimen-in-process, appended, and cannot-be-obtained.",
+          "HL7 US eLTSS v2.0.0 R4 profile documents RiskAssessment status as mandatory and using the R4 ObservationStatus values (https://hl7.org/fhir/us/eltss/StructureDefinition-RiskAssessment-eltss.html)."
+        ],
+        "fmmEffect": "Because the R4 resource is trial-use/FMM 1, the review should not escalate an additive code-system widening into a standards concern without evidence of common production breakage. The eLTSS check shows implementation relevance for `status`, but not enough to make the reverse-only issue high concern.",
+        "compatibilityMechanism": "R6-to-R4 loss/runtime/API/codegen only: R4 enums or validators may reject newly valid R6 codes, but old R4 status codes are still accepted by the R6 binding.",
+        "lessBreakingAlternativeAssessment": "A less-expansive R6 design could have kept RiskAssessment on the R4 ObservationStatus subset, but that would diverge from the resource definition's stated alignment with Observation status and would prevent representing newer lifecycle states. Since the change is widening rather than narrowing, a less-breaking base alternative is not needed.",
+        "comparisonToExisting": "disagree with the existing high overall impact: the report correctly notes no old-valid/new-invalid break, but overstates the practical severity of an additive, reverse-direction terminology expansion for FMM 1 content."
+      }
     },
     {
       "findingId": "RiskAssessment:REFERENCE_TARGET:RiskAssessment.performer:2f6b91",
@@ -758,7 +788,21 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid in R6 because existing target profiles are preserved. An R6 instance with `performer.reference` pointing to Patient or RelatedPerson is not R4-representable in the base element and may fail R4 validation or generated target-union deserialization.",
       "migrationGuidanceMd": "R4-to-R6 requires no transform. For R6-to-R4, decide whether to drop unsupported performers, preserve them in an extension, represent attribution through Provenance, or reject downgrade when performer attribution is mandatory.",
       "backwardCompatibilityAnalysisMd": "The change is mostly additive and likely justified. A backward-compatible alternative for R4 clients would have used extensions or Provenance, but that would make patient/caregiver performance less discoverable and less consistently validated in base R6.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "RiskAssessment:REFERENCE_TARGET:RiskAssessment.performer:2f6b91",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens `RiskAssessment.performer` by allowing Patient and RelatedPerson in addition to the R4 Practitioner, PractitionerRole, and Device targets. This does not invalidate any R4 performer reference. R4-only consumers of R6 data may need to handle or reject the new target types, but the path is optional, attribution-oriented, and the change is a normal target-list expansion.",
+        "keyEvidence": [
+          "R4 `RiskAssessment.performer` is 0..1 Reference to Practitioner, PractitionerRole, or Device.",
+          "R6 `RiskAssessment.performer` is 0..1 Reference to Patient, Practitioner, PractitionerRole, RelatedPerson, or Device.",
+          "HL7 US eLTSS v2.0.0 R4 profile constrains performer to practitioner/practitioner role/device-related targets, showing implementation relevance but not evidence that new R6 targets would disrupt existing R4 exchange (https://hl7.org/fhir/us/eltss/StructureDefinition-RiskAssessment-eltss-definitions.html)."
+        ],
+        "fmmEffect": "R4 trial-use/FMM 1 further lowers stability pressure. With no forward invalidation and only optional reverse handling for new target types, FMM supports treating this as acceptable model evolution.",
+        "compatibilityMechanism": "R6-to-R4 loss/runtime/API/codegen only: R6 instances using Patient or RelatedPerson as performer do not fit the R4 target set, but R4-valid performers remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "The R6 design is already the less-breaking form because it widens the target list instead of replacing or narrowing it. Keeping the old target set would avoid reverse-version surprises but would also block patient or caregiver self-assessment attribution.",
+        "comparisonToExisting": "disagree with the existing medium impact: the evidence supports a reverse-only widening concern with low practical risk, not a meaningful compatibility problem."
+      }
     },
     {
       "findingId": "RiskAssessment:TYPE_DOMAIN:RiskAssessment.prediction.probability_x_:9dd4af",
@@ -975,7 +1019,22 @@
       "migrationGuidanceMd": "For R4-to-R6, no transform is required unless implementers choose to normalize decimals to Quantities. For R6-to-R4, convert only simple percent Quantities to decimal when doing so is lossless enough for the use case; preserve comparator, extensions, and unit metadata with an extension or manual review when needed. Add tests for decimal, Range, valid Quantity, invalid non-percent Quantity, and Quantity over 100.",
       "backwardCompatibilityAnalysisMd": "The change improves semantic clarity but introduces a new choice representation. The backward-compatible alternative would be to keep the R4 choice set and document a preferred extension or profile, but that would not give all base R6 implementations a common unit-bearing field.",
       "reviewerNotesMd": "The R6 definition text says `Range SHOULD be expressed as a Quantity`, which appears likely to mean probability should be expressed as Quantity. The computable type list and `ras-3` invariant are clear despite this wording oddity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RiskAssessment:TYPE_DOMAIN:RiskAssessment.prediction.probability_x_:9dd4af",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps the R4 `decimal` and `Range` choices and adds `Quantity`, constrained to UCUM percent and value <= 100. That means old R4 probability values remain valid, while R6 can now send a new `probabilityQuantity` wire shape that R4 schemas and generated choice-type APIs will not recognize. For plain percent quantities, an R4 mapper can usually convert to `probabilityDecimal`; edge cases such as Quantity comparator, display/unit metadata, or extensions may be lossy. Because probability is central to a risk prediction, this is real reverse-version migration work, but the additive type is a proportionate way to make percentage semantics explicit.",
+        "keyEvidence": [
+          "R4 `RiskAssessment.prediction.probability[x]` allows decimal or Range; decimal is constrained to <= 100 and Range bounds must be UCUM percent.",
+          "R6 `RiskAssessment.prediction.probability[x]` allows decimal, Quantity, or Range.",
+          "R6 adds invariant `ras-3`: Quantity probabilities must have value <= 100, code `%`, and UCUM system.",
+          "HL7 US eLTSS v2.0.0 R4 profile and example use RiskAssessment predictions for identified risks, but the fetched example does not use probability values (https://hl7.org/fhir/us/eltss/RiskAssessment-risk1.html)."
+        ],
+        "fmmEffect": "R4 trial-use/FMM 1 softens the compatibility burden, especially because this is an additive choice type rather than an old-valid/new-invalid change. The path is central when used, so the reverse conversion issue is still worth noting, but not enough to demand redesign.",
+        "compatibilityMechanism": "R6-to-R4 loss/runtime/API/codegen: R4 parsers and generated models do not have `probabilityQuantity`, and down-conversion can lose Quantity-specific qualifiers even though plain percent values map well to R4 decimal.",
+        "lessBreakingAlternativeAssessment": "R6 could have avoided the new choice type and relied on decimal or Range plus documentation, but that would not provide an explicit percent Quantity representation. Adding Quantity while retaining decimal and Range is a relatively compatibility-preserving base design; profile-only or extension-only approaches would reduce base interoperability for the new representation.",
+        "comparisonToExisting": "partially agree with the existing assessment: the report correctly identifies the new R6 wire shape and possible R6-to-R4 loss, but its high impact is stronger than warranted for an additive type on an FMM 1 resource."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1137,5 +1196,18 @@
       "Choice elements adding `Quantity` for percentage semantics",
       "Reference target widening to Patient or RelatedPerson performer"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/RiskAssessment.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 2
+    }
   }
 }

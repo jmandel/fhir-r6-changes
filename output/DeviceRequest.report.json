@@ -319,7 +319,22 @@
       "validationAndCompatibilityMd": "R4 instances containing either property are old-valid/new-invalid under strict R6 validation. R6-to-R4 is not the problem here because R6 no longer has the data; the migration risk is preserving R4 information that R6 cannot natively carry.",
       "migrationGuidanceMd": "Inventory use of both fields before conversion. If the information must be retained, define a cross-version extension or a companion Provenance/metadata policy, and test that validators do not silently drop summary-level protocol links.",
       "backwardCompatibilityAnalysisMd": "Because both elements were optional, a less disruptive path was available: keep them as deprecated optional elements and document the preferred R6 mechanism. Removal simplifies the base resource but forces senders and converters to decide where to store potentially important protocol provenance.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.instantiatesCanonical:562255",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed DeviceRequest instances to carry protocol, guideline, order-set, or definition links through `instantiatesCanonical` and `instantiatesUri`; R6 removes both without a native same-resource replacement. This is optional and likely not universally used, but when it is used the migration is lossy or extension-dependent rather than a simple rename. Because these fields were optional and summary-level, retaining them as deprecated compatibility fields looks like a relatively low-cost base design that would preserve existing instances while R6 clarified preferred workflow modeling.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DeviceRequest.instantiatesCanonical` is 0..* canonical(ActivityDefinition|PlanDefinition).",
+          "R4 StructureDefinition: `DeviceRequest.instantiatesUri` is 0..* uri for external protocols or definitions.",
+          "R6 StructureDefinition: no `DeviceRequest.instantiatesCanonical` or `DeviceRequest.instantiatesUri` element is present.",
+          "Quick public check found an HL7 QI-Core DeviceRequest profile, suggesting artifact-level implementation relevance, but no path-specific evidence for these fields."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens the presumption of broad deployed impact, so the judgment is not based on breakage alone. The remaining concern is the low-cost deprecated-field alternative and potential audit/decision-support traceability loss for implementations that did use these optional links.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing either removed property are not valid against the R6 DeviceRequest shape, and preserving the data requires an extension or external policy.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could plausibly have retained both optional elements as deprecated while documenting a preferred R6 pattern. The tradeoff is some legacy surface area and possible duplicate provenance concepts, but the fields are optional, distinct, and not in conflict with the new R6 elements.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the hard break and less-breaking option are real, but the existing high-impact framing should be tempered by FMM 1 and unknown path-specific prevalence."
+      }
     },
     {
       "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.priorRequest:565f9d",
@@ -486,7 +501,21 @@
       "validationAndCompatibilityMd": "R4 instances with `priorRequest` are old-valid/new-invalid. A transformed R4 `priorRequest` that points to a non-DeviceRequest resource remains invalid in R6 because of target-profile validation. R6-to-R4 conversion is structurally possible by using `priorRequest`, but round-trip identity still depends on converter rules.",
       "migrationGuidanceMd": "Rename `priorRequest` to `replaces` only for references that resolve to DeviceRequest or are known to identify DeviceRequest. Flag all other targets for human review and preserve them in an extension or external relationship table if they matter.",
       "backwardCompatibilityAnalysisMd": "The more precise R6 model is understandable, but a compatibility alias or wider target during transition would have avoided rejecting existing replacement links. The cost of compatibility would be looser validation and duplicate relationship names.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.priorRequest:565f9d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`priorRequest` becomes `replaces`, and the target narrows from any Resource to DeviceRequest. An R4 sender must transform the property name, and old cross-resource replacement links need policy. The R6 goal is understandable: align with the common request relationship name and constrain replacement chains to the same request resource. A compatibility alias would help, but it would leave duplicate relationship names and either keep broad targets or create non-obvious rejection rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DeviceRequest.priorRequest` is 0..* Reference(Resource) with replacement semantics.",
+          "R6 StructureDefinition: `DeviceRequest.replaces` is 0..* Reference(DeviceRequest) with the same replacement definition.",
+          "R4 workflow mapping for `priorRequest` is `Request.replaces`."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use lowers the stability burden. Replacement links can matter for audit and duplicate-order suppression, but there is no supplied or quickly found evidence that broad cross-resource `priorRequest` use is common enough to override the R6 modeling rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old property name is rejected in R6, and even after renaming, non-DeviceRequest targets no longer fit the R6 target profile.",
+        "lessBreakingAlternativeAssessment": "Partial. A deprecated `priorRequest` alias could preserve many same-resource R4 instances, but it would duplicate `replaces`; preserving all old instances would also weaken the R6 target restriction to DeviceRequest.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the report correctly identifies the hard break and partial alternative, but I judge the break proportionate under low FMM because the alternative has real model and validation costs."
+      }
     },
     {
       "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.code[x]:37fa51",
@@ -682,7 +711,22 @@
       "validationAndCompatibilityMd": "R4-valid DeviceRequest instances are new-invalid until the choice property is renamed. R6 `productCodeableConcept` and `productReference` can be converted back to R4 `code[x]`, but R6 `productCanonical` cannot be represented natively in R4 without resolving or extension-preserving the DeviceDefinition canonical.",
       "migrationGuidanceMd": "Apply a deterministic field rename for CodeableConcept and Device reference cases. For `productCanonical`, decide whether to resolve to a Device, translate to a code, or preserve the canonical in an extension. Test all three R6 product choice types and verify downstream code that treats the requested device as mandatory.",
       "backwardCompatibilityAnalysisMd": "The clearer R6 name and DeviceDefinition support have clear modeling value. The backward-compatible alternative would have been to add canonical support or a product alias while retaining `code[x]`; that would have reduced migration failures at the cost of duplicated semantics in the resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.code[x]:37fa51",
+        "judgment": "Revisit",
+        "narrativeMd": "`code[x]` is the required R4 element carrying the requested device, and R6 changes the required wire name to `product[x]` while adding `productCanonical`. Because every valid R4 DeviceRequest has the old choice name, this is a high-certainty parser, validator, codegen, and mapper break on the central payload. The substantive R6 improvement, including DeviceDefinition canonical support, could mostly have been achieved by keeping the R4 choice name and widening its allowed types.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DeviceRequest.code[x]` is 1..1 and allows Reference(Device) or CodeableConcept.",
+          "R6 StructureDefinition: `DeviceRequest.product[x]` is 1..1 and allows CodeableConcept, Reference(Device), or canonical(DeviceDefinition).",
+          "R4 and R6 definitions both describe the details of the device to be used.",
+          "HL7 QI-Core has DeviceRequest profiles, supporting artifact-level implementation relevance for central request content."
+        ],
+        "fmmEffect": "Although supplied R4 FMM 1/trial-use weakens stability expectations, this path is mandatory and central to the resource. Low FMM does not erase the fact that generated APIs and all valid R4 instances depend on the old choice name.",
+        "compatibilityMechanism": "old-valid/new-invalid: unconverted R4 `codeCodeableConcept` or `codeReference` properties do not satisfy the required R6 `product[x]` element; R6 `productCanonical` also has no native R4 equivalent.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained required `code[x]`, clarified its wording as the requested product/device, and added canonical(DeviceDefinition) as another choice. The tradeoff is living with the less precise `code` name and a less elegant `codeCanonical` property, but it avoids invalidating all R4 instances.",
+        "comparisonToExisting": "agree with the existing high-impact and less-breaking-alternative judgment: this is a central mandatory rename with a plausible less-breaking base design."
+      }
     },
     {
       "findingId": "DeviceRequest:TYPE_DOMAIN:DeviceRequest.performer:ee5943",
@@ -877,7 +921,21 @@
       "validationAndCompatibilityMd": "An R4 instance with a direct Reference in `performer` is old-valid/new-invalid. R6 instances with `performer.reference` can be downgraded to R4 `performer`; R6 instances with only `performer.concept` need mapping to R4 `performerType` or an extension, and instances with both concept and reference need careful round-trip handling.",
       "migrationGuidanceMd": "Wrap R4 performer references as `CodeableReference.reference`. Update generated clients, FHIRPath expressions, and business rules that assumed `performer.reference` was a primitive string on the performer object. Include tests for reference-only, concept-only, and combined CodeableReference cases.",
       "backwardCompatibilityAnalysisMd": "The change likely reflects a broader R6 preference for CodeableReference. Keeping the same path while changing datatype maximizes conceptual continuity but minimizes wire compatibility; adding a new coded element would have been less disruptive.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:TYPE_DOMAIN:DeviceRequest.performer:ee5943",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`performer` keeps its path but changes from a direct Reference to CodeableReference, so the JSON shape and generated type change even for the same target resources. R4 references can usually be wrapped mechanically in `performer.reference`. R6 also gains concept-only or concept-plus-reference performer representation, and keeping the old Reference model would not meet that unified modeling goal without retaining split fields and conflict rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DeviceRequest.performer` is 0..1 Reference to practitioner, organization, care team, service, patient, device, or related person targets.",
+          "R6 StructureDefinition: `DeviceRequest.performer` is 0..1 CodeableReference with the same reference target profiles.",
+          "R6 CodeableReference represents references under a child `reference`, not as a direct Reference object."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens the stability concern. Performer is operationally relevant for fulfillment routing, but the common R4 reference-only case has a straightforward transform.",
+        "compatibilityMechanism": "runtime/API/codegen: the same path now has an incompatible datatype and JSON shape, so generated models, FHIRPath, serializers, and business logic that expected a direct Reference must change.",
+        "lessBreakingAlternativeAssessment": "Partial. Keeping `performer` as Reference and carrying coded performer class elsewhere would preserve old reference-only instances, but it would not support the R6 single CodeableReference container or paired concept/reference semantics.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the break is real, but I treat it as proportionate because the R6 CodeableReference goal has material value and the alternative is incomplete."
+      }
     },
     {
       "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.performerType:6b22fe",
@@ -1034,7 +1092,21 @@
       "validationAndCompatibilityMd": "Old `performerType` content is old-valid/new-invalid unless migrated. R6 `performer.concept` can often be represented in R4 as `performerType`, but association with a simultaneously present `performer.reference` depends on converter behavior.",
       "migrationGuidanceMd": "Move `performerType` into `performer.concept`, and if an R4 performer Reference is also present, put it in `performer.reference`. Add tests for concept-only and concept-plus-reference cases and check profile constraints around CodeableReference usage.",
       "backwardCompatibilityAnalysisMd": "The change is coherent with the CodeableReference migration but could have been made less disruptive by retaining `performerType` as deprecated for one release. The tradeoff would be duplicated ways to express a performer class.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.performerType:6b22fe",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The standalone R4 `performerType` coded role is removed, with the likely R6 destination being `performer.concept` inside CodeableReference. This breaks R4 instances that used the separate field, especially generated models and mappers, but the migration is usually direct unless old data also has a performer reference whose association needs to be preserved. Retaining `performerType` would duplicate the new CodeableReference concept slot and require consistency rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DeviceRequest.performerType` is 0..1 CodeableConcept with an example participant-role binding.",
+          "R6 StructureDefinition: no `DeviceRequest.performerType` element is present.",
+          "R6 StructureDefinition: `DeviceRequest.performer` is CodeableReference, which can carry a concept."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens stability expectations. The path can affect routing, but it is optional and the apparent successor is close for common coded-role cases.",
+        "compatibilityMechanism": "old-valid/new-invalid: old instances with `performerType` are rejected by the R6 base resource unless converted to `performer.concept` or preserved out of band.",
+        "lessBreakingAlternativeAssessment": "Partial. A deprecated `performerType` alias could preserve R4 data, but it would create two places for the same coded performer class and would need conflict handling if both old and new representations appear.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the mechanism and partial alternative are right, while low FMM and a straightforward migration keep this from needing renewed design attention."
+      }
     },
     {
       "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.reasonCode:991306",
@@ -1266,7 +1338,22 @@
       "validationAndCompatibilityMd": "R4 instances with `reasonCode` or `reasonReference` are old-valid/new-invalid. R6 reference-only and concept-only reasons can be transformed to R4 arrays; combined CodeableReference entries are not cleanly R4-representable because R4 has no per-entry pairing container.",
       "migrationGuidanceMd": "Convert R4 `reasonCode` entries to `reason[].concept` and `reasonReference` entries to `reason[].reference`. For R6-to-R4, preserve combined concept/reference pairs with extensions or mapping metadata if the association is meaningful.",
       "backwardCompatibilityAnalysisMd": "The unified representation is justified by better modeling of coded/linked reasons, especially with the new `doNotPerform` semantic. A less disruptive design would have kept the old arrays as aliases, but that would weaken the single-source R6 representation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.reasonCode:991306",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 separated coded and referenced reasons into `reasonCode` and `reasonReference`; R6 merges them into repeatable `reason` CodeableReference. This is a real wire and generated-model break, and R6-to-R4 conversion can lose the pairing of a concept with a reference. The R6 design is nevertheless coherent because the merged container directly represents one reason that may be coded, referenced, or both. Keeping old arrays as aliases would preserve old data but create competing same-resource representations.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `reasonCode` is 0..* CodeableConcept with condition-code example binding.",
+          "R4 StructureDefinition: `reasonReference` is 0..* Reference(Condition|Observation|DiagnosticReport|DocumentReference).",
+          "R6 StructureDefinition: `reason` is 0..* CodeableReference with the same reference targets and condition-code example binding.",
+          "R6 `reason` comment ties reasons to `doNotPerform` when the request is negative."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens the stability concern, but reason information can be medically and reimbursement relevant. The judgment is softened from design revisit because the R6 CodeableReference merge has a strong modeling rationale and the main forward mapping is straightforward.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 reason arrays are not R6 fields; reverse conversion of combined CodeableReference entries can be lossy because R4 lacks a per-reason pairing container.",
+        "lessBreakingAlternativeAssessment": "Partial. Deprecated `reasonCode` and `reasonReference` aliases could preserve R4 instances, but they would duplicate `reason` and cannot cleanly represent one R6 reason containing both concept and reference without extra pairing metadata.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative judgment: the break is material, but I judge it proportionate rather than a revisit item."
+      }
     },
     {
       "findingId": "DeviceRequest:FLAGS_AND_MODIFIERS:DeviceRequest.doNotPerform:4967f2",
@@ -1395,7 +1482,21 @@
       "validationAndCompatibilityMd": "R6 instances with `doNotPerform=true` are not faithfully representable in base R4 DeviceRequest. Validation alone may not catch semantic loss if a converter simply drops unknown R6 fields. Runtime consumers that ignore modifiers can invert the order.",
       "migrationGuidanceMd": "R6-aware consumers must include `doNotPerform` in modifier handling, summaries, decision support, and fulfillment logic. R6-to-R4 conversion should use an explicit extension or reject/downscope negative requests unless a safe receiving-system agreement exists.",
       "backwardCompatibilityAnalysisMd": "A modifier extension would have been more wire-compatible but less safe because many clients ignore unfamiliar extensions. A base modifier element is clinically clearer, so the breaking/round-trip risk is probably justified.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:FLAGS_AND_MODIFIERS:DeviceRequest.doNotPerform:4967f2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`doNotPerform` is an additive R6 modifier, so it does not make R4 instances invalid when moving forward. The compatibility concern is semantic and reverse-direction: dropping or ignoring `doNotPerform=true` can invert a request from `do not provide/use this device` into an apparent positive order. Making this a base modifier is a proportionate safety design because an extension-only approach would be easier to ignore.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `DeviceRequest.doNotPerform` is 0..1 boolean, isModifier true, and isSummary true.",
+          "R6 definition: true means the provider asks the patient to stop using or not start using the specified device or device category.",
+          "R4 StructureDefinition: no `DeviceRequest.doNotPerform` element is present."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use lowers the general compatibility burden, but this modifier has clear patient-safety semantics. Low FMM does not justify ignoring a negation flag.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 negative requests cannot be faithfully represented in base R4 without an extension or rejection policy, and runtime consumers that ignore the modifier may act on the opposite meaning.",
+        "lessBreakingAlternativeAssessment": "Not applicable as a forward-compatibility alternative. The R6 element is optional and does not invalidate R4 instances; R4 extensions are useful mitigations for down-conversion but are not less-breaking R6 base designs.",
+        "comparisonToExisting": "agree with the existing impact direction and not-applicable alternative judgment: this is high-risk if ignored, but the additive modifier is justified."
+      }
     },
     {
       "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.quantity-location:f52642",
@@ -1528,7 +1629,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken by these additions. R6-to-R4 conversion is potentially lossy because base R4 has no `quantity` or `location` fields; strict R4 validators will reject unknown direct elements.",
       "migrationGuidanceMd": "For down-conversion, map these values to named cross-version extensions or a profile-specific `parameter` convention only when all parties agree. Test quantity zero/positive edge cases according to local profiles, and test both coded and referenced locations.",
       "backwardCompatibilityAnalysisMd": "Because the elements are optional, adding them is a normal forward-compatible evolution for R6. The unavoidable backward-compatibility issue is that R4 receivers need an extension or must reject/ignore the new data.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.quantity-location:f52642",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `quantity` and `location` fields. These additions increase expressiveness but do not reject any R4 DeviceRequest instance. Older R4 receivers need a down-conversion policy if R6 data uses these fields, yet that is the normal cost of new optional content rather than a base R4-to-R6 compatibility design problem.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `DeviceRequest.quantity` is 0..1 integer.",
+          "R6 StructureDefinition: `DeviceRequest.location` is 0..* CodeableReference(Location) with an example location-type binding.",
+          "R4 StructureDefinition: no direct `DeviceRequest.quantity` or `DeviceRequest.location` element is present."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use further reduces concern. Quantity and location can matter operationally, but the change is additive and optional.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 quantity/location values need extensions, profiles, or rejection when sent to R4 systems; there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Avoiding the fields or using only extensions would reduce R6 expressiveness and is not needed to preserve R4-valid instances.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the reverse representability issue is real, but I would classify the additive optional change as no standards-design problem."
+      }
     },
     {
       "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.asNeeded:0d5f7f",
@@ -1644,7 +1759,21 @@
       "validationAndCompatibilityMd": "No old-valid/new-invalid issue exists for R4-to-R6. R6 instances using these elements are not base-R4 representable without extensions, and R4 consumers that ignore the information may treat a conditional request as routine or scheduled.",
       "migrationGuidanceMd": "For R6-to-R4, define explicit extensions for `asNeeded` and `asNeededFor` or reject the conversion if PRN semantics are safety-relevant. Include tests where `asNeeded=false`, `asNeeded=true` without reason, and `asNeeded=true` with reason appear.",
       "backwardCompatibilityAnalysisMd": "The optional addition is reasonable and less disruptive than changing existing occurrence semantics. The compatibility burden belongs in cross-version extensions and receiver capability checks.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.asNeeded:0d5f7f",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional PRN fields, `asNeeded` and `asNeededFor`. This does not invalidate old R4 instances; it only creates new R6 content that R4 systems cannot natively carry. Because the fields are optional and directly improve clarity of device-use instructions, the compatibility burden belongs in down-conversion policy rather than standards redesign.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `DeviceRequest.asNeeded` is 0..1 boolean.",
+          "R6 StructureDefinition: `DeviceRequest.asNeededFor` is 0..1 CodeableConcept.",
+          "R4 StructureDefinition: no `DeviceRequest.asNeeded` or `DeviceRequest.asNeededFor` element is present."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens concern. PRN semantics can be clinically meaningful, but there is no forward R4-to-R6 break.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 PRN values require extensions, narrative, profile conventions, or rejection when converted to R4; old R4 data remains valid with respect to this addition.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Keeping PRN semantics only in timing, notes, or extensions would avoid new R6 content but would not preserve an old base field, because none existed in R4.",
+        "comparisonToExisting": "partially agree with the existing impact and not-applicable alternative judgment: the migration note is useful, but the additive optional fields are not a material R4-to-R6 problem."
+      }
     },
     {
       "findingId": "DeviceRequest:REFERENCE_TARGET:DeviceRequest.requester:45f683",
@@ -1794,7 +1923,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation remains safe because all R4 targets are still allowed. R6-to-R4 conversion must handle the four added target types explicitly; otherwise strict R4 validation fails.",
       "migrationGuidanceMd": "Update target-type unions and authorization logic to include CareTeam, Group, Patient, and RelatedPerson for R6. For down-conversion, define whether unsupported requesters are represented via extension, Provenance, RelatedPerson/PractitionerRole transformations, or rejected.",
       "backwardCompatibilityAnalysisMd": "This is a low-disruption forward-compatible widening, but it still affects older validators. A profile-only widening would protect base R4 compatibility but fragment behavior across implementations.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DeviceRequest:REFERENCE_TARGET:DeviceRequest.requester:45f683",
+        "judgment": "No problem",
+        "narrativeMd": "`requester` keeps the same path and cardinality while R6 adds allowed target types. This is a forward-compatible widening: any R4 requester target remains valid in R6. R4 validators and generated unions may reject new R6 requester types, but that is a reverse-compatibility concern caused by added expressiveness.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DeviceRequest.requester` targets Device, Practitioner, PractitionerRole, and Organization.",
+          "R6 StructureDefinition: `DeviceRequest.requester` also targets CareTeam, Group, Patient, and RelatedPerson.",
+          "The element remains 0..1 Reference and non-modifier in both R4 and R6."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use reinforces a low concern level. The widened target set may matter for workflow policy, but it does not break R4 instances moving forward.",
+        "compatibilityMechanism": "none: for R4-to-R6, all old target profiles are still accepted; only R6-to-R4 consumers need policy for the newly allowed targets.",
+        "lessBreakingAlternativeAssessment": "Not applicable. A profile-only widening could avoid new base possibilities, but no less-breaking base design is needed to preserve R4 requester references.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the reverse target-type issue exists, but I would classify the forward-compatible widening as no problem."
+      }
     },
     {
       "findingId": "DeviceRequest:TERMINOLOGY_BINDING:DeviceRequest.status:7a84a0",
@@ -1958,7 +2101,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 status validation is safe because the local CodeSystems show no removed R4 status codes. R6-to-R4 is not safe for `ended`; converters need a policy rather than silently picking `completed` or `revoked`.",
       "migrationGuidanceMd": "Update R6 enum handling to include `ended`. For down-conversion, use an official ConceptMap if available or require human/business policy to choose between extension preservation, rejection, or local mapping.",
       "backwardCompatibilityAnalysisMd": "The code addition is semantically useful but not backward-compatible for required-binding consumers. A less disruptive approach would have used existing statuses plus reason/detail, but that sacrifices precision.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:TERMINOLOGY_BINDING:DeviceRequest.status:7a84a0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`status` keeps its shape and required binding but the R6 request-status code system includes `ended`. No R4 status code is removed, so R4 data remains valid going forward. The compatibility burden is reverse-direction and runtime enum handling: an R4 system receiving `ended` cannot validate or interpret it without a mapping policy. Since `status` controls whether a request should be acted upon, this is real migration work, but the new code fills a plausible workflow gap.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DeviceRequest.status` is 0..1 code with required binding to request-status|4.0.1.",
+          "R6 StructureDefinition: `DeviceRequest.status` is 0..1 code with required binding to request-status|6.0.0-ballot4.",
+          "Recursive local CodeSystem check: R6 request-status includes `ended`; R4 does not.",
+          "R6 definition for `ended`: the request is no longer to be acted upon without differentiating how much action occurred."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens stability expectations, but `status` is a modifier-like workflow control and is likely touched by validators and generated enums in any implementation.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `status=ended` fails R4 required binding validation and can break R4 enum/switch logic unless mapped or preserved by policy.",
+        "lessBreakingAlternativeAssessment": "Not applicable for preserving R4 instances, because the R6 code addition removes no R4 code. Avoiding `ended` or overloading existing statuses would reduce R6 precision rather than provide a needed forward-compatible base design.",
+        "comparisonToExisting": "partially agree with the existing impact and not-applicable alternative judgment: the reverse risk is important, but there is no R4-to-R6 hard break."
+      }
     },
     {
       "findingId": "DeviceRequest:TERMINOLOGY_BINDING:DeviceRequest.intent:441b12",
@@ -2128,7 +2286,22 @@
       "validationAndCompatibilityMd": "R4 instances keep valid intent codes in R6. R6 instances using `solicit-offer` or `offer-response` fail R4 required binding validation and can break switch statements that assume the R4 enum is exhaustive.",
       "migrationGuidanceMd": "Add the two codes to R6 enum handling. For down-conversion, do not blindly map to `proposal` or `order`; use an official ConceptMap if available, a profile-specific extension, or reject the conversion when workflow semantics matter.",
       "backwardCompatibilityAnalysisMd": "First-class codes are useful if these workflows are common enough across requests. A backward-compatible extension approach would be safer for R4 receivers but less interoperable in R6.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:TERMINOLOGY_BINDING:DeviceRequest.intent:441b12",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`intent` remains mandatory and modifier, but R6 adds `solicit-offer` and `offer-response` to the request-intent code system. Existing R4 intent values still fit R6, so the forward instance shape is safe. The new codes are nevertheless meaningful for R6-to-R4 conversion and runtime code because `intent` changes the interpretation of the whole request; blindly mapping an offer workflow to an R4 code could change business meaning.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DeviceRequest.intent` is 1..1 code with required binding to request-intent|4.0.1.",
+          "R6 StructureDefinition: `DeviceRequest.intent` is 1..1 code with required binding to request-intent|6.0.0-ballot4.",
+          "Recursive local CodeSystem check: R6 request-intent includes `solicit-offer` and `offer-response`; R4 does not.",
+          "R6 definitions identify solicitation and response-to-solicitation workflows."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens the compatibility burden, but `intent` is mandatory, isModifier, and central to generated enums and workflow semantics.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using the new intent codes fail R4 required binding validation and require explicit workflow mapping or preservation.",
+        "lessBreakingAlternativeAssessment": "Not applicable for forward compatibility. Existing R4 codes are retained; using extensions instead of first-class R6 codes would be a down-conversion/backport strategy and would weaken interoperability for the new workflow states.",
+        "comparisonToExisting": "partially agree with the existing high-impact and not-applicable alternative judgment: the concern is real for reverse conversion and enums, not for R4-to-R6 validation."
+      }
     },
     {
       "findingId": "DeviceRequest:SEMANTIC_OR_CONFORMANCE_TEXT:DeviceRequest.intent:587c8b",
@@ -2239,7 +2412,21 @@
       "validationAndCompatibilityMd": "A standalone R4 instance does not become invalid solely because of this text. The risk appears when comparing versions of the same resource instance or enforcing update rules: changing intent in-place is no longer conformant under the R6 comment.",
       "migrationGuidanceMd": "Review workflows that promote, clone, or revise DeviceRequests by changing `intent`. Prefer creating a new resource with appropriate relationship links rather than mutating the original intent. Add tests for update/patch logic if the system enforces immutability.",
       "backwardCompatibilityAnalysisMd": "The rule is defensible because `intent` changes the interpretation of the resource. A backward-compatible option would have been warning-level guidance, but that would allow inconsistent lifecycle behavior.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceRequest:SEMANTIC_OR_CONFORMANCE_TEXT:DeviceRequest.intent:587c8b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds conformance text that `intent` is immutable for the same resource instance. A single R4 instance is not invalidated, but update workflows that promoted one resource from proposal to order by changing `intent` now conflict with the R6 lifecycle expectation. The rule is proportionate because `intent` is a modifier that changes how all descriptive fields are interpreted; softer guidance would be less disruptive but would not give receivers a stable lifecycle guarantee.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DeviceRequest.intent` has no inspected immutability comment.",
+          "R6 StructureDefinition: `DeviceRequest.intent.comment` says `This element is immutable. It cannot be changed for the same resource instance.`",
+          "`intent` is 1..1, required-bound, isModifier, and isSummary in both R4 and R6."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens the concern, especially because this is prose rather than a new invariant. The remaining concern is limited to systems with same-resource intent mutation workflows.",
+        "compatibilityMechanism": "semantic/documentation: the instance wire shape is unchanged, but server update policy, audit logic, and conformance checks may need to treat intent changes as invalid lifecycle transitions.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have introduced this as best-practice guidance, warning-level policy, or profile guidance first, but that would weaken the computable and audit expectation for a modifier element.",
+        "comparisonToExisting": "partially agree with the existing impact and partial-alternative judgment: the update-semantics risk is real, but low FMM and lack of a formal invariant keep it proportionate."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2454,5 +2641,19 @@
       "Shared request-status and request-intent required binding additions",
       "New doNotPerform modifiers on request resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DeviceRequest.fresh-review.json",
+    "findingDecisionCount": 13,
+    "matchedFindingDecisionCount": 13,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 8,
+      "No problem": 3
+    }
   }
 }

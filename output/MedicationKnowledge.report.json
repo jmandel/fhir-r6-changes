@@ -297,7 +297,22 @@
       "migrationGuidanceMd": "Do not attempt a blind version-label upgrade. Inventory all R4 `MedicationKnowledge` instances, classify their content by use case, and route data to appropriate R6 resources or extensions. Test migration with a validator configured only for R6 core to ensure legacy `resourceType: \"MedicationKnowledge\"` is no longer emitted unless an implementation-guide-specific compatibility profile is intentionally used.",
       "backwardCompatibilityAnalysisMd": "The most backward-compatible design would have preserved `MedicationKnowledge` in R6, even if deprecated, or provided an official cross-version extension/profile set. That would have allowed old instances to remain syntactically representable while implementers moved to more specific R6 resources. The tradeoff is carrying a draft/FMM 0 model forward.",
       "reviewerNotesMd": "The identity conclusion is high-confidence; the intended replacement path is not. Review any official pharmacy working-group migration notes before finalizing production transforms.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationKnowledge:ARTIFACT_IDENTITY:root:7a7d10",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `MedicationKnowledge` was a concrete resource, while the supplied R6 ballot package has no same-named StructureDefinition or index entry. That makes ordinary R4 instances, REST routes, validators, generated SDK classes, and profile dependencies fail at the resource identity boundary. Although the base R4 resource was only FMM 0, this is not merely theoretical: the current HL7 Da Vinci US Drug Formulary IG profiles R4 `MedicationKnowledge` as FormularyDrug and defines formulary queries using `subject:MedicationKnowledge`. Complete removal without a standard legacy resource or official migration surface therefore deserves renewed design review.",
+        "keyEvidence": [
+          "R4 StructureDefinition-MedicationKnowledge.json: id/url/type are MedicationKnowledge, kind=resource, abstract=false.",
+          "R6 package check: StructureDefinition-MedicationKnowledge.json is absent; R6 .index.json and package text search had no MedicationKnowledge match.",
+          "HL7 Da Vinci US Drug Formulary v2.1.0 says FormularyDrug is a profile of R4 MedicationKnowledge and anticipated queries include subject:MedicationKnowledge.code.",
+          "R4 maturity map: MedicationKnowledge is trial-use, FMM 0."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the normal stability expectation, but it does not neutralize a top-level resource/API removal where an official STU formulary IG depends on the resource identity.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with resourceType MedicationKnowledge has no R6 core resource definition, and generated-code/server API surfaces for that resource disappear.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists in principle: keep `MedicationKnowledge` as a deprecated or transitional R6 resource while steering new implementations to Medication and product-definition resources. The tradeoff is real duplication of a low-maturity aggregate model, but it would preserve existing R4 instances and IG dependencies during migration.",
+        "comparisonToExisting": "agree with the existing critical impact direction, but the fresh rationale relies less on hypothetical broad adoption and more on the concrete resource/API break plus documented Da Vinci formulary use; the alternative assessment is partial rather than a free compatibility win."
+      }
     },
     {
       "findingId": "MedicationKnowledge:CONVERSION_OR_MAPPING:content-model:91b4f5",
@@ -463,7 +478,23 @@
       "migrationGuidanceMd": "Create an explicit mapping matrix by R4 element group. For each group, define the target R6 resource type, linkage strategy, and loss policy. Treat cost, monitoring programs, administration guidelines, and kinetics as high-priority manual-review buckets because no direct target was identified from the supplied package.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible path could have retained the aggregate resource as a wrapper over newer normalized resources. The benefit would be old-client compatibility and clearer migration; the cost would be continued support for a broad, low-maturity aggregate model.",
       "reviewerNotesMd": "This finding intentionally groups many old elements rather than emitting a separate removal finding for every local path, because the dominant break is the resource-level split/removal.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationKnowledge:CONVERSION_OR_MAPPING:content-model:91b4f5",
+        "judgment": "Revisit",
+        "narrativeMd": "The R4 resource gathered product identity, ingredients, monographs, costs, monitoring programs, administration guidance, classifications, packaging, contraindications, regulatory rules, and kinetics into one resource. R6 has partial destinations across `Medication`, product-definition resources, `Ingredient`, `ClinicalUseDefinition`, and `RegulatedAuthorization`, but no single replacement resource and no local migration map that preserves the aggregate semantics. A migration therefore has to decompose one old resource into several linked resources and decide what to do with sections that do not have obvious core targets. Given the official R4 formulary IG use of the resource, this aggregate-to-split transition merits standards attention even though the base resource was low maturity.",
+        "keyEvidence": [
+          "R4 differential includes broad local sections such as cost, monitoringProgram, administrationGuidelines, medicineClassification, packaging, regulatory, and kinetics.",
+          "R6 Medication contains partial overlap only: code/status/doseForm/packageSize/ingredient/definition.",
+          "R6 candidate resources inspected: Ingredient, ClinicalUseDefinition, RegulatedAuthorization, MedicinalProductDefinition, AdministrableProductDefinition, PackagedProductDefinition, and ManufacturedItemDefinition distribute related concepts.",
+          "R6 package text search found no MedicationKnowledge or obvious same-resource migration artifact.",
+          "HL7 Da Vinci US Drug Formulary v2.1.0 uses MedicationKnowledge as FormularyDrug for payer formulary exchange."
+        ],
+        "fmmEffect": "The R4 FMM 0/trial-use status argues against assuming universal production impact, but documented formulary-profile use plus expert-dependent decomposition keeps the mapping break material.",
+        "compatibilityMechanism": "R6-to-R4 loss: the old aggregate cannot be converted to a single R6 core resource, and a set of R6 resources may not round-trip back to the R4 aggregate without policy choices and possible information loss.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design would retain a deprecated aggregate wrapper or compatibility resource that can reference newer R6 resources. That would preserve old instances and give migrations a stable target, but it would also keep duplicate aggregate and normalized representations in core and require reconciliation rules.",
+        "comparisonToExisting": "partially agree with the existing high impact assessment; the break is real, but the fresh review separates the justified R6 normalization goal from the unresolved lack of a standard transition/mapping surface."
+      }
     },
     {
       "findingId": "MedicationKnowledge:REFERENCE_TARGET:relatedMedicationKnowledge.reference:54e2aa",
@@ -575,7 +606,22 @@
       "validationAndCompatibilityMd": "An R4 instance using this reference is not R6-core valid because the root resource is unknown. If transformed into R6 candidate resources, the reference cannot be preserved as `Reference(MedicationKnowledge)` and may fail typed-reference validation or generated-model type checks.",
       "migrationGuidanceMd": "Inventory uses of `relatedMedicationKnowledge`. For each relation type, define a target R6 relation pattern and include tests for reference resolution, graph traversal, and reverse lookup. Do not silently drop relations unless a domain owner confirms they are non-essential.",
       "backwardCompatibilityAnalysisMd": "Keeping a deprecated target resource or defining a standard relation extension would have preserved old graph semantics while allowing newer resources to carry forward relationships. Without that, migrations are necessarily policy-driven.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationKnowledge:REFERENCE_TARGET:relatedMedicationKnowledge.reference:54e2aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 self-reference path allowed one medication-knowledge record to point to related medication-knowledge records. In R6 core there is no `MedicationKnowledge` resource for that typed reference to target. That is a real graph-migration break for implementations that used this relationship, but the path is optional inside an FMM 0 resource, and the quick usage check found resource-level formulary use rather than evidence that this specific self-reference path is widely exchanged. Once the aggregate resource is removed, preserving this target independently would mostly mean preserving the old resource itself.",
+        "keyEvidence": [
+          "R4 differential: MedicationKnowledge.relatedMedicationKnowledge.reference is Reference(MedicationKnowledge), min=1 within the optional relatedMedicationKnowledge backbone.",
+          "R6 package check: no MedicationKnowledge StructureDefinition or index entry exists to serve as the target.",
+          "R6 MedicinalProductDefinition has crossReference, but that is a product relationship, not an unchanged MedicationKnowledge self-reference.",
+          "Quick web check found official Da Vinci formulary dependence on MedicationKnowledge at resource/profile level, not evidence specific to relatedMedicationKnowledge.reference."
+        ],
+        "fmmEffect": "FMM 0/trial-use substantially softens this path-level concern because no path-specific production use evidence was found; the residual risk is for implementations that actually built related-knowledge graphs.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 references to MedicationKnowledge cannot remain valid typed R6 core references, and generated reference-target checks would fail after transformation unless a new relationship model is chosen.",
+        "lessBreakingAlternativeAssessment": "There is no low-cost standalone alternative for this path. Keeping the target means keeping a deprecated `MedicationKnowledge` resource; adding relationship elements to successor resources would help migrated data but would not preserve unchanged R4 instances and could duplicate existing product cross-reference patterns.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a real graph migration risk, but its high impact looks stronger than the path-specific evidence supports under FMM 0."
+      }
     },
     {
       "findingId": "MedicationKnowledge:TERMINOLOGY_BINDING:status:0c4a91",
@@ -759,7 +805,23 @@
       "validationAndCompatibilityMd": "R4 `MedicationKnowledge.status` is not directly R6-valid because the containing resource is gone. If transformed to `Medication.status`, the lexical code may validate but the terminology system and modifier scope change. If transformed to product-definition status, the value may not validate or may require a different CodeableConcept/status model.",
       "migrationGuidanceMd": "Map status per target resource, not globally. Preserve the old status source in audit/provenance or an extension when the target status semantics are not equivalent. Include test cases for all three R4 status codes and for absent status.",
       "backwardCompatibilityAnalysisMd": "A formal ConceptMap from `medicationknowledge-status` to each candidate R6 status element would have avoided ambiguous string reuse. Retaining the old ValueSet as a compatibility alias would also reduce terminology failures but would not solve resource removal.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationKnowledge:TERMINOLOGY_BINDING:status:0c4a91",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`MedicationKnowledge.status` was an optional modifier code with a required MedicationKnowledge-specific value set. R6 has no same path. If a migration targets `Medication.status`, the three lexical codes still line up, but the code system and definitions are record-current rather than MedicationKnowledge-specific; if the target is a product-definition resource, the status model may be publication-style and not uniformly equivalent. This creates real mapping and audit risk, especially because status is modifier information, but it is a manageable consequence of moving away from the removed FMM 0 aggregate resource rather than a separate reason to preserve the old terminology unchanged.",
+        "keyEvidence": [
+          "R4 MedicationKnowledge.status: code, 0..1, isModifier=true, summary=true, required binding to medicationknowledge-status|4.0.1.",
+          "R4 medicationknowledge-status concepts are active, inactive, and entered-in-error.",
+          "R6 Medication.status: code, 0..1, isModifier=true, required binding to medication-status|6.0.0-ballot4 with the same three lexical codes but different definitions.",
+          "R6 product-definition candidates inspected commonly use publication-status style CodeableConcept/code statuses rather than MedicationKnowledge status.",
+          "R4 maturity map: MedicationKnowledge is trial-use, FMM 0."
+        ],
+        "fmmEffect": "Low FMM reduces the burden to preserve this exact value set, but modifier status semantics still require deliberate target-specific mapping rather than blind string reuse.",
+        "compatibilityMechanism": "semantic/documentation: the old code strings may validate on `Medication.status`, but the canonical terminology, modifier scope, and target-resource meaning change; some R6 targets use a different status pattern.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design would only be partial: retain `MedicationKnowledge.status` on a deprecated legacy resource or publish official ConceptMaps for each target status. A ConceptMap helps migration but is not itself base-instance compatibility, and keeping the old binding duplicates status models.",
+        "comparisonToExisting": "partially agree with the existing medium impact: the terminology difference is real, but lexical overlap and low FMM make it less concerning than the root removal and content-split findings."
+      }
     },
     {
       "findingId": "MedicationKnowledge:SERIALIZATION_OR_CODEGEN:choice-elements:bf2608",
@@ -944,7 +1006,22 @@
       "validationAndCompatibilityMd": "Old choice-property names are not valid R6 JSON under any same-named resource because no same-named resource exists. When mapping to candidate resources, validators will expect R6 property names and R6 type domains. R6 content using `CodeableReference` is not directly representable in R4 `MedicationKnowledge` without choosing a concept/reference arm and possibly dropping additional target choices.",
       "migrationGuidanceMd": "Build tests for every old choice arm and every candidate R6 type. Avoid string-based property renames; use a typed transform that understands CodeableReference, Reference target changes, and when information must become an extension or separate resource.",
       "backwardCompatibilityAnalysisMd": "FHIR version changes normally cannot keep two JSON shapes for the same element. The reasonable compatibility alternative would be official cross-version transform definitions and regression fixtures. Without them, implementers must design and validate transforms independently.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationKnowledge:SERIALIZATION_OR_CODEGEN:choice-elements:bf2608",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `MedicationKnowledge` exposed several choice elements with generated names such as `itemCodeableConcept`, `itemReference`, `indicationCodeableConcept`, `characteristicQuantity`, and `valueString`. R6 candidate destinations use different shapes, including `CodeableReference` on `Medication.ingredient.item`, standalone `Ingredient` structures, clinical-use resources, and product-definition property elements. That is a genuine SDK/FHIRPath/serializer migration break. However, the affected choice fields belong to an FMM 0 aggregate resource, and preserving both the old choice-arm property names and the newer R6 representations would create duplicate JSON shapes and precedence problems.",
+        "keyEvidence": [
+          "R4 differential choice paths include ingredient.item[x], administrationGuidelines.indication[x], patientCharacteristics.characteristic[x], and drugCharacteristic.value[x].",
+          "R6 Medication.ingredient.item is CodeableReference targeting Substance, SubstanceDefinition, and Medication.",
+          "R6 candidate resources inspected use separate Ingredient, ClinicalUseDefinition, and product-definition property structures rather than the same R4 choice-arm names.",
+          "No R6 MedicationKnowledge resource exists where the old generated choice properties could be preserved unchanged."
+        ],
+        "fmmEffect": "FMM 0 softens the compatibility expectation for these generated fields, and no quick evidence showed production reliance on the specific choice paths beyond general MedicationKnowledge use.",
+        "compatibilityMechanism": "runtime/API/codegen: generated R4 choice-arm properties and FHIRPath expressions do not compile or evaluate against the R6 candidate model without explicit typed transforms.",
+        "lessBreakingAlternativeAssessment": "Keeping legacy choice aliases in base R6 would be less breaking only if the old resource or duplicate fields were retained. That would preserve generated-code compatibility but would conflict with CodeableReference and specialized-resource modeling, so transform guidance is a mitigation rather than a better base design.",
+        "comparisonToExisting": "partially agree with the existing high runtime-risk characterization; the codegen break is real, but the low-maturity context and high cost of legacy aliases make it probably acceptable."
+      }
     },
     {
       "findingId": "MedicationKnowledge:ELEMENT_PRESENCE_OR_IDENTITY:knowledge-specific-gaps:da3c18",
@@ -1072,7 +1149,22 @@
       "validationAndCompatibilityMd": "R4 instances using these sections are invalid as R6 core `MedicationKnowledge`. Mapping them into R6 may require extensions or other resources. If an implementation simply maps product identity and ingredients, these sections can be lost while the transformed data appears otherwise valid.",
       "migrationGuidanceMd": "Flag instances containing these sections for manual or rules-based enrichment. Decide whether administration guidance should become a knowledge artifact such as `PlanDefinition`, `ActivityDefinition`, `Library`, or an extension; decide whether kinetics and cost have local extension profiles. Include loss reports in migration output.",
       "backwardCompatibilityAnalysisMd": "A standard set of extensions for removed knowledge-specific sections would have been less disruptive than requiring every implementer to invent local mappings. The cost is that extensions would not have the same interoperability as core elements.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationKnowledge:ELEMENT_PRESENCE_OR_IDENTITY:knowledge-specific-gaps:da3c18",
+        "judgment": "Revisit",
+        "narrativeMd": "The specific removed groups here are not just alternate product identifiers: R4 directly modeled cost, monitoring programs, administration guidance with dosage/indication/patient characteristics, and pharmacokinetic facts such as half-life. The reviewed R6 candidates provide some neighboring concepts, but not direct equivalent base destinations for these groups. A migration that maps only product identity and ingredients can therefore produce valid-looking R6 resources while silently dropping clinically or business-relevant knowledge. Even with FMM 0, the domain relevance and expert-dependent loss policy make this finding worth renewed review.",
+        "keyEvidence": [
+          "R4 differential: MedicationKnowledge.cost contains type/source/Money cost; monitoringProgram contains type/name; administrationGuidelines contains Dosage, indication[x], and patientCharacteristics; kinetics contains areaUnderCurve, lethalDose50, and halfLifePeriod.",
+          "R6 candidate review found related but non-equivalent destinations: ClinicalUseDefinition for indications/contraindications, AdministrableProductDefinition route/dose constraints and property, and product-definition properties/characteristics.",
+          "No R6 MedicationKnowledge resource or direct same-named core element groups were found in the supplied R6 package.",
+          "HL7 Da Vinci Drug Formulary IG shows MedicationKnowledge is used in a payer formulary context, supporting business relevance for at least some knowledge/formulary data."
+        ],
+        "fmmEffect": "FMM 0/trial-use prevents assuming universal production exchange, but the affected data categories include medication administration, pharmacokinetics, monitoring, and cost, so low maturity does not eliminate safety/business concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances carrying these sections have no direct R6 core fields, and migration can become lossy even when the transformed resource set validates.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design would define standard legacy extensions or retain these groups on a deprecated compatibility resource. That would reduce silent data loss but would keep broad knowledge content in core and might overlap with ClinicalUseDefinition, knowledge artifacts, and product-definition property models.",
+        "comparisonToExisting": "agree with the existing high-impact concern for these gaps, while emphasizing that the judgment rests on loss and domain relevance rather than an assumption that every FMM 0 path is widely deployed."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1226,5 +1318,18 @@
       "R4 choice elements remapped to CodeableReference",
       "Trial-use pharmacy resources removed or normalized"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicationKnowledge.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 3
+    }
   }
 }

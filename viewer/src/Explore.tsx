@@ -2,11 +2,13 @@ import React, { useMemo, useState } from "react";
 import { flat, bundle, type FlatFinding } from "./data";
 import { buildHref, type RouteState } from "./router";
 import { TopBar, SubNav, Crumb, Footer } from "./Shell";
+import { buildLlmMarkdown } from "./llmMarkdown";
 
 const IMPACT_ORDER = ["Critical", "High", "Medium", "Low", "Info"];
 const BREAK_ORDER = ["Yes", "Potential", "Unknown", "No"];
 const VERDICT_ORDER = ["Justified", "Probably justified", "Cannot assess", "Not clearly justified", "Probably avoidable"];
 const BCALT_ORDER = ["Yes", "Partial", "No", "Not applicable", "Unknown"];
+const OVERALL_ASSESSMENT_ORDER = ["Revisit", "Unclear", "Breaking but probably OK", "No problem", "—"];
 
 const IMPACT_COLOR: Record<string, string> = {
   Critical: "#8A1118", High: "#EC2028", Medium: "#F09225", Low: "#E8C547", Info: "#2E5DA8",
@@ -23,6 +25,13 @@ const VERDICT_COLOR: Record<string, string> = {
 };
 const BCALT_COLOR: Record<string, string> = {
   "Yes": "#EC2028", "Partial": "#F09225", "No": "#6B635C", "Not applicable": "#9C948C", "Unknown": "#8A6800",
+};
+const OVERALL_ASSESSMENT_COLOR: Record<string, string> = {
+  "Revisit": "#EC2028",
+  "Unclear": "#8A6800",
+  "Breaking but probably OK": "#2E5DA8",
+  "No problem": "#2F8A4F",
+  "—": "#9C948C",
 };
 
 type Facet = {
@@ -60,11 +69,39 @@ const FMM_ORDER = ["5", "4", "3", "2", "1", "0", "—"];
 const FMM_COLOR: Record<string, string> = {
   "5": "#2F8A4F", "4": "#2E5DA8", "3": "#8A6800", "2": "#F09225", "1": "#EC2028", "0": "#8A1118",
 };
+const MECHANISM_ORDER = [
+  "old-valid/new-invalid",
+  "runtime/API/codegen",
+  "warning-level",
+  "semantic/documentation",
+  "metadata/tooling",
+  "reverse-only/out-of-scope",
+  "none",
+  "other/unclear",
+  "—",
+];
+const MAX_FILTER_VALUES = 50;
+
+function compatibilityMechanismBucket(value?: string): string {
+  if (!value) return "—";
+  const v = value.toLowerCase();
+  if (v.includes("old-valid") || v.includes("new-invalid")) return "old-valid/new-invalid";
+  if (v.includes("runtime") || v.includes("api") || v.includes("codegen") || v.includes("generated")) return "runtime/API/codegen";
+  if (v.includes("warning")) return "warning-level";
+  if (v.includes("semantic") || v.includes("documentation")) return "semantic/documentation";
+  if (v.includes("metadata") || v.includes("tooling")) return "metadata/tooling";
+  if (v.includes("r6-to-r4") || v.includes("round-trip") || v.includes("downgrade") || v.includes("reverse")) return "reverse-only/out-of-scope";
+  if (v.includes("none") || v.includes("no meaningful")) return "none";
+  return "other/unclear";
+}
 
 const FACETS: Facet[] = [
-  { key: "breaking",  label: "Hard instance break",   get: (f) => f.impact?.hardInstanceBreaking ?? "Unknown", order: BREAK_ORDER, colors: BREAK_COLOR },
-  { key: "impact",    label: "Impact (severity)",     get: (f) => f.impact?.overallImpact ?? "Info", order: IMPACT_ORDER, colors: IMPACT_COLOR },
+  { key: "review",    label: "Overall Assessment",    get: (f) => f.freshReview?.judgment ?? "—", order: OVERALL_ASSESSMENT_ORDER, colors: OVERALL_ASSESSMENT_COLOR },
+  { key: "mechanism", label: "Compatibility mechanism", get: (f) => compatibilityMechanismBucket(f.freshReview?.compatibilityMechanism), order: MECHANISM_ORDER },
+  { key: "bcAlt",     label: "Less-breaking option",  get: (f) => f.justification?.backwardCompatibleAlternativeAvailable ?? "Unknown", order: BCALT_ORDER, colors: BCALT_COLOR },
   { key: "verdict",   label: "Justification verdict", get: (f) => f.justification?.justificationVerdict ?? "Cannot assess", order: VERDICT_ORDER, colors: VERDICT_COLOR },
+  { key: "impact",    label: "Impact (severity)",     get: (f) => f.impact?.overallImpact ?? "Info", order: IMPACT_ORDER, colors: IMPACT_COLOR },
+  { key: "breaking",  label: "Hard instance break",   get: (f) => f.impact?.hardInstanceBreaking ?? "Unknown", order: BREAK_ORDER, colors: BREAK_COLOR },
   { key: "r4Status",  label: "R4 standards status",   get: (f) => f.r4Maturity?.standardsStatus ?? "—", order: R4_STATUS_ORDER, colors: R4_STATUS_COLOR },
   { key: "r4Fmm",     label: "R4 maturity (FMM)",     get: (f) => f.r4Maturity?.fmm != null ? String(f.r4Maturity.fmm) : "—", order: FMM_ORDER, colors: FMM_COLOR },
   { key: "deltaKind", label: "Delta kind",            get: (f) => f.structuredDelta?.deltaKind ?? "—", group: deltaGroup },
@@ -110,6 +147,10 @@ export function Explore({ route }: { route: RouteState }) {
           f.justification?.backwardCompatibleAlternativeSummary,
           f.justification?.alternativeTradeoffSummary,
           (f.justification as any)?.backwardCompatibleAlternativeMd,
+          f.freshReview?.judgment,
+          f.freshReview?.narrativeMd,
+          f.freshReview?.compatibilityMechanism,
+          f.freshReview?.lessBreakingAlternativeAssessment,
           f.backwardCompatibilityAnalysisMd,
           f.validationAndCompatibilityMd,
           f.oldState?.summary, f.newState?.summary,
@@ -169,6 +210,13 @@ export function Explore({ route }: { route: RouteState }) {
     }
     return out;
   }, [facetBins]);
+  const visibleFacets = useMemo(
+    () => FACETS.filter((facet) => {
+      const distinctCount = allValues[facet.key]?.length ?? 0;
+      return distinctCount > 1 && distinctCount <= MAX_FILTER_VALUES;
+    }),
+    [allValues]
+  );
 
   const toggleFacet = (key: string, value: string) => {
     const next = new Set(active[key]);
@@ -211,6 +259,9 @@ export function Explore({ route }: { route: RouteState }) {
       <SubNav />
       <Crumb>
         <span className="here">All findings across {bundle.reports.length} artifacts</span>
+        <span className="crumb-actions">
+          <CopyForLlmButton findings={filtered} active={active} query={query} totalAll={flat.length} />
+        </span>
       </Crumb>
 
       <main className="changes-page">
@@ -226,7 +277,7 @@ export function Explore({ route }: { route: RouteState }) {
             )}
           </div>
 
-          {FACETS.map((facet) => (
+          {visibleFacets.map((facet) => (
             <FilterBlock
               key={facet.key}
               facet={facet}
@@ -299,9 +350,6 @@ function FilterBlock({ facet, values, counts, selected, onToggle, onClear }: {
   if (facet.group) {
     return <GroupedFilterBlock facet={facet} values={values} counts={counts} selected={selected} onToggle={onToggle} onClear={onClear} />;
   }
-  const [showAll, setShowAll] = useState(false);
-  const limit = 8;
-  const shown = showAll ? values : values.slice(0, limit);
   return (
     <div className="filter-block">
       <div className="filter-h">
@@ -309,7 +357,7 @@ function FilterBlock({ facet, values, counts, selected, onToggle, onClear }: {
         {selected.size > 0 && <button className="clear" onClick={onClear}>Clear</button>}
       </div>
       <div className="filter-list">
-        {shown.map((v) => {
+        {values.map((v) => {
           const c = counts.get(v) ?? 0;
           const isSel = selected.has(v);
           const dot = facet.colors?.[v];
@@ -330,11 +378,6 @@ function FilterBlock({ facet, values, counts, selected, onToggle, onClear }: {
           );
         })}
       </div>
-      {values.length > limit && (
-        <button className="filter-more" onClick={() => setShowAll((s) => !s)}>
-          {showAll ? "Show less" : `+ ${values.length - limit} more`}
-        </button>
-      )}
     </div>
   );
 }
@@ -445,6 +488,7 @@ function ResultsList({ items, query }: { items: FlatFinding[]; query: string }) 
         <colgroup>
           <col style={{ width: 280 }} />
           <col style={{ width: 90 }} />
+          <col style={{ width: 150 }} />
           <col style={{ width: 170 }} />
           <col />
         </colgroup>
@@ -452,6 +496,7 @@ function ResultsList({ items, query }: { items: FlatFinding[]; query: string }) 
           <tr>
             <th>Artifact · path</th>
             <th>Impact</th>
+            <th>Overall Assessment</th>
             <th>Verdict</th>
             <th>Delta</th>
           </tr>
@@ -479,6 +524,7 @@ function stripArtifactPrefix(path: string, artifact: string): string {
 function FindingRows({ f, query }: { f: FlatFinding; query: string }) {
   const href = buildHref(["f", f.findingId]);
   const impact = f.impact?.overallImpact ?? "Info";
+  const freshReview = f.freshReview?.judgment;
   const verdict = f.justification?.justificationVerdict;
   const deltaKind = f.structuredDelta?.deltaKind;
   const path = f.affectedLocation?.newPath ?? f.affectedLocation?.oldPath;
@@ -501,11 +547,12 @@ function FindingRows({ f, query }: { f: FlatFinding; query: string }) {
           <span className="impact-dot" style={{ background: IMPACT_COLOR[impact] }} />
           <span style={{ color: IMPACT_COLOR[impact], fontWeight: 600 }}>{impact}</span>
         </td>
+        <td className="ft-verdict">{freshReviewCell(freshReview)}</td>
         <td className="ft-verdict">{verdictCell(verdict)}</td>
         <td className="ft-delta">{deltaKind ? <code className="delta-code">{deltaKind}</code> : <span className="dim">—</span>}</td>
       </tr>
       <tr className="ft-title-row" onClick={onRowClick}>
-        <td colSpan={4}>
+        <td colSpan={5}>
           <a className="ft-title" href={href} target="_blank" rel="noopener">{highlight(f.title, query)}</a>
           {f.justification?.inferredGoal && (
             <div className="ft-goal">{highlight(f.justification.inferredGoal, query)}</div>
@@ -521,11 +568,63 @@ function verdictCell(v?: string) {
   return <span style={{ color: VERDICT_COLOR[v] ?? "var(--ink-2)", fontWeight: 500 }}>{v}</span>;
 }
 
+function freshReviewCell(v?: string) {
+  if (!v) return <span className="dim">—</span>;
+  const color = OVERALL_ASSESSMENT_COLOR[v] ?? "var(--ink-2)";
+  const weight = v === "Revisit" ? 700 : v === "Unclear" ? 600 : 500;
+  return <span style={{ color, fontWeight: weight }}>{v}</span>;
+}
+
 function bcAltCell(v?: string) {
   if (!v) return <span className="dim">—</span>;
   const color = BCALT_COLOR[v] ?? "var(--ink-2)";
   const weight = v === "Yes" ? 700 : v === "Partial" ? 600 : 500;
   return <span style={{ color, fontWeight: weight }}>{v}</span>;
+}
+
+function CopyForLlmButton({ findings, active, query, totalAll }: {
+  findings: FlatFinding[];
+  active: Record<string, Set<string>>;
+  query: string;
+  totalAll: number;
+}) {
+  const [state, setState] = useState<"idle" | "ok" | "err">("idle");
+  const onClick = async () => {
+    const filters: { label: string; values: string[] }[] = [];
+    for (const facet of FACETS) {
+      const set = active[facet.key];
+      if (set && set.size > 0) filters.push({ label: facet.label, values: [...set] });
+    }
+    const md = buildLlmMarkdown(findings, {
+      url: location.href,
+      totalShown: findings.length,
+      totalAll,
+      filters,
+      query: query.trim() || undefined,
+    });
+    try {
+      await navigator.clipboard.writeText(md);
+      setState("ok");
+    } catch {
+      setState("err");
+    }
+    setTimeout(() => setState("idle"), 1800);
+  };
+  const label = state === "ok"
+    ? `Copied ${findings.length.toLocaleString()} findings`
+    : state === "err"
+    ? "Copy failed"
+    : `Copy for LLM (${findings.length.toLocaleString()})`;
+  return (
+    <button
+      className={`pill-btn ${state === "ok" ? "primary" : ""}`}
+      onClick={onClick}
+      disabled={findings.length === 0}
+      title="Copy currently-filtered findings to clipboard as Markdown for pasting into an LLM"
+    >
+      {label}
+    </button>
+  );
 }
 
 function highlight(text: string, q: string): React.ReactNode {

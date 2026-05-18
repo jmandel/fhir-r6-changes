@@ -330,7 +330,22 @@
       "migrationGuidanceMd": "Do not copy `status` mechanically. Determine R6 publication status separately and map the old study lifecycle value to `progressStatus.state` when possible; test all R4 status codes, especially the ambiguous `active` case.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alias or new publication-status element could have avoided this break. R6 instead chose a cleaner common publication-status pattern.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "No official ConceptMap was available for lifecycle-to-publication status mapping."
+      "reviewerNotesMd": "No official ConceptMap was available for lifecycle-to-publication status mapping.",
+      "freshReview": {
+        "findingId": "ResearchStudy:TERMINOLOGY_BINDING:ResearchStudy.status:2f433e",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `ResearchStudy.status` is a required modifier carrying the study lifecycle state, while R6 keeps the same required modifier path but changes it to publication status of the resource. That creates both validator failures for most R4 lifecycle codes and a same-code semantic trap for `active`. Because this path is mandatory, modifier-marked, and central to study registry exchange, the break looks disproportionate even though ResearchStudy was only FMM 1 in R4.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ResearchStudy.status`: min 1, modifier, required binding to `research-study-status`, definition `The current state of the study`.",
+          "R6 StructureDefinition `ResearchStudy.status`: min 1, modifier, required binding to `publication-status`, definition `The publication state of the resource (not of the study)`.",
+          "R4 CodeSystem includes lifecycle codes such as `approved`, `completed`, `closed-to-accrual`, and `withdrawn`; R6 publication-status has only `draft`, `active`, `retired`, and `unknown`.",
+          "Local StructureDefinition mappings tie ResearchStudy fields to ClinicalTrials.gov and BRIDG; Vulcan RWD IG describes clinical research FHIR data used for EHR retrieval and regulatory submissions."
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use softens the general stability expectation, but not enough for a required modifier path whose meaning changed from operational study lifecycle to publication state.",
+        "compatibilityMechanism": "old-valid/new-invalid: most R4 status codes fail the R6 required binding; runtime/API/codegen risk also exists because the path survives while `active` changes meaning.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained lifecycle `status` and added a separate publication-status element, possibly with profiles requiring it. The tradeoff is two status concepts and weaker base uniformity if the new element is optional, but it would avoid same-path semantic drift on a required modifier.",
+        "comparisonToExisting": "partially agree: the existing High impact assessment is right, but the less-breaking alternative is more compelling than the prior `Partial/probably justified` framing because the retained modifier path creates semantic misinterpretation, not just migration work."
+      }
     },
     {
       "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.primaryPurposeType:158328",
@@ -488,7 +503,21 @@
       "validationAndCompatibilityMd": "An R4 instance with `primaryPurposeType` has an unknown element in R6. An R6 instance with multiple `purposeType` values cannot be represented in R4 without choosing one or using extensions.",
       "migrationGuidanceMd": "Rename `primaryPurposeType` to `purposeType` and wrap the old value in an array. For R6-to-R4, define a policy for multiple values and preserve extras as extensions if needed.",
       "backwardCompatibilityAnalysisMd": "The same model goal could have been achieved by widening the existing element, so this is an avoidable serialization break.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.primaryPurposeType:158328",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `primaryPurposeType` was replaced by repeating R6 `purposeType` with the same concept family and BRIDG mapping. R4 instances with the old property will not validate as R6, and R6 instances with multiple purpose values cannot be reduced to R4 without policy. The change is real, but the old name and singular JSON shape do not preserve the R6 goal of multiple purposes very well.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.primaryPurposeType`: 0..1 CodeableConcept, extensible binding to `research-study-prim-purp-type`, BRIDG map `StudyProtocolVersion.primaryPurposeTypeCode`.",
+          "R6 `ResearchStudy.purposeType`: 0..* CodeableConcept, example binding to the terminology.hl7.org primary-purpose value set, same BRIDG mapping.",
+          "R6 no longer contains `ResearchStudy.primaryPurposeType`."
+        ],
+        "fmmEffect": "FMM 1/trial-use materially softens the stability concern for this optional element; the break should be acknowledged but does not by itself imply broad production harm.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old path is absent in R6; R6-to-R4 loss occurs when more than one purpose is present.",
+        "lessBreakingAlternativeAssessment": "Retaining `primaryPurposeType` unchanged while adding a new repeating purpose element would preserve R4 instances, but it creates duplicate purpose representations. Simply changing `primaryPurposeType` to 0..* would still change the FHIR JSON shape from object to array, so it is not fully compatibility-preserving.",
+        "comparisonToExisting": "partially agree: the existing Medium impact is reasonable, but the existing `Yes` alternative overstates how easy preservation would be because the cardinality change itself changes wire shape unless a duplicate/deprecated element is retained."
+      }
     },
     {
       "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.category:66ce42",
@@ -620,7 +649,22 @@
       "migrationGuidanceMd": "Classify each old category code/text into `studyDesign`, `classifier`, or another explicit R6 element. Use local code-system knowledge and preserve ambiguous values for review.",
       "backwardCompatibilityAnalysisMd": "A deprecated catch-all `category` would have been more compatible but less precise.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "R6 study-design terminology expansion was not available locally."
+      "reviewerNotesMd": "R6 study-design terminology expansion was not available locally.",
+      "freshReview": {
+        "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.category:66ce42",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `category` was a broad repeating classifier for study type, blinding, randomization, safety/efficacy, and similar concepts. R6 splits that space across `studyDesign` for design characteristics and `classifier` for other groupings. Existing R4 instances need semantic classification before migration, but the old bucket was intentionally broad and keeping it would undermine the more computable split.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.category`: 0..* CodeableConcept, example binding, definition covers investigational/observational, blinding, randomization, safety/efficacy.",
+          "R4 mapping for `category` includes ClinicalTrials.gov Study Type, Primary Purpose, Interventional Model, Masking, Allocation, and Observational Study Model.",
+          "R6 `ResearchStudy.studyDesign`: 0..* CodeableConcept, preferred binding to `study-design`, same core definition and ClinicalTrials.gov/BRIDG mappings.",
+          "R6 `ResearchStudy.classifier`: additional grouping/categorization with an implementation note not to duplicate explicit semantics."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the burden of preserving a broad example-bound bucket, although the ClinicalTrials.gov-style classifications make the affected data practically relevant.",
+        "compatibilityMechanism": "old-valid/new-invalid: `category` is absent in R6; migration may require human or terminology-specific classification between `studyDesign`, `classifier`, or other explicit elements.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept deprecated `category` alongside `studyDesign` and `classifier`, but that would preserve an ambiguous catch-all and create conflicting ways to express the same classification. The alternative is only partial and has real computability costs.",
+        "comparisonToExisting": "agree: the existing Medium impact and Partial alternative judgment match the fresh assessment; the break is real but proportionate to the semantic split."
+      }
     },
     {
       "findingId": "ResearchStudy:TYPE_DOMAIN:ResearchStudy.focus:5e195e",
@@ -795,7 +839,21 @@
       "validationAndCompatibilityMd": "R4 CodeableConcept focus values are old-valid/new-invalid until wrapped as `focus.concept`. R6 reference focuses are not R4-representable without extensions or lossy coding.",
       "migrationGuidanceMd": "Wrap old coded values in `focus.concept`. For R6 references, resolve to a safe coding only when semantically valid; otherwise preserve the reference in an extension for R4.",
       "backwardCompatibilityAnalysisMd": "A choice/additive design could have preserved old JSON but would duplicate representations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchStudy:TYPE_DOMAIN:ResearchStudy.focus:5e195e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes `focus` from CodeableConcept to CodeableReference at the same path. R4 coded focus entries must be wrapped as `focus.concept`, while R6 can point to concrete Medication, DeviceDefinition, SubstanceDefinition, MedicinalProductDefinition, or PlanDefinition resources that R4 cannot natively represent. This is a meaningful codegen and validation break, but CodeableReference is a coherent R6 model for a value that can be either coded or referenced.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.focus`: 0..* CodeableConcept, summary=true, definition covers medications, foods, therapies, devices, and other concerns under study.",
+          "R6 `ResearchStudy.focus`: 0..* CodeableReference, target profiles include Medication, MedicinalProductDefinition, SubstanceDefinition, DeviceDefinition, and PlanDefinition.",
+          "R6 keeps the same focus definition but changes summary to false and requires CodeableReference child shape."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the stability claim, but the focus of a study can be clinically and commercially important, so the migration burden remains real.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 CodeableConcept JSON at `focus` is not the R6 CodeableReference shape; R6-to-R4 loss occurs for resource references.",
+        "lessBreakingAlternativeAssessment": "A companion reference element could have preserved R4 coded `focus`, but it would split code and reference representations and diverge from the R6 CodeableReference pattern. The tradeoff is material enough that the break appears proportionate.",
+        "comparisonToExisting": "agree: the existing High impact and Partial alternative judgment are directionally correct; the fresh judgment treats the break as acceptable because the R6 datatype directly serves the modeling goal."
+      }
     },
     {
       "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.location:813bd7",
@@ -926,7 +984,21 @@
       "validationAndCompatibilityMd": "R4 `location` fails R6 validation until renamed. R6 `region` can normally be mapped back to R4 `location`; only terminology binding strength/canonical differs.",
       "migrationGuidanceMd": "Rename the path and keep `site` separate. Update terminology canonical handling for jurisdiction.",
       "backwardCompatibilityAnalysisMd": "The path break could have been avoided by keeping `location` as a deprecated alias.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.location:813bd7",
+        "judgment": "Revisit",
+        "narrativeMd": "`location` became `region` with the same cardinality, datatype, summary flag, and essentially the same country/state/area meaning. The R6 name is clearer, but the hard path rename is not necessary to achieve that clarification. This is a narrow element-level break with straightforward migration, yet it is also a low-cost avoidable wire break.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.location`: 0..* CodeableConcept, summary=true, definition `country, state or other region where the study is taking place`.",
+          "R6 `ResearchStudy.region`: 0..* CodeableConcept, summary=true, definition `country, state or other area where the study is taking place rather than its precise geographic location or address`.",
+          "Both paths share BRIDG mapping `StudyProtocolVersion.participatingLocationCode`; R6 weakens the jurisdiction binding from extensible to preferred."
+        ],
+        "fmmEffect": "FMM 1/trial-use reduces the severity of this rename, but the field maps to study geography and the R6 goal could be met with definition text rather than a wire-name break.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance using `location` has an unknown element in R6; reverse mapping from `region` is otherwise mostly lossless.",
+        "lessBreakingAlternativeAssessment": "Keeping `location` and clarifying its definition as geographic region would preserve old instances without duplicate data. If `region` were added as a preferred new name, the duplicate-alias option would need consistency rules, but keeping the old path is the lowest-cost base design.",
+        "comparisonToExisting": "agree: the existing Medium impact and `Yes` alternative judgment are consistent with the fresh assessment, with FMM limiting the breadth rather than eliminating the avoidability concern."
+      }
     },
     {
       "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.relatedArtifact:346e60",
@@ -1065,7 +1137,21 @@
       "migrationGuidanceMd": "Classify each old RelatedArtifact by type/payload. Map relationships to `relatesTo`, bibliographic display to `citeAs`, and result resources to `result`; preserve unhandled subfields in extensions.",
       "backwardCompatibilityAnalysisMd": "A deprecated old element would have been more compatible but kept overlapping ways to express relationships.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "A formal ConceptMap would improve mapping confidence."
+      "reviewerNotesMd": "A formal ConceptMap would improve mapping confidence.",
+      "freshReview": {
+        "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.relatedArtifact:346e60",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `relatedArtifact` was removed in favor of more explicit R6 relationship, citation, and result patterns. R4 RelatedArtifact payloads are not mechanically equivalent to `relatesTo`, `citeAs`, and `result`, so migration may need classification and may preserve some content through extensions. Still, the R6 design addresses a real ambiguity in a broad datatype.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.relatedArtifact`: 0..* RelatedArtifact, definition `Citations, references and other related documents`, ClinicalTrials.gov mapping `Citations, Links, Available Study Data/Documents`.",
+          "R6 `ResearchStudy.relatesTo`: 0..* backbone with required `type` and required `target[x]` supporting uri, Attachment, canonical, Reference, or markdown.",
+          "R6 `ResearchStudy.citeAs`: markdown citation display; R6 `ResearchStudy.result`: references Composition, DiagnosticReport, DocumentReference, or Evidence."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens compatibility expectations, but citations, protocols, links, and result documents are important in research/audit workflows.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `relatedArtifact` is absent in R6; R6-to-R4 loss is possible because relationships, citations, and result links are modeled differently.",
+        "lessBreakingAlternativeAssessment": "Retaining deprecated `relatedArtifact` would preserve R4 wire format but leave overlapping ways to represent relationships and citations beside the clearer R6 paths. The alternative is partial and risks long-term inconsistency.",
+        "comparisonToExisting": "agree: the existing High impact and Partial alternative judgment match the fresh view; the remodel is breaking but reasonably justified."
+      }
     },
     {
       "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.enrollment:c483bb",
@@ -1222,7 +1308,22 @@
       "migrationGuidanceMd": "Classify old Group references before mapping. Use `recruitment.eligibility` for definitional/conceptual criteria and `recruitment.actualGroup` for enumerated actual participants; preserve ambiguous or extra groups in extensions.",
       "backwardCompatibilityAnalysisMd": "R6 could have kept the old field as a deprecated compatibility path, but that would perpetuate ambiguous enrollment semantics.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Group resource semantics are a follow-up dependency."
+      "reviewerNotesMd": "Group resource semantics are a follow-up dependency.",
+      "freshReview": {
+        "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.enrollment:c483bb",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `enrollment` was a repeating Group reference that covered criteria and subject quantity. R6 replaces it with a singular `recruitment` backbone containing target/actual counts plus separate eligibility and actual enrolled Group references. The R6 model is clearer, but old repeated Group references may not say whether they are eligibility, actual enrolled participants, or cohort/group structure, so migration can require expert judgment for a central study-registry concept.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.enrollment`: 0..* Reference(Group), summary=true, definition includes criteria and quantity of subjects; comment says Group should generally not enumerate subjects.",
+          "R4 mapping for `enrollment` includes ClinicalTrials.gov Enrollment, Number of Groups/Cohorts, Groups, and Eligibility.",
+          "R6 `ResearchStudy.recruitment`: 0..1 backbone with targetNumber, actualNumber, eligibility, actualGroup, and description.",
+          "R6 `recruitment.eligibility` expects definitional/conceptual Group membership; `recruitment.actualGroup` expects enumerated Group membership."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens pure stability expectations, but enrollment/eligibility data are central to clinical study exchange and plausibly regulatory/public-registry relevant.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `enrollment` is removed; migration from repeated Group references to one recruitment backbone may be lossy or require role classification.",
+        "lessBreakingAlternativeAssessment": "R6 could retain deprecated `enrollment` while adding `recruitment`, preserving old instances. The tradeoff is ambiguous duplicated semantics and synchronization rules, but the affected concept is central enough that a transitional base path merits renewed consideration.",
+        "comparisonToExisting": "partially agree: the existing High impact and Partial alternative are right, but the fresh judgment is less comfortable with `probably justified` because the path is central and migration may be expert-dependent."
+      }
     },
     {
       "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.sponsor:ffc1e7",
@@ -1389,7 +1490,23 @@
       "migrationGuidanceMd": "Map sponsor to a sponsor/lead-sponsor role, principalInvestigator to primary-investigator, and contacts to general-contact or recruitment-contact only if details can be preserved through party references or extensions.",
       "backwardCompatibilityAnalysisMd": "Deprecated aliases would have protected common R4 data at the cost of duplicate role modeling.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Check ballot narrative for the inconsistent associatedParty comment before finalizing automated party transforms."
+      "reviewerNotesMd": "Check ballot narrative for the inconsistent associatedParty comment before finalizing automated party transforms.",
+      "freshReview": {
+        "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.sponsor:ffc1e7",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 separate sponsor, principalInvestigator, and contact paths were removed in favor of role-coded `associatedParty`. General party-role modeling is reasonable, but sponsor/legal responsibility, investigator responsibility, and contact details are common study registry concepts. R4 `ContactDetail` payloads also do not map cleanly to the R6 associatedParty shape, which has name, party reference, periods, and classifiers but no direct telecom/address fields.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.sponsor`: 0..1 Reference(Organization), definition `initiates the investigation and is legally responsible`, ClinicalTrials.gov mapping `Sponsor`.",
+          "R4 `ResearchStudy.principalInvestigator`: 0..1 Reference(Practitioner|PractitionerRole), ClinicalTrials.gov mapping `Principal Investigator`.",
+          "R4 `ResearchStudy.contact`: 0..* ContactDetail, ClinicalTrials.gov mapping includes central contacts, facility contacts, and investigators.",
+          "R6 has no `sponsor`, `principalInvestigator`, or `contact`; `associatedParty.role` is mandatory with preferred roles such as sponsor, primary-investigator, general-contact, and recruitment-contact.",
+          "R6 `associatedParty.party` is Reference(Practitioner|PractitionerRole|Organization), and `associatedParty.name` is string; no direct ContactDetail telecom/address equivalent appears in the element list."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the stability expectation, but party responsibility and contact data are central business/regulatory fields for studies.",
+        "compatibilityMechanism": "old-valid/new-invalid: three R4 paths are removed; runtime/API/codegen break is likely for clients using sponsor/investigator/contact properties, and contact details may be lossy.",
+        "lessBreakingAlternativeAssessment": "Keeping deprecated sponsor, principalInvestigator, and contact shortcuts while adding `associatedParty` would preserve common R4 instances. The tradeoff is duplicate role representation and consistency rules, but the legal/contact semantics are important enough that this alternative remains plausible.",
+        "comparisonToExisting": "partially agree: the existing High impact and Partial alternative are right, but the fresh review rates the design as needing reconsideration because common responsibility/contact data are not cleanly preserved."
+      }
     },
     {
       "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.reasonStopped:6dff5e",
@@ -1516,7 +1633,21 @@
       "validationAndCompatibilityMd": "R4 `reasonStopped` fails R6 validation. R6 `whyStopped` maps back to R4 easily, except for value set canonical changes.",
       "migrationGuidanceMd": "Rename the element and update terminology canonical references in local profiles/validators.",
       "backwardCompatibilityAnalysisMd": "This appears avoidable because the semantics did not change.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.reasonStopped:6dff5e",
+        "judgment": "Revisit",
+        "narrativeMd": "`reasonStopped` was renamed to `whyStopped` while preserving cardinality, datatype, summary flag, definition, example binding family, and mappings. The migration is straightforward, but the break appears to buy only wording cleanup for a safety/regulatory-relevant concept: why a study ended prematurely.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.reasonStopped`: 0..1 CodeableConcept, summary=true, definition `explaining the premature termination of the study`, ClinicalTrials.gov mapping `Why Study Stopped`.",
+          "R6 `ResearchStudy.whyStopped`: 0..1 CodeableConcept, summary=true, same definition and same ClinicalTrials.gov/BRIDG mappings.",
+          "The binding family remains `research-study-reason-stopped`, with the value set canonical moved to terminology.hl7.org."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the practical severity and migration is direct, but premature stop reasons can be safety/audit relevant and the rename has little apparent modeling benefit.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `reasonStopped` is absent in R6; R6 `whyStopped` maps back directly apart from the path and terminology canonical.",
+        "lessBreakingAlternativeAssessment": "The base model could simply keep `reasonStopped` and update definitions or canonical bindings. If `whyStopped` were added, a deprecated alias would have low duplicate risk because the concept is singular and equivalent.",
+        "comparisonToExisting": "agree: the existing Medium impact and `Yes` alternative judgment align with the fresh assessment; the main concern is avoidability, not migration complexity."
+      }
     },
     {
       "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.arm:04b85c",
@@ -1670,7 +1801,22 @@
       "migrationGuidanceMd": "Rename `arm` to `comparisonGroup`. Move `name` and `description`; review old `arm.type` for mapping to studyDesign/classifier/extension. Preserve new R6 count/group fields in R4 extensions if needed.",
       "backwardCompatibilityAnalysisMd": "The broader name and richer model are plausible, but a deprecated alias would have avoided the hard break.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Review old `arm.type` values explicitly."
+      "reviewerNotesMd": "Review old `arm.type` values explicitly.",
+      "freshReview": {
+        "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.arm:04b85c",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `arm` became R6 `comparisonGroup`, with alias `arm` and a broadened definition that applies beyond clinical trial arms. R6 also changes child semantics by making `name` optional, changing `description` to markdown, removing `type`, and adding count/group details. The broader model is reasonable, but the top-level rename looks avoidable because R6 could have kept `arm` as the wire element while broadening its definition and adding optional children.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.arm`: 0..* backbone, ClinicalTrials.gov mapping `Arms`, BRIDG mapping `Arm`.",
+          "R4 `arm.name`: required string; `arm.type`: optional CodeableConcept; `arm.description`: optional string.",
+          "R6 `ResearchStudy.comparisonGroup`: 0..* backbone with alias `arm`, comment that clinical trials call this ARM but other trials do not.",
+          "R6 `comparisonGroup.name`: optional; `description`: markdown; added targetNumber, actualNumber, eligibility, and observedGroup."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the general stability claim, but arms/comparison groups are central in clinical trial exchange and ClinicalTrials.gov-style mappings.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `arm` is absent in R6; R6-to-R4 loss exists for nameless comparison groups, counts, eligibility, observedGroup, and the removed old `arm.type` mapping.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could retain `ResearchStudy.arm`, broaden the definition to comparison groups, keep or deprecate `arm.type`, and add the new optional children. The main tradeoff is the less-general historical name, but R6 already carries `arm` as an alias and explanatory comment.",
+        "comparisonToExisting": "agree: the existing High impact and `Yes` alternative judgment are supported; the rename is a central avoidable wire break even under low FMM."
+      }
     },
     {
       "findingId": "ResearchStudy:REFERENCE_TARGET:ResearchStudy.site:8cc945",
@@ -1801,7 +1947,21 @@
       "validationAndCompatibilityMd": "No R4 instance is invalidated by this change alone. R6 Organization or ResearchStudy site references cannot be represented in R4 without conversion to Location, extension, or loss.",
       "migrationGuidanceMd": "For R4-to-R6, leave Location site references unchanged. For R6-to-R4, check target type and define policy for Organization/ResearchStudy references.",
       "backwardCompatibilityAnalysisMd": "A separate field would have made the widened meaning more explicit and avoided target-domain surprise.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ResearchStudy:REFERENCE_TARGET:ResearchStudy.site:8cc945",
+        "judgment": "No problem",
+        "narrativeMd": "`site` kept the same path, cardinality, summary flag, and Location target while adding Organization and ResearchStudy as additional allowable targets. This does not invalidate R4 instances. The concern is only that R6 instances using the new target types need an R4 down-conversion policy.",
+        "keyEvidence": [
+          "R4 `ResearchStudy.site`: 0..* Reference(Location), summary=true, definition `A facility in which study activities are conducted`.",
+          "R6 `ResearchStudy.site`: 0..* Reference(Location|ResearchStudy|Organization), same short/definition and mappings.",
+          "The existing R4 Location target remains allowed in R6."
+        ],
+        "fmmEffect": "FMM 1/trial-use further reduces concern because the change is target widening rather than removal or narrowing.",
+        "compatibilityMechanism": "R6-to-R4 loss: Organization or ResearchStudy site references cannot be represented as R4 `site` without conversion, but R4-to-R6 compatibility is preserved.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for R4 compatibility. Separate elements might clarify semantics, but they would not be less breaking than simply widening the target list.",
+        "comparisonToExisting": "partially agree: the existing report correctly says there is no forward hard break and no applicable less-breaking alternative, but its Medium overall impact overstates this as a fresh R4-to-R6 compatibility concern."
+      }
     },
     {
       "findingId": "ResearchStudy:CONVERSION_OR_MAPPING:ResearchStudy:419611",
@@ -1939,7 +2099,22 @@
       "migrationGuidanceMd": "Define cross-version extensions or companion-resource conventions for R4 output. Add tests to prevent silent loss of progress status, outcome measures, and result references.",
       "backwardCompatibilityAnalysisMd": "Because these are optional forward additions, the main compatibility need is explicit R4 extension guidance rather than changing R6.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Highest data-loss risk is in progressStatus, objective.outcomeMeasure, and result."
+      "reviewerNotesMd": "Highest data-loss risk is in progressStatus, objective.outcomeMeasure, and result.",
+      "freshReview": {
+        "findingId": "ResearchStudy:CONVERSION_OR_MAPPING:ResearchStudy:419611",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The finding is about optional R6 additions: canonical-like metadata, labels/citation, progress status, richer objective/outcome-measure structure, and result links. These do not break R4 instances moving to R6; the compatibility issue is R6-to-R4 loss when an R6 sender uses the new data. Because optional additions are the normal less-breaking way to extend a trial-use resource, the design appears proportionate even though conversion guidance is important.",
+        "keyEvidence": [
+          "R6 adds optional top-level `url`, `version`, `name`, `label`, `citeAs`, `date`, `descriptionSummary`, `progressStatus`, and `result`; R4 has none of these local ResearchStudy paths.",
+          "R6 `progressStatus.state` is required within each progressStatus entry and binds to research-study-status; `actual` and `period` add timing semantics.",
+          "R6 `objective.description` and `objective.outcomeMeasure` add endpoint, population, intervention, comparator, summary measure, analysis plan, and event-handling detail absent from R4 objective.",
+          "R6 `result` references Composition, DiagnosticReport, DocumentReference, or Evidence and explicitly may link to ClinicalTrials.gov-style results."
+        ],
+        "fmmEffect": "FMM 1/trial-use makes optional forward additions especially acceptable, but study progress, outcomes, and results can be scientifically and regulatory relevant when down-converting.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6-only optional data cannot be serialized natively in base R4 ResearchStudy; no old-valid/new-invalid R4-to-R6 break is present.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 alternative is applicable because optional additions are already the compatibility-preserving design. R4 extensions or companion-resource conventions are mitigation for down-conversion, not a less-breaking R6 base design.",
+        "comparisonToExisting": "agree: the existing Medium R6-to-R4 impact and Not applicable alternative judgment are reasonable, with the fresh review emphasizing that this is not a forward hard break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2145,5 +2320,19 @@
       "RelatedArtifact replaced by local relatesTo backbone",
       "Recruitment/enrollment model changes involving Group"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ResearchStudy.fresh-review.json",
+    "findingDecisionCount": 12,
+    "matchedFindingDecisionCount": 12,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 6,
+      "Breaking but probably OK": 5,
+      "No problem": 1
+    }
   }
 }

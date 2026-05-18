@@ -272,7 +272,23 @@
       "validationAndCompatibilityMd": "An R4-valid instance can become R6-invalid solely because of `resourceType`. Strict R6 validators will have no StructureDefinition to validate against, and generated parsers may treat the resource as unknown. Conversely, an R6 `SubstanceDefinition` that represents a nucleic acid cannot be represented as R4 `SubstanceNucleicAcid` without a deliberate transform that chooses how to populate the specialized R4 fields.",
       "migrationGuidanceMd": "Inventory all stored, exchanged, profiled, searched, or referenced `SubstanceNucleicAcid` resources. Decide whether each record is substance-definition data suitable for `SubstanceDefinition`, material-instance data suitable for `Substance`, or requires an extension/profile. Add tests that feed old `SubstanceNucleicAcid` instances to R6 validators and confirm the conversion pipeline either rejects them with a clear message or maps them explicitly.",
       "backwardCompatibilityAnalysisMd": "Removal is likely part of a broader model cleanup, but a backward-compatible route could have retained the old resource as deprecated or supplied an official compatibility profile. Such a route would be less disruptive for validators and generated code, but would also prolong duplicate substance modeling and might undermine the intended R6 consolidation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SubstanceNucleicAcid:ARTIFACT_IDENTITY:root:3f7c21",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 defines `SubstanceNucleicAcid` as a concrete resource, while the R6 ballot package has no same-id StructureDefinition and appears to consolidate this area into broader `SubstanceDefinition` modeling. That is a real top-level break: even a minimal R4 instance with `resourceType: \"SubstanceNucleicAcid\"` has no direct R6 resource identity. Still, the removed artifact was FMM 0/trial-use, local evidence suggests this was a draft IDMP-style specialization, and the quick public-use check found IDMP testing/piloting rather than clear production use of this exact R4 resource. Keeping a deprecated resource would reduce breakage but would preserve duplicate substance identities and generated API surface in the base specification.",
+        "keyEvidence": [
+          "R4 StructureDefinition-SubstanceNucleicAcid.json has id/type/url `SubstanceNucleicAcid`, kind `resource`, abstract false, status draft, FMM 0, standards status trial-use.",
+          "The assigned R6 StructureDefinition-SubstanceNucleicAcid.json file is absent.",
+          "R6 package index has Substance-family resource StructureDefinitions for `Substance` and `SubstanceDefinition`, but no `SubstanceNucleicAcid`.",
+          "R6 `SubstanceDefinition.classification` mentions high-level categories such as polymer or nucleic acid, supporting it only as a plausible broader target, not a same-identity replacement.",
+          "Quick web check found UNICOM R5 IDMP test-lab/IG piloting resources, but no clear evidence of broad production exchange using the exact R4 `SubstanceNucleicAcid` resource."
+        ],
+        "fmmEffect": "FMM 0 and trial-use status substantially soften the stability expectation. The resource removal is severe for adopters, but low maturity and lack of clear production-use evidence make the break more acceptable than it would be for mature or normative content.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance naming `resourceType: SubstanceNucleicAcid` has no R6 StructureDefinition to validate against; mapped R6 `SubstanceDefinition` data also needs explicit conversion to recover the old resource identity.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design would keep `SubstanceNucleicAcid` in R6 as deprecated or transitional while pointing to `SubstanceDefinition`. That would preserve most R4 instances and generated code, but at the cost of duplicate resource identities, endpoints, profile bases, and ambiguity about which substance model should be authoritative.",
+        "comparisonToExisting": "Partially agree with the existing Critical impact and Partial alternative judgment: the hard break is real, but the action concern should be tempered by FMM 0/trial-use status and limited evidence of production use."
+      }
     },
     {
       "findingId": "SubstanceNucleicAcid:ELEMENT_PRESENCE_OR_IDENTITY:subunit:8b0a12",
@@ -435,7 +451,23 @@
       "migrationGuidanceMd": "Build a field-by-field migration table before transforming production data. Preserve original values in standard cross-version extensions if available; otherwise use governed implementation-specific extensions and retain source documents for audit. Test at least: multiple subunits, identical repeated sequences, explicit non-3'-5' linkage connectivity, sequence attachments, and sugar residue sites.",
       "backwardCompatibilityAnalysisMd": "This break could have been mitigated by keeping the old local elements as optional content in a profile or standard extension set. The generic model is simpler, but without a standardized bridge, implementers must invent mappings and may lose computable meaning.",
       "reviewerNotesMd": "Human review should decide whether a particular dataset can tolerate generic structural representation or requires a lossless extension/profile mapping.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceNucleicAcid:ELEMENT_PRESENCE_OR_IDENTITY:subunit:8b0a12",
+        "judgment": "Revisit",
+        "narrativeMd": "At the affected path level, R4 had a structured nucleic-acid model for sequence type, subunit count, hybridisation area, oligonucleotide type, repeated subunits, sequence attachments, terminal residues, linkages, and sugars. The plausible R6 target, `SubstanceDefinition.structure.representation`, is generic text/document structure representation rather than a same-shape model. For an implementation that actually used this resource, migration is not just a property rename: subunit order, residue sites, sugar identifiers, linkage identifiers, and sequence attachments may require expert mapping or extensions. FMM 0 reduces the assumption of widespread deployment, but these fields are the core scientific/regulatory content of the resource, so dropping all standardized structured detail without a clear base bridge deserves renewed review.",
+        "keyEvidence": [
+          "R4 differential defines optional local paths including `sequenceType`, `numberOfSubunits`, `areaOfHybridisation`, `oligoNucleotideType`, `subunit`, `subunit.sequence`, `subunit.sequenceAttachment`, `subunit.fivePrime`, `subunit.threePrime`, repeated `subunit.linkage`, and repeated `subunit.sugar`.",
+          "R4 linkage and sugar backbones include identifiers, names, and residue sites; linkage connectivity has its own structured field.",
+          "R6 `SubstanceDefinition.structure.representation` is defined as `A depiction of the structure of the substance` with representation string, format, and document fields.",
+          "R6 `SubstanceDefinition.classification` can classify a substance as nucleic acid, but the inspected R6 definition has no same-path subunit/linkage/sugar content model.",
+          "No local ConceptMap or StructureMap for `SubstanceNucleicAcid` to `SubstanceDefinition` was found in the R6 package index."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens broad adoption assumptions, so this is not Revisit merely because an element break exists. The concern remains because the affected fields are central to the artifact's purpose and can be scientifically or regulatorily material when the artifact is used.",
+        "compatibilityMechanism": "R6-to-R4 loss: data can be made syntactically R6-valid only by mapping specialized R4 subunit/linkage/sugar structure into generic representation text, documents, or extensions, which loses computable same-path meaning unless a governed mapping is supplied.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design would either retain a deprecated `SubstanceNucleicAcid` resource for one transition period or add governed optional nucleic-acid structure backbones/extensions in base R6 `SubstanceDefinition`. The tradeoff is real: it makes the generic substance model larger and can create competing generic-versus-specialized encodings, but it would reduce expert-dependent data loss for the resource's core fields.",
+        "comparisonToExisting": "Partially agree with the existing High impact and Partial alternative judgment: the report correctly identifies material mapping loss and non-trivial tradeoffs, and the path-level centrality makes this worth revisiting despite low FMM."
+      }
     },
     {
       "findingId": "SubstanceNucleicAcid:SERIALIZATION_OR_CODEGEN:resourceType:71d4e9",
@@ -525,7 +557,22 @@
       "validationAndCompatibilityMd": "The break can appear as compile errors, unknown-resource parser results, failed deserialization, missing REST routes, or dropped typed search support. It is not a separate FHIR validation rule beyond the missing artifact, but it is a high-probability runtime migration failure for adopters.",
       "migrationGuidanceMd": "Add a compatibility layer before moving to R6-generated classes. The layer should detect `SubstanceNucleicAcid`, invoke an explicit converter, and route migrated records to `SubstanceDefinition` or a governed extension/profile. Include regression tests for JSON parsing, resource-type enum handling, REST import/export, persistence schema, and any FHIRPath expressions that mention old paths.",
       "backwardCompatibilityAnalysisMd": "A generated alias or legacy cross-version package would be less disruptive than complete absence in R6-generated code. The downside is that core R6 would still need a sanctioned place to document or host legacy conversions.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SubstanceNucleicAcid:SERIALIZATION_OR_CODEGEN:resourceType:71d4e9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Generated R6 validators, model libraries, resource-type enums, and REST dispatch tables built strictly from the ballot package will not include `SubstanceNucleicAcid`. That is a genuine runtime/API/codegen break for systems that used the R4 resource type. However, this finding is the application-surface consequence of the same FMM 0 resource removal. If the base design goal is to remove draft specialized substance resources in favor of `SubstanceDefinition`, retaining a legacy class and endpoint in core R6 is the only true base-compatible alternative and has substantial maintenance and ambiguity costs.",
+        "keyEvidence": [
+          "R4 package index includes `StructureDefinition-SubstanceNucleicAcid.json` as a concrete resource StructureDefinition.",
+          "R6 assigned StructureDefinition file for `SubstanceNucleicAcid` is absent.",
+          "R6 package index lists `StructureDefinition-Substance.json` and `StructureDefinition-SubstanceDefinition.json` as the Substance-family resource definitions, with no `SubstanceNucleicAcid` entry.",
+          "The break affects generated classes, known-resource dispatch, REST routes, and profile bases rather than adding a separate computable validation rule."
+        ],
+        "fmmEffect": "Low FMM and trial-use status lower the expected stability of generated API surface. Without clear evidence of production systems depending on the R4 generated type, this derivative runtime break appears proportionate to the resource cleanup.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 generators have no StructureDefinition from which to emit a `SubstanceNucleicAcid` class, enum value, validator entry, search surface, or REST route.",
+        "lessBreakingAlternativeAssessment": "The less-breaking base option is the same as for the top-level removal: keep a deprecated R6 StructureDefinition so generators still emit the legacy surface. Compatibility libraries or converters help implementations but are not base R6 designs. The base option prevents codegen failures but prolongs stale generated APIs and duplicate runtime paths.",
+        "comparisonToExisting": "Partially agree with the existing High runtime impact and Partial alternative judgment: the runtime mechanism is accurately identified, but FMM 0 and its dependence on the accepted resource-removal decision make it probably acceptable."
+      }
     },
     {
       "findingId": "SubstanceNucleicAcid:SEMANTIC_OR_CONFORMANCE_TEXT:sequenceSemantics:9c2e44",
@@ -665,7 +712,23 @@
       "migrationGuidanceMd": "Document semantic assumptions in the migration specification, not just in code. If using `SubstanceDefinition.structure.representation`, include representation format, orientation, and linkage assumptions explicitly or by reference to a profile. Review records where `numberOfSubunits` is omitted, where subunit order matters, or where linkage connectivity is not the default.",
       "backwardCompatibilityAnalysisMd": "A profile or official conversion guide could preserve these semantics without restoring the full R4 resource. That would be a relatively compatible alternative because it keeps the R6 core generic while protecting implementers from divergent interpretations.",
       "reviewerNotesMd": "The impact depends heavily on whether an external R6 implementation guide exists for nucleic-acid substances; none was supplied in the local inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceNucleicAcid:SEMANTIC_OR_CONFORMANCE_TEXT:sequenceSemantics:9c2e44",
+        "judgment": "Revisit",
+        "narrativeMd": "This is not a standalone hard validation break; the structural break comes from the missing resource. The specific concern is semantic: R4 text defined the sequence direction, subunit default assumption, subunit ordering, and default linkage connectivity, while the inspected R6 `SubstanceDefinition` structure representation is generic and does not carry the same nucleic-acid-specific interpretation rules. For converted data, a bare representation string can be syntactically valid but semantically ambiguous. Because retaining at least conditional interpretation guidance in R6 would be a relatively low structural-cost bridge compared with restoring the whole resource, this omission deserves review even though low FMM limits the presumed deployment burden.",
+        "keyEvidence": [
+          "R4 root description says nucleotide sequence is entered in the 5'-3' direction.",
+          "R4 `numberOfSubunits` definition says that if it is not specified, the assumption is one subunit.",
+          "R4 `subunit` definition states ordering by decreasing length and molecular weight, with identical sequences repeated.",
+          "R4 `subunit.linkage.connectivity` definition says connectivity is assumed 3'-5' unless 3'-3' or 5'-5' is specified.",
+          "R6 `SubstanceDefinition.structure.representation.representation` is only `The structural representation as a text string in a standard format`; R6 representation format codes inspected were InChI, SMILES, MOLFILE, CDX, SDF, PDB, and mmCIF."
+        ],
+        "fmmEffect": "FMM 0/trial-use status prevents treating the semantic gap as broad production risk by default. It does not erase the concern because the old text governed the meaning of the resource's core sequence data, and the less-breaking bridge would be mostly definitional guidance rather than a large structural compatibility burden.",
+        "compatibilityMechanism": "semantic/documentation: converted R6 data may remain structurally valid but lose the R4 assumptions needed to interpret orientation, omitted subunit count, ordering, and linkage defaults.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could add conditional guidance to `SubstanceDefinition.structure` or `structure.representation` for nucleic-acid representations, or define a standard representation format/profile note that preserves the R4 assumptions. This has low structural cost, though it adds subtype-specific guidance to a generic resource and may not cover every detailed regulatory mapping case.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Yes alternative judgment: the concern is semantic rather than independently hard-breaking, but the proposed guidance-style alternative is plausible enough to merit renewed standards attention."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -832,5 +895,18 @@
       "R6 SubstanceDefinition as successor for R4 IDMP substance resources",
       "Lossless extension strategy for structured substance molecular details"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SubstanceNucleicAcid.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 2
+    }
   }
 }

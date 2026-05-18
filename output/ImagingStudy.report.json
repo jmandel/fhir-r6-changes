@@ -337,7 +337,21 @@
       "migrationGuidanceMd": "Wrap each R4 `Coding` in a R6 `CodeableConcept.coding` array. Recompute `ImagingStudy.modality` from the distinct R6 `series.modality` values, not only from acquisition modalities. Validate examples containing acquisition and non-acquisition DICOM modalities. Terminology review should confirm CID 29 to CID 33 mapping expectations.",
       "backwardCompatibilityAnalysisMd": "The richer datatype and invariant are understandable, but the old shape could have been retained for one release as a deprecated alias or mapped by a cross-version extension. The tradeoff is that dual modality fields would increase ambiguity and weaken consistency enforcement.",
       "reviewerNotesMd": "External DICOM terminology was not expanded locally, so the exact CID 29 versus CID 33 code delta needs terminology confirmation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImagingStudy:TYPE_DOMAIN:ImagingStudy.modality:9ab5d1",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 ImagingStudy modality values were `Coding` objects, while R6 requires `CodeableConcept` at both the study and series modality paths and adds an error-level equality rule between study-level and series-level modalities. A server or validator receiving ordinary R4 JSON such as `modality: [{system, code}]` or `series.modality: {system, code}` will not accept it as R6 without reshaping every value, and historical study summaries that listed only acquisition modalities can fail the new invariant. Because modality is a core imaging routing/display discriminator and series.modality is mandatory when series are present, this looks more disruptive than the evidence shows is necessary.",
+        "keyEvidence": [
+          "R4 `ImagingStudy.modality` and `ImagingStudy.series.modality` are `Coding` with extensible DICOM CID 29 binding.",
+          "R6 `ImagingStudy.modality` and `ImagingStudy.series.modality` are `CodeableConcept` with extensible DICOM CID 33 binding.",
+          "R6 root constraint `ist-7` is an error requiring study-level modality to equal all distinct series modality values."
+        ],
+        "fmmEffect": "R4 ImagingStudy is FMM 3/trial-use, so it is not normative, but modality is mature and central enough that a common mandatory-path wire-format break should have a clear compatibility rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 Coding-shaped modality JSON is not valid R6 CodeableConcept JSON, and the R6 error invariant can reject previously valid summaries.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept the Coding shape while broadening the value set to CID 33 and introduced the summary-equality rule first as a warning or profile constraint. That would not provide CodeableConcept text/multiple-coding expressivity, but it appears to meet much of the DICOM modality goal with far less migration burden.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment, but I am less persuaded that the partial alternative is too costly; the break deserves renewed design review."
+      }
     },
     {
       "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.procedureReference:2c7f41",
@@ -467,7 +481,21 @@
       "validationAndCompatibilityMd": "R4 instances using `procedureReference` are invalid or at least unrecognized by strict R6 parsers. R6 instances with multiple `procedure` values are not representable in R4 without dropping values, choosing one primary procedure, or splitting the resource.",
       "migrationGuidanceMd": "Rename `procedureReference` to `procedure` and wrap the value in an array. For R6-to-R4 conversion, define a policy for multiple procedures, such as selecting a primary Procedure, creating extensions, or rejecting non-lossless conversion.",
       "backwardCompatibilityAnalysisMd": "The cardinality widening is useful but could have been introduced with a deprecated legacy alias. The chosen design favors a cleaner R6 model over direct R4 JSON compatibility.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.procedureReference:2c7f41",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 used a single `procedureReference` object, while R6 uses repeatable `procedure` references. Existing instances with `procedureReference` will not deserialize or validate as R6 until renamed and wrapped as an array, and an R6 instance with multiple procedures cannot round-trip into the R4 scalar without policy. The R6 goal is nevertheless coherent: one imaging study can satisfy multiple performed procedures, and retaining both old and new fields would create competing homes for the same relationship.",
+        "keyEvidence": [
+          "R4 `ImagingStudy.procedureReference` is 0..1 `Reference(Procedure)`.",
+          "R6 `ImagingStudy.procedure` is 0..* `Reference(Procedure)`.",
+          "R6 definition describes the performed procedure(s) during which the imaging data was created."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises a moderate compatibility expectation, but this optional relationship changed to support a real cardinality need rather than a pure rename.",
+        "compatibilityMechanism": "old-valid/new-invalid: the R4 property name and scalar JSON shape are not the R6 property name or array shape; reverse conversion can lose multiple references.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained deprecated `procedureReference` while adding repeatable `procedure`, but that would duplicate procedure-link semantics and require precedence rules when both are present. Widening the old path alone would still change JSON shape from object to array.",
+        "comparisonToExisting": "partially agree with the existing impact; I agree it is a hard migration break, but the R6 design goal and duplicate-field tradeoff make it probably acceptable."
+      }
     },
     {
       "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.procedureCode:7f2b83",
@@ -578,7 +606,21 @@
       "migrationGuidanceMd": "Inventory use of `procedureCode`. If the code represents an actual performed procedure, create or link a Procedure resource and map the code to `Procedure.code`, then reference it from `ImagingStudy.procedure`. If no Procedure resource is appropriate, define a governed extension and document the loss of base interoperability.",
       "backwardCompatibilityAnalysisMd": "Removing the inline code is probably avoidable from a compatibility standpoint. Keeping it optional and deprecated would have preserved old instances while encouraging Procedure-based normalization.",
       "reviewerNotesMd": "Human review is needed to distinguish procedure type, requested procedure, protocol, billing code, and DICOM procedure code semantics in real feeds.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.procedureCode:7f2b83",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed inline coded procedure information on ImagingStudy, but R6 has no `procedureCode` element. An ImagingStudy-only feed carrying RadLex/ordered-procedure codes loses that information unless migration creates or links a Procedure resource, which may not be present in the source exchange. Since procedure coding can drive categorization, analytics, authorization, and billing-related workflows, removing the optional inline field without a direct base replacement appears disproportionate.",
+        "keyEvidence": [
+          "R4 `ImagingStudy.procedureCode` is 0..* `CodeableConcept` with extensible RadLex Playbook binding.",
+          "No R6 `ImagingStudy.procedureCode` element is present.",
+          "R6 has `ImagingStudy.procedure` as `Reference(Procedure)`, but the code itself is not carried on ImagingStudy."
+        ],
+        "fmmEffect": "At FMM 3/trial-use, the base model can still evolve, but mature optional clinical/business data should not be removed when lossless migration depends on creating another resource.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `procedureCode` use an unknown R6 element, and preserving the value requires non-local mapping to Procedure or an extension.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have retained `procedureCode` as deprecated while encouraging `procedure` references to Procedure.code for new content. The tradeoff is duplicate procedure semantics, but the field is optional and preserving it would avoid immediate data loss.",
+        "comparisonToExisting": "agree with the existing concern that removal is not clearly justified; I would treat this as a Revisit finding rather than merely a documented migration issue."
+      }
     },
     {
       "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.reason:45e6aa",
@@ -751,7 +793,21 @@
       "migrationGuidanceMd": "Map each R4 `reasonCode` to one R6 `reason.concept`; map each allowed R4 `reasonReference` to `reason.reference`. For old `Media` references, decide whether the content should become `DocumentReference`, `Observation`, another resource, or an extension. Test mixed coded and referenced reasons.",
       "backwardCompatibilityAnalysisMd": "Using CodeableReference is consistent with modern FHIR patterns, but retaining the old elements as deprecated aliases would have made R4 instances forward-compatible while conversion tooling matured.",
       "reviewerNotesMd": "Review old `Media` usage carefully; it may represent images, photographs, or other evidence with different best R6 homes.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.reason:45e6aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 separated `reasonCode` and `reasonReference`; R6 uses one repeatable `reason` CodeableReference and drops Media from the reference targets. R4 payloads must be reshaped, Media reasons need a target-specific migration decision, and reverse conversion can lose the association when a single CodeableReference contains both a concept and reference. Even so, the CodeableReference pattern directly addresses concept-or-reference semantics, and retaining both old arrays plus the new field would create multiple competing representations of the same reason.",
+        "keyEvidence": [
+          "R4 `reasonCode` is 0..* `CodeableConcept` with example procedure-reason binding.",
+          "R4 `reasonReference` targets Condition, Observation, Media, DiagnosticReport, and DocumentReference.",
+          "R6 `reason` is 0..* `CodeableReference` targeting Condition, Observation, DiagnosticReport, and DocumentReference."
+        ],
+        "fmmEffect": "FMM 3/trial-use means the change deserves scrutiny because reasons can affect clinical context and authorization, but this is also a recognized model-consolidation pattern.",
+        "compatibilityMechanism": "old-valid/new-invalid: the R4 element names and split arrays are absent in R6; R6-to-R4 conversion can be lossy for paired concept/reference values and Media targets.",
+        "lessBreakingAlternativeAssessment": "Deprecated aliases for `reasonCode` and `reasonReference`, perhaps temporarily retaining Media, would preserve R4 instances. The cost is substantial duplication and conflict handling among code-only, reference-only, and CodeableReference forms, so the less-breaking design is not clearly better.",
+        "comparisonToExisting": "partially agree with the existing high-impact finding; the break is real, but I agree with the older report's view that the less-breaking alternative has material tradeoffs."
+      }
     },
     {
       "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.interpreter:ff92c0",
@@ -849,7 +905,21 @@
       "migrationGuidanceMd": "Decide whether interpreter attribution belongs in a DiagnosticReport, Provenance, Procedure performer, extension, or another local profile. Validate downstream workflows that used `ImagingStudy.interpreter` for display, routing, or audit.",
       "backwardCompatibilityAnalysisMd": "The removal appears avoidable from a wire-compatibility perspective because the old optional element could have remained deprecated while guidance pointed to the preferred R6 location.",
       "reviewerNotesMd": "A clinical reviewer should verify the intended R6 home for radiologist/interpreter attribution in the relevant workflow.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.interpreter:ff92c0",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 ImagingStudy could identify the practitioner or practitioner role who interpreted the images; R6 removes that element from ImagingStudy without a same-resource replacement. A migration can sometimes place attribution on DiagnosticReport, Provenance, or workflow resources, but that depends on related resources and local policy. For exchanges that use ImagingStudy itself to carry reader attribution, the change is both a validation break and potential accountability data loss.",
+        "keyEvidence": [
+          "R4 `ImagingStudy.interpreter` is 0..* `Reference(Practitioner|PractitionerRole)`.",
+          "No R6 `ImagingStudy.interpreter` element is present.",
+          "R4 definition says the element identifies who read the study and interpreted the images or other content."
+        ],
+        "fmmEffect": "FMM 3/trial-use allows cleanup, but mature attribution data with clinical and operational importance needs a clear migration path.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `interpreter` contain an unknown R6 element, and moving the value elsewhere is not a mechanical same-resource transform.",
+        "lessBreakingAlternativeAssessment": "A deprecated optional `interpreter` element with guidance to prefer DiagnosticReport, Provenance, or other attribution resources would preserve old data. The tradeoff is duplicate attribution homes, but that seems manageable compared with silent loss of reader attribution.",
+        "comparisonToExisting": "agree with the existing medium-impact concern and partial less-breaking alternative; I would explicitly mark it for Revisit because no direct R6 replacement was evident."
+      }
     },
     {
       "findingId": "ImagingStudy:TYPE_DOMAIN:ImagingStudy.series.bodySite:a4d12e",
@@ -1017,7 +1087,21 @@
       "migrationGuidanceMd": "Wrap R4 body site codings in `bodySite.concept.coding`. Preserve laterality by selecting a laterality-specific code, adding text, creating/referencing a BodyStructure, or using a governed extension. Include test cases for left, right, bilateral, and unpaired anatomy.",
       "backwardCompatibilityAnalysisMd": "The CodeableReference model is likely justified for richer anatomy, but removing `laterality` without a direct alias makes old data harder to migrate. A deprecated laterality field would have reduced short-term risk.",
       "reviewerNotesMd": "Clinical terminology review is needed to avoid losing laterality or creating non-standard combined body-site codes.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImagingStudy:TYPE_DOMAIN:ImagingStudy.series.bodySite:a4d12e",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 represented series anatomy as a `bodySite` Coding plus a separate `laterality` Coding; R6 changes `bodySite` to CodeableReference(BodyStructure) and removes `laterality`. Old R4 JSON is not valid R6 without reshaping, and a safe transform often must combine site and laterality into a single coded concept or BodyStructure. Because left/right and anatomic site are safety-significant in imaging, a migration that requires clinical mapping or can lose laterality deserves renewed attention.",
+        "keyEvidence": [
+          "R4 `series.bodySite` is 0..1 `Coding` with example body-site binding.",
+          "R4 `series.laterality` is 0..1 `Coding` with example bodysite-laterality binding.",
+          "R6 `series.bodySite` is 0..1 `CodeableReference` targeting BodyStructure, and no R6 `series.laterality` element exists."
+        ],
+        "fmmEffect": "FMM 3/trial-use softens the stability burden relative to normative content, but body site and laterality are clinically central enough that lossy or expert-dependent migration remains concerning.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 Coding-shaped bodySite and separate laterality are not the R6 CodeableReference shape; R6 BodyStructure references are also lossy back to R4 Coding.",
+        "lessBreakingAlternativeAssessment": "R6 could have added BodyStructure/CodeableReference support while retaining deprecated `laterality` during transition. That would create conflict risk if duplicated anatomy disagreed, but it would preserve safety-relevant left/right data and permit staged migration.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment, but I place more weight on safety-relevant laterality loss and therefore judge the design worth revisiting."
+      }
     },
     {
       "findingId": "ImagingStudy:TYPE_DOMAIN:ImagingStudy.series.instance.sopClass:36d901",
@@ -1152,7 +1236,21 @@
       "migrationGuidanceMd": "Normalize R4 Coding values to the bare OID string expected by R6. Define how to handle `urn:oid:` prefixes, Coding.system conventions, display text, and private SOP Class UIDs. Add tests for well-known and private SOP Classes.",
       "backwardCompatibilityAnalysisMd": "A direct OID is semantically appropriate, but a choice or deprecated Coding form would have been less disruptive for a mandatory element.",
       "reviewerNotesMd": "Confirm the exact SOP Class Coding conventions used in local R4 data before writing a bulk transform.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImagingStudy:TYPE_DOMAIN:ImagingStudy.series.instance.sopClass:36d901",
+        "judgment": "Revisit",
+        "narrativeMd": "The mandatory SOP Class path changed from a Coding object to a primitive `oid`. R4 instances with `sopClass.system` and `sopClass.code` fail the R6 shape, and generated models change from a rich coded datatype to a string-like primitive. The semantic goal is understandable because SOP Classes are UIDs and R6 explicitly allows private SOP Class UIDs, but R4 Coding could already carry the UID value and an extensible binding did not need to exclude private classes.",
+        "keyEvidence": [
+          "R4 `series.instance.sopClass` is mandatory 1..1 `Coding` with extensible DICOM SOP Class table binding.",
+          "R6 `series.instance.sopClass` is mandatory 1..1 primitive `oid` with no terminology binding.",
+          "R6 comment says the value is typically a well-known DICOM SOP Class UID but may be a private SOP Class UID."
+        ],
+        "fmmEffect": "FMM 3/trial-use permits refinement, but mandatory instance-level DICOM identity is common enough that object-to-primitive conversion has a high compatibility burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: every populated R4 instance SOP Class Coding must be transformed to a primitive oid; reverse conversion loses Coding metadata such as display or userSelected.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have retained Coding, clarified that `Coding.code` is the SOP Class UID, and documented private UID handling. The tradeoff is weaker primitive-level OID validation and continued system-convention handling, but it would preserve most R4 instances.",
+        "comparisonToExisting": "agree with the existing avoidable-break assessment and the Yes less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "ImagingStudy:REFERENCE_TARGET:ImagingStudy.basedOn:c1e43b",
@@ -1263,7 +1361,21 @@
       "validationAndCompatibilityMd": "R6 validators can reject `Reference(AppointmentResponse)` for `basedOn`. Other R4 targets remain allowed.",
       "migrationGuidanceMd": "For AppointmentResponse references, determine whether the correct R6 link should point to the corresponding Appointment, ServiceRequest, Task, or an extension preserving the response-specific relationship.",
       "backwardCompatibilityAnalysisMd": "The removal could have been avoided by retaining AppointmentResponse as an allowed target. If the target was semantically inappropriate, deprecation plus guidance would have reduced migration risk.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ImagingStudy:REFERENCE_TARGET:ImagingStudy.basedOn:c1e43b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 removes AppointmentResponse from the `basedOn` target list. This is a real validation break for R4 instances that pointed ImagingStudy.basedOn at an AppointmentResponse, but the affected slice is narrow and AppointmentResponse is a response resource rather than an order, plan, or request. The R6 definition and target list better align the path with authorization/order traceability.",
+        "keyEvidence": [
+          "R4 `basedOn` targets CarePlan, ServiceRequest, Appointment, AppointmentResponse, and Task.",
+          "R6 `basedOn` targets CarePlan, ServiceRequest, Appointment, and Task.",
+          "R6 definition describes a plan or order fulfilled by the imaging study."
+        ],
+        "fmmEffect": "FMM 3/trial-use means target narrowing should not be casual, but the removed target appears peripheral and semantically weaker for this path.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 references to AppointmentResponse no longer satisfy the R6 targetProfile list.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept AppointmentResponse with deprecation guidance, which would be a low-cost compatibility move. The tradeoff is that it would continue to bless a target that does not fit the refined plan/order semantics, so the narrower model seems acceptable unless evidence of real AppointmentResponse use emerges.",
+        "comparisonToExisting": "partially agree: the current report correctly identifies a hard break and plausible alternative, but I judge the actual impact and design concern lower than a Revisit finding."
+      }
     },
     {
       "findingId": "ImagingStudy:VALUE_CONSTRAINT:ImagingStudy.root-invariants:ad61e8",
@@ -1443,7 +1555,21 @@
       "migrationGuidanceMd": "Before R6 validation, normalize identifiers so exactly one DICOM Study UID identifier with system `urn:dicom:uid` exists when series are present. Recompute counts from included series/instances or omit count fields when the resource is intentionally partial. Check that study start is not after any series start.",
       "backwardCompatibilityAnalysisMd": "The new constraints are data-quality oriented but could have been introduced as warnings or profile-level constraints. Error-level base constraints make the resource less tolerant of incomplete historical DICOM summaries.",
       "reviewerNotesMd": "The apparent tension between R6 count definitions saying counts may be present for partial data and invariants requiring equality when series/instances are present should be reviewed against the final ballot text.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImagingStudy:VALUE_CONSTRAINT:ImagingStudy.root-invariants:ad61e8",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 adds multiple ImagingStudy-owned error invariants for DICOM UID presence/uniqueness, count equality, modality consistency, and start ordering. These can reject R4-valid partial summaries, including cases where `numberOfSeries` or `numberOfInstances` intentionally report a known total larger than the populated series or instance entries. The count invariants are especially concerning because the R6 element definitions still say the counts might be present when series or instances are empty or only partially populated.",
+        "keyEvidence": [
+          "R4 ImagingStudy root has no ImagingStudy-owned local `ist-*` constraints.",
+          "R6 root adds error constraints `ist-1` through `ist-8`.",
+          "R4 count definitions allowed values larger than contained elements due to availability, security, or other factors; R6 count definitions still mention empty or partially populated series/instances."
+        ],
+        "fmmEffect": "FMM 3/trial-use allows adding computable quality rules, but mature historical data patterns such as partial summaries should not become base errors without very strong rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with partial counts, missing DICOM UID identifiers, multiple DICOM UID identifiers, inconsistent modality summaries, or study/series start ordering can fail R6 error-level validation.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have introduced these as warning or best-practice constraints, or scoped equality checks to instances that assert complete population. That weakens the uniform base guarantee, but it better respects partial-summary use cases already acknowledged in the element definitions.",
+        "comparisonToExisting": "agree with the existing high-impact concern and partial alternative assessment; the error-level count rules deserve Revisit."
+      }
     },
     {
       "findingId": "ImagingStudy:TERMINOLOGY_BINDING:ImagingStudy.status:d88b24",
@@ -1573,7 +1699,21 @@
       "validationAndCompatibilityMd": "A R6 ImagingStudy with `status: inactive` is not valid against the R4 required value set. R4 clients with closed enums or exhaustive status switches can fail or mis-handle the new lifecycle state.",
       "migrationGuidanceMd": "Update generated enums, database constraints, UI labels, lifecycle logic, and analytics to handle `inactive`. For R6-to-R4 conversion, define whether to reject, map to `unknown`, use an extension, or carry an OperationOutcome explaining loss.",
       "backwardCompatibilityAnalysisMd": "Using a new required-binding code is clearer than overloading existing statuses, but a compatibility extension could have avoided R4 enum breaks at the cost of discoverability.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ImagingStudy:TERMINOLOGY_BINDING:ImagingStudy.status:d88b24",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds the `inactive` status code but does not remove or change any R4 status code. R4 instances remain valid at this path when moving to R6. Older R4 clients or closed enums will need a policy for R6-to-R4 conversion of `inactive`, but that is a normal reverse-direction consequence of adding a lifecycle code rather than a base R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 required status codes are registered, available, cancelled, entered-in-error, and unknown.",
+          "R6 keeps those codes and adds `inactive`.",
+          "R6 `inactive` means the resource describes information that is no longer valid, including retention-policy removal."
+        ],
+        "fmmEffect": "FMM 3/trial-use prompts a check because status is mandatory and a modifier, but the additive code does not invalidate R4 data.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `inactive` cannot be represented by the R4 required value set without mapping policy, but R4-to-R6 compatibility is preserved.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for forward compatibility. Avoiding the new code or using an extension would reduce R6 expressivity and would not better preserve R4 instances.",
+        "comparisonToExisting": "partially agree with the existing reverse-conversion concern, but disagree that this should carry medium/high break weight for a fresh R4-to-R6 design review."
+      }
     },
     {
       "findingId": "ImagingStudy:REFERENCE_TARGET:ImagingStudy.series.performer.actor:0d15fa",
@@ -1695,7 +1835,21 @@
       "validationAndCompatibilityMd": "R6 data referencing HealthcareService is invalid against R4 target profiles. R4 clients may not load or resolve that target type for this path.",
       "migrationGuidanceMd": "Update generated models and validation rules for R6. For R6-to-R4, decide whether a HealthcareService can be mapped to Organization, PractitionerRole, Device, or an extension without changing meaning.",
       "backwardCompatibilityAnalysisMd": "The change is a normal additive target expansion. The only compatibility issue is reverse conversion.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ImagingStudy:REFERENCE_TARGET:ImagingStudy.series.performer.actor:0d15fa",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens the allowed performer actor targets by adding HealthcareService. This does not invalidate any R4 ImagingStudy performer actor reference. A richer R6 instance that uses HealthcareService will not fit the R4 target list without mapping or extension, but that reverse-direction issue is expected for an additive target expansion.",
+        "keyEvidence": [
+          "R4 `series.performer.actor` targets Practitioner, PractitionerRole, Organization, CareTeam, Patient, Device, and RelatedPerson.",
+          "R6 keeps those targets and adds HealthcareService.",
+          "The element remains mandatory only within a performer component; the target-list change itself is widening."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not create a concern where the R4-to-R6 path is strictly widening.",
+        "compatibilityMechanism": "R6-to-R4 loss: HealthcareService performer actors require reverse-conversion policy, but existing R4 target choices remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking alternative is applicable because adding HealthcareService is already forward-compatible. Omitting it would only reduce R6 expressivity.",
+        "comparisonToExisting": "agree with the existing low-impact assessment and not-applicable alternative judgment."
+      }
     },
     {
       "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.series.instance.numberOfFrames:ac3e6d",
@@ -1794,7 +1948,21 @@
       "validationAndCompatibilityMd": "R4 instances remain valid after this addition. R6 instances using `numberOfFrames` lose information if converted to R4 without an extension.",
       "migrationGuidanceMd": "Allow the new field in R6 models. For R6-to-R4 conversion, define a cross-version extension or document that frame count is dropped.",
       "backwardCompatibilityAnalysisMd": "This is a compatible additive change in the forward direction.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.series.instance.numberOfFrames:ac3e6d",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `series.instance.numberOfFrames`. This is a normal additive element for multiframe DICOM data and does not invalidate any R4 ImagingStudy instance. R6-to-R4 conversion may need an extension or may drop frame-count detail, but the base R4-to-R6 compatibility concern is minimal.",
+        "keyEvidence": [
+          "No R4 `ImagingStudy.series.instance.numberOfFrames` element exists.",
+          "R6 adds `series.instance.numberOfFrames` as 0..1 `unsignedInt`.",
+          "R6 definition describes the number of frames in a multiframe image."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not weigh against an optional additive element that preserves all R4 instances.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 frame counts are not representable in base R4 ImagingStudy, but R4-to-R6 validation is unaffected.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is applicable. An extension would be a reverse-conversion mitigation, not a better R6 base choice.",
+        "comparisonToExisting": "agree with the existing low-impact assessment and not-applicable alternative judgment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1973,5 +2141,19 @@
       "Required-code value set additions on modifier status elements",
       "Reference target removals involving AppointmentResponse and Media"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ImagingStudy.fresh-review.json",
+    "findingDecisionCount": 12,
+    "matchedFindingDecisionCount": 12,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 6,
+      "Breaking but probably OK": 3,
+      "No problem": 3
+    }
   }
 }

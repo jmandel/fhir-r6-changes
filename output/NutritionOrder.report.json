@@ -248,7 +248,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is affected directly. The change does not create an R6-to-R4 representation issue; it makes R6 stricter about a resource that lacks all ordered nutrition content.",
       "migrationGuidanceMd": "Before converting, identify NutritionOrder records with no `oralDiet`, `supplement`, or `enteralFormula`. Either backfill the missing ordered content from source data, quarantine the record for manual review, or avoid treating it as a conformant R6 NutritionOrder.",
       "backwardCompatibilityAnalysisMd": "A profile-level requirement would have been less disruptive, but the stronger base invariant is clinically defensible because a NutritionOrder without ordered nutrition content has limited utility.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:VALUE_CONSTRAINT:NutritionOrder:4c82d3",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 promotes the existing `nor-1` rule from warning to error, so an R4 instance with status, intent, and patient but no `oralDiet`, `supplement`, or `enteralFormula` becomes invalid. That is a real validator break, but the invalidated shape is a NutritionOrder with no requested nutrition content, so the base guarantee is clinically coherent and the break seems proportionate.",
+        "keyEvidence": [
+          "R4 `NutritionOrder` root has `nor-1` severity warning with expression `oralDiet.exists() or supplement.exists() or enteralFormula.exists()`.",
+          "R6 `NutritionOrder` root has the same `nor-1` expression with severity error.",
+          "R4 maturity map reports NutritionOrder FMM 2 and standardsStatus trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it does not excuse the old-valid/new-invalid validation break, but it also does not create a mature/normative stability presumption.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance omitting all three nutrition-content groups can avoid error-level failure in R4 but fails R6 base validation.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could keep the invariant as a warning and require an error only in profiles, but that would give up the base-resource guarantee that a NutritionOrder actually orders nutrition content.",
+        "comparisonToExisting": "Partially agree with the existing High impact and Partial alternative: the hard validation mechanism is real, but the action concern is lower because affected instances should be sparse and clinically weak."
+      }
     },
     {
       "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.patient:ea414c",
@@ -381,7 +395,21 @@
       "validationAndCompatibilityMd": "An R4 instance with `patient` and no `subject` is invalid in R6. Conversely, an R6 instance whose `subject` references `Group` cannot be losslessly represented in R4 because R4 only allows Patient in the required `patient` field.",
       "migrationGuidanceMd": "Rename `patient` to `subject` when the reference is to Patient. For R6-to-R4, reject or extension-map Group subjects unless a local policy can safely expand the group into individual patient orders.",
       "backwardCompatibilityAnalysisMd": "Keeping `patient` as a deprecated alias would have preserved old JSON but would also have left the resource with two competing subject fields. The R6 design is cleaner but breaking.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.patient:ea414c",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a mandatory identity-field rename: every conformant R4 NutritionOrder has `patient`, while R6 requires `subject`. R4 payloads and generated models must change even when the reference remains a Patient, and R6 Group subjects cannot be represented in the R4 field without loss or extension. Because the path is central and a less-breaking design could preserve the old wire name while widening the target, the rename deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 `NutritionOrder.patient` is 1..1 Reference(Patient).",
+          "R6 `NutritionOrder.subject` is 1..1 Reference(Patient|Group).",
+          "The R4 maturity map reports FMM 2/trial-use, so blast radius rather than normative stability drives the concern."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the field is mandatory and central to clinical subject identity, so the practical blast radius remains high.",
+        "compatibilityMechanism": "old-valid/new-invalid: the required R4 `patient` property is absent in R6; generated APIs also rename the property, and R6 Group subjects create secondary R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Yes: keep `patient` as the base element, broaden it to Reference(Patient|Group), and update definitions. The tradeoff is carrying an awkward name for Group orders and less alignment with the common Request.subject pattern, but most R4 instances would remain valid.",
+        "comparisonToExisting": "Agree with the existing High impact and Yes alternative; the required path rename is broader than a cosmetic cleanup."
+      }
     },
     {
       "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.orderer:3a4348",
@@ -496,7 +524,21 @@
       "validationAndCompatibilityMd": "R4 JSON with `orderer` is invalid as an R6 NutritionOrder unless transformed. R6 `requester` values can be represented in R4 as `orderer` without target loss.",
       "migrationGuidanceMd": "Map `orderer` to `requester` during R4-to-R6 conversion and update FHIRPath, search extraction, UI bindings, and authorization code that reads the requester.",
       "backwardCompatibilityAnalysisMd": "The rename could have been avoided by retaining `orderer`, but the R6 name is more consistent with the workflow pattern. A transitional alias would be more compatible but less clean.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.orderer:3a4348",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`orderer` to `requester` is an optional same-role rename with the same reference targets. Instances and generated code that use the old property need a mechanical transform, but the data is not inherently lossy and the R6 name aligns with the broader request workflow model. For FMM 2 trial-use content, this looks like proportionate cleanup rather than a design issue that must be revisited.",
+        "keyEvidence": [
+          "R4 `NutritionOrder.orderer` is 0..1 Reference(Practitioner|PractitionerRole).",
+          "R6 `NutritionOrder.requester` is 0..1 Reference(Practitioner|PractitionerRole).",
+          "Element short text in both versions identifies who ordered the diet, formula, or supplement."
+        ],
+        "fmmEffect": "FMM 2/trial-use lowers the expectation that older resource-specific naming must be preserved when the migration is one-to-one.",
+        "compatibilityMechanism": "runtime/API/codegen: R4 clients, FHIRPath, and serializers using `orderer` must move to `requester`; populated old instances also need a property rename.",
+        "lessBreakingAlternativeAssessment": "Yes but not compelling: retaining `orderer` would preserve old JSON, but it would continue a resource-specific name instead of the common requester pattern.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Yes alternative; I agree the break and alternative exist, but give more weight to the one-to-one migration and trial-use cleanup rationale."
+      }
     },
     {
       "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.instantiates:3d5ea1",
@@ -611,7 +653,21 @@
       "migrationGuidanceMd": "Inventory use of `instantiates*`. If the value is actually a request or plan being fulfilled, map to `basedOn`; otherwise preserve it with a cross-version extension, Provenance, or implementation-specific field and document the policy.",
       "backwardCompatibilityAnalysisMd": "This removal appears avoidable from a compatibility perspective because optional deprecated fields would not invalidate old instances. The tradeoff is a less streamlined R6 resource.",
       "reviewerNotesMd": "Human review is needed to decide whether a given R4 instantiation URI is equivalent to R6 `basedOn` or must be preserved separately.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.instantiates:3d5ea1",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 could state that a NutritionOrder instantiated an ActivityDefinition, PlanDefinition, or external protocol. R6 removes the local `instantiates*` elements, and `basedOn` is not the same fact because it links a fulfilled request or plan rather than the protocol definition the order followed. This creates lossy migration for order-set or CDS provenance, and keeping optional deprecated elements would have been a low-disruption base option.",
+        "keyEvidence": [
+          "R4 has `instantiatesCanonical` 0..* canonical(ActivityDefinition|PlanDefinition), `instantiatesUri` 0..* uri, and `instantiates` 0..* uri.",
+          "No corresponding R6 `NutritionOrder.instantiates*` element was found; R6 instead has `basedOn` for fulfilled requests/plans.",
+          "The removed elements are optional, so retaining them would not force new R6 use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but provenance and protocol traceability can affect CDS and review workflows, so lossy removal remains concerning.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances carrying `instantiates*` contain absent R6 properties, and the closest R6 workflow link is not semantically equivalent.",
+        "lessBreakingAlternativeAssessment": "Yes: retain the optional `instantiates*` fields, possibly deprecated, or add a clearer successor while keeping old fields valid for transition. The tradeoff is extra workflow/provenance surface, not a fundamental conflict with R6.",
+        "comparisonToExisting": "Agree with the existing Medium impact and Yes alternative; the supplied definitions do not show a safe replacement."
+      }
     },
     {
       "findingId": "NutritionOrder:SERIALIZATION_OR_CODEGEN:NutritionOrder.schedule:6fd881",
@@ -791,7 +847,21 @@
       "validationAndCompatibilityMd": "R4 instances with direct `Timing` schedules are invalid in R6 because fields such as `repeat` are no longer children of `schedule`; they are children of `schedule.timing`. R6 `asNeeded` and `asNeededFor` have no R4 schedule equivalent.",
       "migrationGuidanceMd": "For oral diet and supplement, move each R4 `schedule[]` Timing into R6 `schedule.timing[]`. For enteral administration, wrap the R4 single `schedule` Timing as `schedule.timing[0]`. For R6-to-R4, preserve `asNeeded` information with extensions or manual review.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by adding optional as-needed fields alongside the existing Timing arrays. The chosen model is cleaner but requires a structural transform.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:SERIALIZATION_OR_CODEGEN:NutritionOrder.schedule:6fd881",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 placed `Timing` directly at oral diet, supplement, and enteral administration schedule paths. R6 changes those paths to a schedule backbone with nested `timing` and optional as-needed fields, so existing schedule JSON and generated classes no longer match. Scheduling is operationally important, and R6 could likely have added as-needed qualifiers around the existing timing shape with less wire-format disruption.",
+        "keyEvidence": [
+          "R4 `oralDiet.schedule` and `supplement.schedule` are 0..* Timing; R4 `enteralFormula.administration.schedule` is 0..1 Timing.",
+          "R6 schedule paths are 0..1 BackboneElement with nested `timing` 0..* and as-needed subelements.",
+          "The R6 additions include `asNeeded` and `asNeededFor`, which are optional qualifiers."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the affected paths are directly tied to administration timing, so structural breakage has real workflow significance.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 schedule values serialized as Timing objects are not valid at the R6 schedule wrapper path; generated API shapes also change.",
+        "lessBreakingAlternativeAssessment": "Yes: keep the direct Timing schedule shape and add optional as-needed fields as siblings or adjacent qualifiers. That is less tidy than a wrapper, but it preserves old schedule instances while meeting the main new capability.",
+        "comparisonToExisting": "Agree with the existing High impact and Yes alternative; the structural wrapper imposes broad migration work for a capability that appears addable in a less-breaking way."
+      }
     },
     {
       "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.productTypes:e433e2",
@@ -962,7 +1032,21 @@
       "migrationGuidanceMd": "Map R4 CodeableConcept values to `CodeableReference.concept`; map `baseFormulaProductName` to `productName`. For R6-to-R4, decide whether a NutritionProduct reference can be replaced by a code, display, and product name, or whether to preserve the reference in an extension.",
       "backwardCompatibilityAnalysisMd": "Separate optional reference elements would have been more backward-compatible but less idiomatic for R6's CodeableReference pattern.",
       "reviewerNotesMd": "Manual review is needed where product references carry manufacturer, ingredient, or packaging detail beyond a simple code/name.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.productTypes:e433e2",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 changes supplement and enteral product type concepts to `CodeableReference(NutritionProduct)` and renames enteral product paths. Existing R4 concept-shaped JSON is not accepted as-is, and R6 product references can carry identity that R4 cannot represent in the old fields. Product identity affects ordering, dispensing, and preparation, and a separate optional NutritionProduct reference could have added the new capability without invalidating concept-only R4 data.",
+        "keyEvidence": [
+          "R4 `supplement.type` and `enteralFormula.baseFormulaType` are CodeableConcept; R4 `baseFormulaProductName` is string.",
+          "R6 `supplement.type` and `enteralFormula.type` are CodeableReference(NutritionProduct); R6 `enteralFormula.productName` is string.",
+          "The R6 CodeableReference still supports a concept branch, but the JSON shape changes."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but product identification is operationally and clinically relevant, so avoidable structural loss deserves attention.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 CodeableConcept values at these paths are not valid R6 CodeableReference JSON without nesting under `concept`; R6 references create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Yes: retain the R4 CodeableConcept fields and product-name path, then add optional NutritionProduct reference fields. The tradeoff is a less idiomatic split concept/reference model, but most R4 instances would remain valid.",
+        "comparisonToExisting": "Agree with the existing High impact and Yes alternative; the R6 expressiveness goal is reasonable but the base design could have preserved old concept-shaped data."
+      }
     },
     {
       "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.additive:83d26a",
@@ -1138,7 +1222,21 @@
       "migrationGuidanceMd": "For R4-to-R6, create one `additive` item from the old enteral additive fields and nest the old concept under `modularType.concept`. For R6-to-R4, manually review whether each additive can safely be treated as enteral-formula additive; otherwise preserve it as an extension or do not down-convert.",
       "backwardCompatibilityAnalysisMd": "The move could have been staged by retaining the old fields. The R6 design is more normalized but creates ambiguity for cross-version conversion.",
       "reviewerNotesMd": "R6 does not encode in this local field alone which component the additive modifies, so implementer policy is needed for some conversions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.additive:83d26a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 generalizes enteral additive information into a repeatable root `additive` backbone with modular type, product name, quantity, and route, while R4 had a single enteral-only additive type and product name under `enteralFormula`. Existing R4 fields need to move, but the R6 model has a broader clinical purpose. Keeping both old enteral-only fields and the new root additive model would create duplicate ways to say the same enteral additive.",
+        "keyEvidence": [
+          "R4 `enteralFormula.additiveType` is CodeableConcept and `additiveProductName` is string under `enteralFormula`.",
+          "R6 adds root `NutritionOrder.additive` 0..* with `modularType` CodeableReference(NutritionProduct), `productName`, `quantity`, and `routeOfAdministration`.",
+          "R6 additive short text applies to oral diet, supplement, and/or enteral feeding."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral and allows a broader model when the old representation was narrow.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 enteral additive properties are absent at their old parent; R6 additives outside enteral feeding or with quantity/route have R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could retain deprecated enteral additive fields alongside root `additive`, but that creates duplicate enteral representations and reconciliation risk.",
+        "comparisonToExisting": "Agree with the existing Medium impact and Partial alternative; the break is real but proportionate to the broader additive model."
+      }
     },
     {
       "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.routeofAdministration:800d5b",
@@ -1291,7 +1389,21 @@
       "validationAndCompatibilityMd": "R4 `routeofAdministration` is old-valid/new-invalid. R6 multiple routes are not representable in the R4 single route field without loss.",
       "migrationGuidanceMd": "Rename the property to `routeOfAdministration` and wrap the value in an array. On down-conversion, choose a primary route only if a clinical policy exists; otherwise use an extension or manual review.",
       "backwardCompatibilityAnalysisMd": "The case-correcting rename could have been avoided by preserving the old spelling. However, the R6 spelling is more consistent with FHIR naming conventions.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.routeofAdministration:800d5b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes the old `routeofAdministration` spelling to `routeOfAdministration`, widens cardinality to repeatable, and relaxes the binding from extensible to preferred. The old property name must be transformed, and multiple R6 routes do not down-convert cleanly. Still, this is FMM 2 trial-use content, the R4 name was an inconsistent camel-case spelling, and the migration for one route is mechanical.",
+        "keyEvidence": [
+          "R4 `enteralFormula.routeofAdministration` is 0..1 CodeableConcept with extensible `enteral-route` binding.",
+          "R6 `enteralFormula.routeOfAdministration` is 0..* CodeableConcept with preferred `enteral-route` binding.",
+          "The element short text in both versions describes how feeding enters the gastrointestinal tract."
+        ],
+        "fmmEffect": "FMM 2/trial-use makes a spelling cleanup and cardinality widening more acceptable than it would be for mature or normative content.",
+        "compatibilityMechanism": "old-valid/new-invalid: the R4 property name is absent in R6; a secondary R6-to-R4 loss occurs when R6 carries more than one route.",
+        "lessBreakingAlternativeAssessment": "Yes but with a real tradeoff: retaining `routeofAdministration` while widening max to `*` would preserve old JSON, but it would carry forward an obvious naming inconsistency.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Yes alternative; the less-breaking design exists, but I judge the FMM 2 cleanup proportionate."
+      }
     },
     {
       "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.maxVolumeToDeliver:e9a57d",
@@ -1409,7 +1521,21 @@
       "validationAndCompatibilityMd": "R4 instances with `maxVolumeToDeliver` are invalid in R6 until the field is renamed. R6 values can generally be represented in R4 after renaming, subject to the R4 SimpleQuantity restriction reported separately.",
       "migrationGuidanceMd": "Rename the field and test conversions involving volume limits because missed max-volume data can alter delivery safeguards.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias would have avoided the break, but the R6 name is clearer about administration.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.maxVolumeToDeliver:e9a57d",
+        "judgment": "Revisit",
+        "narrativeMd": "`maxVolumeToDeliver` and `maxVolumeToAdminister` have the same role and cardinality, but R6 changes the wire name of a safety-relevant maximum volume limit. The rename does not appear necessary to add a new capability; the definition could have clarified administration while preserving the old path. Because missed migration could drop a feeding limit, this same-role rename deserves another look.",
+        "keyEvidence": [
+          "R4 `enteralFormula.maxVolumeToDeliver` is 0..1 Quantity[SimpleQuantity] with short text `Upper limit on formula volume per unit of time`.",
+          "R6 `enteralFormula.maxVolumeToAdminister` is 0..1 Quantity with short text `Upper limit on formula feeding volume per unit of time`.",
+          "The Quantity profile widening is separable from the element-name change."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the path carries a dosing/volume safety limit and the rename has a low-cost compatibility-preserving alternative.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances using `maxVolumeToDeliver` need a property rename; generated APIs and FHIRPath expressions using the old name break.",
+        "lessBreakingAlternativeAssessment": "Yes: keep `maxVolumeToDeliver`, update the definition to emphasize administered volume, and apply any Quantity widening separately. The tradeoff is retaining slightly less precise wording.",
+        "comparisonToExisting": "Agree with the existing Medium impact and Yes alternative; the break is avoidable and safety-relevant even though migration is mechanical."
+      }
     },
     {
       "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.oralDiet.fluidConsistencyType:b2bbc5",
@@ -1527,7 +1653,21 @@
       "migrationGuidanceMd": "Do not drop this field. Build a reviewed mapping from R4 `consistency-type` concepts to R6 texture representation, and include test cases for thin, nectar-thick, honey-thick, and pudding-thick fluids if used locally.",
       "backwardCompatibilityAnalysisMd": "A deprecated fluid-specific element or an official ConceptMap would have reduced risk. Without that, migration requires site-specific clinical terminology review.",
       "reviewerNotesMd": "This finding has high clinical significance but medium mapping certainty because the official narrative implementation notes and terminology expansions were not compared.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.oralDiet.fluidConsistencyType:b2bbc5",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had an explicit repeatable `fluidConsistencyType` for required liquid consistency. R6 has no same path and appears to fold solid and liquid texture into `oralDiet.texture`, but the StructureDefinition does not provide a computable one-to-one mapping. Liquid consistency is safety-significant for dysphagia and aspiration-risk workflows, so removal without an explicit base replacement or mapping should be revisited.",
+        "keyEvidence": [
+          "R4 `oralDiet.fluidConsistencyType` is 0..* CodeableConcept bound to `ValueSet/consistency-type`.",
+          "No R6 `NutritionOrder.oralDiet.fluidConsistencyType` element is present.",
+          "R6 `oralDiet.texture.modifier` and `texture.type` definitions mention solid and/or liquid, but use different paths and value sets."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but safety relevance outweighs the lower maturity because losing liquid consistency can affect safe feeding.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with fluid consistency have no same R6 path; migration may require clinical terminology judgment.",
+        "lessBreakingAlternativeAssessment": "Partial: retain a deprecated `fluidConsistencyType` while broadening texture to cover liquids, or provide an explicit successor with mappings. The tradeoff is duplicate liquid-texture representation and required reconciliation rules.",
+        "comparisonToExisting": "Agree with the existing High impact and Partial alternative; the clinical mapping uncertainty is the key reason this needs attention."
+      }
     },
     {
       "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.oralDiet.texture.foodType:9227a5",
@@ -1662,7 +1802,21 @@
       "validationAndCompatibilityMd": "R4 `texture.foodType` is invalid in R6. The value can generally be copied to R6 `texture.type` without semantic loss.",
       "migrationGuidanceMd": "Rename `foodType` to `type` in each `oralDiet.texture` entry and update generated model references and query paths.",
       "backwardCompatibilityAnalysisMd": "This rename was avoidable from a compatibility standpoint, but the shorter name is understandable within the context of the texture backbone.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.oralDiet.texture.foodType:9227a5",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 renames the optional texture target from `foodType` to `type` and strengthens the binding to preferred while keeping the same value set and cardinality. Populated R4 instances and generated models need a mechanical property rename, but there is no apparent data loss. In FMM 2 trial-use content, the shorter name inside the texture backbone and broader solid/liquid wording make the cleanup acceptable.",
+        "keyEvidence": [
+          "R4 `oralDiet.texture.foodType` is 0..1 CodeableConcept with example binding to `modified-foodtype`.",
+          "R6 `oralDiet.texture.type` is 0..1 CodeableConcept with preferred binding to the same `modified-foodtype` value set.",
+          "R6 texture definitions broaden wording to food, solid, and/or liquid texture."
+        ],
+        "fmmEffect": "FMM 2/trial-use softens concern for a mechanical optional rename with no evident loss.",
+        "compatibilityMechanism": "runtime/API/codegen: the old child name is absent in R6, but values map one-to-one to the new path; preferred binding adds only warning-level pressure.",
+        "lessBreakingAlternativeAssessment": "Yes but low value: R6 could keep `foodType` and update its definition/binding. The tradeoff is retaining a longer name that is less natural after texture was broadened to solid and liquid.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Yes alternative; I agree on the mechanism but judge the cleanup proportionate."
+      }
     },
     {
       "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.quantity:c55511",
@@ -1802,7 +1956,21 @@
       "validationAndCompatibilityMd": "R4-valid SimpleQuantity values remain acceptable in R6. R6-valid Quantity values that use non-simple features may fail R4 validation when mapped back to R4 fields that were profiled as SimpleQuantity.",
       "migrationGuidanceMd": "For R6-to-R4 conversion, validate each Quantity against the R4 SimpleQuantity profile and either normalize, reject, or preserve non-simple details via extension. Include comparator and unusual unit cases in tests.",
       "backwardCompatibilityAnalysisMd": "This is a safe widening for R4-to-R6 but not for round-tripping. Keeping SimpleQuantity would have maximized down-conversion but limited R6 expressiveness.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.quantity:c55511",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Removing the SimpleQuantity profile is a forward-compatible widening: R4 SimpleQuantity values remain valid as R6 Quantity values. The only meaningful issue is reverse conversion, where R6 Quantity features outside SimpleQuantity may not validate against R4 profiles. That is real for down-conversion, but preserving the old profile would reduce R6 expressiveness rather than protect R4-to-R6 instances.",
+        "keyEvidence": [
+          "R4 nutrient amount, supplement quantity, enteral administration quantity/rateQuantity, and max volume examples use Quantity[SimpleQuantity].",
+          "R6 corresponding Quantity paths are unprofiled Quantity.",
+          "No R4-valid SimpleQuantity instance becomes invalid solely because R6 accepts broader Quantity."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the judgment rests on the fact that the forward direction is widened and the risk is only down-conversion.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 Quantity features disallowed by SimpleQuantity may need rejection, normalization, or extension when sent to R4.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6: keeping SimpleQuantity would improve round-trip constraints but would also forgo the R6 goal of allowing the full Quantity datatype.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Not applicable alternative; I agree it is not a forward hard break, but would frame the concern as reverse-only and proportionate."
+      }
     },
     {
       "findingId": "NutritionOrder:TERMINOLOGY_BINDING:NutritionOrder.nutritionBindings:2a9600",
@@ -1951,7 +2119,21 @@
       "migrationGuidanceMd": "Run terminology analysis separately for locally used diet, supplement, additive, nutrient, texture, and edible-substance codes. Where possible, maintain ConceptMaps from R4-era code systems/value sets to R6-preferred SNOMED-based sets.",
       "backwardCompatibilityAnalysisMd": "Keeping example bindings would be more backward-compatible but weaker for interoperability. Preferred bindings are a relatively non-breaking way to encourage convergence, but value set replacements still need migration guidance.",
       "reviewerNotesMd": "Confidence is limited by the absence of terminology expansions and official ConceptMaps in the checked inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "NutritionOrder:TERMINOLOGY_BINDING:NutritionOrder.nutritionBindings:2a9600",
+        "judgment": "No problem",
+        "narrativeMd": "Most of these terminology changes move nutrition concept bindings from example to preferred or change preferred value-set guidance. Preferred bindings do not make out-of-set codes invalid, and the enteral route binding is relaxed from extensible to preferred in the directly checked path. This can affect warnings, analytics, and terminology alignment, but it is not a meaningful base compatibility break.",
+        "keyEvidence": [
+          "R4 food preference, exclusion, oral diet, nutrient, texture, supplement, and formula bindings are mostly example; R6 corresponding bindings are preferred.",
+          "R4 `enteralFormula.routeofAdministration` binding is extensible, while R6 `routeOfAdministration` binding is preferred.",
+          "Local terminology files show value set changes, but no required binding narrowing for these nutrition concept paths."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; because the mechanism is warning-level rather than invalidating, maturity does not materially raise concern.",
+        "compatibilityMechanism": "warning-level: preferred bindings may influence conformance warnings or terminology quality checks but do not reject R4 codes as base-invalid.",
+        "lessBreakingAlternativeAssessment": "Partial but unnecessary: retaining example bindings would be less prescriptive, but it would weaken R6 interoperability guidance and is not needed to preserve instance validity.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Partial alternative; I agree there is terminology churn, but the compatibility impact is lower because the bindings are not required."
+      }
     },
     {
       "findingId": "NutritionOrder:TERMINOLOGY_BINDING:NutritionOrder.status-intent:3704e1",
@@ -2114,7 +2296,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is safe for the checked status/intent codes. R6-to-R4 validation fails for added R6 codes unless mapped to an R4 code or preserved outside the base element.",
       "migrationGuidanceMd": "For R6-to-R4, define mappings for `ended`, `solicit-offer`, and `offer-response` or reject them when no safe R4 equivalent exists. Review business logic that assumes `order` always implies a Practitioner-authorized request or that `directive` is legally binding.",
       "backwardCompatibilityAnalysisMd": "The added codes are forward-compatible but not round-trip compatible. Official ConceptMaps would be the least disruptive support for older systems.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:TERMINOLOGY_BINDING:NutritionOrder.status-intent:3704e1",
+        "judgment": "No problem",
+        "narrativeMd": "The required `status` and `intent` bindings are versioned forward and add request lifecycle codes, while preserving the R4 codes checked locally. Existing R4 instances therefore remain valid with respect to these required bindings. R6 instances using new codes need down-conversion policy for R4 receivers, but additive codes in a shared request code system are not a base R4-to-R6 compatibility problem.",
+        "keyEvidence": [
+          "R4 `status` is required-bound to request-status|4.0.1 and R6 to request-status|6.0.0-ballot4.",
+          "R6 adds `status=ended` and adds `intent=solicit-offer` and `intent=offer-response`; local comparison found no removed R4 status or intent codes.",
+          "Some request-intent definitions changed, but the primary binding direction is additive."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; additive terminology evolution is expected and does not invalidate old codes.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 request codes may lack safe R4 equivalents, but R4-to-R6 validation is widened rather than narrowed.",
+        "lessBreakingAlternativeAssessment": "Not applicable: avoiding the new codes would only limit R6 workflow expressiveness; ConceptMaps are useful mitigation but not a less-breaking base design for old R4 instances.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Not applicable alternative; I agree on the reverse-conversion issue, but not that it is a fresh-review problem for forward compatibility."
+      }
     },
     {
       "findingId": "NutritionOrder:CONVERSION_OR_MAPPING:NutritionOrder.new-r6-fields:7b2690",
@@ -2241,7 +2437,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is unaffected because the fields are optional. R6-to-R4 is lossy for populated fields: R4 has no direct elements for intended performer, priority, delivery device, outside-food policy, and several workflow/context fields.",
       "migrationGuidanceMd": "For down-conversion, define which fields are dropped, extension-preserved, or mapped to external workflow records. Include tests for deliveryDevice[x] canonical references and CodeableReference performer values.",
       "backwardCompatibilityAnalysisMd": "Adding optional fields is the backward-compatible design for forward migration. The unavoidable issue is that older R4 receivers cannot understand the new fields without extensions.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:CONVERSION_OR_MAPPING:NutritionOrder.new-r6-fields:7b2690",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 workflow, performer, device, caloric-density, and policy fields are optional additions. They do not invalidate any R4 NutritionOrder moving forward. R4 receivers will not understand them on down-conversion, but that is the ordinary cost of optional R6 expressiveness rather than evidence of a breaking R6 base design.",
+        "keyEvidence": [
+          "R6 adds optional `basedOn`, `groupIdentifier`, `priority`, `supportingInformation`, `performer`, `outsideFoodAllowed`, `deliveryDevice[x]`, and caloric-density fields.",
+          "R4 has no direct local elements for these optional additions.",
+          "Because the fields are optional, old R4 instances need not contain them to be valid in R6."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; optional additions are the normal backward-compatible path regardless of maturity.",
+        "compatibilityMechanism": "R6-to-R4 loss: new optional R6 data may be dropped, extension-preserved, or rejected by R4 conversions, but there is no R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "Not applicable: no less-breaking R4-to-R6 base design is needed for optional additions; conversion extensions or loss policies are mitigations, not base alternatives.",
+        "comparisonToExisting": "Agree with the existing Not applicable alternative and no hard-break assessment, but I would lower the action concern because this is normal optional extensibility."
+      }
     },
     {
       "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.enteralFormula.administrationInstruction:130fd2",
@@ -2338,7 +2548,21 @@
       "validationAndCompatibilityMd": "This is not expected to make ordinary R4 string values invalid in R6. It can still break generated code that distinguishes string and markdown primitive wrappers, and R6 markdown content may not render as intended in R4 clients.",
       "migrationGuidanceMd": "Copy plain strings directly, but update code generation, UI rendering, and sanitization paths for markdown. Test markdown punctuation, line breaks, and any local rich-text behavior.",
       "backwardCompatibilityAnalysisMd": "Using markdown is mostly compatible at the wire level, but not necessarily at the generated-type or rendering level.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.enteralFormula.administrationInstruction:130fd2",
+        "judgment": "No problem",
+        "narrativeMd": "Changing `administrationInstruction` from `string` to `markdown` changes the declared primitive type but not the basic JSON representation: plain R4 string content remains representable as an R6 markdown string. Code generators and renderers may adjust behavior, especially around markdown display and sanitization, but this is low-risk type signaling rather than an instance compatibility break.",
+        "keyEvidence": [
+          "R4 `enteralFormula.administrationInstruction` is 0..1 string.",
+          "R6 `enteralFormula.administrationInstruction` is 0..1 markdown.",
+          "FHIR markdown is still serialized as a primitive JSON string value."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the wire-level compatibility makes maturity largely irrelevant for this finding.",
+        "compatibilityMechanism": "runtime/API/codegen: generated primitive types or renderers may change, but old string values remain wire-compatible and semantically usable.",
+        "lessBreakingAlternativeAssessment": "Not applicable: keeping `string` would reduce markdown-aware rendering signals but is not needed to preserve R4 instance validity.",
+        "comparisonToExisting": "Agree with the existing Low impact and Not applicable alternative; this is not a meaningful compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2517,5 +2741,19 @@
       "CodeableReference adoption for product fields",
       "schedule Timing-to-backbone restructuring"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/NutritionOrder.fresh-review.json",
+    "findingDecisionCount": 16,
+    "matchedFindingDecisionCount": 16,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 6,
+      "Breaking but probably OK": 6,
+      "No problem": 4
+    }
   }
 }

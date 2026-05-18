@@ -289,7 +289,23 @@
       "migrationGuidanceMd": "Inventory every use of resourceType RiskEvidenceSynthesis in data, APIs, generated models, validators, subscriptions, search indexes, and business rules. Define an explicit transform to Evidence or to a local compatibility profile/extension strategy, preserve canonical url/identifier/version fields where meaningful, and keep regression tests for old instances that contain population, exposure, outcome, riskEstimate, sampleSize, and certainty.",
       "backwardCompatibilityAnalysisMd": "The broader Evidence model may be a sound long-term design, but deleting or renaming a resource type is not backward compatible. A compatibility alias, deprecated wrapper, or official ConceptMap would have lowered migration risk while still allowing new R6 systems to prefer Evidence.",
       "reviewerNotesMd": "Confirm against official ballot narrative or change logs before final migration design. The local package proves absence from R6 core, but not the committee rationale or complete intended mapping.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RiskEvidenceSynthesis:ARTIFACT_IDENTITY:root:old-type-removal",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 defines RiskEvidenceSynthesis as a concrete resource, while the R6 package has no RiskEvidenceSynthesis StructureDefinition and marks the name as an old FHIR type. That is a real resource identity break: an R4 instance with resourceType RiskEvidenceSynthesis is not a same-shape R6 instance, and generated models, resource-type dispatch, endpoints, repositories, and search handling keyed to the old type need an explicit migration. However, this was an FMM 0 trial-use resource, public evidence for routine production exchange is limited, and R6 Evidence appears to be the broader replacement model for the same evidence-variable, statistic, and certainty concepts. Preserving the old resource identity in base R6 would reduce migration pain but would also leave duplicate resource identities for overlapping content.",
+        "keyEvidence": [
+          "R4 StructureDefinition-RiskEvidenceSynthesis.json: id/type/url are RiskEvidenceSynthesis, status draft, FMM 0, standards status trial-use.",
+          "R6 package .index.json and absent file check: no StructureDefinition entry or file for RiskEvidenceSynthesis.",
+          "R6 CodeSystem-fhir-old-types.json includes code RiskEvidenceSynthesis.",
+          "R6 StructureDefinition-Evidence.json describes evidence variables, statistics, and certainty of evidence.",
+          "Targeted web search checked public IG/vendor registry-style sources and did not find prominent documented production exchange of RiskEvidenceSynthesis."
+        ],
+        "fmmEffect": "R4 FMM 0 and trial-use status substantially soften the stability expectation. I treated the removal as a real break but did not infer broad production impact without specific deployment evidence.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old resourceType has no R6 StructureDefinition, with additional runtime/API/codegen consequences for systems keyed by resource type.",
+        "lessBreakingAlternativeAssessment": "A deprecated RiskEvidenceSynthesis compatibility resource or formal legacy alias could preserve old instances, but it would impose duplicate generated classes, endpoints, search behavior, and long-term support for two base representations of similar evidence content. That is a plausible but materially costly partial alternative rather than a clearly better base design.",
+        "comparisonToExisting": "partially agree with the existing report: it correctly identifies a hard resource identity break and a possible compatibility-resource alternative, but the Critical impact overstates the action concern once FMM 0 and the lack of quick production-use evidence are considered."
+      }
     },
     {
       "findingId": "RiskEvidenceSynthesis:CONVERSION_OR_MAPPING:population-exposure-outcome:variable-definition",
@@ -461,7 +477,23 @@
       "migrationGuidanceMd": "Define role-based mapping rules. For simple R4 instances, create one variableDefinition for each existing population, exposure, and outcome reference, set variableRole accordingly, and choose intended or observed based on migration policy. Add tests for missing optional exposure, multiple R6 variables, Group targets, and covariates that need extensions or cannot round-trip.",
       "backwardCompatibilityAnalysisMd": "The change was probably motivated by a more general evidence model. It could have been made less disruptive by keeping deprecated alias elements or providing a standard ConceptMap and invariants linking aliases to variableDefinition entries.",
       "reviewerNotesMd": "The observed-versus-intended choice is not derivable from the old field name alone. Human review or a project-level policy is needed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RiskEvidenceSynthesis:CONVERSION_OR_MAPPING:population-exposure-outcome:variable-definition",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The old model used named top-level population, exposure, and outcome references, with population and outcome required. The R6 Evidence model instead uses repeatable variableDefinition entries classified by a required variableRole code and separates observed from intended variable definitions, with Group added as a possible reference target. This breaks old generated access patterns and makes R6-to-R4 conversion lossy for covariates, multiple variables, Group references, or cases where observed and intended differ. Still, the R6 design goal is coherent: it generalizes evidence variables beyond the fixed PICO slots and makes roles explicit. Keeping the old named fields alongside variableDefinition would help simple migrations but would create duplicate encodings and consistency rules.",
+        "keyEvidence": [
+          "R4 RiskEvidenceSynthesis.population is 1..1 Reference(EvidenceVariable); exposure is 0..1 Reference(EvidenceVariable); outcome is 1..1 Reference(EvidenceVariable).",
+          "R6 Evidence.variableDefinition is 0..* and Evidence.variableDefinition.variableRole is 1..1 code with required variable-role binding including population, exposure, outcome, and covariate.",
+          "R6 Evidence.variableDefinition.observed and intended each reference Group or EvidenceVariable.",
+          "R4 maturity map: RiskEvidenceSynthesis is FMM 0, trial-use.",
+          "Targeted web search did not find prominent documented production exchange of RiskEvidenceSynthesis."
+        ],
+        "fmmEffect": "FMM 0 softens the compatibility burden, but these paths are central to the artifact's evidence interpretation, so I still considered the concrete mapping and safety consequences rather than dismissing the break outright.",
+        "compatibilityMechanism": "runtime/API/codegen: old code expecting direct .population, .exposure, and .outcome properties must switch to role-based selection; R6-to-R4 loss is also possible for richer variableDefinition cases.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained deprecated population, exposure, and outcome fields or a compatibility wrapper while adding variableDefinition. That would preserve common R4 instances, but it would be incomplete for covariates, multiple variables, Group targets, and observed-versus-intended distinctions, and it would require precedence or invariants when both representations appear.",
+        "comparisonToExisting": "partially agree with the existing High impact and partial alternative analysis: the mapping risk is real and clinically meaningful, but low FMM and the material tradeoffs of retaining duplicate fields make the remodel probably acceptable."
+      }
     },
     {
       "findingId": "RiskEvidenceSynthesis:CONVERSION_OR_MAPPING:risk-estimate-statistic:statistic-remodel",
@@ -636,7 +668,23 @@
       "migrationGuidanceMd": "Build explicit conversion tests for riskEstimate.value/unitOfMeasure, numeratorCount, denominatorCount, sampleSize, and precisionEstimate. Normalize confidence levels from 95 to 0.95 where appropriate, map interval bounds to Range.low/high, and require review where denominatorCount could mean total participants, known data count, or analyzed count. Preserve unmapped details with extensions only with documented semantics.",
       "backwardCompatibilityAnalysisMd": "The statistic remodel is probably justified by the broader Evidence resource, but the old dedicated field names could have been retained temporarily or accompanied by a normative mapping. Without that, migration logic must be locally defined and validated with domain examples.",
       "reviewerNotesMd": "Do not automate denominator/numerator mapping solely by field name. The correct R6 target depends on statistic type and analysis context.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RiskEvidenceSynthesis:CONVERSION_OR_MAPPING:risk-estimate-statistic:statistic-remodel",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 had one optional riskEstimate backbone and one optional top-level sampleSize backbone. R6 Evidence uses repeatable statistic entries with Quantity values, nested sampleSize counts, and repeatable attributeEstimate entries for intervals and related statistical attributes. This is not a simple rename: generated APIs change, confidence interval level changes from 95-style to 0.95-style documentation, and numerator, denominator, participant, known-data, and analyzed counts can require context-sensitive mapping. Even so, the generalized statistic model is a reasonable R6 direction for an immature evidence-synthesis resource because it supports multiple statistics and richer quantitative metadata. Retaining the R4 quantitative structure would preserve simple cases but create duplicate and potentially divergent statistical representations.",
+        "keyEvidence": [
+          "R4 RiskEvidenceSynthesis.riskEstimate is 0..1 with value decimal, unitOfMeasure CodeableConcept required to UCUM, denominatorCount, numeratorCount, and precisionEstimate.",
+          "R4 RiskEvidenceSynthesis.sampleSize is 0..1 with numberOfStudies and numberOfParticipants integer fields.",
+          "R6 Evidence.statistic is 0..* with statistic.quantity Quantity, statistic.sampleSize, and statistic.attributeEstimate.",
+          "R4 precisionEstimate.level definition says use 95 for a 95% interval; R6 attributeEstimate.level says use 0.95.",
+          "R4 maturity map: RiskEvidenceSynthesis is FMM 0, trial-use."
+        ],
+        "fmmEffect": "The FMM 0 trial-use status reduces the expectation that R6 must preserve this exact quantitative shape. I still treated the path as important because incorrect numeric mapping can change the meaning of evidence.",
+        "compatibilityMechanism": "runtime/API/codegen: old riskEstimate and sampleSize accessors do not map mechanically to the R6 statistic model; R6-to-R4 loss can occur for multiple statistics and richer count or attribute distinctions.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept deprecated riskEstimate and sampleSize fields while adding Evidence.statistic. The tradeoff is substantial: duplicate fields would need consistency rules, the old shape cannot naturally express multiple statistics or richer R6 count semantics, and consumers would need to decide which representation is authoritative.",
+        "comparisonToExisting": "partially agree with the existing High impact and partial alternative reasoning: the remodel creates real migration risk, but the generalized statistic model has enough justification and the compatibility alternative has enough cost that the break is probably OK."
+      }
     },
     {
       "findingId": "RiskEvidenceSynthesis:SEMANTIC_OR_CONFORMANCE_TEXT:certainty:certainty-remodel",
@@ -780,7 +828,23 @@
       "migrationGuidanceMd": "Split multi-rating certainty entries when the ratings represent different certainty aspects. Map old certaintySubcomponent.type to R6 certainty.subcomponent.type where possible, map ratings through terminology review, and preserve ambiguous notes or alternate frameworks with extensions or reviewer annotations. Test multi-rating and nested-subcomponent cases.",
       "backwardCompatibilityAnalysisMd": "The recursive certainty model may be justified for richer evidence grading, but allowing repeated rating during a transition or publishing a mapping profile would have reduced data-loss risk.",
       "reviewerNotesMd": "Terminology review is needed because the old evidence-quality and certainty-subcomponent value sets are not the same as R6 certainty-type/certainty-rating bindings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RiskEvidenceSynthesis:SEMANTIC_OR_CONFORMANCE_TEXT:certainty:certainty-remodel",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 certainty allowed multiple ratings on a certainty entry and multiple ratings on each certaintySubcomponent. R6 Evidence.certainty keeps repeatable certainty entries and recursive subcomponents, but each certainty.rating is only 0..1 and the terminology is shifted to example-bound certainty type/rating value sets. The richer R6 model with type, rater, and recursive subcomponents is reasonable, but the local evidence does not show why the rating cardinality needed to narrow. Old content with multiple ratings must be split or collapsed, which can require judgment about whether ratings are alternatives, multiple scales, or separate certainty aspects. A base design that kept rating repeatable while recommending one rating per typed certainty aspect looks comparatively low cost.",
+        "keyEvidence": [
+          "R4 RiskEvidenceSynthesis.certainty.rating is 0..* CodeableConcept with extensible evidence-quality binding.",
+          "R4 RiskEvidenceSynthesis.certainty.certaintySubcomponent is 0..* with type and rating, and certaintySubcomponent.rating is 0..*.",
+          "R6 Evidence.certainty.rating is 0..1 CodeableConcept with example certainty-rating binding.",
+          "R6 Evidence.certainty.subcomponent is recursive through contentReference #Evidence.certainty, and Evidence.certainty.rater is available.",
+          "R4 maturity map: RiskEvidenceSynthesis is FMM 0, trial-use."
+        ],
+        "fmmEffect": "FMM 0 softens the general stability claim, but it does not by itself justify an avoidable cardinality narrowing on a semantic field where migration can be lossy or expert-dependent.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6's recursive model has new expressiveness, while R4 multi-rating certainty fragments cannot be represented as a single R6 certainty entry without splitting or dropping ratings.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: keep Evidence.certainty.rating as 0..* and add guidance that normalized content should usually use one rating per typed certainty entry. This preserves old multi-rating content and still supports rater attribution and recursive subcomponents. The main tradeoff is weaker enforcement of normalization, not duplicate fields.",
+        "comparisonToExisting": "agree with the existing alternative judgment that a less-breaking design was available, and the fresh review treats that avoidable cardinality narrowing as enough to merit Revisit despite the existing Medium impact score."
+      }
     },
     {
       "findingId": "RiskEvidenceSynthesis:TERMINOLOGY_BINDING:evidence-value-sets:binding-shifts",
@@ -894,7 +958,23 @@
       "migrationGuidanceMd": "Do not assume old CodeableConcepts are semantically equivalent just because the target element is also CodeableConcept. Compare value-set expansions, add ConceptMaps for synthesis type, study design/type, statistic type, attribute estimate type, certainty type/rating, and test enum/code-system handling in generated clients.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible terminology path would include old codes in new value sets where meanings are unchanged and publish ConceptMaps where names or granularity changed. The tradeoff is carrying legacy terminology and possibly weaker semantic clarity.",
       "reviewerNotesMd": "Terminology expansion review is required before classifying any individual code as removed, added, or changed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RiskEvidenceSynthesis:TERMINOLOGY_BINDING:evidence-value-sets:binding-shifts",
+        "judgment": "No problem",
+        "narrativeMd": "The binding changes are real, but the evidence shown is mostly terminology remodeling and weakening from required or extensible bindings to example bindings in the R6 Evidence model. That does not demonstrate an R4-valid code becoming invalid in base R6. The main concern is semantic continuity, generated enum assumptions, analytics groupings, or R6-to-R4 conversion where new example-bound codes may not fit older value sets. Those are migration and terminology-governance issues, not a strong R4-to-R6 base compatibility break for this low-FMM artifact.",
+        "keyEvidence": [
+          "R4 synthesisType, studyType, riskEstimate.type, precisionEstimate.type, and certainty.rating use extensible bindings; riskEstimate.unitOfMeasure is required to UCUM units.",
+          "R6 Evidence.synthesisType, statistic.statisticType, attributeEstimate.type, certainty.type, and certainty.rating use example bindings, while studyDesign is extensible.",
+          "R6 Evidence.statistic.quantity is Quantity rather than a separate unitOfMeasure CodeableConcept.",
+          "The existing report notes terminology expansions were not compared, so no code-level removal is established.",
+          "R4 maturity map: RiskEvidenceSynthesis is FMM 0, trial-use."
+        ],
+        "fmmEffect": "Low FMM further reduces concern where the finding is not a demonstrated old-valid/new-invalid base validation break.",
+        "compatibilityMechanism": "semantic/documentation: binding and value-set choices changed and may affect terminology assumptions or reverse conversion, but the local evidence does not show a direct R4-to-R6 base validation failure.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for the reported evidence. Publishing ConceptMaps, including legacy codes where appropriate, or comparing expansions would help migration, but those are terminology governance and mapping aids rather than a necessary base compatibility design change.",
+        "comparisonToExisting": "disagree with the existing Medium impact framing for R4-to-R6 compatibility: the report correctly notes no hard instance break and no demonstrated expansion comparison, but those facts support No problem rather than a material break finding."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1047,5 +1127,19 @@
       "EvidenceVariable target and role changes affect multiple evidence resources",
       "fhir-old-types entries may identify other removed resources needing identity findings"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/RiskEvidenceSynthesis.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 1
+    }
   }
 }

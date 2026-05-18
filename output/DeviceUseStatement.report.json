@@ -289,7 +289,22 @@
       "migrationGuidanceMd": "Treat `DeviceUseStatement` as a removed resource. Inventory existing R4 data, decide whether records should become R6 `DeviceAssociation`, another event/provenance resource, an extension-bearing compatibility resource, or remain in an R4 partition, and test strict R6 validators against converted examples. Do not assume a mechanical rename.",
       "backwardCompatibilityAnalysisMd": "The compatible approach would have been to keep the resource with a deprecated status or publish a formal compatibility profile and cross-version map. Removing the resource may be justified if the R4 design was considered superseded, but it is not backward compatible for stored instances or generated code.",
       "reviewerNotesMd": "Confirm against official HL7 migration notes if available; the local package itself does not state the intended successor.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DeviceUseStatement:ARTIFACT_IDENTITY:root:7a6b23",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 DeviceUseStatement is a concrete resource, while the R6 package has no DeviceUseStatement StructureDefinition or index entry and only keeps the name as an old-type marker. That is a real resource identity break for old instances, generated SDKs, validators, and REST dispatch. I would not send this straight back as a design problem, though: the R4 artifact is FMM 0/trial-use, the adjacent R6 device-association content is also draft/FMM 0, and retaining a deprecated whole resource would impose ongoing endpoint, search, validation, and duplicate-representation costs for low-maturity content.",
+        "keyEvidence": [
+          "R4 StructureDefinition-DeviceUseStatement: concrete DomainResource specialization with status draft, standards status trial-use, and FMM 0.",
+          "R6 package: StructureDefinition-DeviceUseStatement is absent from the filesystem and package index.",
+          "R6 CodeSystem-fhir-old-types contains DeviceUseStatement, indicating a historical type marker rather than a current resource definition.",
+          "Lightweight web search found the base R4 resource page and vendor/example references, but no strong official production-mandated DeviceUseStatement profile."
+        ],
+        "fmmEffect": "FMM 0/trial-use substantially softens the stability concern; I did not treat the resource-level break as high-priority merely because it is hard-breaking.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 resourceType DeviceUseStatement has no native R6 StructureDefinition, so strict R6 validators, parsers, generated models, and REST dispatch code cannot accept it as a core R6 resource.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design could have retained DeviceUseStatement as deprecated or compatibility-only while making DeviceAssociation preferred. That would preserve R4 instances, but it has material tradeoffs: duplicate resource representations, long-term conformance/search/API support, and migration ambiguity for a low-maturity model. I do not see a low-cost base alternative.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the hard break is real and the deprecated-resource alternative is only partial, but the existing High impact reads too strong without stronger production-use evidence for FMM 0 content."
+      }
     },
     {
       "findingId": "DeviceUseStatement:CONVERSION_OR_MAPPING:DeviceAssociation:9e41c8",
@@ -503,7 +518,23 @@
       "migrationGuidanceMd": "Do not migrate by resource-name substitution. Create a mapping table and test cases for each R4 local element. Map `identifier`, `device`, and Patient/Group `subject` directly where possible. Map `timingPeriod` to `period`; require policy for `timingDateTime` and `timingTiming`. Preserve `recordedOn`, `source`, `basedOn`, `derivedFrom`, reasons, and notes via agreed extensions, linked resources such as `Provenance`, or profile-specific rules. Body-site codes may need a `BodyStructure` resource or extension.",
       "backwardCompatibilityAnalysisMd": "The model change may be justified by the need to represent richer device associations, but a backward-compatible migration design would have documented every R4 field and supplied standard extensions or a ConceptMap. Without that, independent implementers are likely to create incompatible local mappings.",
       "reviewerNotesMd": "The successor relationship is inferred from local package content, not proven by an official change note.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceUseStatement:CONVERSION_OR_MAPPING:DeviceAssociation:9e41c8",
+        "judgment": "Unclear",
+        "narrativeMd": "DeviceAssociation is an adjacent R6 resource, but the local evidence does not prove it is the intended successor for every DeviceUseStatement use case. If implementers use it as the migration target, the mapping is not lossless: R4 statement facts such as source, recordedOn, basedOn, derivedFrom, reasons, notes, non-Period timing, and codeable body site do not have direct native homes, while R6 DeviceAssociation introduces operator/focus and broader subject patterns that do not round-trip cleanly. The compatibility risk is credible, but the right base-design judgment depends on missing migration intent: DeviceAssociation might be the intended replacement, only one target among several, or not the preferred target for some statement records.",
+        "keyEvidence": [
+          "R4 DeviceUseStatement root definition describes a patient or clinician reported record of device use.",
+          "R4 local fields include basedOn, derivedFrom, timing[x], recordedOn, source, reasonCode, reasonReference, bodySite, and note.",
+          "R6 DeviceAssociation root definition describes association or dissociation of a device with a subject and/or operator.",
+          "R6 DeviceAssociation local fields include device, relationship, status, statusReason, associationStatus, subject, focus, bodyStructure, and period.",
+          "Local R6 package search found no StructureMap or cross-version ConceptMap for DeviceUseStatement; the exact name appeared only in fhir-old-types."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the compatibility burden, so I would not infer broad production impact from the break alone. The uncertainty remains because the potential transform is lossy and expert-dependent.",
+        "compatibilityMechanism": "R6-to-R4 loss: if DeviceAssociation is used as the successor, forward migration can lose or externalize R4 statement/provenance fields, and reverse migration can encounter R6 subject/focus/association patterns with no clean R4 slot.",
+        "lessBreakingAlternativeAssessment": "Possible base alternatives include keeping deprecated DeviceUseStatement or adding native statement/provenance carriers to DeviceAssociation. Those would preserve more R4 information, but they could make DeviceAssociation a hybrid statement-and-association resource and still would not validate old resourceType values unless the old resource remained. Because the intended successor strategy is not established, the best less-breaking design is also unclear.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the non-isomorphic mapping risk is real if DeviceAssociation is the target, but I am less confident than the existing report that this can be judged as probably justified without an official successor note or mapping."
+      }
     },
     {
       "findingId": "DeviceUseStatement:TERMINOLOGY_BINDING:status:4f2d19",
@@ -752,7 +783,23 @@
       "migrationGuidanceMd": "Define a ConceptMap before migrating. Likely mappings may include `active -> active`, `entered-in-error -> entered-in-error`, and some completed/stopped cases to `inactive`, but `intended` and `on-hold` need special handling. Preserve the original R4 status code in an extension or audit trail whenever the mapping is approximate, and test validation against the R6 required binding.",
       "backwardCompatibilityAnalysisMd": "The R6 split between lifecycle status and association/operational state is cleaner, but backward compatibility would have required either accepting deprecated old codes or providing an official ConceptMap plus a standard place to carry original codes. Without that, implementers must make local policy choices that can diverge.",
       "reviewerNotesMd": "This finding depends on treating `DeviceAssociation` as the migration candidate; the exact R6 `DeviceUseStatement` artifact is absent.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceUseStatement:TERMINOLOGY_BINDING:status:4f2d19",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "For a DeviceAssociation-based migration, status conversion is a real compatibility issue: R4 DeviceUseStatement.status is required and includes use-state values such as completed, intended, stopped, and on-hold, while R6 DeviceAssociation.status is required but limited to association-record lifecycle values active, inactive, entered-in-error, and unknown. Copying old codes can therefore fail required-binding validation or collapse meaning. Still, the R6 split appears coherent: lifecycle status is narrower, with operational or association details available through separate associationStatus/statusReason concepts, and carrying all old use-state codes in the lifecycle status would blur semantics. Given FMM 0, this looks like migration work needing policy rather than a base design that clearly needs reversal.",
+        "keyEvidence": [
+          "R4 DeviceUseStatement.status is 1..1, modifier=true, and required-bound to device-statement-status.",
+          "R4 device-statement-status codes are active, completed, entered-in-error, intended, stopped, and on-hold.",
+          "R6 DeviceAssociation.status is 1..1 and required-bound to deviceassociation-status.",
+          "R6 deviceassociation-status codes are active, inactive, entered-in-error, and unknown.",
+          "R6 DeviceAssociation also has associationStatus and statusReason fields with separate terminology for operational/association details."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability expectation even though status is mandatory within the old resource; the low maturity keeps this from being a Revisit solely due to required-binding incompatibility.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: R4 statuses such as completed, intended, stopped, and on-hold cannot be copied into R6 DeviceAssociation.status, while R6 inactive and unknown are not exact R4 DeviceUseStatement.status values.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could accept deprecated R4 status codes or add a native legacy-status element while using DeviceAssociation.status for lifecycle. That would reduce validation failures but would add semantic ambiguity and duplicate status channels; a ConceptMap alone would be useful migration support but not a less-breaking base R6 design.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the terminology break and partial alternatives are real, but the finding is candidate-successor dependent and FMM 0 makes the existing Medium impact more appropriate than a high-priority revisit."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -891,5 +938,18 @@
       "Event-style resources replaced by association-style resources",
       "Required status binding replacements with different code systems"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DeviceUseStatement.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Unclear": 1,
+      "Breaking but probably OK": 2
+    }
   }
 }

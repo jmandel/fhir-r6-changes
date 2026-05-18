@@ -331,7 +331,21 @@
       "migrationGuidanceMd": "Do not blindly default all migrated records to one intent. Build a policy that derives `intent` from workflow context, author role, request source, profile, or business rules, and route ambiguous cases for review. Test at least proposal/plan/order/option cases and any unsupported R6 codes such as `solicit-offer` or `offer-response`.",
       "backwardCompatibilityAnalysisMd": "The change appears aligned with broader workflow consistency, but it is not backward-compatible because it requires new semantic information. A base optional element plus profile-level requiredness would have allowed R4 data to validate while encouraging richer R6 semantics.",
       "reviewerNotesMd": "The R6 request-intent CodeSystem contains new solicitation-related child codes relative to R4 request-intent terminology, but R4 CommunicationRequest did not bind to request-intent at all, so the primary break here is the new required local element.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CommunicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:CommunicationRequest.intent:9a4b7d",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 adds `CommunicationRequest.intent` as a required 1..1 modifier code, while R4 has no corresponding element. That makes every untransformed R4 CommunicationRequest structurally invalid in R6 and requires assigning an authority/intent value that may not be derivable from the R4 instance. The R6 goal of aligning the resource with request workflow semantics is credible, but the combination of requiredness, modifier status, and non-mechanical migration makes this specific change worth renewed design review.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `CommunicationRequest.intent` snapshot element.",
+          "R6 StructureDefinition defines `CommunicationRequest.intent` as min 1, max 1, type `code`, `isModifier=true`, with required `request-intent` binding.",
+          "R4 maturity map and StructureDefinition extensions show CommunicationRequest FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it avoids a normative-stability objection, but it does not soften a broad required modifier addition enough to dismiss the migration risk.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances lack the required R6 `intent`; generated models and workflow logic also gain a required modifier value that cannot always be safely defaulted.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: introduce `intent` as optional in base R6 for a transition period, with warning/profile-based requiredness, or provide an explicit transitional unknown intent. Those alternatives weaken R6's ability to rely on computable request authority, but they would avoid forcing implementers to invent a semantic value for every legacy instance.",
+        "comparisonToExisting": "partially agree: the existing High impact and Partial alternative judgment are directionally right, but the prior probable-justification framing underweights the non-derivable required modifier burden."
+      }
     },
     {
       "findingId": "CommunicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:CommunicationRequest.reason:0d6f52",
@@ -534,7 +548,21 @@
       "validationAndCompatibilityMd": "An R4 instance containing `reasonCode` or `reasonReference` will be rejected by an R6 validator as using unknown elements unless transformed. An R6 instance with `reason.concept` can usually map to R4 `reasonCode`; an R6 `reason.reference` can map to R4 only when the target is Condition, Observation, DiagnosticReport, or DocumentReference.",
       "migrationGuidanceMd": "Rewrite every R4 `reasonCode` item to an R6 `reason` item with `concept`, and every R4 `reasonReference` item to `reason.reference`. For R6-to-R4, route references outside the R4 target set to an extension, a sidecar mapping, or manual review rather than silently dropping them.",
       "backwardCompatibilityAnalysisMd": "The consolidation is understandable because `CodeableReference` directly models concept-or-reference semantics. It was avoidable as a wire break only by retaining the old optional elements as deprecated aliases during a transition period.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CommunicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:CommunicationRequest.reason:0d6f52",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `reasonCode` and `reasonReference` are replaced by a repeatable R6 `reason` CodeableReference. This is a real wire-format and SDK break because the old element names are no longer valid R6 paths. Forward migration is mostly mechanical for R4 shapes, however: codes move to `reason.concept` and references move to `reason.reference`. The R6 design also follows the broader CodeableReference pattern and avoids maintaining parallel reason fields indefinitely.",
+        "keyEvidence": [
+          "R4 defines `CommunicationRequest.reasonCode` as 0..* CodeableConcept with example ActReason binding.",
+          "R4 defines `CommunicationRequest.reasonReference` as 0..* Reference to Condition, Observation, DiagnosticReport, or DocumentReference.",
+          "R6 defines `CommunicationRequest.reason` as 0..* CodeableReference with targetProfile Resource and the same ActReason example binding."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: the path-level break matters, but the maturity level does not create a heightened stability burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 reason element names are not valid R6 elements; there is also R6-to-R4 loss when R6 references resources outside the R4 target list.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain deprecated `reasonCode` and `reasonReference` alongside new `reason`. That would preserve R4 wire compatibility, but it creates duplicate same-meaning fields, ordering and merge rules, and conflict handling when old and new forms are both populated.",
+        "comparisonToExisting": "partially agree: the existing High impact and Partial alternative assessment are reasonable, but after fresh review the break looks proportionate rather than a design that needs reopening."
+      }
     },
     {
       "findingId": "CommunicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:CommunicationRequest.informationProvider:7fd91c",
@@ -714,7 +742,21 @@
       "validationAndCompatibilityMd": "R4 content with `sender` becomes R6-invalid unless renamed. R6 content with one old-compatible provider can map back to R4 `sender`; content with more than one provider, an Endpoint, or a Group cannot map exactly into R4's 0..1 old target set.",
       "migrationGuidanceMd": "Map R4 `sender` to an R6 `informationProvider` array with one item. For R6-to-R4, accept only a single provider whose target type is in the R4 sender list; otherwise preserve the extra information using extensions, sidecar data, or manual review.",
       "backwardCompatibilityAnalysisMd": "The rename improves terminology for a request resource, but it could have been made less disruptive by keeping `sender` as a deprecated compatibility element. The scalar-to-list widening is useful but creates additional reverse-conversion loss.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CommunicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:CommunicationRequest.informationProvider:7fd91c",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `sender` is replaced by R6 `informationProvider`, with cardinality widened from 0..1 to 0..* and target types widened. The old `sender` property is therefore invalid in R6, and generated APIs, serializers, database columns, and FHIRPath references must rename and handle a list. The semantic goal of clarifying that this party provides the information is understandable, but much of that goal could be met by retaining the old path name while updating its definition, cardinality, and target list.",
+        "keyEvidence": [
+          "R4 defines `CommunicationRequest.sender` as 0..1 Reference with summary=true and workflow mapping `Request.performer`.",
+          "R6 defines `CommunicationRequest.informationProvider` as 0..* Reference with the same source definition and workflow mapping.",
+          "R6 adds Endpoint and Group targets for the provider/source role."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it permits more evolution than mature content, but a direct element rename still needs a proportionate reason.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `sender` is no longer a valid R6 element; runtime/API/codegen impact follows from the rename and scalar-to-list shape change.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design is to keep `sender` as the canonical element while widening it to 0..* and adding the new target profiles, then clarify the definition/display text. A deprecated alias for `sender` would create duplicate-field conflict rules, but retaining the old path without an alias would preserve compatibility with relatively modest cost.",
+        "comparisonToExisting": "partially agree: the existing High impact is appropriate, but the prior Partial alternative assessment seems too pessimistic because keeping the old wire name while improving its semantics appears feasible."
+      }
     },
     {
       "findingId": "CommunicationRequest:TYPE_DOMAIN:CommunicationRequest.payload.content:42a8d1",
@@ -902,7 +944,21 @@
       "validationAndCompatibilityMd": "R4 `contentString` is old-valid/new-invalid. `contentAttachment` and `contentReference` remain valid choice arms. R6 `contentCodeableConcept` is not cleanly representable in R4; reducing it to `contentString` loses codings and other CodeableConcept structure.",
       "migrationGuidanceMd": "Map R4 `contentString` to R6 `contentCodeableConcept.text` unless a local terminology can produce a coded concept. For R6-to-R4, preserve codings through an extension or sidecar if round-trip fidelity matters. Update tests and generated-client code for choice property names.",
       "backwardCompatibilityAnalysisMd": "Adding `CodeableConcept` was compatible in principle, but removing `string` forced a wire-format change. The likely benefit is a single richer representation for textual or coded content; the cost is breaking existing string payloads.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CommunicationRequest:TYPE_DOMAIN:CommunicationRequest.payload.content:42a8d1",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 removes the `string` choice from `payload.content[x]` and adds `CodeableConcept`, instructing textual uncoded content to use `contentCodeableConcept.text`. Existing R4 payloads using `contentString` become invalid and generated choice accessors change. Adding codified payload support is a reasonable R6 goal, but removing the simple string representation is not necessary to achieve it and creates an avoidable break for textual communication content.",
+        "keyEvidence": [
+          "R4 `CommunicationRequest.payload.content[x]` allows `string`, `Attachment`, and `Reference(Resource)`.",
+          "R6 `CommunicationRequest.payload.content[x]` allows `Attachment`, `Reference(Resource)`, and `CodeableConcept`, removing `string`.",
+          "R6 comment says uncodified content can use `contentCodeableConcept.text`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it does not by itself make the break unacceptable, but it also does not justify removing a straightforward legacy textual choice when a compatible addition was available.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `contentString` instances are invalid in R6; runtime/API/codegen also changes because the string choice accessor is removed.",
+        "lessBreakingAlternativeAssessment": "Yes: R6 could keep `contentString` while adding `contentCodeableConcept`, possibly deprecating or guiding use of the string form. The tradeoff is duplicate ways to carry text (`contentString` versus `contentCodeableConcept.text`), but that is a manageable modeling/documentation cost compared with invalidating existing textual payloads.",
+        "comparisonToExisting": "agree: the existing High impact and Yes less-breaking alternative judgment match the fresh path-level assessment."
+      }
     },
     {
       "findingId": "CommunicationRequest:TERMINOLOGY_BINDING:CommunicationRequest.status:6cf043",
@@ -1074,7 +1130,21 @@
       "validationAndCompatibilityMd": "R4 `status` values continue to validate in R6. R6 `status=ended` cannot validate against the R4 required value set. R4-era enum switches and analytics code may fall into default/error branches when they encounter the new code.",
       "migrationGuidanceMd": "For R6-to-R4 conversion, do not automatically map `ended` to `completed` or `revoked` unless local workflow evidence supports the choice. Prefer preserving the original code in an extension or flagging for review. Update enum tests to include `ended`.",
       "backwardCompatibilityAnalysisMd": "The new code is a reasonable semantic addition but not backward compatible for R4 required-binding consumers. An extension would have been less disruptive but less interoperable in base R6.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CommunicationRequest:TERMINOLOGY_BINDING:CommunicationRequest.status:6cf043",
+        "judgment": "No problem",
+        "narrativeMd": "The R6 required status binding retains all R4 request-status codes and adds `ended`. No R4 CommunicationRequest becomes invalid because of this terminology change. An R6-to-R4 downgrade or closed-enum consumer must decide what to do with `ended`, but that is the usual reverse-direction consequence of adding an expressive code, not a base R4-to-R6 compatibility problem.",
+        "keyEvidence": [
+          "R4 `CommunicationRequest.status` has required binding to `request-status|4.0.1`.",
+          "R6 `CommunicationRequest.status` has required binding to `request-status|6.0.0-ballot4`.",
+          "Local terminology comparison shows R4 codes retained and R6 adding `http://hl7.org/fhir/request-status#ended`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; because the change is additive for R4-to-R6 validation, maturity does not raise it to a revisit issue.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `ended` has no exact R4 required-binding equivalent, but there is no old-valid/new-invalid instance break.",
+        "lessBreakingAlternativeAssessment": "Not applicable as a less-breaking R4-to-R6 base design because all R4 codes remain valid. Avoiding the new code would reduce R6 expressiveness rather than preserve old instances; downgrade guidance or mapping could help legacy consumers but is not a base compatibility design.",
+        "comparisonToExisting": "disagree: the existing report correctly identifies reverse-direction handling, but its Medium overall impact overstates the path-level R4-to-R6 compatibility concern."
+      }
     },
     {
       "findingId": "CommunicationRequest:REFERENCE_TARGET:requester-recipient:aa21be",
@@ -1239,7 +1309,21 @@
       "validationAndCompatibilityMd": "Old requester and recipient references remain valid under the wider R6 target sets. New R6 requester Group and recipient Endpoint references are not valid R4 `CommunicationRequest` references under the corresponding element definitions.",
       "migrationGuidanceMd": "For R6-to-R4, detect requester Group and recipient Endpoint. If exact R4 validation is required, use extensions or reject/queue those instances. Do not coerce Endpoint to Organization or Device unless local profiles define such a mapping.",
       "backwardCompatibilityAnalysisMd": "Because the change widens R6 without rejecting R4 data, it is relatively compatibility-friendly in the forward direction. The reverse gap is inherent unless R4 is extended.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CommunicationRequest:REFERENCE_TARGET:requester-recipient:aa21be",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens target profiles by allowing Group as a requester and Endpoint as a recipient. Existing R4 requester and recipient references remain within the R6 target domains, so the change does not invalidate R4 instances. Older R4 validators or allow-list code may reject the new R6 targets, but that is a reverse/interoperability consideration from a compatible widening.",
+        "keyEvidence": [
+          "R4 `CommunicationRequest.requester` targetProfiles exclude Group; R6 includes Group.",
+          "R4 `CommunicationRequest.recipient` targetProfiles exclude Endpoint; R6 includes Endpoint.",
+          "No R4 target profile is removed from either element."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, and the additive target-domain change is already compatibility-preserving for R4-to-R6.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using requester Group or recipient Endpoint may not fit R4 target lists; no R4-valid reference is made invalid in R6.",
+        "lessBreakingAlternativeAssessment": "Not applicable: this is a widening of allowed targets. A narrower R6 target list would only reduce new use cases and would not preserve any additional R4-valid instances.",
+        "comparisonToExisting": "partially agree: the existing Not applicable alternative assessment is right, but the Medium impact framing overstates a pure R4-to-R6 widening."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1464,5 +1548,19 @@
       "status required value sets adding ended",
       "actor/source field renames from sender/performer to informationProvider-style names"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/CommunicationRequest.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 1,
+      "No problem": 2
+    }
   }
 }

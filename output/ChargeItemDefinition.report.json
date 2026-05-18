@@ -301,7 +301,22 @@
       "validationAndCompatibilityMd": "An R4-valid `ChargeItemDefinition` instance becomes invalid or unprocessable in R6 core validation because there is no R6 base definition for the resource. R6-to-R4 representability is not directly applicable for this finding because there is no R6 `ChargeItemDefinition` content to convert back.",
       "migrationGuidanceMd": "Inventory all stored `ChargeItemDefinition` instances and canonical references. Decide whether to keep them in an R4 compatibility store, publish a custom R6 profile/extension package that preserves the resource-like content, or transform selected fields into other R6 financial structures. Tests should include resource-type recognition, canonical URL resolution, and server capability behavior.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative would have been to retain the resource as deprecated or to provide an official compatibility package. That would avoid hard validation breaks but might conflict with an R6 design choice to remove low-maturity financial definition content from core.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ChargeItemDefinition:ARTIFACT_IDENTITY:root:6f3a0b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 defines `ChargeItemDefinition` as a concrete core resource, while the R6 ballot package has no matching StructureDefinition or package-index entry. That is a real top-level break: an R4 instance with `resourceType: \"ChargeItemDefinition\"` cannot be treated as an R6 core resource, and canonical/resource-type lookup fails. The break is softened, however, by the artifact's R4 FMM 0, draft/trial-use status, and by the R4 description warning that the resource is only a rough structure requiring profiling. A quick public-use search found specification and related IG mentions but not clear evidence of broad direct production dependence on this resource. Given that context, retiring the core resource is disruptive but plausibly proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition defines canonical `http://hl7.org/fhir/StructureDefinition/ChargeItemDefinition`, kind `resource`, type `ChargeItemDefinition`, abstract `false`.",
+          "R4 metadata marks the artifact trial-use/FMM 0 and describes it as a rough billing-code definition structure requiring profiling.",
+          "R6 local package has no `StructureDefinition-ChargeItemDefinition.json`; R6 `.index.json` has no entry containing `ChargeItemDefinition`.",
+          "Lightweight web search for public production/IG use found FHIR/spec documentation and related IG mentions, but no clear direct evidence of broad production dependence."
+        ],
+        "fmmEffect": "FMM 0 and trial-use status substantially reduce the stability expectation. Billing relevance keeps the change from being dismissed, but absent strong production-use evidence the hard break does not by itself justify Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `ChargeItemDefinition` resource instance and canonical URL have no R6 core StructureDefinition to validate or resolve against.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have retained `ChargeItemDefinition` as deprecated or informational, preserving validation, canonical resolution, and generated resource identity. The tradeoff is material: R6 core and tooling would continue carrying a rough FMM 0 resource and a legacy/parallel representation that the base model may no longer want to support.",
+        "comparisonToExisting": "partially agree with the existing High-impact and Partial-alternative assessment: the hard break is real, but the fresh FMM-weighted review treats it as proportionate rather than automatically needing standards redesign."
+      }
     },
     {
       "findingId": "ChargeItemDefinition:CONVERSION_OR_MAPPING:ChargeItemDefinition.propertyGroup:2d1c4a",
@@ -428,7 +443,22 @@
       "migrationGuidanceMd": "Treat migration as a business-rule redesign. Map price components only when the target business context is clear, preserve unmapped applicability expressions in governed extensions or sidecar metadata, and require review by billing-domain owners. Regression tests should cover examples where a price component applies only under a condition.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative would have supplied an official mapping and extension strategy for the removed resource. Because no such map is present locally, implementers must invent local mappings, which increases interoperability risk.",
       "reviewerNotesMd": "Human review should decide whether R6 `Invoice` content is an acceptable operational target or whether these R4 artifacts must remain as definitional metadata outside R6 core.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ChargeItemDefinition:CONVERSION_OR_MAPPING:ChargeItemDefinition.propertyGroup:2d1c4a",
+        "judgment": "Revisit",
+        "narrativeMd": "At the affected paths, R4 `ChargeItemDefinition.applicability` and `ChargeItemDefinition.propertyGroup` carry the resource's central reusable billing-rule semantics: applicability expressions plus grouped price components under shared conditions. The nearby R6 surfaces checked locally (`Invoice.lineItem.priceComponent`, `DeviceDefinition.chargeItem`, and `MonetaryComponent`) preserve some charge or monetary data but do not preserve a canonical reusable definition with definition-level and group-level expression logic. A system using these rules to decide when a charge or price component applies would need expert policy choices, not just a mechanical transform. Even with FMM 0, this central, billing-relevant, lossy migration deserves renewed design/mapping attention.",
+        "keyEvidence": [
+          "R4 `ChargeItemDefinition.applicability` is repeatable and contains `description`, `language`, and Boolean-valued `expression` children.",
+          "R4 `ChargeItemDefinition.propertyGroup` groups repeatable `applicability` and `priceComponent` children under shared conditions.",
+          "R6 `Invoice.lineItem.priceComponent` uses `MonetaryComponent` for invoice price transparency, not a reusable canonical definition.",
+          "R6 `DeviceDefinition.chargeItem` has charge item code/reference, count, effective period, and use context, but no expression-based property-group model."
+        ],
+        "fmmEffect": "FMM 0 softens expectations and argues against assuming broad installed-base impact. It does not erase concern here because the affected paths are central to the artifact's purpose and migration can change billing-rule behavior.",
+        "compatibilityMechanism": "old-valid/new-invalid plus semantic migration loss: the resource removal makes old instances invalid as R6 core, and the specific applicability/property-group semantics have no lossless base R6 target in the checked replacement surfaces.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could retain the legacy resource or introduce a formal R6 successor that carries canonical lifecycle metadata, applicability expressions, and grouped price components while marking the old shape deprecated. That has real cost because it keeps or creates a definitional charge-rule surface alongside R6 invoice/device monetary structures, but the current package evidence leaves a central migration gap.",
+        "comparisonToExisting": "partially agree with the existing High-impact/Partial-alternative assessment. I agree the mapping is not lossless, and I judge it more action-worthy at this path because the lost semantics are central and expert-dependent despite low FMM."
+      }
     },
     {
       "findingId": "ChargeItemDefinition:TERMINOLOGY_BINDING:ChargeItemDefinition.propertyGroup.priceComponent.type:7b9e12",
@@ -596,7 +626,22 @@
       "migrationGuidanceMd": "Use a ConceptMap or explicit migration rule from R4 `deduction` to R6 `discount`, and preserve the original code in `MonetaryComponent.code`, an extension, or audit metadata if local semantics require distinguishing deductions from discounts. Test reducers that calculate totals and analytics that group by price component type.",
       "backwardCompatibilityAnalysisMd": "The least disruptive terminology design would keep `deduction` as a deprecated code or publish an official concept map. R6 instead appears to simplify the code set, which improves conceptual consistency but creates a migration decision for old data.",
       "reviewerNotesMd": "Confirm against official R6 terminology pages or ballot notes before treating `discount` as the only sanctioned target for all R4 deductions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ChargeItemDefinition:TERMINOLOGY_BINDING:ChargeItemDefinition.propertyGroup.priceComponent.type:7b9e12",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "If R4 `priceComponent` data is migrated into R6 `MonetaryComponent`, the R4 required code `deduction` cannot be preserved literally because R6 `price-component-type` has no separate `deduction` concept. The likely migration is to R6 `discount`, whose definition explicitly says it reduces cost and is sometimes referred to as a deduction. That is a real code-preservation break and may affect analytics that distinguished deductions from discounts, but the core financial meaning appears mostly preserved and the mapping target is itself only an inferred replacement because the R6 package has no `ChargeItemDefinition` successor.",
+        "keyEvidence": [
+          "R4 `ChargeItemDefinition.propertyGroup.priceComponent.type` has a required binding to `invoice-priceComponentType|4.0.1`.",
+          "R4 `CodeSystem-invoice-priceComponentType` includes separate `deduction` and `discount` codes.",
+          "R6 `MonetaryComponent.type` has a required binding to `price-component-type|6.0.0-ballot4`.",
+          "R6 `CodeSystem-price-component-type` has `discount` but no `deduction`; the `discount` definition says it is sometimes referred to as a deduction."
+        ],
+        "fmmEffect": "The affected R4 artifact is FMM 0/trial-use, and this terminology issue is conditional on an inferred migration path, so low maturity materially softens the concern. Billing analytics relevance keeps it as a real migration issue rather than no problem.",
+        "compatibilityMechanism": "old-valid/new-invalid, conditional on mapping to `MonetaryComponent`: an R4 component using `type: \"deduction\"` cannot satisfy the R6 required `MonetaryComponent.type` binding without recoding.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `deduction` in `price-component-type` as a deprecated synonym while preferring `discount` for new content. That would be less breaking and fairly direct, but it would add overlapping reduction codes to a shared R6 datatype and require normalization rules for validators, analytics, and billing reports.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that a less-breaking terminology design exists, but I lower the action judgment because the semantic replacement is explicit, the successor path is inferred, and FMM 0 reduces the case for redesign."
+      }
     },
     {
       "findingId": "ChargeItemDefinition:SERIALIZATION_OR_CODEGEN:root:a4d8c1",
@@ -692,7 +737,22 @@
       "validationAndCompatibilityMd": "Strict parsers may reject the instance before field validation with an unknown-resource error. Lenient parsers can store JSON as an unknown resource, but that is not R6 conformance and does not preserve typed accessors, search parameters, or server behavior.",
       "migrationGuidanceMd": "Separate versioned code paths are likely required. Keep R4 models for archived definitions, create an explicit local compatibility model, or transform content into supported R6 artifacts before it reaches R6-only APIs. Include parser/serializer round-trip tests for unknown-resource handling.",
       "backwardCompatibilityAnalysisMd": "Keeping a deprecated R6 type would have preserved generated APIs but at the cost of retaining a removed resource in the core model. A separate compatibility package is a more explicit compromise.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ChargeItemDefinition:SERIALIZATION_OR_CODEGEN:root:a4d8c1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Generated R6 models, serializers, resource enums, and parser dispatch tables normally come from core StructureDefinitions and the package index. Because R6 has no `ChargeItemDefinition` entry, an R4 application that compiled against a native `ChargeItemDefinition` model or accepted that resource type will need a custom compatibility package or transform. This is a real runtime/API/codegen break, but it is the direct tooling consequence of retiring a draft FMM 0 resource, so it is probably proportionate if the resource retirement itself is accepted.",
+        "keyEvidence": [
+          "R4 includes a concrete `ChargeItemDefinition` StructureDefinition and package-index entry, enabling generated resource-specific models.",
+          "R4 root constraint `cid-0` explicitly references code generation naming expectations for this resource.",
+          "R6 package search/index evidence shows no core `ChargeItemDefinition` StructureDefinition.",
+          "The codegen break follows from absence of a computable R6 source artifact rather than from a separate element-level shape change."
+        ],
+        "fmmEffect": "FMM 0/trial-use status lowers the expectation that R6 generators must preserve a native class for this resource. The impact remains real for implementers who adopted it, but low maturity and rare-use evidence make it less disproportionate.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 generators have no core artifact from which to emit a `ChargeItemDefinition` class, parser branch, schema component, or resource-type enum entry.",
+        "lessBreakingAlternativeAssessment": "Keeping a deprecated R6 core StructureDefinition would let generators continue producing a legacy model and serializer path. That is less breaking, but it forces every conformant R6 tooling stack to carry obsolete API surface and blurs whether accepting the resource is genuine R6 support or legacy tolerance.",
+        "comparisonToExisting": "partially agree with the existing High-runtime-risk and Partial-alternative assessment. The runtime break is genuine, but as a derivative consequence of an FMM 0 resource removal it is probably acceptable rather than independently calling for redesign."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -861,5 +921,18 @@
       "R4 priceComponent.type `deduction` to R6 MonetaryComponent.type `discount` mappings",
       "R4 definition resources replaced by transaction-context elements"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ChargeItemDefinition.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3
+    }
   }
 }

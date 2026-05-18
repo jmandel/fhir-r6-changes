@@ -325,7 +325,22 @@
       "migrationGuidanceMd": "Inventory all `scope` values and define an implementation-specific mapping, most likely to `Consent.category` or a cross-version extension when a lossless mapping is required. Re-test rules that previously depended on `patient-privacy`, `research`, `adr`, or `treatment`, including cases where R4 constraints required a patient.",
       "backwardCompatibilityAnalysisMd": "The change could have been staged more compatibly by keeping `scope` as deprecated/optional and adding R6 elements in parallel. The cost would have been overlap and possible disagreement between `scope` and the new model, but existing R4 instances would not all need structural rewrites.",
       "reviewerNotesMd": "Human review is needed to decide whether a former scope code should become `category`, `regulatoryBasis`, a profile slice, or an extension in a particular implementation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.scope:0c42a1",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 made `Consent.scope` a required, modifier-marked high-level purpose element, while R6 has no same-path element and makes `category` optional with only an example binding. That means ordinary R4 Consent instances fail strict R6 validation unless transformed, and the transform is not guaranteed to preserve whether the consent is for privacy, treatment, research, or advance directives. Because this path influences consent interpretation rather than just display, the removal looks disproportionate without a transitional base element.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.scope` is 1..1 CodeableConcept, `isModifier=true`, extensible `consent-scope` binding.",
+          "R6 StructureDefinition: no `Consent.scope`; `Consent.category` is 0..* with example `consent-category-example` binding.",
+          "R4 root `ppc-2` through `ppc-5` scope/patient constraints are absent from R6 local constraints.",
+          "R4 maturity map: Consent is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it does not create normative stability expectations, but it also does not excuse removing a required modifier-like purpose field with access-control relevance.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing required `scope` carry an element not allowed by base R6; semantic loss is likely if no explicit category or policy mapping is made.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design is plausible: retain `scope` as 0..1 deprecated while adding the R6 category/policy model and guidance for conflicts. The tradeoff is a second classification axis that could disagree with newer fields, but that seems manageable compared with invalidating every conformant R4 instance.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial-alternative assessment; the fresh review places more weight on the required modifier-like removal and therefore treats this as a Revisit item."
+      }
     },
     {
       "findingId": "Consent:TERMINOLOGY_BINDING:Consent.status:6e2d9c",
@@ -502,7 +517,22 @@
       "migrationGuidanceMd": "Create an explicit status migration table and review historical uses of `proposed` and `rejected`. Test enforcement behavior for active, inactive, not-done, unknown, and entered-in-error, because treating `not-done` like R4 `rejected` may be wrong for some workflows.",
       "backwardCompatibilityAnalysisMd": "The code-set simplification may be justified, but it would have been less disruptive with deprecated legacy codes or a formal cross-version ConceptMap. The tradeoff is that required bindings are meant to be precise, and carrying old values can blur lifecycle semantics.",
       "reviewerNotesMd": "No official R4-to-R6 status ConceptMap was found in the supplied packages.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:TERMINOLOGY_BINDING:Consent.status:6e2d9c",
+        "judgment": "Revisit",
+        "narrativeMd": "`Consent.status` keeps the same path and required binding strength, but R6 removes the R4 `proposed` and `rejected` codes and adds `not-done` and `unknown`. Because status is a modifier, code-set changes affect validators, enum models, and enforcement logic, not just terminology metadata. Retaining deprecated R4 lifecycle codes for a transition appears feasible enough that the direct required-binding break deserves renewed review.",
+        "keyEvidence": [
+          "R4 CodeSystem `consent-state-codes`: `draft`, `proposed`, `active`, `rejected`, `inactive`, `entered-in-error`.",
+          "R6 CodeSystem `consent-state-codes`: `draft`, `active`, `inactive`, `not-done`, `entered-in-error`, `unknown`.",
+          "R4 and R6 StructureDefinitions both bind `Consent.status` required and mark it as a modifier.",
+          "R4 maturity map: Consent is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, so the decision turns on the modifier status and direct required-code removal rather than a strong stability promise.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `status` of `proposed` or `rejected` fail R6 required terminology validation; R6 `not-done` and `unknown` are also lossy in R4.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could include `proposed` and `rejected` as deprecated status codes while adding the new R6 codes and explicit migration guidance. The tradeoff is a larger modifier vocabulary with non-equivalent lifecycle states, but the compatibility benefit is substantial and the old codes are not mere display aliases.",
+        "comparisonToExisting": "partially agree with the existing high impact; disagree with treating the compatibility alternative as only weakly compelling because keeping deprecated required-binding codes is a real base-design option."
+      }
     },
     {
       "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.patient-subject:91ad7f",
@@ -653,7 +683,22 @@
       "validationAndCompatibilityMd": "R4 JSON containing `patient` is not valid R6 JSON. R6 JSON containing `subject` is not valid R4 JSON, and if the subject is not a Patient there is no base R4 target to use. FHIRPath such as `Consent.patient.exists()` and search code using the R4 patient/consentor parameters must be updated.",
       "migrationGuidanceMd": "Map `patient` to `subject` when the reference target is Patient. For R6-to-R4, allow only Patient subjects for lossless downgrade; otherwise use an extension or reject downgrade. Test patient, group, practitioner, and research-subject cases separately.",
       "backwardCompatibilityAnalysisMd": "The broader subject domain is justified by R6 use cases, but a staged alias/deprecation approach would have avoided immediate validation failure for patient-only R4 data.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.patient-subject:91ad7f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 replaces the patient-specific wire path with `Consent.subject` and allows non-patient subjects. Patient-centered R4 data needs a field rename, but the Patient-to-subject mapping is usually mechanical, and the broader subject model is a coherent R6 goal. The less-breaking alias options would duplicate the central subject of the consent or keep an increasingly misleading `patient` name.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.patient` is 0..1 Reference targeting Patient.",
+          "R6 StructureDefinition: `Consent.subject` is 0..1 Reference targeting Patient, Practitioner, ResearchSubject, or Group.",
+          "No R6 `Consent.patient` element is present.",
+          "R4 maturity map: Consent is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; it leaves room for a model correction when the new subject domain is broader than patients.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 JSON with `patient` is not base R6, generated properties change, and R6 non-Patient subjects cannot be represented in base R4.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would keep `patient` as a deprecated Patient-only alias while adding `subject`, or broaden the old element despite its name. Both preserve many R4 instances but create duplicate subject representations or awkward semantics for groups, practitioners, and research subjects.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard/codegen and reverse-representability break, but the fresh review gives more weight to the material tradeoffs of a subject alias."
+      }
     },
     {
       "findingId": "Consent:TYPE_DOMAIN:Consent.dateTime-date:34b0ef",
@@ -788,7 +833,22 @@
       "migrationGuidanceMd": "Do not blindly rename `dateTime` to `date`. Decide whether the R4 value represents agreement date, statement creation, or indexing. Preserve time precision in an extension, provenance record, or audit trail when needed. Add fixtures with date-only, full timestamp, timezone, and missing-date cases.",
       "backwardCompatibilityAnalysisMd": "The model could have introduced a new `date` field while keeping `dateTime` deprecated. That would preserve old instances and allow implementers to move from operational timestamp to legal execution date over time.",
       "reviewerNotesMd": "Legal and privacy workflows may distinguish consent execution date from record creation/indexing time.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:TYPE_DOMAIN:Consent.dateTime-date:34b0ef",
+        "judgment": "Revisit",
+        "narrativeMd": "This is more than a rename: R4 stored a `dateTime` for issuance, creation, or indexing, while R6 stores a date-only agreement date. Existing timestamp values are invalid at the old path and cannot be moved without losing time precision and possibly changing the business meaning. Keeping the old operational timestamp while adding the new executed-date field would have preserved data and clarified the distinction.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.dateTime` is 0..1 `dateTime` with creation/indexing semantics.",
+          "R6 StructureDefinition: `Consent.date` is 0..1 `date` with agreement/execution semantics.",
+          "R6 also adds root `Consent.period`, confirming temporal remodeling rather than a simple rename.",
+          "R4 maturity map: Consent is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but legal and audit uses of consent timestamps make the lossy type and meaning change important.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `dateTime` is not an R6 element; migration to R6 `date` can truncate time and confuse record/indexing time with agreement date.",
+        "lessBreakingAlternativeAssessment": "A strong less-breaking design exists: retain deprecated `dateTime` for legacy statement or indexing time and add `date` for executed date. The tradeoff is two temporal fields requiring guidance, but they represent distinct concepts rather than duplicate names for the same fact.",
+        "comparisonToExisting": "agree with the existing impact and less-breaking alternative direction; the fresh review confirms this as a Revisit item."
+      }
     },
     {
       "findingId": "Consent:REFERENCE_TARGET:Consent.performer-organization-participants:bb7a13",
@@ -968,7 +1028,22 @@
       "validationAndCompatibilityMd": "Untransformed R4 `performer` and `organization` elements are invalid in R6. R6 `grantor`, `grantee`, `manager`, and `controller` are invalid in R4. R6 references to CareTeam, Group, or HealthcareService in grantor/grantee cannot be expressed in R4 performer without extensions because those target profiles were not allowed.",
       "migrationGuidanceMd": "Use local business rules, profiles, or provenance to classify each R4 performer as grantor and/or grantee. Map R4 organization to R6 manager only if it really represents lifecycle management; use controller for enforcement actors. Flag ambiguous records for manual review.",
       "backwardCompatibilityAnalysisMd": "The split is probably justified because role ambiguity is dangerous for consent enforcement. A deprecated aggregate `performer` would have reduced validation breakage but prolonged ambiguity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:REFERENCE_TARGET:Consent.performer-organization-participants:bb7a13",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 removes the overloaded R4 actor fields and replaces them with role-specific grantor, grantee, manager, and controller fields. This is a real break for instances and code, and R4 performer data may require human classification. However, the old element explicitly mixed grantor and grantee semantics, so retaining it as an aggregate compatibility field would preserve the ambiguity that R6 is trying to remove.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.performer` is 0..* Reference and its definition covers either Grantor or Grantee.",
+          "R4 StructureDefinition: `Consent.organization` is 0..* Reference(Organization) for the organization managing the consent.",
+          "R6 StructureDefinition: `Consent.grantor`, `Consent.grantee`, `Consent.manager`, and `Consent.controller` are added role-specific fields.",
+          "R4 maturity map: Consent is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; role clarity for consent authority and enforcement can justify a larger migration burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `performer` and `organization` are not base R6; R6 role-specific actors and widened targets are lossy when downgraded to base R4.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain deprecated aggregate `performer` and `organization` alongside the explicit R6 roles. That preserves old instances but forces precedence and conflict rules and can keep unsafe ambiguity about who granted, accepted, managed, or enforced the consent.",
+        "comparisonToExisting": "agree with the existing impact and partial-alternative assessment; the break is real but proportionate to the role-disambiguation goal."
+      }
     },
     {
       "findingId": "Consent:SERIALIZATION_OR_CODEGEN:Consent.source:2f7b65",
@@ -1127,7 +1202,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is usually safe for single-source instances. R6-to-R4 validation fails when more than one source is present or when both attachment and reference are present. Generated clients need API changes from a choice accessor to separate collections.",
       "migrationGuidanceMd": "For R4-to-R6, copy `sourceAttachment` or `sourceReference` into the corresponding R6 array. For R6-to-R4, accept only zero or one total source item unless an extension or external linkage is used. Test serializers with zero, one attachment, one reference, multiple attachments, and mixed sources.",
       "backwardCompatibilityAnalysisMd": "Increasing the choice cardinality would have been more conceptually compatible but may have produced less convenient generated code. The R6 split is understandable, but it requires explicit adapter code.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Consent:SERIALIZATION_OR_CODEGEN:Consent.source:2f7b65",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 modeled source as one 0..1 choice, serialized as a singleton `sourceAttachment` or `sourceReference` property. R6 has separate repeatable `sourceAttachment` and `sourceReference` elements, so a strict R6 JSON representation uses arrays for those fields. That makes source-bearing R4 instances and generated one-choice APIs incompatible without an adapter, but supporting multiple source materials is a reasonable base-resource goal.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.source[x]` is 0..1 choice of Attachment or Reference.",
+          "R6 StructureDefinition: `Consent.sourceAttachment` is 0..* Attachment.",
+          "R6 StructureDefinition: `Consent.sourceReference` is 0..* Reference with the same target resource set.",
+          "FHIR JSON serialization uses arrays for repeating elements, so R6 `0..*` changes the wire shape for populated source fields."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the source field is optional, but source evidence can matter for legal/audit workflows.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: singleton R4 source properties become R6 arrays, and R6 can carry multiple or mixed sources that cannot fit in R4's single choice.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would keep the R4 singleton `source[x]` as a primary or legacy source and add additional-source collections. That would preserve old JSON but creates primary/additional semantics, duplicate source representations, and merge rules.",
+        "comparisonToExisting": "disagree with the existing forward-impact assessment: source-bearing R4 JSON is a hard serialization break because R6 repeatable elements are arrays. Agree that the R6 goal and alternative tradeoffs make the break probably acceptable."
+      }
     },
     {
       "findingId": "Consent:CONSTRAINT:Consent.policy-policyRule:57d421",
@@ -1294,7 +1384,22 @@
       "migrationGuidanceMd": "Classify each R4 policy artifact: map jurisdictional/regulatory codes to `regulatoryBasis`, computable policy references or URIs to `policyBasis.reference`/`policyBasis.uri`, and human policy documents to `policyText`. Preserve unmappable content in extensions and add profile constraints if your implementation still requires a policy basis.",
       "backwardCompatibilityAnalysisMd": "The R6 split is semantically cleaner but could have been introduced compatibly by retaining old fields and weakening `ppc-1` gradually. Removing the invariant may be appropriate for a base resource, but implementations should consider restoring it in profiles.",
       "reviewerNotesMd": "Manual review is needed for R4 `policyRule` values because the element mixed computable policy and regulatory examples.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:CONSTRAINT:Consent.policy-policyRule:57d421",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 required at least one backing policy representation through `policy` or `policyRule`; R6 removes those fields and introduces optional regulatory, computable-policy, and human-readable policy elements. The change breaks old instances and removes a base validation guarantee. Still, the R6 split separates concepts that R4 bundled together, and retaining the old fields would leave overlapping policy facts with difficult precedence rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.policy` is present and `Consent.policyRule` is 0..1 CodeableConcept.",
+          "R4 root constraint `ppc-1`: `policy.exists() or policyRule.exists()`.",
+          "R6 StructureDefinition: `Consent.regulatoryBasis`, `Consent.policyBasis`, and `Consent.policyText` are optional; no local equivalent of `ppc-1` is present.",
+          "R4 maturity map: Consent is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the policy basis is central to consent enforcement, but the old model was not mature enough to demand preservation at all costs.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `policy` and `policyRule` are not base R6; R6 records with no policy basis also cannot satisfy the old R4 invariant.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain deprecated `policy` and `policyRule` while adding the R6 policy fields. It preserves old instances but creates duplicate policy representations, unclear precedence, and continued ambiguity about whether old `policyRule` is regulatory, computable, or textual policy evidence.",
+        "comparisonToExisting": "agree with the existing impact and partial-alternative assessment; this is a significant break, but the semantic cleanup has material value."
+      }
     },
     {
       "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.verification.date:f1c930",
@@ -1467,7 +1572,22 @@
       "validationAndCompatibilityMd": "R4 `verificationDate` is unknown in R6. R6 multiple `date` values, `type`, `verifiedBy`, and Group `verifiedWith` cannot be represented in base R4 without loss or extensions. Generated code must update property names and cardinalities.",
       "migrationGuidanceMd": "Rename `verificationDate` to `date` and wrap the value as a list if your R6 model represents repeatables as arrays. For downgrade, keep only one date or preserve extra dates in extensions/audit records. Validate that the required `verification.verified` remains present for every verification item.",
       "backwardCompatibilityAnalysisMd": "The richer R6 verification model is likely justified, but the simple date rename could have been handled as a compatibility alias or deprecation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.verification.date:f1c930",
+        "judgment": "Revisit",
+        "narrativeMd": "The old optional verification timestamp was renamed from `verificationDate` to a repeatable `date` field while R6 added richer verification metadata. The new capabilities are reasonable, but the path rename and singleton-to-array shape invalidate existing verification evidence even though a deprecated legacy timestamp could have coexisted with the new history model.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.verification.verificationDate` is 0..1 `dateTime`.",
+          "R6 StructureDefinition: `Consent.verification.date` is 0..* `dateTime`.",
+          "R6 StructureDefinition: `Consent.verification.type` and `Consent.verification.verifiedBy` are added.",
+          "R6 StructureDefinition: `Consent.verification.verifiedWith` adds Group as a target."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; verification is optional, but where used it is audit/legal evidence and should not be invalidated by a mostly avoidable path rename.",
+        "compatibilityMechanism": "old-valid/new-invalid plus R6-to-R4 loss: R4 `verificationDate` is not base R6, and R6 multiple dates or verifier metadata cannot be represented in base R4.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could retain deprecated `verificationDate` as 0..1 and add R6 `date`, `type`, and `verifiedBy` for richer verification. The tradeoff is duplicate date fields and consistency guidance, but the old field is narrow and the conflict surface is manageable.",
+        "comparisonToExisting": "partially agree with the existing medium impact and yes-alternative assessment; the fresh review treats the avoidable rename of audit-relevant data as enough to Revisit."
+      }
     },
     {
       "findingId": "Consent:FLAGS_AND_MODIFIERS:Consent.provision.type-decision:aa8e74",
@@ -1670,7 +1790,22 @@
       "migrationGuidanceMd": "Build explicit tests for opt-in, opt-out, nested exception, and multiple-root-provision scenarios. Map simple R4 root `provision.type` to `decision` only after confirming the R4 instance used root type that way. For nested rules, document and test how explicit R4 permit/deny maps to R6 negation semantics.",
       "backwardCompatibilityAnalysisMd": "Moving a decision to a root modifier may be cleaner for R6 evaluators, but retaining `provision.type` as a deprecated explicit override would have reduced migration ambiguity.",
       "reviewerNotesMd": "This finding needs domain review because access-control semantics can be inverted by an incorrect transform.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:FLAGS_AND_MODIFIERS:Consent.provision.type-decision:aa8e74",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 carried permit/deny on `provision.type`; R6 moves the decision to a root modifier and changes provision interpretation. That is a high-risk migration because permit/deny mistakes can invert access decisions. The redesign is nevertheless plausible because dual explicit and inferred decision fields would be dangerous for evaluators, and a root modifier makes the default decision computably non-ignorable.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.provision.type` is 0..1 code, required-bound to `consent-provision-type` with `deny` and `permit`.",
+          "R6 StructureDefinition: `Consent.decision` is 0..1 code, required-bound to the same code set and `isModifier=true`.",
+          "R6 StructureDefinition: `Consent.provision` changes from max 1 to max *.",
+          "R4 and R6 CodeSystem `consent-provision-type` both contain `deny` and `permit`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the safety significance comes from permit/deny semantics, not maturity status.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 `provision.type` is not base R6, R6 `decision` is a new modifier, and multiple R6 root provisions are lossy in R4.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain `provision.type` while adding root `decision`. That preserves old instances but creates two permit/deny mechanisms whose precedence must be exact; disagreement or partial processor support could reverse consent enforcement.",
+        "comparisonToExisting": "agree with the existing high impact and partial-alternative assessment; the break is serious but likely proportionate to the safety and computability goal."
+      }
     },
     {
       "findingId": "Consent:CARDINALITY:Consent.provision.actor.role-reference:18f399",
@@ -1804,7 +1939,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 is not a validation break. R6-to-R4 fails when an actor lacks role or reference. Code written against R4 may dereference actor.role and actor.reference without null checks, so R6 content can produce runtime errors or incomplete enforcement decisions.",
       "migrationGuidanceMd": "When downgrading, reject actor entries missing role or reference unless a local extension can preserve the missing concept. For R6 processing, add null-safe handling and profile constraints if your consent engine requires fully specified actors.",
       "backwardCompatibilityAnalysisMd": "Optional children are backward compatible in the forward direction but reduce guarantees. An invariant requiring at least one child would have preserved most flexibility with better data quality.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:CARDINALITY:Consent.provision.actor.role-reference:18f399",
+        "judgment": "No problem",
+        "narrativeMd": "R6 weakens `provision.actor.role` and `provision.actor.reference` from mandatory to optional and changes the role binding to another extensible ValueSet. That does not invalidate R4 actor entries in R6. It does reduce base guarantees for new R6 data and can complicate downgrade, but this is mainly profile and processing policy rather than a base R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.provision.actor.role` min 1 and extensible `security-role-type` binding.",
+          "R4 StructureDefinition: `Consent.provision.actor.reference` min 1.",
+          "R6 StructureDefinition: both `Consent.provision.actor.role` and `.reference` have min 0.",
+          "R6 StructureDefinition: role binding is extensible `participation-role-type`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; since the forward change is a loosening, maturity does not create a need to preserve the old minimums in base R6.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 actor entries missing role or reference cannot satisfy R4, but R4-valid actor entries remain acceptable in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4 preservation. A data-quality invariant requiring at least one of role or reference might be safer for new R6 content, but it is not a backward-compatibility alternative.",
+        "comparisonToExisting": "disagree with the existing medium compatibility impact for R4-to-R6; the finding is useful migration awareness for downgrade and profiles, but not a base forward break."
+      }
     },
     {
       "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.provision.class:720d8b",
@@ -1973,7 +2123,22 @@
       "validationAndCompatibilityMd": "R4 `provision.class` is unknown in R6. R6 `documentType` and `resourceType` are unknown in R4. Binding changes also affect validation expectations: R6 `resourceType` uses a resource-types ValueSet, while `documentType` is only preferred-bound to consent-content-class.",
       "migrationGuidanceMd": "Classify old `class` codings by system and value. Resource type/profile codes should map to `resourceType`; document/template/MIME/CDA codes should map to `documentType`. Preserve uncertain codings and require human review before using them for enforcement.",
       "backwardCompatibilityAnalysisMd": "The split could have been introduced as additive fields while keeping `class` deprecated. That would have reduced breakage but left ambiguous targeting semantics in place.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.provision.class:720d8b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 used one broad `provision.class` bucket for covered content classes, while R6 splits that into document and resource/profile targeting. R4 instances using `class` need transformation and some codings require human classification. The split is still a reasonable cleanup because the old element mixed document types, resource types, profiles, and other class systems in a way that is hard to evaluate safely.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.provision.class` is 0..* Coding with extensible `consent-content-class` binding.",
+          "R6 StructureDefinition: no `Consent.provision.class`; `Consent.provision.documentType` is 0..* Coding with preferred `consent-content-class` binding.",
+          "R6 StructureDefinition: `Consent.provision.resourceType` is 0..* Coding with extensible `resource-types` binding.",
+          "R4 definition says class can be a FHIR resource type, profile, CDA document, or other type."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; content targeting can affect over- or under-sharing, but the old broad bucket was not a mature stable contract.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `provision.class` is not base R6; R6 `documentType` and `resourceType` collapse lossy back into R4's single class bucket.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain deprecated `class` while adding `documentType` and `resourceType`. It preserves old instances but leaves ambiguous targeting in place and requires merge and conflict rules across three content-selection axes.",
+        "comparisonToExisting": "agree with the existing high impact and partial-alternative assessment; the semantic split is likely worth the migration burden."
+      }
     },
     {
       "findingId": "Consent:SEMANTIC_OR_CONFORMANCE_TEXT:Consent.provision.securityLabel:58c1de",
@@ -2067,7 +2232,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken; if anything, R6 accepts more local terminology. The compatibility issue is behavioral: two R6 systems may exchange security-label codings that pass base validation but are not mutually understood.",
       "migrationGuidanceMd": "Do not rely on base R6 binding strength for security-label interoperability. Define profile bindings or policy-specific allowed code systems for production access-control flows, and test unknown/local security labels explicitly.",
       "backwardCompatibilityAnalysisMd": "The weakening is backward-compatible for instances but less strict. A stronger base binding plus profile-level escape hatches would preserve interoperability but might overconstrain jurisdictions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:SEMANTIC_OR_CONFORMANCE_TEXT:Consent.provision.securityLabel:58c1de",
+        "judgment": "No problem",
+        "narrativeMd": "The binding on `provision.securityLabel` is weakened from extensible to example. That may reduce base-level terminology pressure for interoperable security labels, but it does not make any R4 instance invalid in R6. Production consent enforcement should profile the allowed labels if it needs stronger guarantees.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Consent.provision.securityLabel` binding is extensible to `security-labels`.",
+          "R6 StructureDefinition: `Consent.provision.securityLabel` binding is example to `security-label-example`.",
+          "Element path, type, and cardinality remain `Coding` 0..*.",
+          "R4 maturity map: Consent is trial-use, FMM 2."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the safety importance of labels supports profiling, but the base change is more permissive rather than breaking.",
+        "compatibilityMechanism": "none: this is a conformance weakening, not an old-valid/new-invalid change; risk is local interoperability policy if systems rely on base bindings for security labels.",
+        "lessBreakingAlternativeAssessment": "Not applicable for backward compatibility. Keeping the stronger extensible binding might improve interoperability, but it is not needed to preserve R4 instances and could overconstrain jurisdictions in the base resource.",
+        "comparisonToExisting": "partially agree that security-label semantics are important; disagree with treating this as a material R4-to-R6 compatibility concern."
+      }
     },
     {
       "findingId": "Consent:CONVERSION_OR_MAPPING:Consent.r6-new-fields:4ad6b0",
@@ -2177,7 +2357,22 @@
       "validationAndCompatibilityMd": "R4 validators reject these R6 elements. Lossless downgrade requires extensions, separate policy resources, or rejecting such instances. Code generators and databases need new nullable/repeating fields.",
       "migrationGuidanceMd": "For dual-version systems, define a downgrade policy: either prohibit these R6 fields in R4-compatible profiles, map them to cross-version extensions, or maintain them in a sidecar store. Pay special attention to `provision.expression` because omitting it can make a consent appear broader or narrower than intended.",
       "backwardCompatibilityAnalysisMd": "The additions are forward-compatible by design. The main issue is not avoidability, but the need to document downgrade limitations and avoid silent data loss.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Consent:CONVERSION_OR_MAPPING:Consent.r6-new-fields:4ad6b0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The listed R6 fields are optional additions, so they do not block migration of R4 instances into R6. They do matter for dual-version systems because `provision.expression`, controller/manager actors, richer policy evidence, and verification metadata can carry enforcement-relevant facts that base R4 has no place to store. The additions are justified R6 expressivity, but downgrade must not silently drop them.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `Consent.provision.expression` is 0..1 `Expression`.",
+          "R6 StructureDefinition: `Consent.controller` and `Consent.manager` are added 0..* Reference fields.",
+          "R6 StructureDefinition: `Consent.regulatoryBasis`, `Consent.policyBasis`, and `Consent.policyText` are added policy-related fields.",
+          "R6 StructureDefinition: `Consent.verification.type` and `Consent.verification.verifiedBy` are added."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the concern is not stability of old data but safe handling of new R6 enforcement details when serving R4 clients.",
+        "compatibilityMechanism": "R6-to-R4 loss: optional R6 enforcement, policy, and verification details have no base R4 representation and can change consent meaning if discarded.",
+        "lessBreakingAlternativeAssessment": "Not applicable as a forward R4-to-R6 alternative. Omitting these optional fields would reduce R6 capability rather than preserve old R4 data; downgrade should instead use profiles, extensions, sidecar records, or explicit rejection.",
+        "comparisonToExisting": "agree with the existing reverse-representability concern and not-applicable alternative framing; this is probably OK as an additive R6 design but needs conversion policy."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2364,5 +2559,19 @@
       "required binding code removals",
       "modifier element additions for workflow decision semantics"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Consent.fresh-review.json",
+    "findingDecisionCount": 13,
+    "matchedFindingDecisionCount": 13,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 7,
+      "No problem": 2
+    }
   }
 }

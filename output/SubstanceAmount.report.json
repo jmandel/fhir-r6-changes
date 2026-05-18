@@ -274,7 +274,22 @@
       "migrationGuidanceMd": "Inventory all canonical references and generated classes for `SubstanceAmount`. For each use, map in the context of the parent artifact rather than applying a simple rename. For R4 core usage, analyze `SubstancePolymer` and likely destination modeling in `SubstanceDefinition`; preserve source values in extensions or audit metadata where a lossless mapping is not clear.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible path could have kept the datatype as deprecated or supplied a compatibility profile with a normative ConceptMap. That would have preserved old validators and generated code while allowing new R6 models to prefer context-specific elements. The tradeoff is that R6 would continue carrying a draft R4 datatype abstraction that the ballot model appears to have retired.",
       "reviewerNotesMd": "Confirm against official ballot narrative or change logs before making irreversible migration decisions; the local package evidence proves absence but not the standards workgroup rationale.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceAmount:ARTIFACT_IDENTITY:root:8f6c2a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 defines `SubstanceAmount` as a named complex datatype with a canonical StructureDefinition, while the R6 ballot package has no same-id or same-canonical datatype. That is a real top-level artifact identity break for validators, canonical resolution, profiles, and generated SDKs that know the R4 type. The draft/no-numeric-FMM context and sparse public implementation evidence mean I would not treat this as broad deployed production risk by default. Even so, the identity-only mitigation appears modest: R6 could keep a deprecated legacy StructureDefinition without requiring new R6 substance elements to use it. Because that would preserve canonical/type resolution with limited base-model cost, the removal deserves renewed review.",
+        "keyEvidence": [
+          "R4 package index contains StructureDefinition-SubstanceAmount.json with id/type `SubstanceAmount` and canonical `http://hl7.org/fhir/StructureDefinition/SubstanceAmount`.",
+          "The assigned R6 StructureDefinition-SubstanceAmount.json file is absent, and an exact R6 package-index lookup for filename/id/url/type returned zero SubstanceAmount entries.",
+          "R4 StructureDefinition-SubstanceAmount is a draft complex-type derived from BackboneElement; R4 core references it from three SubstancePolymer amount paths.",
+          "R4 maturity map lists SubstanceAmount as standardsStatus `draft` with no numeric FMM; a quick public web check found mainly specification/reference mentions and no strong direct production-use evidence for SubstanceAmount exchange."
+        ],
+        "fmmEffect": "Draft status and no numeric FMM substantially soften the stability expectation, so the break is not high concern merely because it is breaking. I still chose Revisit because this is a root canonical datatype removal and a deprecated compatibility StructureDefinition looks like a relatively low-cost base-design mitigation.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 validators, profile tooling, generated classes, and canonical-resolution code cannot resolve or generate the old `SubstanceAmount` type from the R6 core package; R4 fragments using the type need transformation before R6 validation.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design exists: retain `StructureDefinition/SubstanceAmount` as a deprecated legacy complex type while steering all new R6 substance modeling to context-specific `SubstanceDefinition` elements. The tradeoff is carrying an obsolete draft abstraction and possible implementer confusion, but for the identity issue it need not create duplicate fields in successor resources.",
+        "comparisonToExisting": "partially agree with the existing High hard-break assessment and Yes alternative judgment; I would soften the implied production blast radius because the source content is draft/low maturity and quick public evidence of direct use is weak."
+      }
     },
     {
       "findingId": "SubstanceAmount:CONVERSION_OR_MAPPING:SubstanceAmount.amount:2b4d91",
@@ -487,7 +502,22 @@
       "migrationGuidanceMd": "Build mappings per parent context. Preserve R4 `Range`, `amountText`, and reference-range limits explicitly when no R6 target is semantically equivalent. For R6-to-R4, decide whether `Ratio` values are out of scope, transformed to strings, or carried in extensions. Test Quantity, Range, string, free-text, low/high reference range, Ratio, and comparator cases separately.",
       "backwardCompatibilityAnalysisMd": "The split may be semantically cleaner because moiety and relationship amounts mean different things, but a compatibility layer could have supplied a lossless transition path. The less-breaking alternative would be explicit cross-version extensions and a ConceptMap documenting each old field's destination and each unsupported R6 field's R4 representation.",
       "reviewerNotesMd": "Because the match to `SubstanceDefinition` is inferred from local definitions, confirm with official R6 narrative before standardizing a transformation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceAmount:CONVERSION_OR_MAPPING:SubstanceAmount.amount:2b4d91",
+        "judgment": "Revisit",
+        "narrativeMd": "The affected amount model is not a clean rename. R4 `SubstanceAmount` kept `amount[x]` as Quantity, Range, or string, plus `amountType`, `amountText`, and a low/high Quantity reference range. The closest R6 substance amount paths are split between `SubstanceDefinition.moiety` and `SubstanceDefinition.relationship`; they use different choice types and do not preserve the separate text and low/high range shape. For systems that actually exchanged these substance-definition values, migration can require expert decisions about whether a range, reference range, or free-text amount becomes an R6 string, Ratio-oriented relationship amount, extension, or curated structured value. Low maturity limits assumed prevalence, but the amount semantics are central to the datatype and can be medicinal-product or regulatory content, so the lossy mapping warrants standards attention.",
+        "keyEvidence": [
+          "R4 `SubstanceAmount.amount[x]` permits Quantity, Range, or string; `amountType` is CodeableConcept; `amountText` is string; `referenceRange.lowLimit` and `.highLimit` are Quantity.",
+          "R6 `SubstanceDefinition.moiety.amount[x]` permits Quantity|string and has `measurementType`; R6 `SubstanceDefinition.relationship.amount[x]` permits Quantity|Ratio|string and has `ratioHighLimitAmount` plus `comparator`.",
+          "R6 amount-type/comparator bindings are example bindings to `http://hl7.org/fhir/ValueSet/substance-amount-type`, not a direct required-code replacement for R4 `amountType`.",
+          "Search of local R4/R6 ConceptMap files found no SubstanceAmount/SubstanceDefinition migration map; the likely target mapping remains context-specific rather than computably one-to-one."
+        ],
+        "fmmEffect": "The draft/no-numeric-FMM context prevents assuming broad deployed harm from the mapping break alone. It does not eliminate concern here because the affected fields are the datatype's core quantitative meaning and lossy or expert-dependent amount migration can matter in substance and medicinal-product data.",
+        "compatibilityMechanism": "R6-to-R4 loss: native R6 Ratio and ratioHighLimitAmount data have no R4 SubstanceAmount choice equivalent, while forward R4-to-R6 migration of Range, amountText, and low/high reference ranges also requires context-specific transformation and may lose computable meaning.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking base design could add Range support and explicit text/reference-range carriers to the relevant R6 amount contexts, or provide a deprecated SubstanceAmount-shaped backbone for transition. That would preserve more R4 values, but it creates duplicate amount representations, context-selection ambiguity, precedence rules, and pressure to keep a generic draft amount model indefinitely. Those tradeoffs are real, but the central/lossy cases are substantial enough to revisit.",
+        "comparisonToExisting": "partially agree with the existing High representability concern and Partial alternative judgment; disagree with the probably-justified framing because the central Range/reference-range/text losses have plausible base-model mitigations even though they carry tradeoffs."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -638,5 +668,17 @@
       "R4 draft complex types derived from BackboneElement that are absent in R6",
       "R6 Ratio-based amount fields without native R4 SubstanceAmount equivalents"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SubstanceAmount.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2
+    }
   }
 }

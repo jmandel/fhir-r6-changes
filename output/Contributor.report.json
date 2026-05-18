@@ -310,7 +310,22 @@
       "migrationGuidanceMd": "Inventory all uses of `Contributor`, including `valueContributor`, profile defaults/fixed/pattern/example values, custom extensions, StructureMaps, and generated APIs. For each use, choose a target: a context-specific `author`/`editor`/`reviewer`/`endorser` element of type `ContactDetail`, a cross-version/custom extension preserving the R4 shape, or manual migration outside the R6 core model. Tests should include unknown role contexts and nested contact details.",
       "backwardCompatibilityAnalysisMd": "The removal could have been made less disruptive by keeping `Contributor` as deprecated in R6 or retaining it in broad choice elements for compatibility. That would preserve old data and codegen shape, but it would also keep a low-use role-bearing datatype if the intended R6 design is to express contribution role through the containing element path.",
       "reviewerNotesMd": "The local package did not contain an official explanation. If an HL7 ballot diff identifies a formal replacement, this finding's migration guidance should be updated.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Contributor:ARTIFACT_IDENTITY:root:6b4a70",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 defines `Contributor` as a concrete datatype, but the R6 package has no matching StructureDefinition, package-index entry, or FHIR type code. That is a real top-level type identity break: validators, profile processors, generic choice handling, and generated SDKs that know the R4 datatype cannot resolve the same canonical/type in R6. The datatype is specialized and trial-use, so I would not infer common production prevalence from the break alone, but complete deletion of a named datatype used by broad choice machinery is stronger than ordinary metadata churn.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Contributor.json: kind=complex-type, type=Contributor, baseDefinition=Element.",
+          "R6 package: no StructureDefinition-Contributor.json and no exact .index.json StructureDefinition entry for Contributor.",
+          "R4 CodeSystem-data-types contains code Contributor; R6 CodeSystem-fhir-types has no Contributor code.",
+          "R4 maturity map reports standardsStatus=trial-use and no numeric FMM for Contributor."
+        ],
+        "fmmEffect": "The available maturity signal is trial-use rather than normative/mature. That softens assumptions about broad production reliance, but it does not eliminate concern because the finding is complete datatype identity removal rather than a narrow element cleanup.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 has no datatype definition or type-system code for an R4 Contributor, so generated classes, validators, serializers, and canonical-resolution tooling lose a formerly valid type identity.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design appears plausible: retain `Contributor` as a deprecated legacy datatype for one release, ideally still available to broad choice elements, while steering role-specific resource metadata toward ContactDetail paths. The tradeoff is carrying an obsolete role-embedded model and extra codegen surface, but that cost seems modest compared with deleting the type outright.",
+        "comparisonToExisting": "partially agree with the existing high hard/runtime impact, but the fresh review adds an explicit less-breaking base alternative and tempers prevalence because the R4 signal is trial-use."
+      }
     },
     {
       "findingId": "Contributor:CONVERSION_OR_MAPPING:Contributor.type:2e91c8",
@@ -496,7 +511,22 @@
       "migrationGuidanceMd": "Do not implement a blanket `Contributor -> ContactDetail` transform without considering the role. Use `Contributor.type` to select a target role-specific element when available. Preserve role as an extension when no role-specific target exists. Review multi-contact cases manually or define deterministic rules for copying nested telecom/name data. Test all four role codes and cases with missing, single, and multiple contact details.",
       "backwardCompatibilityAnalysisMd": "The same design goal could have been met less disruptively by keeping `Contributor.type` while adding preferred role-specific elements, or by publishing a formal extension that preserves the removed role field. Those alternatives would improve round-trip behavior but would require R6 implementations to continue carrying a generic contribution role model.",
       "reviewerNotesMd": "This finding depends on inferred replacement patterns from local StructureDefinitions. Official ballot notes could confirm or change the intended mapping.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Contributor:CONVERSION_OR_MAPPING:Contributor.type:2e91c8",
+        "judgment": "Revisit",
+        "narrativeMd": "`Contributor.type` was required in R4 and carried the role (`author`, `editor`, `reviewer`, or `endorser`) inside the datatype. R6 appears to model these roles through context-specific paths such as `MetadataResource.author`, `editor`, `reviewer`, and `endorser` with `ContactDetail`. That works when the source Contributor is already in a known role context, but it is lossy for generic values such as Parameters, Task inputs/outputs, Extension.value[x], or ElementDefinition fixed/pattern values where the role must remain data rather than be inferred from the containing element name.",
+        "keyEvidence": [
+          "R4 Contributor.type is 1..1 and required-bound to ValueSet contributor-type|4.0.1.",
+          "R4 CodeSystem-contributor-type codes are author, editor, reviewer, and endorser.",
+          "R6 MetadataResource has author/editor/reviewer/endorser elements of type ContactDetail.",
+          "R4 Contributor.name is 1..1, while ContactDetail.name is 0..1 in both R4 and R6."
+        ],
+        "fmmEffect": "Trial-use status lowers the compatibility burden relative to normative content, and the likely use is specialized knowledge-artifact metadata. The concern remains meaningful because the removed field is central to the datatype and conversion can require contextual or human judgment.",
+        "compatibilityMechanism": "R6-to-R4 loss: mapping Contributor to role-specific ContactDetail paths can preserve the role only when the surrounding R6 path is known; generic or standalone Contributor values have no direct R6 field for the required role code.",
+        "lessBreakingAlternativeAssessment": "Retaining a deprecated `Contributor.type` through a legacy Contributor datatype would preserve generic values. Adding a role field to ContactDetail would be less attractive because ContactDetail is broader than contributor roles and could conflict with R6 role-specific paths. The legacy datatype alternative is still a plausible, more compatible base design.",
+        "comparisonToExisting": "partially agree with the existing medium conversion-risk assessment, but the fresh review treats the contextual role mapping as a specific lossy-migration reason to revisit rather than merely a rare semantic inconvenience."
+      }
     },
     {
       "findingId": "Contributor:SERIALIZATION_OR_CODEGEN:valueContributor:9d58f1",
@@ -640,7 +670,22 @@
       "validationAndCompatibilityMd": "An R4 `Parameters` instance with `valueContributor` can be valid in R4 but invalid in R6. R6 parsers may reject the unknown choice suffix, ignore it as an unknown element depending on leniency, or fail codegen binding because no R6 `Contributor` class exists. The reverse direction has only informational risk because R6 does not generate a `Contributor` suffix.",
       "migrationGuidanceMd": "Search payloads, profiles, StructureDefinitions, StructureMaps, and tests for `Contributor`, `valueContributor`, `fixedContributor`, `patternContributor`, `defaultValueContributor`, and `example.valueContributor`. Replace each occurrence with a version-specific parameter contract, a role-specific `ContactDetail` representation, or an extension that explicitly preserves the old R4 Contributor JSON. Include strict-parser tests so unknown choice suffixes do not disappear silently.",
       "backwardCompatibilityAnalysisMd": "Keeping legacy choice suffixes would have preserved transport compatibility for generic containers, but only if R6 also retained enough datatype definition to parse and validate them. If the design goal was to remove Contributor entirely, the type-domain removal is consistent but necessarily breaking.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Contributor:SERIALIZATION_OR_CODEGEN:valueContributor:9d58f1",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a concrete choice-element wire-format break. In R4, broad choice elements could legally serialize a Contributor as properties such as `valueContributor`, `fixedContributor`, `patternContributor`, or default/example Contributor values. R6 removes Contributor from the checked broad choice lists, so those old-valid properties become unknown or invalid and generated R6 APIs will not expose the corresponding choice arm. The practical prevalence may be low, but the mechanism is direct and not just theoretical.",
+        "keyEvidence": [
+          "R4 Parameters.parameter.value[x] includes Contributor; R6 Parameters.parameter.value[x] does not.",
+          "R4 Task.input.value[x] and Task.output.value[x] include Contributor; the R6 Task choice lists do not.",
+          "R4 StructureDefinitions using Contributor as a choice type include Extension.value[x], ElementDefinition default/fixed/pattern/example values, StructureMap defaultValue[x], Parameters, and Task.",
+          "No R6 StructureDefinition snapshot checked contained a type code of Contributor."
+        ],
+        "fmmEffect": "Trial-use status and specialized use reduce expected prevalence, so I would not score this as broadly disruptive by default. Still, FMM/status does not make an old-valid/new-invalid choice suffix harmless when the base datatype disappears.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 JSON/XML choice property using the Contributor suffix is valid against R4 broad choice definitions but has no corresponding R6 type choice or generated accessor.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept Contributor in the FHIR type set and broad choice lists as deprecated legacy support while encouraging new models to use ContactDetail or role-specific paths. The tradeoff is additional validator/codegen surface for a rarely used type, but it would preserve existing serialized data without difficult precedence rules.",
+        "comparisonToExisting": "agree with the existing hard instance and high runtime/codegen concern, while disagreeing with any implication that there is no less-breaking base option; a deprecated legacy choice arm looks feasible."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -803,5 +848,17 @@
       "Role-coded metadata values replaced by role-specific ContactDetail elements",
       "R4 trial-use/draft datatypes with no R6 StructureDefinition counterpart"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Contributor.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3
+    }
   }
 }

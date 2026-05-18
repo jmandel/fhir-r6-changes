@@ -251,7 +251,22 @@
       "validationAndCompatibilityMd": "An R4 instance with the old `resourceType` is old-valid/new-invalid in R6. Conversely, an R6 `Ingredient` resource is not a recognized R4 resource type. This affects validation, REST type URLs, Bundle entries, resource-specific search parameters, and generated class names.",
       "migrationGuidanceMd": "Create an explicit resource-type transform from `MedicinalProductIngredient` to `Ingredient` and then apply the element-level transforms described in the other findings. Test Bundle migration, REST route generation, type discriminator handling, and parser registration.",
       "backwardCompatibilityAnalysisMd": "The observed replacement could have been less disruptive if R6 retained a deprecated resource definition or supplied an official ConceptMap. Without that, every implementation must carry its own compatibility mapping.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:ARTIFACT_IDENTITY:root:0f4b9a",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a top-level wire/API identity break: R4 instances, REST routes, validators, generated classes, and Bundle resource type dispatch using `MedicinalProductIngredient` do not carry forward because R6 only defines `Ingredient`. The old resource was FMM 0, so the stability expectation is weak, but the change affects the whole artifact and the domain has credible regulatory implementation relevance through IDMP/FHIR programs. Because the R6 resource has the same high-level definition, a standards-level transition that retained the old resource name or provided a deprecated compatibility resource would have avoided the first-order resourceType break before any element migration begins.",
+        "keyEvidence": [
+          "R4 StructureDefinition-MedicinalProductIngredient: id/type/url are `MedicinalProductIngredient` and description is `An ingredient of a manufactured item or pharmaceutical product.`",
+          "R6 package contains StructureDefinition-Ingredient and no StructureDefinition-MedicinalProductIngredient; R6 Ingredient has the same description.",
+          "R6 CodeSystem fhir-old-types includes `MedicinalProductIngredient` as an old resource name.",
+          "EMA SPOR/PMS material says HL7 FHIR is replacing XEVPRM for ISO IDMP product data submissions; CH EPL IDMP overview lists MedicinalProductIngredient/Ingredient as the IDMP ingredient resource."
+        ],
+        "fmmEffect": "R4 FMM 0 trial-use softens the general stability claim, but not enough to dismiss a whole-resource identity break in a regulatory medicinal-product area with documented IDMP/FHIR implementation relevance.",
+        "compatibilityMechanism": "runtime/API/codegen: the resourceType, canonical URL, REST type endpoint, parser registration, generated class name, and type switches change from MedicinalProductIngredient to Ingredient; strict instances are also old-valid/new-invalid until transformed.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could plausibly have kept `MedicinalProductIngredient` as the base resource identity while updating definitions and child content, or provided a deprecated compatibility resource for one release. The tradeoff is retaining a longer and medicinal-product-specific name, but that is lower cost than forcing every implementation through an identity remap.",
+        "comparisonToExisting": "agree with the existing high-impact assessment and its view that a less-breaking identity-preserving design was available; the fresh review gives more explicit weight to low FMM but finds regulatory relevance and blast radius still justify Revisit."
+      }
     },
     {
       "findingId": "MedicinalProductIngredient:ELEMENT_PRESENCE_OR_IDENTITY:Ingredient.status:a4c2ef",
@@ -377,7 +392,21 @@
       "validationAndCompatibilityMd": "After mapping the resource name, any migrated R6 `Ingredient` without `status` fails cardinality validation. If `status` is present but outside the publication-status value set, it fails required-binding validation. Runtime consumers must not ignore this modifier because `retired` changes whether the ingredient should be used.",
       "migrationGuidanceMd": "Define a status mapping policy. Common choices are `active` for current production content, `retired` for discontinued ingredient definitions, or `unknown` when source governance is unavailable. Test validation for omitted, invalid-code, active, retired, and unknown statuses.",
       "backwardCompatibilityAnalysisMd": "Making status mandatory is useful but avoidable as a base breaking change. A profile-level requirement or best-practice invariant would have allowed old data to remain base-valid while still supporting stricter regulated workflows.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:ELEMENT_PRESENCE_OR_IDENTITY:Ingredient.status:a4c2ef",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "After the resource is migrated to `Ingredient`, R6 requires `status` and marks it as a modifier. That is a real validation and runtime change because R4 has no local status value to copy, so migration must select `active`, `retired`, `draft`, or `unknown` from external governance or policy. However, lifecycle status is a reasonable base requirement for definitional regulatory content, and the modifier flag addresses the concrete risk of using retired ingredient definitions as if active.",
+        "keyEvidence": [
+          "No R4 `MedicinalProductIngredient.status` element is present in the local StructureDefinition.",
+          "R6 `Ingredient.status` is 1..1 code, required-bound to publication-status, isSummary=true, and isModifier=true.",
+          "R6 definition: `The status of this ingredient. Enables tracking the life-cycle of the content.`"
+        ],
+        "fmmEffect": "R4 FMM 0 trial-use materially softens the concern about adding a required field. Because the field supports lifecycle governance rather than a mere rename, low FMM pushes this toward proportionate break rather than Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-origin Ingredient records without a newly supplied status fail R6 cardinality and required-binding validation; runtime consumers must also account for the modifier semantics.",
+        "lessBreakingAlternativeAssessment": "Partial. Making base `status` 0..1, or requiring it only in profiles, would preserve old data but would weaken the R6 guarantee that every Ingredient can be filtered for active/retired lifecycle state. A defaulting rule such as `unknown` is migration policy, not a less-breaking base design.",
+        "comparisonToExisting": "partially agree with the existing high-impact description, but the fresh judgment gives stronger credit to the low-FMM context and the legitimate lifecycle goal, so it does not recommend Revisit."
+      }
     },
     {
       "findingId": "MedicinalProductIngredient:SERIALIZATION_OR_CODEGEN:manufacturer:7d61aa",
@@ -521,7 +550,22 @@
       "validationAndCompatibilityMd": "R4 manufacturer content becomes invalid in R6 unless each Reference is wrapped in a backbone item. R6-to-R4 conversion can preserve the Organization reference but loses `manufacturer.role` unless an extension is used.",
       "migrationGuidanceMd": "Map each R4 `manufacturer` Reference to a new R6 `manufacturer` backbone with child `manufacturer`. If the source system knows whether the organization is `actual`, `possible`, or `allowed`, populate `manufacturer.role`; otherwise omit it rather than inventing a required-binding code.",
       "backwardCompatibilityAnalysisMd": "The richer R6 model is understandable, but a sibling optional role element or extension would have been less disruptive for existing JSON and generated clients.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:SERIALIZATION_OR_CODEGEN:manufacturer:7d61aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`manufacturer` changes from an array of direct Organization references to an array of backbone elements with a required `manufacturer.manufacturer` child and optional role. Existing JSON and generated SDK accessors must be rewritten. The change is still proportionate: the R6 shape attaches role/context to each manufacturer association, which is regulatory-relevant, and preserving both direct references and association backbones would create parallel representations that can drift.",
+        "keyEvidence": [
+          "R4 `MedicinalProductIngredient.manufacturer` is 0..* Reference targeting Organization.",
+          "R6 `Ingredient.manufacturer` is 0..* BackboneElement.",
+          "R6 `Ingredient.manufacturer.manufacturer` is 1..1 Reference(Organization).",
+          "R6 `Ingredient.manufacturer.role` is optional code with required binding to ingredient-manufacturer-role."
+        ],
+        "fmmEffect": "R4 FMM 0 trial-use lowers the stability burden. Manufacturer data can matter in regulated product workflows, but the richer per-manufacturer role model is a plausible reason for the break.",
+        "compatibilityMechanism": "runtime/API/codegen: serializers and generated clients must move from `manufacturer[n].reference` to `manufacturer[n].manufacturer.reference`; copied R4 JSON is also old-valid/new-invalid at that path.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept the direct Reference array and added a separate optional role/association element, but that would require synchronization and precedence rules between two manufacturer representations. The backbone design is disruptive but avoids that ambiguity.",
+        "comparisonToExisting": "agree with the existing finding that this is a hard shape/codegen break with only a partial less-breaking alternative; the fresh review treats it as proportionate under low FMM."
+      }
     },
     {
       "findingId": "MedicinalProductIngredient:CARDINALITY:substance:3e18d5",
@@ -666,7 +710,22 @@
       "validationAndCompatibilityMd": "An R4-derived R6 instance without `Ingredient.substance` fails cardinality validation. An R4 CodeableConcept copied directly to `Ingredient.substance.code` fails datatype validation because R6 expects CodeableReference children. R6 reference-only substance identity cannot round-trip to R4 without dereferencing, coding, or extension.",
       "migrationGuidanceMd": "Populate `Ingredient.substance.code.concept` from R4 `substance.code` when only coded data exists. Use `Ingredient.substance.code.reference` only when a corresponding `SubstanceDefinition` resource is available and the allergen invariant is satisfied. Audit R4 instances that use only `specifiedSubstance` because they need separate mapping.",
       "backwardCompatibilityAnalysisMd": "The R6 type is more expressive but could have preserved the R4 CodeableConcept shape by adding an optional reference sibling. The current CodeableReference design is compact but requires datatype-aware transforms and code-generation changes.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:CARDINALITY:substance:3e18d5",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 makes the main `substance` backbone mandatory and changes `substance.code` from CodeableConcept to CodeableReference(SubstanceDefinition). This creates real migration work: a coded R4 substance must be nested under `concept`, and R4 records that relied only on `specifiedSubstance` need a substance mapping. At the path level, though, requiring an ingredient to identify its substance and allowing a reference to a richer SubstanceDefinition are coherent R6 goals; the less-breaking alternatives would preserve incomplete or duplicate substance identities.",
+        "keyEvidence": [
+          "R4 `MedicinalProductIngredient.substance` is 0..1; R4 `substance.code` is 1..1 CodeableConcept when the backbone is present.",
+          "R6 `Ingredient.substance` is 1..1.",
+          "R6 `Ingredient.substance.code` is 1..1 CodeableReference targeting SubstanceDefinition with example binding to substance-codes.",
+          "CH EPL IDMP overview describes MedicinalProductIngredient/Ingredient as defining individual ingredients, role, strength, and product relationship for IDMP."
+        ],
+        "fmmEffect": "R4 FMM 0 softens stability expectations, but substance identity is central and regulatory/safety-relevant. The low FMM prevents treating the break alone as disproportionate; the central semantics require careful migration.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-origin records without `substance` fail R6, and R4 CodeableConcept JSON copied directly to `Ingredient.substance.code` has the wrong CodeableReference shape; R6 reference-only substances can also cause R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept `substance` optional and retained CodeableConcept while adding a separate SubstanceDefinition reference, but that would allow Ingredient records with no substance and create parallel code/reference identity fields needing conflict rules.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment. The structural impact is high, but the fresh path-level judgment sees the R6 goal as strong enough that the break is probably acceptable rather than a standards Revisit item."
+      }
     },
     {
       "findingId": "MedicinalProductIngredient:ELEMENT_PRESENCE_OR_IDENTITY:specifiedSubstance:bc91a7",
@@ -804,7 +863,22 @@
       "validationAndCompatibilityMd": "R4 `specifiedSubstance` elements are old-valid/new-invalid because R6 has no such element. R6 cannot represent R4 confidentiality without an extension or external policy. If a single R4 resource has multiple specified substances, a one-to-one R6 resource mapping may be invalid or semantically wrong.",
       "migrationGuidanceMd": "Inventory R4 instances with `specifiedSubstance`. For one specified substance, consider mapping its `code` to `Ingredient.substance.code.concept` and its strengths to `Ingredient.substance.strength`. For multiple entries, decide whether to split into multiple R6 Ingredient resources. Preserve `confidentiality` using an agreed extension or related regulated-authorization artifact rather than dropping it silently.",
       "backwardCompatibilityAnalysisMd": "A deprecated retained branch or standard cross-version extension would have made this migration safer. Because R6 omits the branch, implementers must choose between lossy simplification and custom preservation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:ELEMENT_PRESENCE_OR_IDENTITY:specifiedSubstance:bc91a7",
+        "judgment": "Revisit",
+        "narrativeMd": "The R4 repeating `specifiedSubstance` branch disappears without an obvious lossless R6 destination for its required group, optional confidentiality, or multiple repetitions within one Ingredient. Mapping a single specified substance into R6 `substance` may be plausible, but repeated specified substances can require splitting resources, and confidentiality is regulatory/disclosure-sensitive. Even with FMM 0, this is not just a cleanup: it is a lossy, expert-dependent migration in an IDMP/regulatory domain.",
+        "keyEvidence": [
+          "R4 `MedicinalProductIngredient.specifiedSubstance` is 0..* BackboneElement.",
+          "R4 `specifiedSubstance.code` and `specifiedSubstance.group` are both 1..1 CodeableConcept; `specifiedSubstance.confidentiality` is 0..1 CodeableConcept.",
+          "R6 Ingredient has no `specifiedSubstance` or `confidentiality` element.",
+          "R6 `Ingredient.group` exists but is defined as physical-use classification such as tablet shell/body/ink, not R4 specified-substance group 1 to 4."
+        ],
+        "fmmEffect": "R4 FMM 0 softens the stability expectation, but the affected content is central to substance disclosure and can be regulatory/confidentiality-sensitive. The need for expert mapping and possible data loss outweighs the low-FMM discount.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `specifiedSubstance` use elements absent from R6; direct migration can also cause R6-to-R4 loss or semantic loss for group, confidentiality, and repeated entries.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained a deprecated optional `specifiedSubstance` branch or added explicit optional group/confidentiality fields under the new substance model. That would preserve migration fidelity but also prolong duplicate substance/strength representations and may conflict with an R6 one-Ingredient-per-substance direction.",
+        "comparisonToExisting": "agree with the existing concern that this change is high-risk and not clearly justified from local evidence; the fresh review specifically elevates it to Revisit because the lossy parts are not merely technical."
+      }
     },
     {
       "findingId": "MedicinalProductIngredient:SERIALIZATION_OR_CODEGEN:strength-presentation:1bf6c0",
@@ -967,7 +1041,22 @@
       "validationAndCompatibilityMd": "R4 strength JSON copied as-is is invalid in R6 because `presentation` is no longer the choice-typed property name and low-limit paths are absent. R6 strength content using Quantity, CodeableConcept, text-only values, or no presentation cannot be losslessly downgraded to R4's mandatory Ratio presentation.",
       "migrationGuidanceMd": "Map old `presentation` Ratio to `presentationRatio` when no low limit is present. When `presentationLowLimit` is present, consider `presentationRatioRange` after confirming RatioRange structure. Apply the same pattern to concentration. Add tests for plain ratio, range, text, quantity, and missing-presentation cases.",
       "backwardCompatibilityAnalysisMd": "The choice design is more flexible but breaks common serialized paths. A backward-compatible transition could have kept old Ratio fields as aliases while introducing range/text alternatives, at the cost of duplicate representations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:SERIALIZATION_OR_CODEGEN:strength-presentation:1bf6c0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 strength presentation and concentration use fixed Ratio fields plus separate low-limit fields; R6 replaces these with choice elements such as `presentationRatio`, `presentationRatioRange`, `presentationCodeableConcept`, and `presentationQuantity`, and adds text fields. This breaks wire names and generated accessors, and strength migration must be handled carefully because dose/composition meaning is safety-sensitive. Still, the R6 design consolidates ranges and non-ratio/textual strengths into one model; keeping old fields alongside new choices would create duplicate, potentially conflicting quantitative representations.",
+        "keyEvidence": [
+          "R4 `specifiedSubstance.strength.presentation` is 1..1 Ratio.",
+          "R4 `presentationLowLimit` and `concentrationLowLimit` are 0..1 Ratio; both are modifier elements indicating range semantics.",
+          "R6 `Ingredient.substance.strength.presentation[x]` is 0..1 choice of Ratio, RatioRange, CodeableConcept, or Quantity.",
+          "R6 `concentration[x]` has the same choice types, and R6 adds `textPresentation`, `textConcentration`, and `basis`."
+        ],
+        "fmmEffect": "R4 FMM 0 reduces the standards-stability objection. Strength is safety-relevant, so migration burden remains important, but the flexible R6 strength model has a credible clinical/regulatory rationale.",
+        "compatibilityMechanism": "runtime/API/codegen: R4 fields such as `presentation` and `concentration` must become choice-suffixed R6 properties; low-limit fields must be represented as RatioRange or otherwise preserved, and some R6-native strength forms are R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept the old Ratio and low-limit fields while adding range, quantity, coded, and text fields. That preserves old JSON but creates overlapping safety-sensitive strength encodings and difficult consistency rules.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment. The impact is real, but the fresh review views the less-breaking alternative as costly enough that the break is probably acceptable."
+      }
     },
     {
       "findingId": "MedicinalProductIngredient:CARDINALITY:referenceStrength-substance:5c0e73",
@@ -1103,7 +1192,22 @@
       "validationAndCompatibilityMd": "An R4 referenceStrength lacking `substance` can be valid in R4 but invalid in R6. R4 `strength` must be renamed to the correct R6 choice property, and any `strengthLowLimit` must be converted to RatioRange or otherwise preserved.",
       "migrationGuidanceMd": "For each R4 referenceStrength, populate R6 `substance` from the R4 field if present or derive it from product knowledge before validation. Map `strength` to `strengthRatio`; use `strengthRatioRange` for old low-limit ranges after confirming RatioRange details.",
       "backwardCompatibilityAnalysisMd": "A base required substance avoids ambiguous R6 records, but an incremental migration path could have used a warning invariant first. Systems with historical incomplete data will need backfill or quarantine rules.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:CARDINALITY:referenceStrength-substance:5c0e73",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 requires each reference strength to name the reference substance and changes the strength value to choice serialization. R4 allowed a reference strength with a strength Ratio but no reference substance, so some historical instances need backfill or quarantine. The stricter rule is proportionate because a reference strength without the referenced substance is clinically and chemically ambiguous, especially for salt/base or active-moiety interpretation.",
+        "keyEvidence": [
+          "R4 `specifiedSubstance.strength.referenceStrength.substance` is 0..1 CodeableConcept.",
+          "R4 `referenceStrength.strength` is 1..1 Ratio and `strengthLowLimit` is 0..1 Ratio.",
+          "R6 `Ingredient.substance.strength.referenceStrength.substance` is 1..1 CodeableReference(SubstanceDefinition).",
+          "R6 `referenceStrength.strength[x]` is 1..1 choice of Ratio, RatioRange, or Quantity."
+        ],
+        "fmmEffect": "R4 FMM 0 softens the compatibility burden. The path is safety-relevant, but the old optional substance allowed ambiguous records, so the stricter R6 requirement is justified despite migration work.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 referenceStrength entries that omit `substance` fail R6; R4 strength fields also need choice-property conversion, and R6 Quantity or SubstanceDefinition references may be lossy when exported to R4.",
+        "lessBreakingAlternativeAssessment": "Partial. Keeping `referenceStrength.substance` optional would preserve incomplete R4 records, but it would weaken the R6 semantic guarantee. Retaining old Ratio fields alongside choices would add duplicate strength encodings.",
+        "comparisonToExisting": "agree with the existing structural impact and partial-alternative assessment, while emphasizing that the ambiguity of substance-less reference strength makes the break probably OK under the fresh rubric."
+      }
     },
     {
       "findingId": "MedicinalProductIngredient:VALUE_CONSTRAINT:Ingredient.ing-1:de3a45",
@@ -1222,7 +1326,21 @@
       "validationAndCompatibilityMd": "R4 data using coded substances can map to R6 CodeableReference.concept without triggering the invariant. If a mapper chooses CodeableReference.reference for the same data and keeps `allergenicIndicator=true`, R6 validation fails.",
       "migrationGuidanceMd": "When `allergenicIndicator=true`, either keep the substance as a concept on Ingredient or move allergen information into the referenced SubstanceDefinition and omit the Ingredient flag if using a reference. Add validation tests for both concept and reference cases.",
       "backwardCompatibilityAnalysisMd": "The constraint could have been staged as a warning to ease migration, but the error-level rule enforces a clearer information architecture.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:VALUE_CONSTRAINT:Ingredient.ing-1:de3a45",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The new `ing-1` invariant is not a direct break for a plain R4 coded-substance migration, because R4 substance identity can map to `CodeableReference.concept`. It becomes a validation break when a migration enriches the substance to a SubstanceDefinition reference while retaining `allergenicIndicator=true` on Ingredient. That is a real migration-policy constraint, but it has a coherent safety rationale: when a SubstanceDefinition resource is used, allergen information should be managed there rather than duplicated or contradicted on Ingredient.",
+        "keyEvidence": [
+          "R4 has optional boolean `MedicinalProductIngredient.allergenicIndicator` and no equivalent local invariant.",
+          "R6 root constraint `ing-1` has severity `error` and expression `Ingredient.where(allergenicIndicator=true).count() + Ingredient.substance.code.reference.count() < 2`.",
+          "R6 `Ingredient.allergenicIndicator` definition says allergen information should go on SubstanceDefinition when a SubstanceDefinition reference is used."
+        ],
+        "fmmEffect": "R4 FMM 0 lowers concern because this is not a direct old-instance shape break. The allergen topic is safety-relevant, so the constraint still deserves migration attention, but the rationale is strong.",
+        "compatibilityMechanism": "old-valid/new-invalid: only enriched R4-to-R6 migrations that use `substance.code.reference` and keep `allergenicIndicator=true` become invalid; direct concept-based migrations remain valid for this constraint.",
+        "lessBreakingAlternativeAssessment": "Partial. Making `ing-1` warning-level would ease enriched migrations, but would allow two live places for allergen assertions and possible conflicts between Ingredient and SubstanceDefinition.",
+        "comparisonToExisting": "agree that the impact is potential rather than universal. The fresh review classifies it as Breaking but probably OK because the safety-oriented single-source rule is a strong justification."
+      }
     },
     {
       "findingId": "MedicinalProductIngredient:CONVERSION_OR_MAPPING:r6-only-fields:8aa027",
@@ -1363,7 +1481,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not harmed by these optional fields. R6-to-R4 conversion cannot natively carry all values: only one identifier fits R4, and product linkage/function/comment/text/basis need extensions or external mappings.",
       "migrationGuidanceMd": "When backward conversion is required, define extensions for `for`, `function`, comments, basis, and extra identifiers, or document that they are intentionally dropped. Include round-trip tests for each populated R6-only field.",
       "backwardCompatibilityAnalysisMd": "The R6 additions are mostly appropriate additive evolution. Their reverse-mapping problem is inherent because R4 did not have these fields.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:CONVERSION_OR_MAPPING:r6-only-fields:8aa027",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 fields are optional additions or widening, including `for`, `function`, `comment`, text strength fields, `basis`, and repeatable identifiers. They do not make R4-origin data invalid in R6. They may matter for R6-to-R4 export or round-trip fidelity, but that is a reverse-conversion concern rather than a base R4-to-R6 compatibility problem for this finding.",
+        "keyEvidence": [
+          "R6 `Ingredient.for`, `function`, and `comment` are all optional.",
+          "R6 strength additions `textPresentation`, `textConcentration`, and `basis` are optional.",
+          "R4 `identifier` is 0..1 while R6 `identifier` is 0..*, a widening for forward migration."
+        ],
+        "fmmEffect": "R4 FMM 0 further softens concern, and the actual mechanism is not a forward break. Optional R6 expressivity is acceptable even if older R4 exports need a loss policy.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6-native data in these optional fields may not fit R4 without extensions or dropping values, but R4-to-R6 validation is not harmed.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Omitting useful optional R6 fields would only preserve backward export fidelity by reducing R6 expressivity; no less-breaking base R6 design is needed for R4-to-R6 compatibility.",
+        "comparisonToExisting": "partially agree. The existing report correctly identified reverse loss, but the fresh judgment treats it as No problem for the assigned forward compatibility review rather than a medium-impact break."
+      }
     },
     {
       "findingId": "MedicinalProductIngredient:TERMINOLOGY_BINDING:role-and-codes:cd6209",
@@ -1462,7 +1594,22 @@
       "validationAndCompatibilityMd": "Example bindings do not require validators to reject codes outside the value set. Required binding validation applies to `status` and to `manufacturer.role` only when that optional role is populated.",
       "migrationGuidanceMd": "Do not recode existing role/function/substance values solely because of example bindings. Consider mapping local codes to R6 ingredient-role and ingredient-function where interoperability is desired, and validate `status`/`manufacturer.role` required bindings explicitly.",
       "backwardCompatibilityAnalysisMd": "Using example bindings is a backward-compatible conformance signal. Stronger required bindings on migrated existing fields would have been much more disruptive.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductIngredient:TERMINOLOGY_BINDING:role-and-codes:cd6209",
+        "judgment": "No problem",
+        "narrativeMd": "The main retained coded concepts receive example bindings in R6, not required bindings, so legacy role/substance codes are not invalid solely because of this terminology guidance. Required bindings on `status` and `manufacturer.role` belong to the separate structural findings for those elements. This finding is therefore conformance and interoperability guidance, not an independent breaking change.",
+        "keyEvidence": [
+          "R4 `MedicinalProductIngredient.role` has no local binding in the inspected StructureDefinition.",
+          "R6 `Ingredient.role` has example binding to ingredient-role.",
+          "R6 `Ingredient.function` and `Ingredient.substance.code` also use example bindings.",
+          "R6 required bindings apply to new/optional `status` and `manufacturer.role`, which are covered in other findings."
+        ],
+        "fmmEffect": "R4 FMM 0 softens concern, and example bindings do not create a base validation break. Terminology mapping may improve interoperability but is not a Revisit-level compatibility issue.",
+        "compatibilityMechanism": "semantic/documentation: example bindings can influence pick lists, documentation, and preferred coding, but do not require validators to reject other codes.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Example-strength bindings are already the compatibility-preserving design for terminology guidance; making them weaker would add little, and making them required would be more breaking.",
+        "comparisonToExisting": "agree with the existing low-impact/no-hard-break assessment and the conclusion that no less-breaking alternative is needed for the example bindings themselves."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1609,5 +1756,19 @@
       "R4 low-limit Ratio fields replaced by R6 RatioRange choice elements",
       "New mandatory publication-status modifier fields on definitional resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicinalProductIngredient.fresh-review.json",
+    "findingDecisionCount": 10,
+    "matchedFindingDecisionCount": 10,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 6,
+      "No problem": 2
+    }
   }
 }

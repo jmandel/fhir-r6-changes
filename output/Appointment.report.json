@@ -326,7 +326,21 @@
       "migrationGuidanceMd": "Rename `cancelationReason` to `cancellationReason` before R6 validation. The transform is normally lossless for the element value. Test both `cancelled` and `noshow` statuses because R6's local `app-4` invariant uses the corrected property and the canonical `noshow` code.",
       "backwardCompatibilityAnalysisMd": "The correction is understandable, but it could have been less disruptive if the R6 resource accepted the old spelling as a deprecated alias during transition. FHIR base resources generally do not support synonym element names, so downstream cross-version tooling has to carry the compatibility layer.",
       "reviewerNotesMd": "R4's local `app-4` text/expression used `no-show` in one place even though the AppointmentStatus code system uses `noshow`; this report treats that as part of the spelling/correction cluster, not as a separate local breaking finding.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.cancelationReason:637652",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a same-concept spelling rename from the R4 wire element `cancelationReason` to R6 `cancellationReason`. Existing R4 instances and generated client/server models using the R4 name will not be accepted by an R6 base parser without a transform, while the clinical meaning and type remain essentially the same. Because the change is a spelling correction rather than a new capability, the compatibility cost is disproportionate to the base-model benefit.",
+        "keyEvidence": [
+          "R4 StructureDefinition has `Appointment.cancelationReason` 0..1 CodeableConcept.",
+          "R6 StructureDefinition has `Appointment.cancellationReason` 0..1 CodeableConcept and no R4-spelled element.",
+          "The existing report classifies this as High impact and says a backward-compatible alternative is available."
+        ],
+        "fmmEffect": "Supplied R4 status is FMM 3 / trial-use, so Appointment has meaningful deployed-stability expectations even though it is not normative. That raises the bar for a spelling-only wire break.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 JSON/XML using `cancelationReason` is not the R6 element name, and generated code property names change.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: retain the historical misspelled element name and correct the definition, or keep it as a deprecated alias if the FHIR format allowed that pattern. The tradeoff is carrying an awkward spelling, but that is modest compared with a hard rename on a mature scheduling resource.",
+        "comparisonToExisting": "agree: I agree with the existing High impact and the existing Yes/avoidable alternative judgment."
+      }
     },
     {
       "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.reason:ad289d",
@@ -562,7 +576,21 @@
       "validationAndCompatibilityMd": "R4 instances containing either old property are old-valid/new-invalid unless transformed. R6 instances can contain mixed concept/reference entries in one ordered array; converting back to R4 requires splitting entries, and ordering or one-to-one pairing semantics may not survive if an implementation attached meaning to the original order.",
       "migrationGuidanceMd": "Map `reasonCode[*]` to `reason[*].concept` and supported `reasonReference[*]` to `reason[*].reference`. Validate target resource types after mapping. Downgrade tools should split R6 `reason` entries back into the two R4 arrays and record any unsupported target references in extensions or manual-review queues.",
       "backwardCompatibilityAnalysisMd": "A less-breaking design could have added `reason` while retaining deprecated `reasonCode`/`reasonReference` aliases. That would have protected old wire payloads but created redundant paths for the same concept and possible disagreement between old and new fields.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.reason:ad289d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 separates reasons into `reasonCode` and `reasonReference`; R6 consolidates them into repeatable `reason` CodeableReference. This is a real wire and generated-model break, but it is a common R6 modeling pattern that removes parallel reason fields and gives each reason one code-or-reference representation. The path-level migration for ordinary R4 coded reasons and references is mostly mechanical, with target-profile changes handled separately in the dedicated finding.",
+        "keyEvidence": [
+          "R4 StructureDefinition has `Appointment.reasonCode` CodeableConcept and `Appointment.reasonReference` Reference.",
+          "R6 StructureDefinition has `Appointment.reason` 0..* CodeableReference.",
+          "The existing report classifies this as High impact with a Partial alternative."
+        ],
+        "fmmEffect": "FMM 3 / trial-use makes the break important to call out, especially because appointment reasons are operationally meaningful, but the content is not normative and the R6 consolidation has a coherent migration story.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: old `reasonCode`/`reasonReference` properties are not the R6 wire shape; reverse conversion can lose CodeableReference grouping if R6 instances use paired concept/reference semantics.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept deprecated `reasonCode` and `reasonReference` while adding `reason`, but that creates duplicate reason representations and conflict-resolution rules. That tradeoff is significant enough that the breaking consolidation is probably acceptable.",
+        "comparisonToExisting": "agree: I agree with the existing High impact and Partial less-breaking-alternative judgment, while treating the target-profile removal as the separate reasonReference finding."
+      }
     },
     {
       "findingId": "Appointment:REFERENCE_TARGET:Appointment.reasonReference:3e175f",
@@ -721,7 +749,21 @@
       "validationAndCompatibilityMd": "An R4 `reasonReference` to `ImmunizationRecommendation` cannot be made R6-valid by simply moving it to `reason.reference`; the target profile is outside the R6 set. An R6 `DiagnosticReport` reason has the inverse R6-to-R4 problem. Both directions may require extensions or domain-specific substitution.",
       "migrationGuidanceMd": "Inventory existing `reasonReference` targets before migration. Map Condition, Procedure, and Observation mechanically. Queue ImmunizationRecommendation for manual review or extension-based retention. For R6-to-R4, handle DiagnosticReport references explicitly, such as by moving them to `supportingInformation` with a reason-link extension if the business meaning must be preserved.",
       "backwardCompatibilityAnalysisMd": "The least-disruptive alternative would have preserved the R4 target set and added DiagnosticReport. Without narrative rationale, it is unclear whether removing ImmunizationRecommendation was intentional tightening or an oversight.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:REFERENCE_TARGET:Appointment.reasonReference:3e175f",
+        "judgment": "Revisit",
+        "narrativeMd": "The problematic part of this finding is not the addition of DiagnosticReport as a reason target; it is that R4 Appointment reasons could reference ImmunizationRecommendation and R6 no longer permits that target through the new `reason` CodeableReference. R4 instances scheduling or explaining an appointment from an immunization recommendation become invalid even after the structural CodeableReference migration unless they are remapped to a different target or extension. Retaining the old target while adding new ones appears low cost.",
+        "keyEvidence": [
+          "R4 `Appointment.reasonReference` includes ImmunizationRecommendation among allowed targets.",
+          "R6 `Appointment.reason` CodeableReference includes DiagnosticReport but omits ImmunizationRecommendation.",
+          "R4 maturity map shows ImmunizationRecommendation is FMM 1 / trial-use; the removed target is low maturity, but it is still a public-health/immunization use case."
+        ],
+        "fmmEffect": "Appointment itself is FMM 3 / trial-use, so changing an allowed reason target on this resource deserves scrutiny. The removed target resource is only FMM 1, which softens likely deployment breadth but does not eliminate concern because retaining a reference target is cheap and immunization scheduling can be safety/public-health relevant.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 Appointment whose reasonReference points to ImmunizationRecommendation has no base-valid R6 reason target for that same reference.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design is straightforward: keep ImmunizationRecommendation as an allowed R6 reason target and add DiagnosticReport. The tradeoff is a broader target list, but that is much less disruptive than invalidating an existing target without a clear replacement.",
+        "comparisonToExisting": "agree: I agree with the existing High impact and Yes/not-clearly-justified alternative judgment."
+      }
     },
     {
       "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.comment:b23c03",
@@ -902,7 +944,21 @@
       "validationAndCompatibilityMd": "An R4 instance with `comment` is new-invalid because R6 no longer defines that element. An R6 instance with multiple notes, author, or timestamp cannot be faithfully downgraded to the single R4 string without concatenation or data loss.",
       "migrationGuidanceMd": "Rename `comment` to `note[0].text` for straightforward upgrades. Downgrade tooling should define a deterministic policy for multiple notes and Annotation metadata, such as preserving the full R6 notes in an extension and populating R4 `comment` with a human-readable summary.",
       "backwardCompatibilityAnalysisMd": "A compatibility-preserving design could have introduced `note` and kept `comment` deprecated. That would reduce breakage but keep two comment mechanisms with overlapping semantics. The R6 design favors a cleaner standard note datatype.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.comment:b23c03",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `comment` was a single string; R6 uses repeatable `note` Annotation. That breaks old wire instances and code, and comments can contain operationally important scheduling information. Still, the R6 model gives comments a standard Annotation shape with author/time metadata and repeats, which is a real functional improvement rather than a rename-only change.",
+        "keyEvidence": [
+          "R4 StructureDefinition has `Appointment.comment` 0..1 string.",
+          "R6 StructureDefinition has `Appointment.note` 0..* Annotation.",
+          "The existing report classifies this as High impact with a Partial alternative."
+        ],
+        "fmmEffect": "FMM 3 / trial-use means existing appointment comments should not be dismissed, but trial-use status leaves room for a targeted representation improvement when the old value can be migrated into `note.text`.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: old `comment` is not an R6 element; reverse conversion from multiple or attributed annotations to one string is potentially lossy.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept deprecated `comment` beside `note`, but that would create overlapping comment channels, ordering ambiguity, and conflict rules. The better Annotation model makes the break probably acceptable.",
+        "comparisonToExisting": "agree: I agree with the existing High impact and Partial less-breaking-alternative judgment."
+      }
     },
     {
       "findingId": "Appointment:TYPE_DOMAIN:Appointment.participant.required:fab0b1",
@@ -1099,7 +1155,21 @@
       "validationAndCompatibilityMd": "R4 strings are invalid R6 booleans. R6 booleans can be downgraded only approximately (`true`→`required`, `false`→`optional`), while the old `information-only` state must be inferred from `subject` and participant absence if a downgrade is attempted.",
       "migrationGuidanceMd": "Map `required` to `true` and `optional` to `false`. Treat `information-only` as a manual-review or domain-rule case: move the referenced patient/group to `Appointment.subject` when appropriate and avoid creating an attending participant solely to preserve the old enum value. Add tests for all three R4 codes.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by retaining the code binding or adding a new boolean beside it. However, the R6 comment indicates an intentional semantic cleanup, and preserving `information-only` would keep mixing attendance with subject-of-discussion.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:TYPE_DOMAIN:Appointment.participant.required:fab0b1",
+        "judgment": "Revisit",
+        "narrativeMd": "Changing `participant.required` from a three-code element to a boolean loses the explicit R4 `information-only` state at the same path. R6 guidance can move some information-only subjects out of participant handling, but that is not a pure type migration and can be expert- or workflow-dependent, especially when old data used participant entries to carry non-attending but relevant actors. The boolean simplification may be sensible, but the base break looks stronger than necessary for FMM 3 Appointment data.",
+        "keyEvidence": [
+          "R4 `Appointment.participant.required` is a code bound to required/optional/information-only semantics.",
+          "R6 `Appointment.participant.required` is boolean.",
+          "The existing report classifies this as High impact and identifies only a Partial compatible alternative."
+        ],
+        "fmmEffect": "FMM 3 / trial-use gives participant-attendance semantics a moderate stability expectation because they are central to scheduling. The resource is not normative, but a same-path tri-state-to-boolean collapse needs a stronger migration story.",
+        "compatibilityMechanism": "old-valid/new-invalid, runtime/API/codegen, and semantic loss: R4 code values are not booleans, and `information-only` is not represented by the new boolean alone.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could retain the R4 code for a transition period, add a new boolean, or keep `information-only` as a deprecated computable value while steering new instances toward `subject`. The tradeoff is carrying older attendance semantics, but that seems preferable to forcing a lossy boolean migration without an exact base mapping.",
+        "comparisonToExisting": "partially agree: I agree with the existing High impact, but I rate the alternative as more compelling than the existing Probably justified/Partial assessment because of the `information-only` loss."
+      }
     },
     {
       "findingId": "Appointment:TYPE_DOMAIN:Appointment.priority:eb7081",
@@ -1264,7 +1334,21 @@
       "validationAndCompatibilityMd": "This is an old-valid/new-invalid type break for any R4 instance with a numeric priority. It is also a high R6-to-R4 representability risk because a CodeableConcept can contain multiple codings/text that do not correspond to a single unsigned integer.",
       "migrationGuidanceMd": "Define an explicit local mapping from numeric priority values to codes and back before migration. Preserve the original numeric value in an extension if the mapping is not reversible. Test boundary values 0, 1, and 9 and any local values outside the iCalendar range.",
       "backwardCompatibilityAnalysisMd": "A choice type such as priority[x] or an additive coded element would have supported both numeric and coded representations. The tradeoff is a more complicated API and the need to resolve conflicts between parallel representations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:TYPE_DOMAIN:Appointment.priority:eb7081",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 numeric priority becomes an R6 CodeableConcept priority. That is a hard same-path type change with no universally safe numeric-to-code mapping, and urgency/priority can affect scheduling operations. Moving to coded priority may be desirable, but a base-compatible transition path seems important here.",
+        "keyEvidence": [
+          "R4 `Appointment.priority` is unsignedInt.",
+          "R6 `Appointment.priority` is CodeableConcept with an example ActPriority binding.",
+          "The existing report classifies this as High impact and says the change is not clearly justified with a Partial alternative."
+        ],
+        "fmmEffect": "FMM 3 / trial-use raises compatibility expectations for operational priority. The trial-use status and R4 feedback-oriented text temper the concern somewhat, but do not solve the lack of a computable mapping.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: an R4 integer value is not an R6 CodeableConcept; reverse conversion from arbitrary coded priorities to a single unsigned integer is policy-dependent.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep numeric priority and add a coded priority element, or define a transition choice with explicit mapping guidance. That creates parallel urgency representations, but the current direct replacement has enough migration ambiguity to deserve reconsideration.",
+        "comparisonToExisting": "agree: I agree with the existing High impact and with the existing concern that a less-breaking design is at least partially available."
+      }
     },
     {
       "findingId": "Appointment:TYPE_DOMAIN:Appointment.patientInstruction:4e33f3",
@@ -1453,7 +1537,21 @@
       "validationAndCompatibilityMd": "R4 string values are invalid under the R6 element type. R6 can represent references to DocumentReference, Binary, or Communication; R4 has no matching core field and can only retain a flattened text summary or an extension.",
       "migrationGuidanceMd": "For simple text, map to `patientInstruction[0].concept.text`. Preserve referenced instruction resources with extensions or related resources when downgrading. Review patient-safety workflows to ensure preparation instructions are not dropped during conversion.",
       "backwardCompatibilityAnalysisMd": "An additive richer element or choice type would have allowed existing string payloads to survive. R6 instead reuses CodeableReference, favoring a single richer model over compatibility with the primitive representation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:TYPE_DOMAIN:Appointment.patientInstruction:4e33f3",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `patientInstruction` was a single string; R6 makes patient instructions repeatable CodeableReference values that can carry coded instructions or reference instruction-bearing resources. This is a hard type and cardinality change on safety-relevant patient-facing text, but simple R4 strings can be preserved as CodeableConcept text and the R6 model supports richer, reusable instructions that R4 could not represent well.",
+        "keyEvidence": [
+          "R4 `Appointment.patientInstruction` is 0..1 string.",
+          "R6 `Appointment.patientInstruction` is 0..* CodeableReference targeting DocumentReference, Binary, or Communication.",
+          "The existing report classifies this as High impact with a Partial compatible alternative."
+        ],
+        "fmmEffect": "FMM 3 / trial-use means patient-instruction compatibility matters, especially because the content can affect patient behavior. The resource is still trial-use, and the R6 representation has a strong safety/expressiveness rationale when migrated carefully.",
+        "compatibilityMechanism": "old-valid/new-invalid, runtime/API/codegen, and R6-to-R4 loss: old strings must be wrapped; R6 referenced or multiple instructions cannot always be downgraded to a single R4 string without loss.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the string and added a richer instruction field, but that would create duplicate patient-instruction channels with safety-sensitive reconciliation problems. The richer unified representation is probably worth the migration burden.",
+        "comparisonToExisting": "agree: I agree with the existing High impact and Partial less-breaking-alternative judgment."
+      }
     },
     {
       "findingId": "Appointment:TYPE_DOMAIN:Appointment.serviceType:80ece0",
@@ -1635,7 +1733,21 @@
       "validationAndCompatibilityMd": "An R4 `serviceType` CodeableConcept object such as `{\"text\":\"Follow-up\"}` is invalid as an R6 CodeableReference because the concept must be nested. R6 reference-valued service types cannot be represented in R4 without losing the link or using an extension.",
       "migrationGuidanceMd": "Wrap existing `serviceType[*]` values as `serviceType[*].concept`. For R6-to-R4, either derive a CodeableConcept from the referenced HealthcareService or preserve the reference in an extension; verify search/index behavior because R6 also has reference-aware service-type search parameters outside this resource report.",
       "backwardCompatibilityAnalysisMd": "The same goal could have been achieved with a separate optional reference element, preserving the CodeableConcept shape. CodeableReference is cleaner but forces all existing coded instances through a structural transform.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:TYPE_DOMAIN:Appointment.serviceType:80ece0",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `serviceType` was a CodeableConcept; R6 changes it to CodeableReference so it can point to HealthcareService. This breaks existing coded service-type data even though coded service category/type is a common scheduling and search axis. Unlike some CodeableReference migrations, the less-breaking design of retaining the coded service type while adding a concrete HealthcareService link is straightforward.",
+        "keyEvidence": [
+          "R4 `Appointment.serviceType` is CodeableConcept.",
+          "R6 `Appointment.serviceType` is CodeableReference with HealthcareService as the reference target.",
+          "The existing report classifies this as High impact and says a backward-compatible alternative is available."
+        ],
+        "fmmEffect": "FMM 3 / trial-use increases the stability expectation for service classification in appointment scheduling. Trial-use status leaves room for model improvements, but not without a strong reason to replace a widely usable coded element.",
+        "compatibilityMechanism": "old-valid/new-invalid, runtime/API/codegen, and R6-to-R4 loss: old coded values must be wrapped into CodeableReference, and R6 HealthcareService references may not downgrade cleanly to a CodeableConcept.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could keep `serviceType` as CodeableConcept and add a separate HealthcareService reference element. The tradeoff is keeping a coordination rule between code and service reference, but that is lower cost than invalidating existing coded serviceType instances.",
+        "comparisonToExisting": "agree: I agree with the existing High impact and Yes/probably-avoidable alternative judgment."
+      }
     },
     {
       "findingId": "Appointment:VALUE_CONSTRAINT:Appointment.app-5:caf303",
@@ -1763,7 +1875,21 @@
       "validationAndCompatibilityMd": "Old data with reversed instants can be old-valid/new-invalid. R6-to-R4 representability is not a concern because R4 can carry the same values; R4 simply did not reject them at the base resource level.",
       "migrationGuidanceMd": "Run a pre-migration data-quality check for appointments where `start > end`. Correct obvious transpositions, quarantine records whose intended duration cannot be determined, and add regression tests around equal start/end if zero-duration appointments are expected.",
       "backwardCompatibilityAnalysisMd": "The rule could have been introduced as a warning to avoid hard validation failures. Making it an error is defensible because negative-duration appointments are usually invalid scheduling data.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Appointment:VALUE_CONSTRAINT:Appointment.app-5:caf303",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an error-level invariant that if `start` exists then `start <= end`. That can invalidate R4 instances with reversed start/end values, but those instances describe negative-duration appointments and are likely erroneous for normal scheduling. The invariant is a targeted data-quality rule on a narrow condition.",
+        "keyEvidence": [
+          "R6 Appointment includes invariant `app-5` with expression `start.exists() implies start <= end`.",
+          "R4 Appointment does not have the same start/end ordering invariant.",
+          "The existing report classifies this as Medium impact and Justified."
+        ],
+        "fmmEffect": "FMM 3 / trial-use means validators may encounter historical bad data, but the non-normative status and the clinical/operational value of preventing impossible time ranges support the stricter rule.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 data with `start` after `end` can become base-invalid under R6 validation.",
+        "lessBreakingAlternativeAssessment": "A warning-level invariant would be less disruptive, but it would continue to permit nonsensical negative-duration appointments as valid base data. The hard invariant is proportionate to the defect it prevents.",
+        "comparisonToExisting": "agree: I agree with the existing Medium impact and justified/Partial alternative judgment."
+      }
     },
     {
       "findingId": "Appointment:REFERENCE_TARGET:Appointment.basedOn:0f4605",
@@ -1909,7 +2035,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is safe for this element. R6-to-R4 strict validation fails for `basedOn` references to CarePlan, DeviceRequest, MedicationRequest, RequestOrchestration, NutritionOrder, or VisionPrescription unless they are moved or represented by extension.",
       "migrationGuidanceMd": "For downgrades, preserve unsupported `basedOn` references in extensions or a related-resource mapping table. Do not coerce them to ServiceRequest unless a real equivalent ServiceRequest exists. Test each added request type.",
       "backwardCompatibilityAnalysisMd": "This is an additive R6 capability. The only more downgrade-friendly design would be to keep R6 constrained to ServiceRequest, which would forgo the new modeling capability.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:REFERENCE_TARGET:Appointment.basedOn:0f4605",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens `Appointment.basedOn` targets while retaining the R4 ServiceRequest target. That does not invalidate R4 Appointment instances. There is real R6-to-R4 downgrade loss if an R6 appointment is based on a CarePlan, DeviceRequest, MedicationRequest, RequestOrchestration, NutritionOrder, or VisionPrescription, but that is expected added expressiveness rather than a questionable R4-to-R6 base break.",
+        "keyEvidence": [
+          "R4 `Appointment.basedOn` target is ServiceRequest.",
+          "R6 `Appointment.basedOn` retains ServiceRequest and adds CarePlan, DeviceRequest, MedicationRequest, RequestOrchestration, NutritionOrder, and VisionPrescription.",
+          "The existing report classifies this as Medium impact and says no R4-to-R6 compatibility alternative is needed."
+        ],
+        "fmmEffect": "FMM 3 / trial-use would matter if an old target were removed, but here the R4 target is preserved. The maturity context does not argue against a target-list widening.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 target types cannot be represented in base R4 `basedOn` without extension or local mapping, but old R4 ServiceRequest references remain valid.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for R4 compatibility. Avoiding the reverse-conversion issue would mean not adding clinically useful request targets or relying only on extensions, which is not a better base design.",
+        "comparisonToExisting": "partially agree: I agree with the existing downgrade-risk observation and Not applicable alternative, but I would not treat the target widening as a meaningful forward compatibility problem."
+      }
     },
     {
       "findingId": "Appointment:REFERENCE_TARGET:Appointment.participant.actor:3af788",
@@ -2064,7 +2204,21 @@
       "validationAndCompatibilityMd": "R4 actors remain R6-valid. R6 Group/CareTeam actors cannot be represented at `participant.actor` in base R4 and will fail strict R4 reference-target validation.",
       "migrationGuidanceMd": "When downgrading, decide whether to preserve the Group/CareTeam reference in an extension, expand it into individual participants, or reject the record for manual resolution. Avoid silently replacing a CareTeam with one member unless that reflects business intent.",
       "backwardCompatibilityAnalysisMd": "This is an additive R6 widening. A backward-compatible R4-to-R6 alternative is not needed; the downgrade risk is the natural result of added expressiveness.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:REFERENCE_TARGET:Appointment.participant.actor:3af788",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds Group and CareTeam as participant actor targets and keeps the R4 targets. Existing R4 participant.actor references remain valid. Downgrading an R6 Group or CareTeam actor to R4 can lose information or require extensions, but that is a normal consequence of adding useful actor types rather than a break in the R4-to-R6 direction.",
+        "keyEvidence": [
+          "R4 `Appointment.participant.actor` allows Patient, Practitioner, PractitionerRole, RelatedPerson, Device, HealthcareService, and Location.",
+          "R6 `Appointment.participant.actor` retains R4 targets and adds Group and CareTeam.",
+          "The existing report classifies this as Medium impact and says no R4-to-R6 compatibility alternative is needed."
+        ],
+        "fmmEffect": "FMM 3 / trial-use gives participant modeling importance, but the old target set is preserved. The maturity context supports noting downgrade limits, not reopening the widening itself.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 Group/CareTeam actors have no base R4 participant.actor target, but old R4 actors still migrate forward.",
+        "lessBreakingAlternativeAssessment": "No less-breaking design is needed for forward compatibility. Restricting R6 from adding Group and CareTeam would avoid downgrade loss but would block legitimate scheduling use cases and force extensions.",
+        "comparisonToExisting": "partially agree: I agree with the existing downgrade-risk observation and Not applicable alternative, but I would classify the forward compatibility concern as no problem."
+      }
     },
     {
       "findingId": "Appointment:CONVERSION_OR_MAPPING:Appointment.recurrenceTemplate:151d1c",
@@ -2232,7 +2386,21 @@
       "validationAndCompatibilityMd": "No existing R4 instance fails solely because these optional fields exist. The break is representability: an R6 appointment series with recurrence templates, recurrence IDs, or series links cannot be encoded in base R4 Appointment without extensions or external state. R6 also adds a warning if an appointment has both an originatingAppointment and a recurrenceTemplate.",
       "migrationGuidanceMd": "For R6-to-R4, define extensions for recurrenceTemplate, recurrenceId, occurrenceChanged, and appointment-series links, or maintain them in an external scheduling system. Test recurring-series creation, exception appointments, and downgrade/upgrade round-trips. Treat the `app-6` warning as a data-quality rule even though it is not an error.",
       "backwardCompatibilityAnalysisMd": "Because R4 had no equivalent core recurrence model, there is no fully backward-compatible way to add this expressiveness without extensions. R6's base additions are justified for scheduling but require explicit downgrade strategy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Appointment:CONVERSION_OR_MAPPING:Appointment.recurrenceTemplate:151d1c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The recurrence and series fields are optional R6 additions, so they do not invalidate R4 Appointment instances. They do, however, create a substantial R6-to-R4 conversion gap: native recurrence rules, occurrence changes, and appointment-series links cannot be faithfully represented in base R4 except by expansion, extension, or local policy. Because recurring appointments are a real scheduling need, the added R6 model is justified despite the downgrade burden.",
+        "keyEvidence": [
+          "R6 adds recurrence/series elements including `recurrenceTemplate`, `recurrenceId`, `occurrenceChanged`, `originatingAppointment`, and `previousAppointment`.",
+          "R4 Appointment has no corresponding native recurrence-template element.",
+          "The existing report classifies this as High impact and says no R4-to-R6 compatibility alternative is needed."
+        ],
+        "fmmEffect": "FMM 3 / trial-use means Appointment scheduling behavior is mature enough that downgrade loss matters to mixed-version ecosystems. The finding is additive in the R4-to-R6 direction, so the FMM concern is about conversion and interoperability planning rather than invalidating old data.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 recurrence semantics cannot be losslessly represented in base R4 Appointment without expansion or extensions.",
+        "lessBreakingAlternativeAssessment": "There is no useful less-breaking base R6 design for R4 instances because the fields are optional additions. Using only extensions would preserve R4 shape but would fail to provide a standard computable recurrence model in R6.",
+        "comparisonToExisting": "partially agree: I agree with the existing High downgrade impact and Not applicable alternative judgment, while emphasizing that this is reverse-conversion burden rather than an R4-to-R6 validation break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2424,5 +2592,19 @@
       "R6 recurrence fields across scheduling resources",
       "Base Resource/DomainResource inherited snapshot changes excluded from per-resource reports"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Appointment.fresh-review.json",
+    "findingDecisionCount": 12,
+    "matchedFindingDecisionCount": 12,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 5,
+      "Breaking but probably OK": 5,
+      "No problem": 2
+    }
   }
 }

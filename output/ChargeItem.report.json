@@ -272,7 +272,23 @@
       "migrationGuidanceMd": "Inventory all persisted and exchanged ChargeItem resources before upgrading. Decide whether to retain them as legacy R4 resources, transform subsets into another R6 financial artifact, represent details with extensions, or keep them outside core R6 exchange. A transform cannot be assumed lossless; test examples should include standalone resources, Bundles containing ChargeItem entries, references to ChargeItem, and APIs/searches that previously returned ChargeItem.",
       "backwardCompatibilityAnalysisMd": "The less disruptive path would have been a retained deprecated resource or an official computable cross-version mapping. That would let old instances continue to validate while still discouraging new use. The cost is that R6 tooling and servers would need to continue carrying compatibility support for a retired or reorganized model.",
       "reviewerNotesMd": "Package evidence is strong for removal. Human review should focus on whether this is an intentional R6 ballot design, a packaging omission, or a temporary ballot-build inconsistency.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ChargeItem:ARTIFACT_IDENTITY:ChargeItem:6b1f2a",
+        "judgment": "Revisit",
+        "narrativeMd": "The local R6 package removes the ChargeItem resource identity: an R4 instance with resourceType ChargeItem has no R6 StructureDefinition, package-index entry, resource-type code, or OpenAPI component to validate against. FMM 0 means this should not be treated like a normative stability failure or assumed to affect many deployments, but the change is still a whole-resource break in a billing/audit domain and R6 Invoice still contains ChargeItem-oriented wording. That combination makes the removal worth standards/design review rather than simply accepting it as low-maturity churn.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ChargeItem.json is present, trial-use, FMM 0, and defines a concrete DomainResource specialization with required status, code, and subject.",
+          "The assigned R6 StructureDefinition-ChargeItem.json path is absent.",
+          "jq checks found no R6 package-index rows or files matching ChargeItem or ChargeItemDefinition, no exact ChargeItem entries in the checked R6 type/resource ValueSets or CodeSystem-fhir-types, and no OpenAPI definitions.ChargeItem.",
+          "R6 Invoice.lineItem.chargeItem[x] still says ChargeItem contains billing code, date, amount, etc., but its Reference type has no ChargeItem targetProfile because no R6 ChargeItem resource exists.",
+          "A quick web search found generic HL7 ChargeItem documentation and an ISiK test-guide reference, but no strong public evidence of broad production exchange."
+        ],
+        "fmmEffect": "R4 ChargeItem is FMM 0 and trial-use, so the stability expectation is weak and the finding should not be escalated solely because any old instance breaks. I still treat the removal as concerning because it is resource-level, directly affects billing/audit data and package-driven validators/codegen, and lacks an evident computable transition in the supplied R6 package.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 ChargeItem resource, including a minimal status/code/subject instance, has no native R6 resource definition in the supplied package; runtime/API/codegen failures are downstream consequences.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design appears plausible: retain ChargeItem as deprecated or legacy trial-use content for one release while pointing new designs elsewhere. That would preserve old instances and tooling, but it would keep a low-maturity retired model in core, require continued search/API/codegen support, and could prolong duplicate charge representations.",
+        "comparisonToExisting": "partially agree with the existing hard-break assessment, but I would temper the breadth of the Critical/High impact because FMM 0 and the quick web search do not establish broad production use. I agree that a less-breaking transitional resource is plausible, with meaningful tradeoffs."
+      }
     },
     {
       "findingId": "ChargeItem:CONVERSION_OR_MAPPING:ChargeItem:cc8d42",
@@ -413,7 +429,23 @@
       "migrationGuidanceMd": "Classify ChargeItem data by use case: invoice line generation, device/product catalog billing metadata, internal cost allocation, audit/provenance, and standalone charge lifecycle tracking. Map only the fields with an explicit target; preserve unmapped details using governed extensions or legacy R4 storage. Do not treat the R6 Invoice wording alone as an authoritative complete mapping.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative would publish a formal mapping and keep ChargeItem references meaningful until replacement workflows mature. The tradeoff is extra complexity in the financial module and potential duplicate ways to represent charge data.",
       "reviewerNotesMd": "The R6 Invoice definition still talks about a referenced ChargeItem resource even though no such resource is present. This could be stale text, a packaging omission, or evidence of an unfinished ballot transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ChargeItem:CONVERSION_OR_MAPPING:ChargeItem:cc8d42",
+        "judgment": "Revisit",
+        "narrativeMd": "The inspected R6 surfaces do not provide a lossless destination for the R4 ChargeItem event model. Invoice.lineItem.chargeItem[x] can carry a billing code or unprofiled reference, and DeviceDefinition.chargeItem is device catalog metadata; neither carries the old resource's lifecycle state, subject, occurrence, performers, service/product links, account allocation, override rationale, notes, and supporting information as a standalone charge event. Because migration would require business rules or extensions rather than a straightforward base-model mapping, this deserves renewed review even though the source content is FMM 0.",
+        "keyEvidence": [
+          "R4 ChargeItem differential includes event-like billing fields such as status, partOf, code, subject, context, occurrence[x], performer, organizations, quantity, override fields, service, product[x], account, note, and supportingInformation.",
+          "R6 Invoice.lineItem.chargeItem[x] is 1..1 Reference or CodeableConcept with no ChargeItem targetProfile, while its definition text still describes details in ChargeItem.",
+          "R6 DeviceDefinition.chargeItem contains chargeItemCode, count, effectivePeriod, and useContext, which is not an event-level patient charge record.",
+          "No R6 ChargeItem or ChargeItemDefinition StructureDefinition files or package-index rows were found.",
+          "No strong public production-use evidence was found in the lightweight web search; the concern rests mainly on billing/audit semantics and migration loss."
+        ],
+        "fmmEffect": "FMM 0 lowers the presumption that R6 must preserve every R4 ChargeItem field. It does not eliminate the concern because the specific finding is about lossy migration of billing/audit facts and the need for expert policy decisions when no computable successor or mapping is present.",
+        "compatibilityMechanism": "semantic/documentation: beyond the resource-removal validation break, the independent issue is lossy or expert-dependent R4-to-R6 migration because candidate R6 elements do not preserve the old ChargeItem semantics.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design is partial: R6 could retain a deprecated ChargeItem wrapper or publish a first-class successor that preserves the old event-level fields while steering simple invoice-line cases to Invoice. The tradeoff is substantial duplicate financial modeling and ambiguity about which representation is authoritative.",
+        "comparisonToExisting": "partially agree with the existing High migration-risk assessment and Partial alternative judgment. I agree no lossless destination is evident, but the low FMM and lack of quick production-use evidence should soften claims about prevalence while leaving the lossy billing migration concern intact."
+      }
     },
     {
       "findingId": "ChargeItem:SERIALIZATION_OR_CODEGEN:ChargeItem:91e4c7",
@@ -514,7 +546,23 @@
       "validationAndCompatibilityMd": "This is not a separate old-valid/new-invalid instance rule; it is a runtime compatibility risk. Parsers may reject unknown `resourceType`, generated switch statements may hit default/error branches, and servers may stop advertising or resolving ChargeItem searches. Existing clients can fail at compile time or receive HTTP-level errors after an R6 upgrade.",
       "migrationGuidanceMd": "Regenerate models in a branch and explicitly check for removed ChargeItem classes, enum values, route registrations, search parameters, and documentation. If historical ChargeItems must remain queryable, implement a versioned legacy endpoint or compatibility layer that makes clear the data is R4 legacy content, not native R6.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible runtime approach is feasible through shims, adapters, or separate R4 support packages, but that compatibility would sit outside pure R6 conformance unless HL7 publishes a retained/deprecated artifact.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ChargeItem:SERIALIZATION_OR_CODEGEN:ChargeItem:91e4c7",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Package-driven SDKs, schema generators, resource-type enums, REST route registration, and search-parameter generation will stop producing ChargeItem-specific surfaces from the supplied R6 package. That is a real upgrade burden for implementations that had generated ChargeItem support, but it is an expected consequence of the resource being absent rather than an independent design defect. Once R6 does not define ChargeItem, keeping native R6 classes, enum codes, or search routes without a StructureDefinition would misrepresent conformance.",
+        "keyEvidence": [
+          "R4 package index includes StructureDefinition-ChargeItem.json and many SearchParameter-ChargeItem*.json files.",
+          "R6 package has no files matching *ChargeItem* and no ChargeItem or ChargeItemDefinition package-index rows.",
+          "R6 OpenAPI definitions.ChargeItem is false.",
+          "Checked R6 type/resource artifacts had zero exact ChargeItem entries.",
+          "The resource-removal finding separately covers whether omitting ChargeItem from base R6 should be revisited."
+        ],
+        "fmmEffect": "FMM 0 makes this runtime/codegen break less surprising: implementers of low-maturity content should expect more churn. The break remains real for any implemented workflow, but it does not by itself create a stronger standards-stability concern than the underlying resource removal.",
+        "compatibilityMechanism": "runtime/API/codegen: generated models, resource-type switches, OpenAPI schemas, REST/search routes, and client constants for ChargeItem disappear when regenerated from the R6 package.",
+        "lessBreakingAlternativeAssessment": "No independent less-breaking base R6 design applies to this consequence. Legacy R4 modules, versioned endpoints, or shims are reasonable implementation mitigations; the only base-design way to preserve native R6 codegen surfaces is to retain ChargeItem itself, which is assessed in the artifact-identity finding.",
+        "comparisonToExisting": "agree in substance that this is a real high runtime/codegen risk for implementers but probably justified if ChargeItem is not a R6 resource. I would avoid treating it as an additional reason to revisit beyond the underlying resource-removal decision."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -663,5 +711,18 @@
       "SearchParameter files for removed resources",
       "Residual narrative references to absent artifacts"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ChargeItem.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 1
+    }
   }
 }

@@ -293,7 +293,23 @@
       "migrationGuidanceMd": "Create an explicit resource-level transform. At minimum, rewrite `resourceType`, update canonical/profile references, update endpoint and type dispatch logic, and then apply element-level mappings described in the other findings. Do not rely on tolerant parsing or type aliases unless a local compatibility layer deliberately provides them.",
       "backwardCompatibilityAnalysisMd": "The change probably supports a broader regulatory model, but a compatibility alias, deprecated resource, or official profile over `RegulatedAuthorization` could have reduced instance breakage. The tradeoff would be additional maintenance and possible ambiguity about whether old medicinal-only semantics or new generalized semantics apply.",
       "reviewerNotesMd": "Because no official ConceptMap or narrative migration note was available, the `RegulatedAuthorization` successor relationship is inferred rather than proven by an authoritative map.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductAuthorization:ARTIFACT_IDENTITY:root:8b6d4c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 has no same-name `MedicinalProductAuthorization` resource, and local evidence strongly supports `RegulatedAuthorization` as the intended successor. This is a real top-level wire/API break because old `resourceType`, canonical/profile references, REST routes, generated classes, and type dispatch do not carry forward unchanged. Still, the R4 resource was FMM 0/trial-use and the R6 successor deliberately generalizes authorization beyond medicinal products. Keeping both concrete resource identities would preserve old payloads but would create durable duplicate endpoints and canonical types for the same marketing-authorization fact, so the break looks proportionate rather than a standards issue that clearly needs reopening.",
+        "keyEvidence": [
+          "R4 StructureDefinition defines concrete resource `MedicinalProductAuthorization` with FMM 0/trial-use.",
+          "R6 package has no `StructureDefinition-MedicinalProductAuthorization.json`.",
+          "R6 `CodeSystem/fhir-old-types` describes old resource names as deleted or renamed and includes `MedicinalProductAuthorization`.",
+          "R6 `RegulatedAuthorization` definition explicitly includes market authorization for a medicinal product as an example.",
+          "Lightweight web search found public HL7 Europe/UNICOM IDMP material using `RegulatedAuthorization` for marketing authorization, suggesting implementation relevance but not proving broad R4 production deployment."
+        ],
+        "fmmEffect": "R4 FMM 0 and trial-use substantially soften the stability objection to a resource identity replacement. The regulatory domain keeps the migration important, but low FMM prevents treating the break alone as disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with `resourceType: MedicinalProductAuthorization` is not a base R6 instance, and runtime/API/codegen surfaces tied to the old resource type also change.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept `MedicinalProductAuthorization` as a deprecated compatibility resource, but that would maintain two concrete resource identities and likely duplicate endpoint, search, profile, and mapping obligations. That alternative is real but costly.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment and partial alternative: the technical break is real, but FMM 0 and the high cost of dual resource identities make `Breaking but probably OK` more appropriate than escalation."
+      }
     },
     {
       "findingId": "MedicinalProductAuthorization:REFERENCE_TARGET:subject:db9f25",
@@ -471,7 +487,21 @@
       "migrationGuidanceMd": "Build subject migration together with the resource migration for `MedicinalProduct` and `MedicinalProductPackaged`. Reject, split, or extension-map R6 authorizations with multiple or non-medicinal subjects when producing R4.",
       "backwardCompatibilityAnalysisMd": "The broadening fits the generalized resource, but preserving a medicinal-specific alias or profile would have given implementers a safer migration bridge. The tradeoff is additional complexity and possible duplication with product-definition resource changes.",
       "reviewerNotesMd": "Target resource migration depends on separate analyses for `MedicinalProduct`, `MedicinalProductPackaged`, `MedicinalProductDefinition`, and `PackagedProductDefinition`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductAuthorization:REFERENCE_TARGET:subject:db9f25",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`subject` changes from one reference to old medicinal-product resource identities into a repeatable reference that can point to many regulated subjects, including R6 product-definition resources and non-medicinal subjects. Forward migration needs retargeting when validators or code enforce target profiles; reverse migration can be lossy for multiple or non-medicinal subjects. The broadening is central to the generalized `RegulatedAuthorization` model, and preserving old targets would depend on retaining the old product resource identities too, so the compatibility cost appears justified.",
+        "keyEvidence": [
+          "R4 `MedicinalProductAuthorization.subject` is 0..1 Reference to `MedicinalProduct` or `MedicinalProductPackaged`.",
+          "R6 `RegulatedAuthorization.subject` is 0..* Reference to `MedicinalProductDefinition`, `PackagedProductDefinition`, and many other regulated subject types.",
+          "R6 `fhir-old-types` includes the old medicinal product resource names, so old target identities are not simply retained as ordinary R6 resources."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the expectation that R6 must preserve the exact R4 subject target universe. The path is important for regulatory meaning, so the risk remains real, but not enough to outweigh the broader R6 design goal.",
+        "compatibilityMechanism": "old-valid/new-invalid: after resource migration, old target resource types can fail target-profile-aware validation or generated-reference constraints; R6-to-R4 loss also occurs for multiple or non-medicinal subjects.",
+        "lessBreakingAlternativeAssessment": "The less-breaking option would be to keep old `MedicinalProduct` and `MedicinalProductPackaged` targets alongside the new target list. That is only partially attractive because it requires cross-resource compatibility aliases and leaves two product models active.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies high reverse-conversion risk and a partial alternative, but the low maturity and cross-artifact cost make the break probably acceptable."
+      }
     },
     {
       "findingId": "MedicinalProductAuthorization:ELEMENT_PRESENCE:country-jurisdiction-region:42bb18",
@@ -610,7 +640,21 @@
       "validationAndCompatibilityMd": "R4 elements named `country` and `jurisdiction` are not valid on R6 `RegulatedAuthorization`. R6 `region` can often be mapped back to R4, but without additional coding policy it may be unclear whether a region should become `country`, `jurisdiction`, or both.",
       "migrationGuidanceMd": "Map country-level codings to `region`. Preserve sub-country or regulator-specific jurisdiction distinctions using coding systems where possible. For R6-to-R4 conversion, define deterministic rules for separating country from other jurisdictional regions.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative was available: retain old fields and add `region`. The R6 choice avoids duplicate fields but makes old instances fail without transformation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductAuthorization:ELEMENT_PRESENCE:country-jurisdiction-region:42bb18",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 separated authorization territory into repeatable `country` and `jurisdiction`; R6 replaces those old wire names with repeatable `region`. This is an old-valid/new-invalid element-name break, and the old distinction can matter when a marketing authorization is country-level but has sub-country or regulator-specific jurisdictional detail. Because these were optional CodeableConcept fields, R6 could likely have kept the old fields or kept one of the old names while clarifying broader territory semantics. The generalized `region` name is cleaner, but the cost of a less-breaking base design appears modest.",
+        "keyEvidence": [
+          "R4 `country` and `jurisdiction` are separate 0..* CodeableConcept elements.",
+          "R6 `RegulatedAuthorization.region` is a single 0..* CodeableConcept with definition covering country or jurisdiction.",
+          "R6 `region` has only an example jurisdiction binding, so terminology binding does not itself force a hard validation break."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability concern, but territorial applicability is a core regulatory/audit dimension. That domain importance and the modest compatibility alternative support `Revisit` despite low maturity.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `country` and `jurisdiction` element names are not valid R6 `RegulatedAuthorization` elements; R6-to-R4 loss can occur when a `region` cannot be deterministically classified back into country versus jurisdiction.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained `country` and `jurisdiction` as optional elements, perhaps deprecating them or defining them as territory components, while adding `region` only if needed. The tradeoff is duplicate or overlapping territory fields, but precedence rules are manageable.",
+        "comparisonToExisting": "agree with the existing medium-impact and less-breaking-available assessment; the change is a real avoidable wire break on a central regulatory path."
+      }
     },
     {
       "findingId": "MedicinalProductAuthorization:ELEMENT_REMOVED:authorization-dates:7e41c0",
@@ -729,7 +773,21 @@
       "migrationGuidanceMd": "Inventory usage of these elements before migration. Use official extensions or local profiles if available; otherwise create governed extensions or map a narrowly defined subset, such as first authorization date to `validityPeriod.start`, only when business owners confirm equivalence. Include regression tests for each removed field.",
       "backwardCompatibilityAnalysisMd": "The removal was avoidable from a wire-compatibility perspective because optional elements could have remained in the successor or been preserved through official extensions. The tradeoff would be a less generic base `RegulatedAuthorization` resource.",
       "reviewerNotesMd": "Human review should confirm whether R6 narrative guidance places these facts in another resource or extension not evident from the local StructureDefinitions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductAuthorization:ELEMENT_REMOVED:authorization-dates:7e41c0",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had dedicated slots for `restoreDate`, `dataExclusivityPeriod`, `dateOfFirstAuthorization`, and `internationalBirthDate`. R6 `RegulatedAuthorization` keeps `statusDate` and `validityPeriod`, but those do not fully preserve the removed medicinal-product authorization lifecycle and exclusivity facts. Some first-authorization semantics might be approximated by `validityPeriod.start`, but data exclusivity and international birth date are distinct regulatory concepts. Dropping or extension-mapping these fields can require expert policy judgment and can affect compliance, market-entry, and audit workflows.",
+        "keyEvidence": [
+          "R4 StructureDefinition defines `restoreDate`, `dataExclusivityPeriod`, `dateOfFirstAuthorization`, and `internationalBirthDate` as optional summary elements.",
+          "R6 `RegulatedAuthorization` contains `statusDate` and `validityPeriod` but no direct elements with those names or definitions.",
+          "Targeted local search of R6 `RegulatedAuthorization`, `MedicinalProductDefinition`, and `PackagedProductDefinition` found no direct counterpart for these four removed fields."
+        ],
+        "fmmEffect": "The low FMM reduces reliance expectations for the R4 shape, but these dates are regulatory/business/audit relevant and migration is lossy or policy-dependent. That overcomes the low-maturity softening.",
+        "compatibilityMechanism": "old-valid/new-invalid: old element names are invalid after migration to R6; R4-to-R6 loss is also likely if the values are dropped or squeezed into non-equivalent date fields.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained these optional fields on `RegulatedAuthorization`, marked them medicinal-product-specific or deprecated, or introduced equivalent optional lifecycle-date elements. The tradeoff is some medicinal-product-specific clutter in a generalized resource, but it would preserve important facts with limited structural cost.",
+        "comparisonToExisting": "agree with the existing high-impact and less-breaking-available assessment; this is one of the strongest findings for renewed design review."
+      }
     },
     {
       "findingId": "MedicinalProductAuthorization:ELEMENT_REMOVED:jurisdictionalAuthorization:10ac73",
@@ -875,7 +933,21 @@
       "migrationGuidanceMd": "Do not flatten jurisdictional authorizations without business review. Decide whether each R4 backbone row becomes a separate `RegulatedAuthorization`, an update to `MedicinalProductDefinition` or `PackagedProductDefinition`, a governed extension, or a combination. Test cases should include multiple jurisdictional authorizations with different validity periods and supply statuses.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive with a deprecated backbone or official extension. The likely benefit of the R6 design is normalization across authorization and product-definition resources, but the cost is a non-local migration.",
       "reviewerNotesMd": "Confirm with official R6 guidance whether legal status of supply is intended to be migrated only to product-definition resources.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductAuthorization:ELEMENT_REMOVED:jurisdictionalAuthorization:10ac73",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `jurisdictionalAuthorization` grouped identifier, country, jurisdiction, legal status of supply, and validity period into repeatable jurisdiction-specific authorization rows. R6 `RegulatedAuthorization` has top-level `region` and `validityPeriod`, while legal status of supply appears on related product-definition resources rather than as the same grouped authorization fact. A simple flattening can lose grouping and legal-status context, and a faithful migration may require multiple resources or governed extensions. This is more than a cosmetic refactor.",
+        "keyEvidence": [
+          "R4 `jurisdictionalAuthorization` is 0..* BackboneElement with `identifier`, `country`, `jurisdiction`, `legalStatusOfSupply`, and `validityPeriod` children.",
+          "R6 `RegulatedAuthorization` has no `jurisdictionalAuthorization` or `legalStatusOfSupply` child.",
+          "R6 `MedicinalProductDefinition.legalStatusOfSupply` and `PackagedProductDefinition.legalStatusOfSupply` exist, indicating possible relocation outside the authorization resource but not preserving the same grouped row."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers stability pressure, but jurisdiction-specific supply status and validity are regulatory and audit relevant, and the migration is non-local and lossy enough to warrant revisiting.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old backbone is invalid in R6; R4-to-R6 loss can occur if grouped jurisdictional authorization rows are flattened or moved into separate product-definition data without preserving relationships.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained the optional backbone, possibly deprecated or constrained to medicinal-product authorizations, while recommending newer normalized modeling. The tradeoff is overlap with `region`, `validityPeriod`, and product legal-status elements, but the old grouped fact has no clean base replacement.",
+        "comparisonToExisting": "agree with the existing high-impact and less-breaking-available assessment; the fresh review confirms the migration is lossy and expert-dependent."
+      }
     },
     {
       "findingId": "MedicinalProductAuthorization:ELEMENT_RENAMED:procedure-case:ab2f66",
@@ -1028,7 +1100,21 @@
       "validationAndCompatibilityMd": "An old `procedure` element is invalid on R6 `RegulatedAuthorization`. An R6 `case` without `type` cannot be represented as an R4 `procedure` if the case information must be preserved, because R4 requires `procedure.type` whenever `procedure` exists.",
       "migrationGuidanceMd": "Rename `procedure` to `case`, `procedure.identifier` to `case.identifier`, `procedure.type` to `case.type`, `procedure.date[x]` to `case.date[x]`, and recursive `procedure.application` to `case.application`. For reverse conversion, require a case type or define a local placeholder policy, and decide how to handle multiple identifiers and case status.",
       "backwardCompatibilityAnalysisMd": "The breaking rename was avoidable by retaining `procedure` as a deprecated alias. R6 likely chose a more general term that better fits applications and cases across regulatory domains.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductAuthorization:ELEMENT_RENAMED:procedure-case:ab2f66",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`procedure` is renamed to `case`, and several child rules are broadened: identifiers become repeatable, `type` is no longer required, and `status` is added. The old field name is a real wire/codegen break, but forward migration is usually a direct structural rename with compatible child datatypes. Given the R4 artifact's FMM 0 status and the R6 note that this area is still seeking implementer feedback, the broader `case` terminology seems proportionate even though a less-breaking name-retention design was available.",
+        "keyEvidence": [
+          "R4 `procedure` is 0..1 BackboneElement with `identifier` 0..1, required `type` 1..1, `date[x]` Period/dateTime, and recursive `application`.",
+          "R6 `case` is 0..1 BackboneElement with `identifier` 0..*, `type` 0..1, `status` 0..1, same `date[x]` choice, and recursive `application`.",
+          "R6 `case` definition describes the case or regulatory procedure and notes ongoing workgroup review/implementer feedback."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the concern over a path rename. The path is audit/workflow relevant, but the forward transform is mechanical and the R6 design goal is understandable.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old `procedure` property is not valid on R6 `RegulatedAuthorization`; R6-to-R4 loss can occur for `case.status`, multiple identifiers, or cases without a type.",
+        "lessBreakingAlternativeAssessment": "Yes but with modest benefit. R6 could have kept the `procedure` name and broadened its definition/children, avoiding the wire break. The tradeoff is retaining a less general name for a broader administrative case model.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies an avoidable rename, but the low maturity and straightforward migration make the final judgment `Breaking but probably OK` rather than `Revisit`."
+      }
     },
     {
       "findingId": "MedicinalProductAuthorization:FLAGS_AND_MODIFIERS:status:50fd2e",
@@ -1163,7 +1249,21 @@
       "migrationGuidanceMd": "Review all code paths that display, exchange, or act on authorizations. Ensure status is parsed and considered before treating an authorization as usable. Where feasible, map local statuses to publication-status or preserve local codings with clear text and business rules.",
       "backwardCompatibilityAnalysisMd": "A softer alternative would have been best-practice guidance or warnings, but that would not force consumers to inspect status. The modifier flag is a reasonable safety-oriented change, though it raises implementation obligations.",
       "reviewerNotesMd": "Confirm local status vocabularies before mapping to publication-status; marketing authorization statuses may not align one-to-one with publication lifecycle statuses.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductAuthorization:FLAGS_AND_MODIFIERS:status:50fd2e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`status` keeps the same cardinality and CodeableConcept type but becomes an R6 modifier with a preferred publication-status binding. This is not an old-valid/new-invalid structural break because the binding is preferred, but it changes safe-processing obligations: consumers should inspect status before treating an authorization as usable. That is a meaningful runtime/codegen concern, yet the modifier reason is directly tied to preventing invalid or non-current authorization records from being treated as valid, so a softer warning-only design would weaken the safety signal.",
+        "keyEvidence": [
+          "R4 `status` is 0..1 CodeableConcept, summary, and not a modifier.",
+          "R6 `status` is 0..1 CodeableConcept, summary, `isModifier=true`, with reason that status can indicate a record should not be treated as valid.",
+          "R6 `status` binding to publication-status is preferred, not required."
+        ],
+        "fmmEffect": "Low R4 FMM reduces the compatibility burden, but status is central to safe regulatory use. The modifier flag is a proportionate base-level signal rather than an avoidable cosmetic change.",
+        "compatibilityMechanism": "runtime/API/codegen: generated models, validators, and consumers may treat `status` as a modifier that must be checked; there is no hard instance break from the preferred binding alone.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have left `status` non-modifier and used guidance or warning-level conformance, but that would not provide the same machine-readable obligation to avoid relying on invalid authorizations.",
+        "comparisonToExisting": "agree with the existing assessment that this is primarily runtime risk, not a hard validation break, and that the less-breaking alternative is only partial."
+      }
     },
     {
       "findingId": "MedicinalProductAuthorization:ELEMENT_RENAMED:legalBasis-basis:2e9169",
@@ -1320,7 +1420,21 @@
       "validationAndCompatibilityMd": "An R4-derived R6 payload that still contains `legalBasis` is invalid. R6 `basis` values can be mapped back to R4 only if at most one basis is present and local policy treats it as a legal framework rather than some other reason.",
       "migrationGuidanceMd": "Map `legalBasis` to a single-item `basis` array. For reverse conversion, reject or extension-map multiple bases unless a local rule can combine them. Consider mapping local legal-basis codes to the R6 example CodeSystem when appropriate, but do not force a lossy code translation.",
       "backwardCompatibilityAnalysisMd": "The rename and broadening could have been introduced compatibly by retaining the old field as deprecated. The R6 design reduces medicinal-specific naming in favor of a general authorization concept.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductAuthorization:ELEMENT_RENAMED:legalBasis-basis:2e9169",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `legalBasis` becomes repeatable `basis`, broadening from a single legal framework to legal, regulatory, or other authorization reasons. The cardinality broadening and example binding are not the issue; the avoidable break is the field rename. Legal or regulatory basis is an audit/compliance-relevant concept, and R6 could likely have kept the old wire name while broadening its definition and max cardinality. The new shorter name is cleaner for non-legal reasons, but the compatibility cost seems disproportionate for an optional CodeableConcept path.",
+        "keyEvidence": [
+          "R4 `legalBasis` is 0..1 CodeableConcept with definition `The legal framework against which this authorization is granted.`",
+          "R6 `basis` is 0..* CodeableConcept with definition covering legal/regulatory framework or other reasons.",
+          "R6 `basis` binding is example strength, so terminology does not create a hard validation break."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability concern, but legal/regulatory basis is compliance and audit relevant, and the less-breaking base design is low cost enough to justify `Revisit`.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `legalBasis` is not a valid R6 property; R6-to-R4 loss can occur for multiple bases or non-legal reasons.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept `legalBasis`, made it repeatable, and broadened its definition. The tradeoff is an imperfect name for non-legal reasons, but it avoids duplicate fields and preserves old payloads.",
+        "comparisonToExisting": "agree with the existing medium-impact and less-breaking-available assessment; the fresh review treats this as an avoidable compliance-relevant rename."
+      }
     },
     {
       "findingId": "MedicinalProductAuthorization:CONVERSION:R6-only-elements:6aa317",
@@ -1438,7 +1552,21 @@
       "migrationGuidanceMd": "When down-converting R6 to R4, decide which R6-only fields are dropped, extension-mapped, or represented through linked resources. Round-trip tests should assert whether extension preservation is required.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the least disruptive way to add expressiveness in the forward direction. The remaining incompatibility is unavoidable for native R4 representation, so the main need is official or local conversion guidance.",
       "reviewerNotesMd": "This finding is primarily for systems that must support bidirectional R4/R6 conversion or long-term mixed-version archives.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductAuthorization:CONVERSION:R6-only-elements:6aa317",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6-only elements (`type`, `description`, `indication`, `intendedUse`, `attachedDocument`, and `case.status`) are optional additions. They do not make R4-derived content invalid in the forward R4-to-R6 direction, and native R4 could not represent these concepts without extensions or local conventions anyway. They matter for down-conversion and round-trip tooling, but that is not a reason to question the R6 base design.",
+        "keyEvidence": [
+          "R6 `RegulatedAuthorization` defines optional `type`, `description`, `indication`, `intendedUse`, `attachedDocument`, and `case.status` elements.",
+          "R4 `MedicinalProductAuthorization` has no direct local counterparts for those fields.",
+          "The new R6 bindings observed for these additions are example or preferred, not required."
+        ],
+        "fmmEffect": "FMM 0/trial-use further lowers concern because the finding is reverse-conversion only. No broad production impact should be inferred from optional R6 additions.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using these optional additions may not down-convert losslessly to native R4, but there is no meaningful R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Optional R6 additions are already the least disruptive forward-compatible design; R4 down-conversion requires extensions or policy outside the R6 base model.",
+        "comparisonToExisting": "disagree with the existing medium-impact framing for this review purpose: the reverse-conversion limitation is real, but as an R4-to-R6 compatibility finding it is not a problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1597,5 +1725,19 @@
       "R4 marketing authorization legal/status/date fields relocated to product-definition resources or extensions",
       "R6 resource old-type entries without same-name StructureDefinitions"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicinalProductAuthorization.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 4,
+      "No problem": 1
+    }
   }
 }

@@ -303,7 +303,21 @@
       "validationAndCompatibilityMd": "R4-valid instances with `sourceUri`, `sourceCanonical`, `targetUri`, or `targetCanonical` fail R6 validation because those properties are not R6 children. R6 instances with `sourceScope*` or `targetScope*` are not directly valid R4. The transform is straightforward if the old and new fields are not both present.",
       "migrationGuidanceMd": "Rename `sourceUri` to `sourceScopeUri`, `sourceCanonical` to `sourceScopeCanonical`, `targetUri` to `targetScopeUri`, and `targetCanonical` to `targetScopeCanonical`. Update generated accessors, FHIRPath, search/extraction logic, and tests that assumed top-level `source` or `target` names.",
       "backwardCompatibilityAnalysisMd": "The rename was probably intended to resolve ambiguity with `group.source` and `group.target`. A backward-compatible alternative would have been to accept old aliases as deprecated elements or extensions during a transition period, but that would keep ambiguous terminology in the base model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ConceptMap:ELEMENT_PRESENCE_OR_IDENTITY:sourceScope-targetScope:4b50c2",
+        "judgment": "Revisit",
+        "narrativeMd": "This is mostly a same-shape wire-name change: R4 `source[x]`/`target[x]` and R6 `sourceScope[x]`/`targetScope[x]` have the same cardinality and value-set choice types, but the JSON names changed. A strict R6 validator or generated model will reject or miss common R4 properties such as `sourceUri`, `sourceCanonical`, `targetUri`, and `targetCanonical`. Because the underlying semantics are still value-set scope, the clarity goal looks achievable by improving names in descriptions/examples rather than by changing the base wire names.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ConceptMap: `ConceptMap.source[x]` and `ConceptMap.target[x]` are 0..1 uri or canonical(ValueSet), summary true.",
+          "R6 StructureDefinition-ConceptMap: replacement elements are `ConceptMap.sourceScope[x]` and `ConceptMap.targetScope[x]` with the same cardinality and choice types.",
+          "Local core package count: all 80 R4 ConceptMap examples use sourceUri/sourceCanonical and targetUri/targetCanonical; R6 examples use sourceScope*/targetScope* names."
+        ],
+        "fmmEffect": "R4 FMM 3/trial-use means mature trial-use rather than experimental content. That raises the burden for a pure rename on a central terminology artifact, though it is not the same as normative FMM 5.",
+        "compatibilityMechanism": "old-valid/new-invalid: old instances using the R4 scope element names become invalid in R6, and generated APIs/FHIRPath expressions must also rename the properties.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design is to keep `source[x]` and `target[x]` as the wire names and clarify that they are value-set scopes. Adding parallel aliases would create duplicate representations, but simply retaining the R4 names has a low technical cost and preserves most existing instances.",
+        "comparisonToExisting": "agree with the existing high-impact and Yes-alternative assessment; the break is real and the alternative is a base-model choice, not just migration tooling."
+      }
     },
     {
       "findingId": "ConceptMap:TYPE_DOMAIN:group-source-version:2f91aa",
@@ -457,7 +471,21 @@
       "migrationGuidanceMd": "Inventory ConceptMaps that use group version fields. Decide whether to encode versions into canonical references, preserve them in extensions, or maintain version policy outside the resource. Test maps where source and target code-system versions affect equivalence decisions.",
       "backwardCompatibilityAnalysisMd": "The change improves alignment with canonical references, but separate version fields could have remained optional and deprecated without invalidating old data. The less-breaking alternative would require extra rules for conflicts between a versioned canonical and the old version fields.",
       "reviewerNotesMd": "Human review is recommended for code systems with non-permanent concepts or where old version strings are not valid canonical version suffixes.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ConceptMap:TYPE_DOMAIN:group-source-version:2f91aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps `ConceptMap.group.source` and `group.target` but changes them from plain uri to canonical(CodeSystem), and removes the separate `sourceVersion`/`targetVersion` siblings. Existing R4 maps that carry explicit version strings will need migration, and version mistakes can affect terminology translation. The R6 design goal is nevertheless coherent: code-system identity and versioning are being moved toward canonical-reference conventions instead of split fields.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ConceptMap: `group.source`/`group.target` are uri, with optional `sourceVersion` and `targetVersion` string elements.",
+          "R6 StructureDefinition-ConceptMap: `group.source`/`group.target` are canonical(CodeSystem), and no `sourceVersion` or `targetVersion` element is present.",
+          "Local R4 example `ConceptMap-103.json` uses SNOMED CT and ICD-10-CM version strings; most local examples do not use the version siblings."
+        ],
+        "fmmEffect": "FMM 3/trial-use keeps compatibility relevant, especially because terminology versioning can change translation results. The limited observed use of the removed version siblings and the stronger canonical-reference model keep this from being disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `sourceVersion` or `targetVersion` contain elements that R6 does not define; there is also runtime/tooling impact from the stricter canonical(CodeSystem) type.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could retain deprecated `sourceVersion` and `targetVersion`, but that would duplicate version locations with canonical `|version` syntax and require conflict/precedence rules. Those tradeoffs are material enough that the R6 simplification appears proportionate.",
+        "comparisonToExisting": "agree with the existing high-impact and Partial-alternative assessment; the finding is breaking, but the alternative is not low-cost."
+      }
     },
     {
       "findingId": "ConceptMap:TERMINOLOGY_BINDING:target.relationship:8e57d4",
@@ -714,7 +742,22 @@
       "migrationGuidanceMd": "Build an explicit migration table and review it with terminology owners. Likely mappings include `relatedto` to `related-to`, `equivalent` or `equal` to `equivalent` with possible loss of distinction, `wider` or `subsumes` to `source-is-narrower-than-target`, `narrower` or `specializes` to `source-is-broader-than-target`, and `disjoint` to `not-related-to`. Treat `inexact` and `unmatched` as needing manual review or map-specific policy.",
       "backwardCompatibilityAnalysisMd": "The R6 design is easier to read and likely avoids R4 orientation confusion. A backward-compatible alternative would have accepted old `equivalence` codes as deprecated aliases and emitted warnings, but that would have preserved a confusing target-to-source interpretation and two overlapping code systems.",
       "reviewerNotesMd": "The suggested code mappings are inferred from local definitions, not from an official cross-version ConceptMap.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ConceptMap:TERMINOLOGY_BINDING:target.relationship:8e57d4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 target mappings require modifier element `equivalence`, while R6 requires modifier element `relationship` with a different code system and source-to-target reading direction. This is a real semantic migration point: a naive code rename can invert narrower/broader meanings or mis-handle old codes such as `unmatched`, `disjoint`, `inexact`, and `equal`. The redesign has a strong rationale because it makes the direction explicit and reduces the confusing target-to-source wording in R4.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ConceptMap: `ConceptMap.group.element.target.equivalence` is 1..1 code, isModifier true, required-bound to concept-map-equivalence, and says the equivalence is read from target to source.",
+          "R6 StructureDefinition-ConceptMap: `ConceptMap.group.element.target.relationship` is 1..1 code, isModifier true, required-bound to concept-map-relationship, and is read from source to target.",
+          "Local code systems: R4 recursively has relatedto/equivalent/equal/wider/subsumes/narrower/specializes/inexact/unmatched/disjoint; R6 has related-to/equivalent/source-is-narrower-than-target/source-is-broader-than-target/not-related-to.",
+          "Local core package count: R4 examples contain 690 `equivalence` values; R6 examples contain 675 `relationship` values."
+        ],
+        "fmmEffect": "FMM 3/trial-use increases concern because this required modifier is central to ConceptMap behavior. It does not by itself require preserving the R4 shape when the old direction and code hierarchy were a source of semantic risk.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: every R4 target with `equivalence` must be structurally changed, and translation behavior depends on correct semantic remapping.",
+        "lessBreakingAlternativeAssessment": "A partial base alternative would allow either legacy `equivalence` or new `relationship` with mutual exclusion. That preserves old instances but leaves two modifier elements, two code systems, and opposite reading directions in the base resource, which is a substantial safety and interoperability cost.",
+        "comparisonToExisting": "agree with the existing high-impact and Partial-alternative assessment; the impact is high, but the breaking redesign is defensible."
+      }
     },
     {
       "findingId": "ConceptMap:SLICING_AND_CONTENT_MODEL:dependsOn:6d0ef1",
@@ -921,7 +964,22 @@
       "migrationGuidanceMd": "For each distinct R4 dependency property, create a `ConceptMap.additionalAttribute` with a stable code, URI, description, and type. Then replace `dependsOn.property` with `dependsOn.attribute` and map the old string value into the appropriate R6 `value[x]` or `valueSet`. Add tests for each conditional branch of a map.",
       "backwardCompatibilityAnalysisMd": "The redesign is probably justified by stronger typing and reusability, but the old tuple shape could have been retained as deprecated fields. That alternative would have preserved old instances while weakening R6's ability to validate dependency values consistently.",
       "reviewerNotesMd": "Reviewers should check maps where the R4 `value` string contained a path, text expression, implicit value-set identifier, or code display rather than a clean code.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ConceptMap:SLICING_AND_CONTENT_MODEL:dependsOn:6d0ef1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 conditional dependencies are inline tuples with `property`, optional `system`, required string `value`, and optional display. R6 replaces that with an `additionalAttribute` declaration plus `dependsOn.attribute` and either typed `value[x]` or `valueSet`. R4 instances using conditional mappings will fail R6 validation until rewritten, but the R6 model provides stronger typing and reusable attribute declarations that are hard to obtain from the R4 free-string shape.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ConceptMap: `dependsOn.property` is 1..1 uri and `dependsOn.value` is 1..1 string, with optional `system` and `display`.",
+          "R6 StructureDefinition-ConceptMap: `dependsOn.attribute` is 1..1 code, `dependsOn.value[x]` supports code/Coding/string/boolean/Quantity, and `dependsOn.valueSet` is canonical(ValueSet).",
+          "R6 invariant `cmd-6` requires exactly one of value[x] or valueSet.",
+          "Local examples: R4 `ConceptMap-example2.json` uses the old dependsOn tuple; the R6 counterpart declares `additionalAttribute` and uses `valueCoding`."
+        ],
+        "fmmEffect": "FMM 3/trial-use means the old conditional-mapping shape deserves compatibility attention, but local core examples show it is occasional, and the R6 typing/declaration goal is substantial.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: old `property`/`system`/`value`/`display` children are not valid R6, while R6 boolean/Quantity/Coding/valueSet dependencies cannot be represented losslessly in R4's string-only shape.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain the R4 children as deprecated legacy fields while adding the R6 model. That would preserve old instances but create two condition models, require conflict rules, and weaken the guarantee that dependencies refer to declared typed attributes.",
+        "comparisonToExisting": "agree with the existing high-impact and Partial-alternative assessment; the break is real but proportionate to the typed-dependency goal."
+      }
     },
     {
       "findingId": "ConceptMap:VALUE_CONSTRAINT:element-target-code-valueset:09c8c7",
@@ -1106,7 +1164,22 @@
       "migrationGuidanceMd": "During R4-to-R6 migration, determine whether omitted codes actually mean a source/target value set, an explicit no-map assertion, or incomplete data. Use `group.element.valueSet`, `target.valueSet`, or `group.element.noMap` as appropriate. Add validation tests for code-only, valueSet-only, both-present, and neither-present cases.",
       "backwardCompatibilityAnalysisMd": "The new invariants are likely justified because they prevent ambiguous mappings. Backward compatibility could have been improved by allowing old omitted-code patterns with warnings, but that would weaken the R6 guarantee that each mapping rule identifies what it maps.",
       "reviewerNotesMd": "Pay special attention to R4 `equivalence=unmatched` entries; some should become R6 `noMap=true`, while others may be better represented as `relationship=not-related-to` with an explicit target.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ConceptMap:VALUE_CONSTRAINT:element-target-code-valueset:09c8c7",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds source/target `valueSet` forms and `noMap`, then enforces that each source element and target identifies exactly one code or valueSet. That invalidates permissive R4 patterns where a source or target code was omitted, and it requires human care when migrating old `unmatched` or empty-target patterns. The compatibility cost is meaningful, but the R6 rule makes mapping intent explicit and reduces ambiguity between incomplete mappings, set mappings, and deliberate no-map assertions.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ConceptMap: `group.element.code` and `group.element.target.code` are optional, with no source/target valueSet children and no `noMap` element.",
+          "R6 StructureDefinition-ConceptMap: `group.element.valueSet`, `target.valueSet`, and `group.element.noMap` are added.",
+          "R6 invariants `cmd-5` and `cmd-7` require exactly one of code or valueSet for source and target entries; `cmd-4` forbids targets when noMap is true.",
+          "Local R4 `ConceptMap-103.json` contains an element without a source code; the R6 counterpart repeats the source code on each element."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the compatibility bar because source/target mapping entries are central. The added precision directly improves computability, so the maturity context does not make the error-level constraints disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: underspecified R4 entries can fail R6 invariants, while R6 value-set-to-value-set and noMap forms have no native R4 representation.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could make the code-or-valueSet invariants warning-level or carve out legacy empty cases. That would preserve old instances but keep ambiguous source/target semantics in the base model and force consumers to guess whether an entry is incomplete, set-based, or intentionally unmapped.",
+        "comparisonToExisting": "agree with the existing high-impact and Partial-alternative assessment; the impact is real, but the stricter model has a clear interoperability purpose."
+      }
     },
     {
       "findingId": "ConceptMap:VALUE_CONSTRAINT:unmapped:5bb75b",
@@ -1351,7 +1424,22 @@
       "migrationGuidanceMd": "Map `provided` to `use-source-code`, rename `url` to `otherMap`, and add an explicit `relationship` for `use-source-code` and `fixed` modes. For `fixed`, choose either `code` or `valueSet`, not both. Test translate behavior for explicit matches, no explicit match with default, and other-map fallback.",
       "backwardCompatibilityAnalysisMd": "The stricter R6 model is likely justified because default translation output should state its relationship. A backward-compatible transition could have accepted old names and old mode codes as aliases, but that would undermine the clean R6 model.",
       "reviewerNotesMd": "The correct default `relationship` for `use-source-code` may vary by map. Do not assume `equivalent` without reviewing the map purpose.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ConceptMap:VALUE_CONSTRAINT:unmapped:5bb75b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The `unmapped` backbone remains the default-handling mechanism, but R6 changes several interoperable details: `provided` becomes `use-source-code`, `url` becomes `otherMap`, `valueSet` is added for fixed defaults, and a default `relationship` is required except for `other-map`. Old `other-map` content is a straightforward rename, but old fixed/provided defaults did not state the new modifier relationship, so preserving them blindly can change translate semantics.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ConceptMap: unmapped mode is required-bound to `provided | fixed | other-map`; `url` is canonical(ConceptMap) for other-map.",
+          "R6 StructureDefinition-ConceptMap: mode is required-bound to `use-source-code | fixed | other-map`; `otherMap` replaces `url`; `relationship` is a modifier code bound to concept-map-relationship.",
+          "R6 invariants `cmd-8`, `cmd-9`, and `cmd-10` restrict fixed/default fields, require relationship for non-other-map modes, and forbid otherMap outside other-map mode.",
+          "Local examples: R4 has fixed and other-map unmapped cases; R6 fixed examples include an explicit relationship."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes default translation behavior worth preserving carefully. The semantic importance of the newly required relationship makes a simple compatibility alias insufficient for all cases.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: old mode codes or `unmapped.url` fail R6 validation, and missing or guessed default relationships can alter translate results.",
+        "lessBreakingAlternativeAssessment": "A partial alternative could accept `provided` and `url` as deprecated aliases. That helps only part of the break; preserving old fixed/provided instances also requires making `relationship` optional or inventing a default, either of which weakens the R6 semantics and can misrepresent the intended mapping.",
+        "comparisonToExisting": "agree with the existing high-impact and Partial-alternative assessment; aliases are plausible but do not solve the relationship semantics safely."
+      }
     },
     {
       "findingId": "ConceptMap:CONVERSION_OR_MAPPING:properties-additionalAttribute:ab4d12",
@@ -1541,7 +1629,22 @@
       "migrationGuidanceMd": "When migrating to R6, identify any R4 extensions or comments that represent mapping rank, status, provenance, or operational attributes and convert them to `ConceptMap.property` plus `target.property` where appropriate. For R6-to-R4 export, preserve native R6 properties in extensions and document the loss of native R4 semantics.",
       "backwardCompatibilityAnalysisMd": "The new model is additive for R6 but not backward-compatible for round-trip with R4. Standard cross-version extensions would be the least disruptive compatibility mechanism.",
       "reviewerNotesMd": "Because this finding is mainly R6-to-R4 and extension-convention risk, projects with simple R4 maps and no per-target properties may not be affected.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ConceptMap:CONVERSION_OR_MAPPING:properties-additionalAttribute:ab4d12",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "This is not an old-R4-instance validation break: R6 adds optional `ConceptMap.property`, `target.property`, and `additionalAttribute` structures. The real compatibility issue is reverse conversion and round-tripping. R6 maps can now carry typed per-target metadata such as priority or advice and declared attributes used by translation, and dropping that information when exporting to R4 can change operational behavior. The R6 addition is still proportionate because R4 had no native slot for this information beyond extensions or comments.",
+        "keyEvidence": [
+          "R6 StructureDefinition-ConceptMap: `ConceptMap.property` and `ConceptMap.additionalAttribute` are optional summary backbones; `target.property.value[x]` supports Coding/string/integer/boolean/dateTime/decimal/code.",
+          "R4 StructureDefinition-ConceptMap: no native `ConceptMap.property`, `target.property`, or `additionalAttribute` elements are present.",
+          "R6 examples include property/attribute use, including `ConceptMap-example-priority.json` with priority and mapAdvice target properties.",
+          "R6 `cmd-11` requires a system when a property type is code."
+        ],
+        "fmmEffect": "FMM 3/trial-use means the new round-trip gap matters for implemented terminology tooling, but the change is additive for R4-to-R6 validation and does not weaken existing R4 instances.",
+        "compatibilityMechanism": "R6-to-R4 loss: native R6 typed mapping properties and declared attributes do not have a base R4 representation, so down-conversion needs extensions or loses information.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed to preserve R4 instances because the fields are optional additions. Omitting them would fail the R6 goal; R4 extension conventions or transforms are mitigations for down-conversion, not better base R6 designs.",
+        "comparisonToExisting": "partially agree with the existing high-impact and Not-applicable-alternative assessment; the R6-to-R4 loss is meaningful, but it should not be read as an R4-to-R6 hard instance break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1721,5 +1824,18 @@
       "R4 code+version fields replaced by canonical references",
       "Required binding code-system redesigns between R4 and R6"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ConceptMap.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 6
+    }
   }
 }

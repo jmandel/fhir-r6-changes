@@ -327,7 +327,22 @@
       "migrationGuidanceMd": "Transform each R4 actor by copying `actorId` to `key`. Populate `title` from R4 `name` when present; otherwise choose a deterministic display label, often the old `actorId`, and flag the case for review. Update codegen models, serializers, FHIRPath expressions, diagrams, and templates to use `actor.key` and `actor.title`.",
       "backwardCompatibilityAnalysisMd": "The change could have been made less disruptive by retaining deprecated aliases, but R6 appears to favor a cleaner keyed model. A compatibility extension could preserve the original R4 name when a generated title is not semantically equivalent.",
       "reviewerNotesMd": "Review title population rules carefully: using an identifier as a display title may be acceptable for technical systems but not for human actors.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExampleScenario:ELEMENT_PRESENCE_OR_IDENTITY:ExampleScenario.actor:67d5c5",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes the actor submodel from `actorId`/optional `name` to required `key` and required `title`. A direct R4 instance will fail strict R6 validation and generated model users must rename fields; actors without `name` also need a display title supplied. The migration is visible but mostly mechanical, and the affected resource is a low-maturity documentation/scenario artifact rather than a clinical data exchange resource.",
+        "keyEvidence": [
+          "R4 snapshot: `ExampleScenario.actor.actorId` is 1..1 string and `ExampleScenario.actor.name` is 0..1 string.",
+          "R6 snapshot: `ExampleScenario.actor.key` is 1..1 string and `ExampleScenario.actor.title` is 1..1 string.",
+          "R4 maturity map and StructureDefinition extensions show ExampleScenario as FMM 0/trial-use.",
+          "Quick public search found generated/client ExampleScenario surfaces but no clear evidence of production exchange of ExampleScenario instances."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use substantially softens the stability expectation. The field rename is real, but without strong production-use evidence I do not treat the break as disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 actor children named `actorId` or `name` are not R6 children, and R6 requires `key` and `title`; generated APIs also change property names.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept `actorId` as the key and left `name` optional or warning-level while adding `definition`. That would preserve R4 wire compatibility, but it would leave the older naming scheme and would not give base R6 a guaranteed renderable actor label.",
+        "comparisonToExisting": "partially agree: the existing report is right that this is a hard, high-touch migration and that a compatibility-preserving design was possible; I weigh FMM 0 and the documentation-resource context more heavily, so I do not escalate it to Revisit."
+      }
     },
     {
       "findingId": "ExampleScenario:TERMINOLOGY_BINDING:ExampleScenario.actor.type:fdfc1a",
@@ -527,7 +542,22 @@
       "migrationGuidanceMd": "Use an explicit mapping table. A likely mapping is R4 `person` to R6 `person` and R4 `entity` to R6 `system`, but confirm with domain owners. For R6-to-R4, decide whether `system`, `collective`, and `other` collapse to R4 `entity`, whether actor definitions are dereferenced, or whether a cross-version extension is needed.",
       "backwardCompatibilityAnalysisMd": "The value set change seems motivated by alignment with `ActorDefinition`. It could have been less breaking with a ConceptMap or deprecated code alias. Without that, systems must carry local migration logic.",
       "reviewerNotesMd": "No local ConceptMap was found for actor type conversion; the `entity` to `system` mapping is inferred from displays and definitions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExampleScenario:TERMINOLOGY_BINDING:ExampleScenario.actor.type:fdfc1a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 required `actor.type` code system had `person` and `entity`; R6 changes to the ActorDefinition actor-type value set with `person`, `system`, `collective`, and `other`, and also allows either a type or a formal actor definition. Existing `entity` values are not valid under the new required binding, but the old code's display was already \"System\", making the common migration to `system` straightforward for many scenarios.",
+        "keyEvidence": [
+          "R4 snapshot: `ExampleScenario.actor.type` is 1..1 code with required binding to `examplescenario-actor-type|4.0.1`.",
+          "R6 snapshot: `ExampleScenario.actor.type` is 0..1 code with required binding to `actordefinition-actor-type|6.0.0-ballot4`.",
+          "R4 CodeSystem `examplescenario-actor-type` defines `entity` with display `System`; R6 ActorDefinition code system defines `system`, `collective`, `other`, and `person`.",
+          "R6 invariant `exs-24` requires actor to have either `type` or `definition`, but not both."
+        ],
+        "fmmEffect": "The low R4 maturity makes a required terminology cleanup more acceptable. Public codegen evidence shows implementers may see this, but no quick evidence showed production workflows depending on the exact `entity` code.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 actor with `type: entity` no longer satisfies the R6 required binding unless migrated to a new code or to `definition`.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `entity` as a deprecated code or added it to the value set as an alias. That would be less breaking, but it would dilute alignment with ActorDefinition and keep two labels for the same system-like category.",
+        "comparisonToExisting": "partially agree: I agree this is a real hard break and a deprecated alias was possible, but I see the semantic cleanup as proportionate for an FMM 0 artifact."
+      }
     },
     {
       "findingId": "ExampleScenario:ELEMENT_PRESENCE_OR_IDENTITY:ExampleScenario.instance:20ec8e",
@@ -691,7 +721,22 @@
       "migrationGuidanceMd": "Map `resourceId` to `key`. Convert `resourceType` into a `Coding` for `structureType`. Populate `title` from R4 `name` when present, otherwise choose a deterministic title and review. Preserve R6-only structure/profile/content metadata in extensions or a sidecar if R6-to-R4 round-trip matters.",
       "backwardCompatibilityAnalysisMd": "The generalization is understandable because examples can now represent FHIR and non-FHIR structures. A less breaking alternative would have kept R4 FHIR-specific fields as aliases, but that would create ambiguous duplicate state.",
       "reviewerNotesMd": "The R6 instance type ValueSet includes R4/R6 resource-types and an external HL7 v2 table by composition; not all expansions were locally available.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExampleScenario:ELEMENT_PRESENCE_OR_IDENTITY:ExampleScenario.instance:20ec8e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 generalizes instance declarations from FHIR-resource-only `resourceId`/`resourceType` plus optional `name` to `key`, `structureType`, optional profile/content references, and required `title`. R4 JSON cannot be accepted unchanged, and an absent R4 name means a title must be chosen. The direction of travel is understandable because R6 can describe non-FHIR structures and attach concrete example content.",
+        "keyEvidence": [
+          "R4 snapshot: `ExampleScenario.instance.resourceId` and `resourceType` are both 1..1; `name` is 0..1.",
+          "R6 snapshot: `ExampleScenario.instance.key`, `structureType`, and `title` are 1..1, with optional `structureVersion`, `structureProfile[x]`, and `content`.",
+          "R6 `examplescenario-instance-type` value set includes FHIR resource types and HL7 v2 table 0354, supporting a broader structure model.",
+          "R4 maturity/status context is FMM 0/trial-use."
+        ],
+        "fmmEffect": "FMM 0 softens the compatibility burden for this central remodel. The change still affects validators and generated serializers, but the artifact was explicitly low maturity in R4.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instance fields `resourceId`, `resourceType`, and `name` are removed or replaced, while R6 requires `key`, `structureType`, and `title`.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could retain the R4 fields for FHIR-resource examples while adding generalized structure fields. The tradeoff is a dual model with precedence and consistency questions between `resourceType` and `structureType`, and between `name` and `title`.",
+        "comparisonToExisting": "partially agree: the existing high impact is credible for direct migration, and I agree only a partial less-breaking design exists; I judge the redesign acceptable given the broader R6 model and low R4 FMM."
+      }
     },
     {
       "findingId": "ExampleScenario:ELEMENT_PRESENCE_OR_IDENTITY:ExampleScenario.instance.version:d80f95",
@@ -887,7 +932,22 @@
       "migrationGuidanceMd": "Copy version `versionId` to `version.key`; choose `version.title` from an existing display label, the old version id, or a curated title; preserve R4 `description` in R6 `description`. Rename contained instance `resourceId` to `instanceReference` and `versionId` to `versionReference`, then run reference-integrity validation across the whole resource.",
       "backwardCompatibilityAnalysisMd": "The new names are consistent with the R6 key model, but a compatibility phase with old names would have avoided hard instance rejection. Because the new invariants depend on the new names, a permanent dual model would be costly.",
       "reviewerNotesMd": "Check examples where R4 `version.description` carried the only human-readable label. Mapping that text into R6 `title` may be too verbose, but using the old id may lose display semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExampleScenario:ELEMENT_PRESENCE_OR_IDENTITY:ExampleScenario.instance.version:d80f95",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 continues the key/title remodel inside instance versions and contained-instance references: `versionId` becomes `key`, contained `resourceId`/`versionId` become `instanceReference`/`versionReference`, and a version `title` is required while `description` is optional. Some migrations need a chosen label, but reference-key preservation is usually mechanical.",
+        "keyEvidence": [
+          "R4 snapshot: version `versionId` is 1..1 and version `description` is 1..1.",
+          "R6 snapshot: version `key` and `title` are 1..1, while version `description` is 0..1.",
+          "R4 containedInstance uses `resourceId` 1..1 and optional `versionId`; R6 uses `instanceReference` 1..1 and optional `versionReference`.",
+          "R6 constraints validate contained-instance references against declared instance and version keys."
+        ],
+        "fmmEffect": "The low R4 maturity reduces the expectation that the older internal-reference names remain stable. It does not erase the migration burden, but it makes the consistent R6 key/reference model proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old version and contained-instance reference element names are not valid R6, and R6 requires a version title.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `versionId`, `containedInstance.resourceId`, and `containedInstance.versionId` while adding stronger invariants. That would preserve old JSON, but it would leave one part of the resource outside the new `key`/`title` vocabulary and make reference rules less uniform.",
+        "comparisonToExisting": "partially agree: I agree this is a hard rename with possible title-generation work; I do not agree that the available less-breaking design is enough to overcome the low-FMM and consistency rationale."
+      }
     },
     {
       "findingId": "ExampleScenario:ELEMENT_PRESENCE_OR_IDENTITY:ExampleScenario.process.step.operation:dff1cf",
@@ -1058,7 +1118,22 @@
       "migrationGuidanceMd": "Move old `operation.number` to `process.step.number`. Map old `operation.name` to `operation.title`; if absent, derive a title from the old type, number, or business description and flag for review. Convert known CRUD/REST strings to Coding values using `http://hl7.org/fhir/restful-interaction` where appropriate.",
       "backwardCompatibilityAnalysisMd": "The structured Coding and separate step number are useful, but the same goal could have been introduced with additional optional fields while retaining old ones temporarily. The stricter R6 model reduces ambiguity for rendering but requires non-trivial migration.",
       "reviewerNotesMd": "Do not blindly map every R4 operation type string to a RESTful interaction code; R4 allowed arbitrary strings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExampleScenario:ELEMENT_PRESENCE_OR_IDENTITY:ExampleScenario.process.step.operation:dff1cf",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Operation steps are reshaped: the sequence number moves to the step, operation display text becomes required `operation.title`, and operation `type` changes from an unconstrained string to a `Coding` bound to RESTful interaction codes. R4 instances and codegen models must be updated, but the R6 form is more computable and separates step ordering from the operation payload.",
+        "keyEvidence": [
+          "R4 snapshot: `operation.number` is 1..1 string, `operation.name` is 0..1 string, and `operation.type` is 0..1 string.",
+          "R6 snapshot: `process.step.number` is 0..1 string, `operation.title` is 1..1 string, and `operation.type` is 0..1 Coding.",
+          "R6 operation type binding is extensible to `examplescenario-operation-codes`, which includes the FHIR RESTful interaction code system.",
+          "ExampleScenario is R4 FMM 0/trial-use."
+        ],
+        "fmmEffect": "FMM 0 makes a structural correction to a draft scenario-modeling resource more acceptable. The change affects generated classes and templates, but not patient data semantics.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `operation.number` and `operation.name` are removed, a new title is required, and `operation.type` changes JSON shape from primitive string to Coding.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the old number/name/string type alongside new step number and coded type. That would preserve old instances, but it would create duplicate places for labels and operation kind and would weaken the computable binding goal.",
+        "comparisonToExisting": "partially agree: I agree the runtime/codegen impact is high and the alternative is only partial; I place more weight on the R6 computability rationale and low R4 FMM."
+      }
     },
     {
       "findingId": "ExampleScenario:CARDINALITY:ExampleScenario.process.step.process:b4d02c",
@@ -1215,7 +1290,22 @@
       "migrationGuidanceMd": "For R4 root workflows, identify the step that should invoke each referenced workflow and move the canonical to `process.step.workflow`. If no step context can be inferred, manual review or an extension is needed. Split R4 steps with multiple nested processes into multiple R6 steps or choose a single nested process per step.",
       "backwardCompatibilityAnalysisMd": "The step-scoped model is semantically stronger, but removal of the root list was avoidable by keeping it as deprecated metadata. The tradeoff is that keeping both would allow inconsistent root and step workflow references.",
       "reviewerNotesMd": "This finding combines an element move and a cardinality narrowing because both affect nested workflow/subprocess migration.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExampleScenario:CARDINALITY:ExampleScenario.process.step.process:b4d02c",
+        "judgment": "Revisit",
+        "narrativeMd": "This change is not just a rename: root-level `workflow` links disappear, workflow references move under individual steps, and repeating nested processes in a single step are narrowed to one. That may be the better model, but migration from an R4 root workflow list to specific R6 steps can require author judgment because the old data did not say which step invoked the workflow. Even with FMM 0, this is the finding where a small compatibility accommodation could preserve old content without obviously blocking the new step-scoped design.",
+        "keyEvidence": [
+          "R4 snapshot: `ExampleScenario.workflow` is 0..* canonical(ExampleScenario).",
+          "R6 snapshot: `ExampleScenario.process.step.workflow` is 0..1 canonical(ExampleScenario); no root `workflow` element remains.",
+          "R4 snapshot: `ExampleScenario.process.step.process` max is `*`; R6 max is `1`.",
+          "R6 invariant `exs-22` prevents a step from combining nested process, workflow, and operation."
+        ],
+        "fmmEffect": "FMM 0 softens the concern, but the migration can be lossy or author-dependent. That fits the framework's low-FMM exception for changes requiring expert judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid: old root workflow links are invalid in R6, multiple nested processes in one step exceed the new max, and converting root workflow links to step workflow links may need semantic placement choices.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep deprecated root `workflow` links while adding step-scoped `workflow`, and could allow repeating nested processes during transition. Keeping both would add ambiguity, but retaining root `workflow` as legacy metadata seems modest compared with losing author intent during migration.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that the break is real and that the alternative is partial; I judge the lossy placement issue more concerning and therefore mark it for Revisit."
+      }
     },
     {
       "findingId": "ExampleScenario:VALUE_CONSTRAINT:ExampleScenario:b15c11",
@@ -1391,7 +1481,22 @@
       "migrationGuidanceMd": "After structural transformation, run an R6 validator and specifically test the `exs-*` invariants. Generate stable unique keys, de-duplicate or disambiguate titles, add missing actors/processes for active or retired scenarios, and resolve initiator/receiver/request/response references. Do not assume a syntactic field rename is sufficient.",
       "backwardCompatibilityAnalysisMd": "The constraints are likely justified for computability and rendering. A warning-first migration path would have been less breaking but would allow invalid diagrams and dangling references in base R6 instances.",
       "reviewerNotesMd": "The constraint text contains wording such as 'active or required' where the FHIRPath uses `active` or `retired`; rely on the expression for validation mechanics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExampleScenario:VALUE_CONSTRAINT:ExampleScenario:b15c11",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds many local validation rules for complete, renderable scenarios: active or retired scenarios need actors and processes, keys and titles must be unique, contained-instance references must resolve, and operation participants must reference known actors or `OTHER`. These can reject R4-valid sparse or internally inconsistent examples, but they support the basic purpose of a computable scenario.",
+        "keyEvidence": [
+          "R4 local ExampleScenario constraints include only the name-format warning `esc-0` beyond inherited constraints.",
+          "R6 root constraints include `exs-3`, `exs-4`, `exs-6`, `exs-7`, `exs-8`, `exs-9`, and `exs-12` as errors.",
+          "R6 nested constraints include reference-integrity checks such as `exs-14` through `exs-18` and mutual-exclusion check `exs-22`.",
+          "R4 FMM/status is 0/trial-use."
+        ],
+        "fmmEffect": "Because R4 ExampleScenario was FMM 0, tightening base validation is less troubling than it would be for mature or normative exchange content. The rules target internal consistency rather than changing clinical meaning.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with missing active-scenario content, duplicate keys/titles, unresolved references, or conflicting step actions can fail R6 error invariants.",
+        "lessBreakingAlternativeAssessment": "R6 could have introduced some checks as warnings or IG/profile constraints first. That would ease migration, but it would leave base R6 renderers and validators responsible for incomplete or dangling scenario graphs.",
+        "comparisonToExisting": "partially agree: I agree the finding can produce hard validation failures and that warning-level rollout was a partial alternative; I consider the hard-error choice proportionate for a computable scenario model at FMM 0."
+      }
     },
     {
       "findingId": "ExampleScenario:CONVERSION_OR_MAPPING:ExampleScenario:cd811c",
@@ -1523,7 +1628,22 @@
       "migrationGuidanceMd": "For R6-to-R4, define an explicit data retention policy. Preserve important R6-only fields in extensions using documented URLs, store them outside the R4 instance, or accept lossy downgrade. Test downgrade/upgrade round-trips for title/name, actor.definition, structureProfile, content references, and workflow placement.",
       "backwardCompatibilityAnalysisMd": "The additions are reasonable R6 features. Since R4 cannot be changed, backward compatibility depends on cross-version extension conventions rather than a base artifact alternative.",
       "reviewerNotesMd": "Some R6-only additions overlap with earlier structural findings; this finding captures the reverse-direction round-trip risk across all additive fields.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ExampleScenario:CONVERSION_OR_MAPPING:ExampleScenario:cd811c",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6-only fields are optional additions such as root title/description metadata, actor definitions, richer instance structure/content links, step numbers, and step workflow references. They may be lost when downgrading an R6 instance to R4, but they do not make R4 content invalid when moving forward to R6.",
+        "keyEvidence": [
+          "R6 root adds optional `title`, `description`, `versionAlgorithm[x]`, and `copyrightLabel`.",
+          "R6 actor adds optional `definition` canonical.",
+          "R6 instance adds optional `structureVersion`, `structureProfile[x]`, `content`, and version `content`.",
+          "R6 process step adds optional `number` and `workflow`."
+        ],
+        "fmmEffect": "Low R4 maturity further reduces concern, but the main reason is that these are optional R6 additions rather than R4-to-R6 breakage.",
+        "compatibilityMechanism": "R6-to-R4 loss: new optional R6 information has no native R4 slot, but forward R4-to-R6 compatibility is not harmed by these additions.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for optional additions. Downgrade loss can be mitigated with extensions or mapping policy, but that is outside the base-model compatibility question.",
+        "comparisonToExisting": "partially agree: I agree the issue is mainly R6-to-R4 representability loss; I would lower the compatibility concern to No problem for the R4-to-R6 review."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1671,5 +1791,19 @@
       "R4 string codes replaced by Coding with extensible bindings",
       "Backbone identifiers renamed from id/resourceId/versionId to key/title patterns"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ExampleScenario.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 6,
+      "No problem": 1
+    }
   }
 }

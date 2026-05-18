@@ -372,7 +372,21 @@
       "migrationGuidanceMd": "Inventory all RelatedPerson communication entries. Where language is text-only or local-coded, map it to a BCP-47 code and retain the original text when useful. Add tests for text-only, local-code, common BCP-47, regional BCP-47, and sign-language tags. If mapping cannot be automated safely, queue records for manual review rather than dropping the communication entry.",
       "backwardCompatibilityAnalysisMd": "The interoperability goal could have been met less disruptively with a preferred binding plus a best-practice warning or profile. The R6 required binding is cleaner for validators and exchange partners, but it moves cleanup of legacy language data into the base-version migration path.",
       "reviewerNotesMd": "Confirm exact validator behavior for CodeableConcept text-only values under a required binding with the validator version used by the adopting program.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RelatedPerson:TERMINOLOGY_BINDING:RelatedPerson.communication.language:71d9b0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 turns `RelatedPerson.communication.language` from a preferred Common Languages binding into a required All Languages/BCP-47 binding while leaving the path, cardinality, and `CodeableConcept` type unchanged. That is a real old-valid/new-invalid risk for R4 data that used only text or local language codes, especially in strict terminology-validation pipelines. The affected data is operationally important for communicating with the related person and arranging language access, but the R6 goal of ensuring computable language tags is directly related to that same operational need. A softer design would reduce migration burden but would not give receivers a base-level guarantee that language values are machine-processable.",
+        "keyEvidence": [
+          "R4 StructureDefinition RelatedPerson.communication.language: 1..1 CodeableConcept with preferred binding to http://hl7.org/fhir/ValueSet/languages and maxValueSet extension to all-languages.",
+          "R6 StructureDefinition RelatedPerson.communication.language: 1..1 CodeableConcept with required binding to http://hl7.org/fhir/ValueSet/all-languages|6.0.0-ballot4 and Common Languages retained only as a starter binding.",
+          "R4/R6 ValueSet-all-languages compose includes urn:ietf:bcp:47; R4 ValueSet-languages is only a common-language subset."
+        ],
+        "fmmEffect": "R4 RelatedPerson is FMM 2 and trial-use, so the stability expectation is neutral rather than normative; the hard validation mechanism matters, but the maturity level lowers the case for revisiting a proportionate terminology cleanup.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 text-only or locally coded communication language CodeableConcept values could pass the preferred binding but fail strict R6 required BCP-47 binding validation.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking base design exists: keep the binding preferred or make it non-required against All Languages with a best-practice warning. That would preserve more R4 instances, but it materially weakens the R6 goal because base R6 data could still contain non-computable language values.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative assessment; I agree there is a direct validation break, but judge it proportionate because the stronger binding serves the interoperability goal."
+      }
     },
     {
       "findingId": "RelatedPerson:SEMANTIC_OR_CONFORMANCE_TEXT:RelatedPerson.relationship:4c30e2",
@@ -567,7 +581,21 @@
       "migrationGuidanceMd": "Create a relationship classification table. Keep personal/kinship concepts on `relationship`; map functional, contact, legal, billing, emergency-contact, interpreter, guarantor, employer, or caregiver concepts to `role`. Preserve ambiguous original codings and route them for human review. Regression tests should include one personal relationship, one functional role, and one ambiguous/custom relationship code.",
       "backwardCompatibilityAnalysisMd": "The split is semantically justified but not fully backward-compatible because it changes the intended meaning of a pre-existing path. A deprecation period or compatibility profile could have reduced disruption, but would also leave consumers unable to rely on a clean separation in base R6.",
       "reviewerNotesMd": "A terminology expansion or official ConceptMap is needed before automating large-scale code migration with high confidence.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RelatedPerson:SEMANTIC_OR_CONFORMANCE_TEXT:RelatedPerson.relationship:4c30e2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps `RelatedPerson.relationship` structurally optional and repeating but narrows its meaning to personal relationships, while functional relationships move to the new `RelatedPerson.role` element. Existing R4 instances are not directly rejected by base structural validation because the datatype, cardinality, and preferred binding strength remain permissive. The real migration burden is semantic: systems that placed emergency-contact, guarantor, interpreter, caregiver, or legal-authority concepts in `relationship` need classification and mapping so consumers do not treat functional roles as kinship or personal relationships. The split is a reasonable model improvement, and keeping the old broad semantics indefinitely would make the new role/relationship distinction unreliable.",
+        "keyEvidence": [
+          "R4 RelatedPerson.relationship definition: nature of the relationship between patient and related person, preferred binding to http://hl7.org/fhir/ValueSet/relatedperson-relationshiptype.",
+          "R6 RelatedPerson.relationship definition/comment: personal relationship only; functional relationships represented in RelatedPerson.role; preferred binding to http://terminology.hl7.org/ValueSet/v3-PersonalRelationshipRoleType.",
+          "R6 ValueSet-relatedperson-relationshiptype used by role includes functional/contact concepts such as ECON, NOK, GUARD, GUAR, CAREGIVER, INTPRTER, POWATT, and BILL."
+        ],
+        "fmmEffect": "R4 RelatedPerson is FMM 2 and trial-use, so FMM is neutral. It does not eliminate semantic migration risk, but it makes the burden of preserving the older mixed relationship model lower than it would be for normative content.",
+        "compatibilityMechanism": "semantic/documentation: the same R4 wire path remains accepted, but its intended meaning is narrowed and some codes now belong semantically in RelatedPerson.role.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design would add `role` but leave `relationship` broad or deprecate functional use gradually. That would preserve legacy interpretation, but it creates duplicate valid homes for the same functional role and prevents R6 consumers from trusting the split.",
+        "comparisonToExisting": "agree with the existing Medium impact and Partial alternative assessment; the concern is real but mostly semantic, and the cleaner R6 model has meaningful interoperability benefits."
+      }
     },
     {
       "findingId": "RelatedPerson:ELEMENT_PRESENCE_OR_IDENTITY:RelatedPerson.role:0ad645",
@@ -703,7 +731,21 @@
       "validationAndCompatibilityMd": "R4 instances remain valid with respect to this addition. Valid R6 instances containing `role` are not cleanly representable in R4. Strict R4 parsers may reject the unknown property, while permissive parsers or lossy converters may discard it.",
       "migrationGuidanceMd": "For R4-to-R6, move functional relationship codes from `relationship` into `role` where they can be classified confidently. For R6-to-R4, choose a policy: map `role` into R4 `relationship` with an annotation, use a cross-version extension, or reject records where role loss is unacceptable.",
       "backwardCompatibilityAnalysisMd": "The addition is a reasonable model improvement, but no new core element can be backward-compatible for R6-to-R4 consumers. An extension-first design would have been more backward-compatible but less visible and less likely to be implemented consistently.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "RelatedPerson:ELEMENT_PRESENCE_OR_IDENTITY:RelatedPerson.role:0ad645",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The new `RelatedPerson.role` element is optional, repeating, and non-modifier, so it does not invalidate R4 RelatedPerson instances during an R4-to-R6 migration. Its compatibility cost is in the reverse or mixed-version direction: R6 data can now carry first-class functional-role information that older R4 models do not have a native property for, so strict R4 parsers may reject it and tolerant converters may drop it. Because this element is the companion to the relationship split and gives functional roles an explicit home, the reverse-version burden appears inherent rather than a sign that the R6 design should be revisited.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no RelatedPerson.role element.",
+          "R6 StructureDefinition adds RelatedPerson.role as 0..* CodeableConcept, isSummary true, isModifier false.",
+          "R6 RelatedPerson.role binding is preferred to http://hl7.org/fhir/ValueSet/relatedperson-relationshiptype for functional relationships."
+        ],
+        "fmmEffect": "R4 RelatedPerson is FMM 2 and trial-use. That neutral stability level supports treating the additive R6 model change as acceptable, while still acknowledging practical R6-to-R4 conversion loss.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 role data has no native R4 element and can be rejected by strict R4 parsers or lost in down-conversion unless mapped to relationship, extension, or local policy.",
+        "lessBreakingAlternativeAssessment": "No better base R6 design is apparent for R4-to-R6 compatibility because the element is optional and additive. An extension-first or cross-version-extension approach could help older systems, but it would make the functional-role model less visible and is a mitigation rather than a less-breaking R6 base design.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Not applicable alternative assessment; I agree the addition is not an R4-to-R6 hard break, but the medium concern is limited to reverse or mixed-version exchange."
+      }
     },
     {
       "findingId": "RelatedPerson:SEMANTIC_OR_CONFORMANCE_TEXT:RelatedPerson.telecom:8b9f2a",
@@ -864,7 +906,21 @@
       "migrationGuidanceMd": "Audit systems that use RelatedPerson e-mail, phone, or URL contact points as login names, account links, or proxy user identifiers. Move identity semantics into `identifier` with an implementation-approved system/type while retaining telecom only for contactability. Add tests that distinguish contact e-mail from account identifier.",
       "backwardCompatibilityAnalysisMd": "Because this is guidance rather than a structural change, the specification could have avoided disruption by keeping the comments unchanged. The added guidance is likely justified by security/privacy clarity, but implementers need to review local account-linking assumptions.",
       "reviewerNotesMd": "The R6 comment references Security and Privacy guidance not reviewed as a separate narrative page in this report.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RelatedPerson:SEMANTIC_OR_CONFORMANCE_TEXT:RelatedPerson.telecom:8b9f2a",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds guidance that `telecom` should not be used for user identities and points identity semantics toward `identifier` with type `USER`, but it does not change the `telecom` path, cardinality, type, or ordinary contact-point meaning. Existing phone, email, and URL contact values remain representable. Systems that had overloaded contact details as login or account identifiers should review their security model, but this is a clarification of modeling guidance rather than a structural or terminology compatibility break for RelatedPerson data.",
+        "keyEvidence": [
+          "R4 RelatedPerson.telecom: 0..* ContactPoint, comment describes multiple ways to contact the person and identification help.",
+          "R6 RelatedPerson.telecom remains 0..* ContactPoint and adds: DO NOT use .telecom properties to represent user identities.",
+          "R6 RelatedPerson.identifier comment says systems MAY use identifier for user identities using type='USER'."
+        ],
+        "fmmEffect": "R4 RelatedPerson is FMM 2 and trial-use, so FMM is neutral. Because the change is guidance-only and not a base instance rejection, maturity does not create a strong revisit concern.",
+        "compatibilityMechanism": "semantic/documentation: no wire-format or validation shape changes; the compatibility effect is limited to systems that treated contact points as user identities despite the contact-oriented datatype.",
+        "lessBreakingAlternativeAssessment": "A softer comment could have been less disruptive for legacy identity-over-telecom conventions, but it would also weaken the security/privacy clarification. Since ordinary contact data is unaffected, no less-breaking base design is needed.",
+        "comparisonToExisting": "disagree with the existing Medium impact and Partial alternative assessment; I would downgrade this to no meaningful compatibility problem because it is non-computable guidance with a clear security rationale."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1073,5 +1129,18 @@
       "Resources that split broad relationship/contact semantics into personal relationship versus functional role",
       "Element comments that move user identity semantics from telecom/contact points to identifiers"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/RelatedPerson.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 3,
+      "No problem": 1
+    }
   }
 }

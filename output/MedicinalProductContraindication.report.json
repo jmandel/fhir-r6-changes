@@ -265,7 +265,22 @@
       "migrationGuidanceMd": "Create an explicit cross-version transform: change `resourceType`, set `type` to `contraindication`, move local fields under `contraindication`, remap subject and population, and update any references, search indexes, profiles, and persistence schemas that used the old resource type.",
       "backwardCompatibilityAnalysisMd": "The consolidation may be justified by a cleaner common model, but removing the old resource identity is maximally disruptive. A backward-compatible alias or deprecated compatibility profile would have let R4-shaped instances be recognized while steering new implementations to `ClinicalUseDefinition`.",
       "reviewerNotesMd": "Confirm against official R5/R6 migration notes if available; local package evidence strongly supports the successor identity but does not include design rationale.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:ARTIFACT_IDENTITY:root:7c2a1e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 resource identity is gone in R6, so raw R4 instances, validators, generated classes, REST routes, and references keyed to `MedicinalProductContraindication` need an explicit migration to `ClinicalUseDefinition`. That is a real top-level break, but the R4 artifact was FMM 0/trial-use and the R6 consolidation has a coherent goal: one clinical-use resource with a type discriminator for indications, contraindications, interactions, effects, and warnings. The public IDMP context supports regulatory and safety relevance, but I did not find verified evidence that this exact low-FMM R4 resource has broad production dependence that would outweigh the consolidation rationale.",
+        "keyEvidence": [
+          "R6 package index has `StructureDefinition-ClinicalUseDefinition.json` and no `StructureDefinition-MedicinalProductContraindication.json`.",
+          "R6 `CodeSystem/fhir-old-types` contains concept `MedicinalProductContraindication`.",
+          "R4 maturity map: `MedicinalProductContraindication` is FMM 0, standards status trial-use.",
+          "R4 StructureDefinition description says the resource covers clinical particulars including contraindications for regulatory purposes; R6 ClinicalUseDefinition description covers indication, contraindication, interaction, undesirable effect, and warning."
+        ],
+        "fmmEffect": "FMM 0/trial-use substantially lowers the stability expectation, so removal alone is not enough for Revisit. Safety/regulatory domain relevance keeps the break important, but not enough to demand preserving the old resource identity in base R6.",
+        "compatibilityMechanism": "runtime/API/codegen: the resource type, StructureDefinition URL, generated model, server surface, and reference target name change; raw R4 instances are also old-valid/new-invalid because the R4 `resourceType` is not an R6 resource.",
+        "lessBreakingAlternativeAssessment": "A deprecated compatibility resource or alias would preserve many R4 payloads, but it would leave two base resource identities, duplicate searches/profiles/reference targets, and long-term same-domain maintenance. That is plausible but materially costly rather than a clearly low-cost alternative.",
+        "comparisonToExisting": "partially agree with the existing high-impact mechanics and partial alternative; the fresh judgment gives more weight to the R4 FMM 0 status and to the cost of retaining a parallel base resource."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:VALUE_CONSTRAINT:ClinicalUseDefinition.type:1abf6c",
@@ -404,7 +419,21 @@
       "migrationGuidanceMd": "Set `ClinicalUseDefinition.type` to `contraindication` for every migrated R4 contraindication. Add tests for missing `type`, wrong `type`, multiple branches, and valid single-branch contraindications.",
       "backwardCompatibilityAnalysisMd": "This constraint is largely unavoidable in the merged R6 resource. The backward-compatible alternative would have been preserving the R4 resource identity as a separate compatibility entry point.",
       "reviewerNotesMd": "The required code system was not expanded, but the needed migration code is explicit in the StructureDefinition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:VALUE_CONSTRAINT:ClinicalUseDefinition.type:1abf6c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "After migrating to `ClinicalUseDefinition`, R6 requires `type = contraindication` and uses error invariants to keep the populated branch consistent with the type. This is a validation break for a partial transform that only changes the resource name, but the value is deterministic for this R4 artifact and is safety-relevant in a merged resource where several clinical-use branches coexist.",
+        "keyEvidence": [
+          "R6 `ClinicalUseDefinition.type` is `1..1` code with required binding to `clinical-use-definition-type`.",
+          "R6 root constraint `cud-2` requires `ClinicalUseDefinition.contraindication` to be empty unless `type = 'contraindication'`.",
+          "R4 had no separate discriminator because the resource type itself identified contraindication."
+        ],
+        "fmmEffect": "Because the old artifact is FMM 0/trial-use, the added discriminator does not need the same compatibility burden as mature content. The low FMM combines with an easy deterministic migration to support accepting the break.",
+        "compatibilityMechanism": "old-valid/new-invalid: a migrated R6-shaped instance with contraindication content but no `type`, or with the wrong type code, fails R6 validation.",
+        "lessBreakingAlternativeAssessment": "R6 could infer type from the single populated branch or make `type` optional, but that would make indexing, client branching, and branch/type mismatch detection less explicit. A required discriminator is proportionate for the merged model.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the hard validation mechanism, but its high overall impact feels overstated for a deterministic required value on FMM 0 content."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:CARDINALITY:subject:4b8d23",
@@ -576,7 +605,22 @@
       "validationAndCompatibilityMd": "R4 instances without subject can be valid in R4 but invalid in R6. R6 instances with `subject.concept` or targets outside R4's `MedicinalProduct|Medication` set cannot be represented losslessly in R4.",
       "migrationGuidanceMd": "Inventory records missing subject and define a remediation policy. For present R4 references, wrap as `CodeableReference.reference`; map `MedicinalProduct` to `MedicinalProductDefinition` if a target migration exists. Test missing subject, medication reference, medicinal product reference, and coded subject cases.",
       "backwardCompatibilityAnalysisMd": "The stricter requirement is clinically reasonable but not backward-compatible. Profiles or warnings could have enforced subject presence for new data while still accepting historical records.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:CARDINALITY:subject:4b8d23",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`subject` changes from optional R4 `Reference(MedicinalProduct|Medication)` to mandatory R6 `CodeableReference` with a changed and broader target set. Records with no subject require remediation, and present R4 references need wrapping and sometimes target-resource migration. Still, a contraindication without a subject is weak or unsafe clinical knowledge, so requiring at least one subject is a defensible R6 base requirement despite the break.",
+        "keyEvidence": [
+          "R4 `MedicinalProductContraindication.subject`: `0..* Reference(MedicinalProduct|Medication)`.",
+          "R6 `ClinicalUseDefinition.subject`: `1..* CodeableReference(MedicinalProductDefinition|Medication|ActivityDefinition|PlanDefinition|Device|DeviceDefinition|SubstanceDefinition|NutritionProduct|BiologicallyDerivedProduct)`.",
+          "R4 maturity map: FMM 0/trial-use.",
+          "Public IDMP context checked: clinical-use/contraindication data is described as patient-safety and regulatory relevant, but no verified source showed broad dependence on subject-omitting R4 instances."
+        ],
+        "fmmEffect": "Low FMM softens the compatibility concern, but the path is central to the meaning of a contraindication. The safety rationale for a required subject outweighs preserving incomplete FMM 0 records in the base model.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances that omit `subject` cannot validate after migration without adding one; runtime/API/codegen also changes because references are nested under `CodeableReference.reference`.",
+        "lessBreakingAlternativeAssessment": "Keeping `subject` optional or retaining a separate R4-shaped reference element would preserve more old data, but it would weaken the R6 guarantee that every clinical-use definition identifies what it applies to and could create duplicate subject representations. A warning/profile requirement would be less breaking but less safe as a base rule.",
+        "comparisonToExisting": "partially agree with the existing hard-break and partial-alternative assessment; the fresh review accepts the change as proportionate because the old content is FMM 0 and the subject requirement has a strong safety rationale."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:ELEMENT_PRESENCE_OR_IDENTITY:contraindication-backbone:9d4e61",
@@ -699,7 +743,21 @@
       "validationAndCompatibilityMd": "An R4-shaped payload with top-level `disease` or `otherTherapy` is invalid as an R6 `ClinicalUseDefinition`. A down-converter must flatten the branch back to R4 paths and reject or separately handle non-contraindication branches.",
       "migrationGuidanceMd": "Update transforms, FHIRPath, database mappings, search indexes, and codegen assumptions to the new paths. Regression tests should assert that all R4 local fields are present at their expected R6 nested locations after migration.",
       "backwardCompatibilityAnalysisMd": "The move is structurally tied to the merged successor resource. A compatibility layer could hide this from API clients, but the core wire format remains breaking.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:ELEMENT_PRESENCE_OR_IDENTITY:contraindication-backbone:9d4e61",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 contraindication-specific children move from the resource root into `ClinicalUseDefinition.contraindication`, with `disease` also renamed to `diseaseSymptomProcedure`. This breaks FHIRPath, serialization, extraction, and generated accessors, but it follows directly from the R6 decision to make contraindication one branch of a broader clinical-use resource. Keeping the old top-level fields in base R6 would make contraindication structurally exceptional and duplicate the branch content.",
+        "keyEvidence": [
+          "R4 direct children include `disease`, `diseaseStatus`, `comorbidity`, `therapeuticIndication`, `otherTherapy`, and `population`.",
+          "R6 defines `ClinicalUseDefinition.contraindication` as `0..1 BackboneElement` with nested contraindication details.",
+          "R6 `cud-1` prevents more than one issue branch in the same instance, and `cud-2` ties the contraindication branch to `type = 'contraindication'`."
+        ],
+        "fmmEffect": "FMM 0/trial-use makes a branch-level remodel more acceptable than it would be for mature content. The domain is important, but this particular path move is mostly structural and mechanically mappable.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-shaped top-level fields such as `disease` or `otherTherapy` are not valid R6 fields on `ClinicalUseDefinition`; runtime/API/codegen paths also change.",
+        "lessBreakingAlternativeAssessment": "Base R6 could accept old top-level compatibility elements alongside `contraindication`, but that would create two locations for the same facts, conflict rules, and extra generated API surface. A clean branch is proportionate once the merged resource design is accepted.",
+        "comparisonToExisting": "partially agree with the existing high path-break assessment and partial alternative; the fresh review weighs the structural move as a reasonable consequence of the merged model on FMM 0 content."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:clinical-condition-fields:af03d7",
@@ -835,7 +893,21 @@
       "validationAndCompatibilityMd": "A migrated R6 instance with `diseaseSymptomProcedure.coding` directly is invalid; the coding must be under `diseaseSymptomProcedure.concept`. R6 `reference` alternatives are not cleanly R4-representable.",
       "migrationGuidanceMd": "Transform `CodeableConcept` values to `CodeableReference.concept`. If an R6 value uses `reference`, either dereference to a codeable concept, carry an extension, or mark the record as not losslessly down-convertible. Terminology validation should use the R6 example bindings where applicable, but those bindings are not required.",
       "backwardCompatibilityAnalysisMd": "A choice element retaining the old CodeableConcept shape could have reduced wire-format disruption, but CodeableReference provides a uniform R6 representation for concept-or-reference patterns.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:clinical-condition-fields:af03d7",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`disease`, `diseaseStatus`, and `comorbidity` move from plain `CodeableConcept` values to `CodeableReference` values, so R4 concepts must be wrapped under `.concept` and R6 reference alternatives cannot always round-trip to R4. This is real migration work, but it is largely mechanical in the R4-to-R6 direction and matches the R6 pattern for allowing either a code or a reusable definition.",
+        "keyEvidence": [
+          "R4 `disease`, `diseaseStatus`, and `comorbidity` are `CodeableConcept`.",
+          "R6 `contraindication.diseaseSymptomProcedure`, `diseaseStatus`, and `comorbidity` are `CodeableReference(ObservationDefinition)`.",
+          "R6 adds example bindings for disease/symptom/procedure and disease status; they are not required bindings."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the need to preserve the old raw `CodeableConcept` wire shape. Because R4 concepts have a straightforward `.concept` mapping, the low maturity pushes this toward acceptable migration burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: after the path move, placing a raw `CodeableConcept` directly where R6 expects a `CodeableReference` is invalid; R6-to-R4 loss occurs when the R6 value uses `.reference` rather than `.concept`.",
+        "lessBreakingAlternativeAssessment": "R6 could keep CodeableConcept fields and add reference siblings, or define a choice, but that duplicates concept/reference representations and weakens the uniform `CodeableReference` model. The less-breaking design has meaningful complexity costs.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the type break and partial alternative, while the fresh review treats the R4-to-R6 side as mostly mechanical and proportionate."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:therapeuticIndication:52c7fe",
@@ -957,7 +1029,22 @@
       "validationAndCompatibilityMd": "An R4 Reference object is invalid at the R6 inline backbone location. R6 inline content cannot always be down-converted to an R4 reference unless a separate R4/R6 indication resource is created and linked.",
       "migrationGuidanceMd": "For each R4 `therapeuticIndication` reference, decide whether to dereference and inline the target, create a companion `ClinicalUseDefinition` indication resource and use an extension/link, or flag unresolved references for manual review. Preserve provenance and identifiers where business processes depend on the referenced indication.",
       "backwardCompatibilityAnalysisMd": "A reference alternative would have been more backward-compatible and less lossy. If inline content was required for self-contained clinical-use definitions, both patterns could have coexisted with invariants to prevent contradictory content.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:therapeuticIndication:52c7fe",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 linked contraindications to separate `MedicinalProductIndication` resources, while R6 embeds indication backbone content inside the contraindication branch. That is more than a wrapper change: migration can require dereferencing another resource, preserving identifiers/provenance, and deciding what to do when the referenced indication is unavailable or reused elsewhere. Even with FMM 0, the indication context can be safety- and regulatory-relevant, and a reference-preserving R6 option looks plausible enough to deserve renewed design attention.",
+        "keyEvidence": [
+          "R4 `therapeuticIndication`: `0..* Reference(MedicinalProductIndication)`.",
+          "R6 `ClinicalUseDefinition.contraindication.indication`: `0..*` contentReference `#ClinicalUseDefinition.indication`.",
+          "R4 `StructureDefinition-MedicinalProductIndication.json` is present, confirming the old target was an independent resource.",
+          "Public IDMP context checked: clinical-use data includes indications and contraindications for regulatory and patient-safety use cases, but no verified production dependency on this exact R4 reference path was found."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability expectation, but it does not erase the concern because this path can require lossy or expert-dependent migration of an independent referenced clinical-use fact.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `Reference(MedicinalProductIndication)` is not valid at an R6 inline backbone location; R6-to-R4 loss also occurs when inline indication content has no stable resource identity to reference.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could allow either inline indication content or a reference to an indication `ClinicalUseDefinition`, with rules for avoiding contradictions. That has duplication and conflict-rule costs, but it would preserve important link semantics and reduce dereferencing/manual migration burden.",
+        "comparisonToExisting": "agree with the existing high impact and partial alternative assessment; after fresh review, this is one of the low-FMM findings where lossy, expert-dependent migration justifies Revisit."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:otherTherapy:6e19aa",
@@ -1084,7 +1171,22 @@
       "validationAndCompatibilityMd": "R4 `otherTherapy.medicationCodeableConcept` or `medicationReference` elements are not valid R6 elements. R6 treatments referencing targets newly allowed in R6 are not losslessly representable in R4.",
       "migrationGuidanceMd": "Map `therapyRelationshipType` to `relationshipType`. Map `medicationCodeableConcept` to `treatment.concept`; map `medicationReference` to `treatment.reference` after target resource migration. Review references to R4 `Substance` and `SubstanceSpecification`, which need a target strategy for R6 `SubstanceDefinition` or another allowed type.",
       "backwardCompatibilityAnalysisMd": "A less-breaking design could have retained the old choice element and target set while adding new aliases. The R6 model instead prefers a common CodeableReference pattern, which is cleaner but not wire-compatible.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:otherTherapy:6e19aa",
+        "judgment": "Revisit",
+        "narrativeMd": "The `otherTherapy` backbone keeps the same broad concept but changes child names from `therapyRelationshipType` and `medication[x]` to `relationshipType` and `treatment`, while also switching the treatment value to `CodeableReference` with changed targets. The CodeableReference wrapping and target updates have an R6 modeling rationale, but the child-name changes look substantially avoidable: R4 already had a concept-or-reference choice for the therapy. For a safety-relevant conditional-therapy relationship, preserving old wire names or a transitional alias appears to have lower cost than many other alternatives.",
+        "keyEvidence": [
+          "R4 `otherTherapy.therapyRelationshipType`: `1..1 CodeableConcept`.",
+          "R4 `otherTherapy.medication[x]`: `1..1 CodeableConcept|Reference(MedicinalProduct|Medication|Substance|SubstanceSpecification)`.",
+          "R6 `indication.otherTherapy.relationshipType`: `1..1 CodeableConcept` with preferred therapy-relationship-type binding.",
+          "R6 `indication.otherTherapy.treatment`: `1..1 CodeableReference(MedicinalProductDefinition|Medication|SubstanceDefinition|NutritionProduct|BiologicallyDerivedProduct|ActivityDefinition)`; contraindication reuses that backbone by contentReference."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the compatibility bar, but this path can affect generated APIs and conditional contraindication logic. The apparent low-cost name-preservation option keeps the concern above the threshold for Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 child names and choice-element names are not valid R6 child names; runtime/API/codegen also changes generated accessors and target-resource handling.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `therapyRelationshipType` and `medication[x]` while broadening definitions and targets, or accepted aliases during transition. The tradeoff is semantic naming debt because `medication` is narrower than `treatment`, but that seems modest compared with breaking both wire names and accessors.",
+        "comparisonToExisting": "agree with the existing assessment that a less-breaking base design is available; the fresh review still recognizes the low FMM but finds the rename portion insufficiently justified."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:population:0f6b92",
@@ -1218,7 +1320,22 @@
       "validationAndCompatibilityMd": "An R4 inline `Population` object is not valid in R6. An R6 `Reference(Group)` is not representable in R4 without dereferencing to criteria that fit the old Population datatype or using an extension.",
       "migrationGuidanceMd": "Define a population migration strategy before bulk conversion. For each R4 Population, create a Group or map to an existing Group, store traceability to the original inline criteria, and test age, gender, race, and physiological-condition examples. For down-conversion, decide whether Group references can be dereferenced or must be flagged as lossy.",
       "backwardCompatibilityAnalysisMd": "A `population[x]` choice or transitional extension would have preserved old inline values. The R6 design favors reuse of Group but shifts burden to migration and reference management.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:population:0f6b92",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed population criteria inline with the `Population` datatype, while R6 requires references to `Group` resources. This can be a hard wire-format break and a modeling break: migration may need to create or identify a `Group`, preserve inline age/sex/race/physiological-condition criteria, and decide how to handle Group identity and membership rules on down-conversion. Population qualifiers often determine whether a contraindication applies, so the lossiness and operational burden are not erased by low FMM.",
+        "keyEvidence": [
+          "R4 `MedicinalProductContraindication.population`: `0..* Population`.",
+          "R4 `Population` contains inline `age[x]`, `gender`, `race`, and `physiologicalCondition` elements.",
+          "R6 `ClinicalUseDefinition.population`: `0..* Reference(Group)`.",
+          "Public IDMP context checked: clinical-use data is framed as regulatory and patient-safety relevant, but no verified production dependency on this exact population shape was found."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens stability expectations, but this path can be central to safe applicability of contraindications and migration can require expert modeling choices rather than a simple syntactic transform.",
+        "compatibilityMechanism": "old-valid/new-invalid: an inline R4 `Population` object is not a valid R6 `Reference(Group)`; R6-to-R4 loss occurs unless the referenced Group can be dereferenced and expressed in the old Population datatype.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have allowed `population[x]` or retained inline Population while adding Group references. That creates duplicate population representations and reconciliation burden, but it would preserve old criteria and reduce the need to mint external Group resources.",
+        "comparisonToExisting": "agree with the existing high impact and partial alternative assessment; the fresh review treats this as Revisit because the change is potentially lossy and expert-dependent despite FMM 0."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:FLAGS_AND_MODIFIERS:status:c7832b",
@@ -1334,7 +1451,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 conversion can omit `status` and remain valid. R6-to-R4 conversion cannot preserve this local modifier without an extension or external metadata, and consumers that ignore it may use obsolete clinical-use content.",
       "migrationGuidanceMd": "Teach R6 clients to inspect `ClinicalUseDefinition.status`. For down-conversion, map status to a standard extension or sidecar metadata and make consumers aware that dropping it is lossy.",
       "backwardCompatibilityAnalysisMd": "A status extension could have supported older resources, but the R6 model benefits from a first-class modifier element that validators and generated code can surface.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:FLAGS_AND_MODIFIERS:status:c7832b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional `ClinicalUseDefinition.status` as a modifier, with no local R4 counterpart. This is not a forward validation break for R4 data, but it matters for R6-to-R4 conversion because dropping a status such as retired can change whether a contraindication should be used. The R6 design is still proportionate: lifecycle state is important enough to be first-class and modifier-marked rather than hidden in extensions.",
+        "keyEvidence": [
+          "No local R4 `status` element exists on `MedicinalProductContraindication`.",
+          "R6 `ClinicalUseDefinition.status`: `0..1 CodeableConcept`, preferred `publication-status` binding, `isModifier = true`.",
+          "R6 modifier reason says the status can indicate that a record should not be treated as valid."
+        ],
+        "fmmEffect": "The old artifact's FMM 0 status reduces any expectation that R6 must backport a local status-compatible shape. Safety relevance explains why the modifier matters, but it supports the R6 addition rather than a Revisit judgment.",
+        "compatibilityMechanism": "R6-to-R4 loss: optional R6 status can carry lifecycle semantics that R4 has no local field to preserve; no old-valid/new-invalid R4-to-R6 break is introduced by this optional element.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for the forward direction. R4 extensions or sidecar metadata can mitigate down-conversion, but those are migration/backport strategies rather than reasons to avoid the R6 element.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies no hard forward break and high reverse/modifier risk; the fresh judgment frames the change as proportionate rather than a design problem."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:TERMINOLOGY_BINDING:local-bindings:dd45a0",
@@ -1441,7 +1572,21 @@
       "migrationGuidanceMd": "Do not treat these bindings as required during base R4-to-R6 migration. Where local profiles require tighter conformance, run terminology validation and maintain a mapping policy for existing codes. SNOMED-based bindings need terminology-server support for reliable expansion checks.",
       "backwardCompatibilityAnalysisMd": "The bindings are appropriately non-required for base compatibility. The main risk comes from downstream implementation choices rather than the base StructureDefinition alone.",
       "reviewerNotesMd": "Terminology expansions were not performed; impact may increase in jurisdictions or profiles that require these value sets.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:TERMINOLOGY_BINDING:local-bindings:dd45a0",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds example and preferred bindings for several mapped contraindication fields. These bindings can influence UI pick lists, generated hints, terminology QA, or stricter derived profiles, but they do not make base R4 codes invalid in R6. For the base StructureDefinition comparison, this is useful interoperability guidance rather than a material compatibility break.",
+        "keyEvidence": [
+          "R4 contraindication-specific `CodeableConcept` fields have no local bindings.",
+          "R6 condition/status/comorbidity/treatment bindings are example strength; `otherTherapy.relationshipType` and some metadata bindings are preferred strength.",
+          "No required binding was found on these local contraindication terminology fields except the separate `ClinicalUseDefinition.type` discriminator finding."
+        ],
+        "fmmEffect": "Low FMM further lowers concern, but the main reason for No problem is not maturity; it is that example/preferred bindings do not reject existing base instances.",
+        "compatibilityMechanism": "metadata/tooling: non-required bindings may affect terminology tooling, UI defaults, warnings, or local profiles, but base validation remains permissive.",
+        "lessBreakingAlternativeAssessment": "There is no meaningful less-breaking base alternative because the bindings are already guidance-level. Making them required would be more breaking, not less.",
+        "comparisonToExisting": "partially agree: the existing report correctly says there is no hard instance break and no base alternative needed, but the fresh review down-weights the impact to No problem for base compatibility."
+      }
     },
     {
       "findingId": "MedicinalProductContraindication:ELEMENT_PRESENCE_OR_IDENTITY:new-r6-elements:3fd8b4",
@@ -1551,7 +1696,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 instances remain valid without these optional elements. R6-to-R4 conversion loses information unless extensions or sidecar artifacts preserve it.",
       "migrationGuidanceMd": "Define extension mappings or sidecar metadata for `identifier`, `category`, `management`, `applicability`, and `library` if R6 content must be represented in R4. Test that down-conversion does not silently discard management or applicability rules.",
       "backwardCompatibilityAnalysisMd": "The additions are backward-compatible in the R4-to-R6 direction because they are optional. Compatibility concerns are mainly about representability when moving R6 content back to R4.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductContraindication:ELEMENT_PRESENCE_OR_IDENTITY:new-r6-elements:3fd8b4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional fields such as `identifier`, `category`, `contraindication.management`, `contraindication.applicability`, and `library`. They do not make R4-to-R6 migration fail, but R6-to-R4 conversion can lose identifiers, management advice, applicability logic, and computable library links if a system round-trips through R4. That reverse-direction burden is real for safety logic, but it is a normal and proportionate consequence of adding optional expressivity to the successor model.",
+        "keyEvidence": [
+          "R6 `ClinicalUseDefinition.identifier`: `0..* Identifier`.",
+          "R6 `ClinicalUseDefinition.category`: `0..* CodeableConcept` with preferred binding.",
+          "R6 `ClinicalUseDefinition.contraindication.management`: `0..* CodeableConcept`; `applicability`: `0..1 Expression`; `library`: `0..* canonical(Library)`.",
+          "No direct local R4 counterparts exist on `MedicinalProductContraindication`."
+        ],
+        "fmmEffect": "FMM 0/trial-use means old R4 compatibility should not block optional R6 expressivity. The safety relevance of management/applicability mainly affects migration policy, not the base design judgment.",
+        "compatibilityMechanism": "R6-to-R4 loss: optional R6-only metadata and logic have no standard local R4 destination; no old-valid/new-invalid forward break is introduced.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for optional additions. Extensions, sidecar artifacts, or explicit down-conversion loss flags are appropriate mitigations, but not base-model alternatives.",
+        "comparisonToExisting": "partially agree with the existing no-hard-break and not-applicable alternative assessment; the fresh review keeps the reverse-loss warning but treats the base design as proportionate."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1732,5 +1892,19 @@
       "R4 MedicinalProduct target replaced by MedicinalProductDefinition",
       "R4 Population datatype replaced by Group references"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicinalProductContraindication.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 7,
+      "No problem": 1
+    }
   }
 }

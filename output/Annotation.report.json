@@ -282,7 +282,21 @@
       "validationAndCompatibilityMd": "An R4-valid Annotation does not become invalid in R6 because no allowed R4 target was removed and no cardinality or type-code constraint was tightened. Conversely, an R6 Annotation with `authorReference.reference = \"PractitionerRole/...\"` is not cleanly R4-representable under the R4 target-profile list. Strict R4 validators can reject it; looser parsers may accept the JSON shape but lose conformance guarantees or hit downstream type-dispatch errors.",
       "migrationGuidanceMd": "For R4→R6 migration, no transform is needed for existing `authorReference` or `authorString` values. For R6→R4 or bidirectional exchange, detect `Annotation.authorReference` values that resolve to `PractitionerRole`. Decide whether to map to the referenced practitioner, map to the organization, convert to `authorString`, or preserve the original reference in an extension/profile-specific rule. Those mappings are potentially lossy because a PractitionerRole can encode role, specialty, organization, and location context that is not represented by a single R4 Annotation author target.",
       "backwardCompatibilityAnalysisMd": "Because the change is an optional widening, it is backward-compatible for R4→R6 validation. The avoidable disruption is specifically for reverse compatibility. A less disruptive cross-version design could have used an extension for role-specific attribution while leaving the target list unchanged, but that would make role attribution less interoperable for native R6 implementations. On balance, the change appears probably justified, with explicit down-conversion guidance needed.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Annotation:REFERENCE_TARGET:Annotation.author[x]:5e389f",
+        "judgment": "No problem",
+        "narrativeMd": "`Annotation.author[x]` keeps the same element name, cardinality, choice shape, and R4 Reference targets, while R6 adds `PractitionerRole` as another allowed Reference target. That means R4-valid Annotation data remains valid under the local R6 datatype rule. The only concrete concern is reverse-direction or mixed-version exchange if an R6 sender uses `authorReference` to a PractitionerRole and an R4 target-profile-aware validator or code path expects only Practitioner, Patient, RelatedPerson, Organization, or string. That is real down-conversion policy work, but it is not a meaningful R4-to-R6 compatibility break for this path.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Annotation.json: Annotation.author[x] is 0..1 Reference|string with Reference targets Practitioner, Patient, RelatedPerson, and Organization.",
+          "R6 StructureDefinition-Annotation.json: Annotation.author[x] remains 0..1 Reference|string and preserves those targets while adding PractitionerRole.",
+          "R4 and R6 package indexes both include StructureDefinition-PractitionerRole; the delta is target-list inclusion on Annotation.author[x], not resource availability."
+        ],
+        "fmmEffect": "Annotation is normative in R4, so true R4-to-R6 breaks would need strong justification. Here the normative stability pressure does not change the outcome because this specific path change is additive for R4-to-R6 validation and leaves existing R4 author representations intact.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 Annotation can now use authorReference=PractitionerRole/..., which is outside the R4 Annotation.author[x] target list; there is no old-valid/new-invalid R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for R4-to-R6 compatibility because the base change is already a widening. Leaving PractitionerRole out and relying on authorString or an extension would reduce reverse-version friction, but it would also make role-specific author attribution less computable and less visible to generic R6 tooling.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: agree that there is no hard R4-to-R6 break and no useful less-breaking base design, but the medium-impact framing overstates this finding under the fresh R4-to-R6 review rubric because the compatibility issue is reverse-direction only."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -421,5 +435,17 @@
       "Other datatypes or resources whose author/asserter/recorder Reference target lists added PractitionerRole",
       "Base Element/DataType hierarchy changes excluded from per-datatype local findings"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Annotation.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

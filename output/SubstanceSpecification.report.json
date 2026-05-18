@@ -285,7 +285,22 @@
       "migrationGuidanceMd": "Introduce a first-class cross-version mapping from `SubstanceSpecification` to `SubstanceDefinition`. Update resourceType values, canonical profile URLs, reference targets, generated class names, persistence discriminators, route names, and tests. Do not treat this as a simple prefix rename: several local elements also changed shape and require separate transforms.",
       "backwardCompatibilityAnalysisMd": "The package evidence suggests a deliberate rename or replacement. A backward-compatible alias or official map would have reduced breakage, but it would also preserve an obsolete resource name in the R6 core model. Without such an alias, clients must implement a version-aware transformation.",
       "reviewerNotesMd": "The successor match is strong but inferred from local package evidence rather than from an official diff or ConceptMap.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSpecification:ARTIFACT_IDENTITY:root:e9ba37",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 ballot4 does not define a same-named `SubstanceSpecification`; the local successor evidence points to `SubstanceDefinition`. That is a real resource identity break for `resourceType`, REST routes, generated classes, canonical URLs, and references. I do not treat the rename as automatically disproportionate because the R4 resource was FMM 0/trial-use and current IDMP-oriented public material points at `SubstanceDefinition`, not continued use of the R4 name. The break still needs explicit migration rules, but the base-design direction looks defensible.",
+        "keyEvidence": [
+          "R4 StructureDefinition-SubstanceSpecification has id/type/url `SubstanceSpecification` and R4 maturity map lists FMM 0, trial-use.",
+          "R6 package has StructureDefinition-SubstanceDefinition and no StructureDefinition-SubstanceSpecification at the assigned path.",
+          "R6 CodeSystem-fhir-old-types includes `SubstanceSpecification` as an old resource name no longer used.",
+          "HL7 R5/R6 SubstanceDefinition pages describe the same detailed substance-definition role; UMC IDMP API IG says GSIDs are manifested through `SubstanceDefinition` and documents a production FHIR server."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use substantially softens the stability expectation. The substance domain is regulatory and implementation-relevant, but the quick public check found current use centered on `SubstanceDefinition`, not evidence that the R4 `SubstanceSpecification` name must be preserved.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: an R4 instance, endpoint, profile, or generated model named `SubstanceSpecification` is not accepted as R6 `SubstanceDefinition` without a transform.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the old resource name or added a deprecated alias, but that would preserve a FMM0 legacy canonical and likely create duplicate resource identities for the successor model. The alternative is real, but not clearly low-cost enough to make the rename itself a design problem.",
+        "comparisonToExisting": "partially agree with the existing high-impact finding because the identity break is real; disagree with treating the less-breaking alternative as a straightforward Yes, since aliasing a core resource type has substantial long-term cost."
+      }
     },
     {
       "findingId": "SubstanceSpecification:SLICING_AND_CONTENT_MODEL:property:3eb2fa",
@@ -457,7 +472,22 @@
       "validationAndCompatibilityMd": "An R4-valid `property` with no `code` can become R6-invalid because `property.type` is required. An R4 `amountString` has no R6 choice element, so strict validators will reject it after a naive transform. R6 values using new choices such as boolean or Attachment cannot round-trip to R4 `amount[x]` without loss or extensions.",
       "migrationGuidanceMd": "Map `property.code` to `property.type` when present. Inventory property entries missing `code`, and define a fallback policy before migration. Map Quantity values directly to `valueQuantity`; avoid automatic mapping of strings unless a domain-specific representation is approved. Preserve removed `category`, `parameters`, and `definingSubstance[x]` with extensions or manual curation where they carry business meaning.",
       "backwardCompatibilityAnalysisMd": "The change improves regularity but was only partly backward-compatible. Adding the new `value[x]` and `type` while retaining old fields would have allowed gradual migration, at the cost of duplicate representations and weaker validation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSpecification:SLICING_AND_CONTENT_MODEL:property:3eb2fa",
+        "judgment": "Revisit",
+        "narrativeMd": "The `property` backbone changed in ways that can reject or lose central substance-characterization data: R4 allowed an untyped property, string amounts, measurement parameters, and a defining substance; R6 requires `property.type` and drops those old children while using a different `value[x]` set. This is not just a code cleanup. Migration may require expert judgment to decide whether text, parameters, or defining-substance context becomes a coded value, another relationship, or preserved legacy content.",
+        "keyEvidence": [
+          "R4 `SubstanceSpecification.property.code` is 0..1 and `property.amount[x]` is Quantity|string.",
+          "R4 `property.category`, `property.parameters`, and `property.definingSubstance[x]` are local children.",
+          "R6 `SubstanceDefinition.property.type` is 1..1 and `property.value[x]` is CodeableConcept|Quantity|Range|date|boolean|Attachment, with no string choice.",
+          "R6 concise element extraction found no direct `category`, `parameters`, or `definingSubstance[x]` child under `SubstanceDefinition.property`."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use prevents assuming broad deployed impact from the break alone, but `property` is a core substance-description path and the loss can affect regulatory or analytical interpretation, so low FMM does not neutralize the concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 properties missing `code`, using `amountString`, or carrying removed child elements are not valid R6 `SubstanceDefinition.property` content after a mechanical rename.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have added `valueString` back to R6 `property.value[x]` and retained `parameters` or `definingSubstance[x]` as deprecated optional children while encouraging the new typed model. Making `type` mandatory has a clearer computability goal, but the string/context removals look like modest-cost compatibility points. The tradeoff is duplicate property encodings and weaker guarantees that every property is fully normalized.",
+        "comparisonToExisting": "partially agree that affected instances can hard-break; disagree with the existing Probably justified framing because some compatibility-preserving choices, especially retaining string/context carriers, seem plausible enough to warrant review."
+      }
     },
     {
       "findingId": "SubstanceSpecification:SLICING_AND_CONTENT_MODEL:relationship:795329",
@@ -638,7 +668,22 @@
       "validationAndCompatibilityMd": "Old relationship entries missing a type are R4-valid but R6-invalid. Old `amountRange` values fail type validation in R6. Existing references to `SubstanceSpecification/{id}` need target rewriting or they will fail reference target checks in R6 profiles and generated clients.",
       "migrationGuidanceMd": "Map `relationship.relationship` to `relationship.type`; flag missing values for curation. Convert `substanceReference` targets from `SubstanceSpecification` to `SubstanceDefinition`. Decide whether Range amounts should become a Ratio, string, high-limit field, or extension. Include tests for relationships missing type, using Range, and referencing another substance resource.",
       "backwardCompatibilityAnalysisMd": "The stronger R6 model is defensible, but a deprecated alias plus warning-level invariant would have allowed data migration without immediately invalidating incomplete R4 records.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSpecification:SLICING_AND_CONTENT_MODEL:relationship:795329",
+        "judgment": "Revisit",
+        "narrativeMd": "`relationship` became stricter and narrower: the relationship code is now required as `type`, the referenced resource target follows the resource rename, `Range` is removed from `amount[x]`, and amount qualifier names changed. A relationship such as salt-to-parent, active moiety, impurity, or starting material can be substance-identity relevant; dropping a range or requiring a missing type is not safely mechanical for all records.",
+        "keyEvidence": [
+          "R4 `SubstanceSpecification.relationship.relationship` is 0..1 CodeableConcept.",
+          "R6 `SubstanceDefinition.relationship.type` is 1..1 CodeableConcept.",
+          "R4 `relationship.amount[x]` includes Quantity|Range|Ratio|string; R6 includes Quantity|Ratio|string and omits Range.",
+          "R4 `relationship.substance[x]` references SubstanceSpecification; R6 `relationship.substanceDefinition[x]` references SubstanceDefinition."
+        ],
+        "fmmEffect": "The R4 FMM 0/trial-use status softens the presumption of deployed compatibility, but this path is central to substance relationships and can be regulatory or safety relevant, so the lossy/expert-dependent cases still justify renewed attention.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 relationship repetitions without a relationship code or with `amountRange` fail the R6 content model unless curated or transformed.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `Range` in `relationship.amount[x]` and kept the old `relationship` child as a deprecated alias or transitional optional element while encouraging `type`. Keeping `type` required improves computability, but preserving Range seems a relatively low-cost widening. The tradeoff is duplicate names and weaker enforcement of typed relationships.",
+        "comparisonToExisting": "partially agree with the hard-break assessment; disagree with the existing conclusion that the break is simply probably justified, because the Range removal and mandatory-type transition appear to have plausible less-breaking base alternatives."
+      }
     },
     {
       "findingId": "SubstanceSpecification:REFERENCE_TARGET:specialized-references:a4fde8",
@@ -813,7 +858,22 @@
       "validationAndCompatibilityMd": "R4 instances with `referenceInformation`, `nucleicAcid`, `polymer`, `protein`, or reference-style `sourceMaterial` will not validate against R6 `SubstanceDefinition` without transformation. Bundles containing the referenced resources also need conversion; otherwise references dangle or target unknown R6 resource types.",
       "migrationGuidanceMd": "Inventory all uses of the companion references. For `sourceMaterial`, map only fields that have an R6 inline equivalent and preserve the rest with extensions or curated annotations. For nucleic acid, protein, polymer, and reference-information payloads, wait for or define domain-specific mappings before discarding data. Test bundle-level referential integrity, not just individual resources.",
       "backwardCompatibilityAnalysisMd": "The R6 simplification may be justified if the companion resources were considered too granular, but removing reference targets without published maps is highly disruptive. Deprecated targets or standard extensions would have enabled less lossy migration.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSpecification:REFERENCE_TARGET:specialized-references:a4fde8",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `SubstanceSpecification` could point to a family of specialized substance resources for reference information, nucleic acids, polymers, proteins, and source material. R6 removes those target resource types from the local package and only retains `sourceMaterial` as a smaller inline backbone. This can orphan bundle content or force lossy consolidation of high-value substance details, and no local official map was available to show a safe replacement.",
+        "keyEvidence": [
+          "R4 local elements reference SubstanceReferenceInformation, SubstanceNucleicAcid, SubstancePolymer, SubstanceProtein, and SubstanceSourceMaterial.",
+          "R6 package index search found no StructureDefinition entries for those specialized companion resources.",
+          "R6 `SubstanceDefinition.sourceMaterial` is an inline BackboneElement with type, genus, species, part, and countryOfOrigin children.",
+          "UMC IDMP API IG shows substance identifiers are current implementation content, reinforcing regulatory relevance, but it uses `SubstanceDefinition` rather than the old R4 companion family."
+        ],
+        "fmmEffect": "Low R4 FMM reduces the expectation that the old companion-resource family must remain stable, but the affected data can be central to regulatory substance identity. The possible loss of whole referenced payloads outweighs the low-FMM softening for this finding.",
+        "compatibilityMechanism": "old-valid/new-invalid with R6-to-R4 loss: old reference elements become unknown in R6, old target resource types are absent, and R6 inline source-material data cannot be represented as the old R4 reference without creating another resource or preserving data elsewhere.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have retained the specialized reference elements and companion StructureDefinitions as deprecated optional content while introducing the simplified inline model. That is costly because it keeps a broad legacy model alive, but the amount and importance of potentially lost data make the tradeoff worth standards review.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment and partial-alternative framing; strengthen the action judgment to Revisit because the migration is payload-level, lossy, and not resolved by local evidence."
+      }
     },
     {
       "findingId": "SubstanceSpecification:TYPE_DOMAIN:structure-representation:17d7be",
@@ -986,7 +1046,22 @@
       "validationAndCompatibilityMd": "A valid R4 resource with `structure.representation.attachment` is invalid in R6 because the element is removed. A naive transform to `document` will still fail unless it creates a Reference. Reverse conversion depends on resolving the referenced DocumentReference and choosing whether to inline its attachment.",
       "migrationGuidanceMd": "During R4-to-R6 conversion, create contained or external DocumentReference resources for inline attachments, copy attachment metadata, and set `structure.representation.document`. Map `structure.source` to `structure.sourceDocument`. Add tests for inline data, URL-only attachments, and missing referenced documents.",
       "backwardCompatibilityAnalysisMd": "The new model is cleaner for document management, but allowing an Attachment-or-Reference choice would have preserved old instances. The tradeoff is inconsistent retrieval and duplicate ways to represent the same artifact.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SubstanceSpecification:TYPE_DOMAIN:structure-representation:17d7be",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The structural representation file carrier changes from an inline `Attachment` to a `Reference(DocumentReference)`, and `structure.source` is renamed to `sourceDocument`. This is a real serialization and persistence break for resources that embed structure files, but the R6 design has a coherent document-management goal: representation files can carry provenance, lifecycle, access, and retrieval behavior through DocumentReference.",
+        "keyEvidence": [
+          "R4 `structure.representation.attachment` is 0..1 Attachment.",
+          "R6 `structure.representation.document` is 0..1 Reference(DocumentReference).",
+          "R6 adds `structure.representation.format` as CodeableConcept.",
+          "R4 `structure.source` and R6 `structure.sourceDocument` both target DocumentReference."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens stability pressure. The path can matter for molecular identity evidence, but the change is narrow and usually migratable by creating contained or external DocumentReference resources.",
+        "compatibilityMechanism": "old-valid/new-invalid: an inline R4 Attachment is not the R6 element shape; a transform must create or reference a DocumentReference.",
+        "lessBreakingAlternativeAssessment": "R6 could have allowed an Attachment-or-Reference choice or retained `attachment` as deprecated. That would preserve old instances, but it would duplicate retrieval and provenance patterns and weaken the normalization benefit of using DocumentReference.",
+        "comparisonToExisting": "agree with the existing assessment that this is a medium, real break with a partial less-breaking alternative whose tradeoffs make the R6 change probably acceptable."
+      }
     },
     {
       "findingId": "SubstanceSpecification:CARDINALITY:molecularWeight:db3d3c",
@@ -1139,7 +1214,22 @@
       "validationAndCompatibilityMd": "An R4 molecularWeight entry with children but no `amount` can satisfy R4 `ele-1` but fail R6 cardinality. R4 isotope data fails because `structure.isotope` is unknown in R6. R6 molecularWeight values can usually be represented in R4, but not if R6 semantics rely on the simplified top-level model without an agreed back-map.",
       "migrationGuidanceMd": "Before migration, find molecularWeight entries missing `amount` and decide whether to derive, curate, or omit them. Do not insert arbitrary quantities solely to pass validation. Preserve isotope details with extensions or domain-specific resources if required. Test both top-level and structure-level molecularWeight content references.",
       "backwardCompatibilityAnalysisMd": "Requiring an amount is semantically cleaner but could have been introduced as a profile or warning first. Removing isotope-specific fields is harder to assess without official rationale or replacement guidance.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSpecification:CARDINALITY:molecularWeight:db3d3c",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 makes molecular-weight `amount` mandatory and removes the R4 isotope subtree. Requiring an amount is sensible for complete molecular-weight data, but R4 allowed method/type-only molecular-weight entries, and isotope details such as identifier, substitution, half-life, and isotope molecular weight have no direct R6 location in the checked StructureDefinition. That combination can force invented quantities or loss of isotope-specific substance characterization.",
+        "keyEvidence": [
+          "R4 top-level and structure-level `molecularWeight` content-reference `structure.isotope.molecularWeight`.",
+          "R4 `structure.isotope.molecularWeight.amount` is 0..1 Quantity.",
+          "R6 `SubstanceDefinition.molecularWeight.amount` is 1..1 Quantity and `structure.molecularWeight` content-references it.",
+          "R4 has `structure.isotope`; R6 extracted element list has no `SubstanceDefinition.structure.isotope`."
+        ],
+        "fmmEffect": "Low FMM tempers assumptions about prevalence, but isotope and molecular-weight data can be substance-identity and radiopharmaceutical/regulatory content. The expert-dependent and potentially lossy migration keeps this in Revisit territory.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 molecular-weight entries without `amount` fail R6 cardinality, and R4 isotope children are not accepted by the R6 structure.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep `amount` optional in the base resource while adding warning/profile guidance for complete records, and retain `structure.isotope` as deprecated optional content. This weakens the R6 guarantee that a molecular weight has an amount and preserves legacy complexity, but it avoids forcing dummy data or isotope loss.",
+        "comparisonToExisting": "agree with the existing concern that this break is not clearly justified; partially agree on impact because FMM0 reduces broad stability pressure even though the affected records can be high value."
+      }
     },
     {
       "findingId": "SubstanceSpecification:FLAGS_AND_MODIFIERS:status:9b9a66",
@@ -1275,7 +1365,22 @@
       "validationAndCompatibilityMd": "Existing coded status values are not rejected merely because of this flag, and the binding is preferred rather than required. The break is in processing obligations: R6 consumers cannot safely ignore a modifier element. R4-to-R6 migrations should update generated-code assumptions and modifier handling tests.",
       "migrationGuidanceMd": "Update consumers to check `SubstanceDefinition.status` before using a definition. Ensure generated models expose the modifier flag and that validation pipelines treat status consistently with other modifier elements. Map local R4 status codes to the R6 publication-status value set when possible, but do not rely on preferred binding for hard validation.",
       "backwardCompatibilityAnalysisMd": "The modifier flag is probably justified for lifecycle status. A backward-compatible alternative would have been narrative guidance only, but that would not give validators or generated code a formal signal.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SubstanceSpecification:FLAGS_AND_MODIFIERS:status:9b9a66",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`status` keeps the same basic shape but becomes a modifier and receives a preferred publication-status binding. This is not an old-valid/new-invalid instance break, but it is a real processing obligation for R6 clients and generated models: a retired or otherwise inactive definition may need different handling. The computable modifier signal is reasonable for lifecycle status.",
+        "keyEvidence": [
+          "R4 `SubstanceSpecification.status` is 0..1 CodeableConcept and isModifier false.",
+          "R6 `SubstanceDefinition.status` is 0..1 CodeableConcept and isModifier true.",
+          "R6 status has preferred binding to `http://hl7.org/fhir/ValueSet/publication-status`.",
+          "R6 modifier reason says status can indicate that a record should not be treated as valid."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use lowers the compatibility burden, and the binding is preferred rather than required. The modifier change still matters for processors, but the safety rationale is proportionate.",
+        "compatibilityMechanism": "runtime/API/codegen: instances are not rejected solely by the flag change, but R6 processors and generated APIs must expose and respect modifier semantics.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `status` non-modifier and relied on prose or warnings. That would preserve older processing assumptions, but it would not give generic validators and clients a computable signal that lifecycle status can change safe use.",
+        "comparisonToExisting": "partially agree: the runtime mechanism is real and the partial alternative is correctly identified, but the existing High runtime risk is stronger than the evidence supports for a FMM0 optional element."
+      }
     },
     {
       "findingId": "SubstanceSpecification:TERMINOLOGY_BINDING:name.language:f6ef42",
@@ -1419,7 +1524,21 @@
       "validationAndCompatibilityMd": "Omitted language values remain valid. Populated values with non-conformant codings can be old-valid/new-invalid because R6 uses a required binding. Reverse conversion to R4 is structurally easy because R4 had no binding, but the R6 conformance guarantee is lost.",
       "migrationGuidanceMd": "Extract all `name.language` values and map them to standard language tags before R6 validation. Keep unmapped values in extensions or text only if local policy accepts that loss of codable conformance. Add terminology tests with valid tags, invalid local codes, and text-only CodeableConcepts.",
       "backwardCompatibilityAnalysisMd": "The change is interoperable but not fully backward-compatible. A preferred or extensible binding would have been less disruptive but less precise for multilingual processing.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSpecification:TERMINOLOGY_BINDING:name.language:f6ef42",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`name.language` remains optional and repeatable, but R6 adds a required all-languages binding. R4 instances with local language codings can fail R6 terminology validation, while omitted language values are unaffected. Standardizing language tags is a reasonable interoperability goal, and this path is less central to substance identity than properties, relationships, or source material.",
+        "keyEvidence": [
+          "R4 `SubstanceSpecification.name.language` is 0..* CodeableConcept with no binding in the StructureDefinition.",
+          "R6 `SubstanceDefinition.name.language` is 0..* CodeableConcept with required binding to `http://hl7.org/fhir/ValueSet/all-languages|6.0.0-ballot4`.",
+          "No terminology expansion comparison was performed; judgment is based on binding strength and value set identity."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens concern, and the element is optional. The required binding can still break populated local-code records, but the interoperability benefit is clear and the safety/business risk is limited.",
+        "compatibilityMechanism": "old-valid/new-invalid: populated R4 language CodeableConcepts outside the required R6 value set can fail validation; instances without `name.language` are unaffected.",
+        "lessBreakingAlternativeAssessment": "A preferred or extensible binding would be less disruptive and could ease legacy-code migration, but it would not give R6 the same base guarantee that language values are valid language tags.",
+        "comparisonToExisting": "partially agree with the potential hard-break finding; the existing Medium impact is plausible for affected data, but low FMM and optionality keep the break probably acceptable."
+      }
     },
     {
       "findingId": "SubstanceSpecification:CONVERSION_OR_MAPPING:r6-additions:cce123",
@@ -1575,7 +1694,22 @@
       "validationAndCompatibilityMd": "R4 validators will reject these R6 element names if they are placed directly on `SubstanceSpecification`. R6 instances using only common elements can be down-mapped more easily; instances using the new elements are not core-R4-representable without loss.",
       "migrationGuidanceMd": "For R6-to-R4 flows, define a policy for each new element: drop with audit, preserve in extensions, map to R4 companion resources where appropriate, or block conversion. Include round-trip tests that prove whether data survives the down-map and up-map.",
       "backwardCompatibilityAnalysisMd": "Optional additions are appropriate in the forward direction. The compatibility gap is unavoidable unless the project publishes standard R4 extensions or conversion maps for the new fields.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSpecification:CONVERSION_OR_MAPPING:r6-additions:cce123",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 fields are optional additions or broader R6 expressivity. They can create lossy R6-to-R4 down-conversion, but they do not invalidate R4 `SubstanceSpecification` instances moving forward. For a fresh R4-to-R6 break review, this is migration awareness rather than a base compatibility problem.",
+        "keyEvidence": [
+          "R6 adds optional root elements including `version`, `classification`, `grade`, `note`, `manufacturer`, `supplier`, and `characterization`.",
+          "R6 adds optional nested content such as `moiety.measurementType`, `structure.technique`, `structure.representation.format`, and inline `sourceMaterial` children.",
+          "R4 SubstanceSpecification has no direct core elements for several of these R6 additions.",
+          "The R6 additions are optional in the extracted StructureDefinition metadata."
+        ],
+        "fmmEffect": "The R4 FMM 0/trial-use context does not create a reason to object to optional R6 additions. If anything, low maturity supports allowing the successor model to add needed substance-definition content.",
+        "compatibilityMechanism": "R6-to-R4 loss: down-converting an R6 instance that uses new optional fields may require extensions, companion resources, or data loss; forward R4-to-R6 compatibility is not materially harmed by the additions themselves.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for optional forward additions. R4 backport extensions or conversion maps are useful mitigations for reverse exchange, but they are not reasons to avoid the R6 fields.",
+        "comparisonToExisting": "partially agree that reverse conversion can be lossy; disagree that the finding should be treated as a meaningful R4-to-R6 breaking design issue."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1758,5 +1892,19 @@
       "R4 reference-to-companion-resource patterns replaced by R6 inline backbones",
       "Local status elements that became modifiers in R6"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SubstanceSpecification.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 4,
+      "No problem": 1
+    }
   }
 }

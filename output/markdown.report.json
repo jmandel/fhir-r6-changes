@@ -262,7 +262,22 @@
       "migrationGuidanceMd": "R4-to-R6 migration does not need to transform ordinary markdown values for this regex. R6-to-R4 conversion should either reject values outside the R4 lexical space, normalize/drop unacceptable control whitespace when policy permits, or document that the conversion is lossy. Validator test suites should include empty string, ordinary markdown, multiline markdown, tabbed markdown, and uncommon whitespace-only values.",
       "backwardCompatibilityAnalysisMd": "Because the change widens validation, it is already backward-compatible in the primary R4-to-R6 direction. The avoidable part is only the reverse-conversion risk: R6 could have retained the old regex to avoid rare R6-to-R4 mismatches, but that would keep excluding characters that the R6 ballot apparently intends to permit.",
       "reviewerNotesMd": "The same regex change appears on the `string` base primitive. This finding is scoped to the effective `markdown.value` rule because the markdown differential carries the regex in both versions; broad base-primitive impact should be owned by the `string` report.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "markdown:VALUE_CONSTRAINT:markdown.value:regex-widened",
+        "judgment": "No problem",
+        "narrativeMd": "R6 broadens the lexical regex for `markdown.value` from the R4 pattern that allowed non-whitespace plus space/CR/LF/tab to a full non-empty string pattern. That does not make R4-valid markdown values invalid in R6. The only concrete compatibility issue I see is reverse-direction: an R6 value containing uncommon whitespace such as form feed, vertical tab, or other whitespace not covered by the R4 expression may fail an R4 validator. For an R4-to-R6 review, this is not a meaningful break.",
+        "keyEvidence": [
+          "R4 StructureDefinition-markdown.json differential markdown.value regex is `[ \\r\\n\\t\\S]+`.",
+          "R6 StructureDefinition-markdown.json differential markdown.value regex is `^[\\s\\S]+$`.",
+          "R4 StructureDefinition-regex.json describes the regex extension as syntax used to determine whether the data element is valid.",
+          "viewer/r4-maturity.json reports markdown FMM 1; local R4/R6 StructureDefinitions also carry normative status extensions."
+        ],
+        "fmmEffect": "The supplied FMM 1/status-unknown context softens stability pressure, and I found no need to infer broad production impact because the change is widening for R4-to-R6. The normative extensions in the StructureDefinitions do not change the path-level conclusion that old values remain accepted.",
+        "compatibilityMechanism": "R6-to-R4 loss: widened R6 lexical space can create new values that an R4 regex-enforcing validator may reject, but there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "Keeping the R4 regex in R6 would be more restrictive and would improve reverse round-tripping, but it would not address an R4-to-R6 break because none is present. It would also retain an arbitrary exclusion of rare whitespace characters, so it is not a compelling less-breaking base design.",
+        "comparisonToExisting": "agree: the existing report correctly treated this as low impact and reverse-direction only; my fresh review converts that to a No problem judgment rather than treating it as a breaking concern."
+      }
     },
     {
       "findingId": "markdown:SERIALIZATION_OR_CODEGEN:markdown.value:fhir-type-snapshot",
@@ -396,7 +411,22 @@
       "validationAndCompatibilityMd": "R4 instances do not become invalid, and R6 markdown instances remain string-valued on the wire. The affected compatibility surface is generated model shape, schema generation, reflection, and validator internals that consume snapshot type extensions. Tools should continue to recognize the underlying FHIRPath type code `http://hl7.org/fhirpath/System.String`.",
       "migrationGuidanceMd": "Regenerate models and validators from the R6 package and inspect any API surface that changed from `string` to a `markdown` wrapper or alias. If source compatibility matters, provide overloads, implicit conversions, or type aliases so existing string-handling code continues to work while preserving the markdown-specific FHIR type in metadata.",
       "backwardCompatibilityAnalysisMd": "The standards artifact could have preserved the R4 snapshot's `string` metadata to avoid generator churn, but that would keep the snapshot less precise than the differential and canonical primitive identity. A tool-level compatibility alias is the cleaner backward-compatible path.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "markdown:SERIALIZATION_OR_CODEGEN:markdown.value:fhir-type-snapshot",
+        "judgment": "No problem",
+        "narrativeMd": "The snapshot metadata for `markdown.value` now reports the FHIR type as `markdown` rather than `string`, while the R4 differential already used `markdown` and the primitive's wire representation remains a string-like value. An R4 instance does not serialize this metadata, so there is no instance compatibility break. A generator that relied only on the R4 snapshot extension might regenerate a more specific markdown alias or wrapper in R6, but that is metadata/tooling churn around a primitive whose identity is already `markdown`.",
+        "keyEvidence": [
+          "R4 StructureDefinition-markdown.json snapshot markdown.value structuredefinition-fhir-type is `string`.",
+          "R4 StructureDefinition-markdown.json differential markdown.value structuredefinition-fhir-type is already `markdown`.",
+          "R6 StructureDefinition-markdown.json snapshot and differential markdown.value structuredefinition-fhir-type are `markdown`.",
+          "R4 package local search found 99 StructureDefinition files with markdown-typed elements, but this finding concerns the primitive metadata path, not all downstream elements."
+        ],
+        "fmmEffect": "The supplied FMM 1/status-unknown context reduces concern about a metadata-only cleanup. Even if markdown is broadly referenced as a primitive, the affected change is not a data-path narrowing or wire-format removal.",
+        "compatibilityMechanism": "metadata/tooling: snapshot-only type metadata changed from `string` to `markdown`; instances still carry markdown as primitive string content, and robust tooling had other signals for the markdown primitive identity.",
+        "lessBreakingAlternativeAssessment": "R6 could have left the snapshot extension as `string`, but that would preserve an inconsistency with the differential and the StructureDefinition's own type. A compatibility alias belongs in generator policy, not as a less-breaking base StructureDefinition design.",
+        "comparisonToExisting": "partially agree: I agree with the existing low-impact/no-hard-break assessment, but I would frame the mechanism as metadata/tooling cleanup rather than a substantive runtime break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -546,5 +576,17 @@
       "Snapshot `structuredefinition-fhir-type` values that differ from R4 generated snapshots",
       "New `structuredefinition-type-characteristics` metadata on primitive datatypes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/markdown.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 2
+    }
   }
 }

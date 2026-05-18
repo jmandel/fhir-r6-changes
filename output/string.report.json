@@ -285,7 +285,23 @@
       "migrationGuidanceMd": "Update validators and generated schema artifacts to use the R6 regex for R6 content. Cross-version conversion tests should include strings with ordinary text, whitespace-only strings, empty strings, max-length boundary cases, and uncommon whitespace/control characters. Down-converters to R4 should either reject non-R4-lexical values with an explicit error or apply a documented, potentially lossy normalization policy only if the receiving workflow permits it.",
       "backwardCompatibilityAnalysisMd": "The change is mostly backward-compatible in the R4-to-R6 direction because it broadens accepted values. The unavoidable compatibility gap is reverse-direction: once R6 permits values that R4 did not, no purely structural R4 representation can preserve all such values while satisfying the old regex. Guidance and warnings are the least disruptive mitigation.",
       "reviewerNotesMd": "Confirm intended regex matching semantics against official R6 narrative or validator behavior if this finding will drive automated conversion rules. Some serializers may reject certain control characters before FHIR regex validation is reached.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "string:VALUE_CONSTRAINT:string.value:regex-broadened",
+        "judgment": "No problem",
+        "narrativeMd": "The affected path is only `string.value`. R4 used `[ \\r\\n\\t\\S]+`; R6 uses `^[\\s\\S]+$`; cardinality, type, and `maxLength` remain unchanged. Under normal whole-value primitive validation, the R6 regex is broader: it still requires a non-empty value but admits whitespace/control characters that the R4 character class may exclude. That can matter when converting R6 content back to R4 or when an R4-era validator is reused for R6 content, but it does not make an R4-valid `string` invalid in R6 and does not change the generated element path or API shape. For an R4-to-R6 break review, this is not a meaningful compatibility problem.",
+        "keyEvidence": [
+          "Fresh-review framework applied: element-level findings are assessed only at the affected path and direct downstream behavior.",
+          "Existing report finding `string:VALUE_CONSTRAINT:string.value:regex-broadened` identifies a local regex change on `string.value`.",
+          "R4 `StructureDefinition-string.json` has `string.value` regex `[ \\r\\n\\t\\S]+`, cardinality `0..1`, type `http://hl7.org/fhirpath/System.String`, and `maxLength` 1048576.",
+          "R6 `StructureDefinition-string.json` has `string.value` regex `^[\\s\\S]+$`, with the same cardinality, type, and `maxLength` 1048576.",
+          "R4 maturity data and StructureDefinition extensions show `string` is normative with normative version 4.0.0."
+        ],
+        "fmmEffect": "Normative status raises the review burden for true R4-to-R6 breaks, so the regex change was checked carefully. It does not turn this widening into a concern because the direct compatibility issue is reverse-direction only.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 string containing characters admitted only by `^[\\s\\S]+$` may not satisfy the older R4 regex, but there is no old-valid/new-invalid R4-to-R6 instance break and no runtime/API/codegen path change.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for R4-to-R6 compatibility because R6 widened the lexical constraint. Keeping the R4 regex would improve down-conversion compatibility but would preserve the older exclusions and conflict with the apparent R6 goal of accepting any non-empty string value.",
+        "comparisonToExisting": "Partially agree with the existing impact and alternative judgment: it correctly treats this as no hard R4-to-R6 break and finds no less-breaking R6 base design necessary, but I would not carry forward a Medium overall concern for this fresh review because the practical issue is uncommon and reverse-direction."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -459,5 +475,17 @@
       "R6 DataType/PrimitiveType hierarchy changes",
       "Removal of inherited XPath constraints"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/string.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

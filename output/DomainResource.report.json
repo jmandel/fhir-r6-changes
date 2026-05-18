@@ -255,7 +255,21 @@
       "validationAndCompatibilityMd": "This is not an old-valid/new-invalid instance break. The same full JSON/XML instance can carry `modifierExtension` in both R4 and R6. The compatibility issue is runtime behavior: summary views, strict summary DTOs, or clients that assume R4 summary fields may see an additional safety-significant element in R6.",
       "migrationGuidanceMd": "Update serializers and generated summary models to include `modifierExtension` for DomainResource-derived resources in R6 summary contexts. Add regression tests for summary responses containing resource-level modifier extensions and verify that clients either process or explicitly reject unknown modifier extensions rather than silently ignoring them.",
       "backwardCompatibilityAnalysisMd": "The change was probably justified because modifier extensions can invert or qualify the meaning of resource content. A fully backward-compatible alternative would have been to keep the R4 flag and rely on narrative guidance, but that would leave summary behavior less computable and more likely to omit safety-relevant data.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DomainResource:FLAGS_AND_MODIFIERS:DomainResource.modifierExtension:1a1f29",
+        "judgment": "No problem",
+        "narrativeMd": "R6 changes only the `isSummary` flag for `DomainResource.modifierExtension`; the path, cardinality, type, slicing, and modifier status remain the same. A summary-mode response or generated summary DTO may now include resource-level modifier extensions where an R4 summary would not, but this is an additive summary-surface change rather than an R4 instance-validity break. Because modifier extensions are explicitly non-ignorable, including them in summaries is also a reasonable safety-oriented metadata choice.",
+        "keyEvidence": [
+          "R4 `DomainResource.modifierExtension` is `0..* Extension`, `isModifier=true`, and `isSummary=false`.",
+          "R6 `DomainResource.modifierExtension` keeps `0..* Extension` and `isModifier=true`, but has `isSummary=true`.",
+          "R4 maturity map and both StructureDefinitions mark DomainResource normative/FMM 5."
+        ],
+        "fmmEffect": "Normative/FMM 5 raised the bar for checking runtime summary behavior, but the change is additive metadata about summary projection and does not invalidate or remove any R4 content.",
+        "compatibilityMechanism": "metadata/tooling with limited runtime/API behavior: `_summary` serializers, caches, or summary DTOs may expose one more existing element, but base instance validation is unaffected.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `isSummary=false` and used prose saying summary producers should include modifier extensions. That would preserve the R4 summary shape, but it would be less computable and would undercut the safety goal of not dropping meaning-changing extensions from summaries.",
+        "comparisonToExisting": "partially agree: the existing report correctly identified possible summary-client churn and a partial prose alternative, but the fresh review rates the practical compatibility concern lower than Medium because this is additive summary metadata."
+      }
     },
     {
       "findingId": "DomainResource:VALUE_CONSTRAINT:DomainResource.dom-3:8b3d41",
@@ -363,7 +377,21 @@
       "migrationGuidanceMd": "Add validator regression tests for resources with contained entries. Include one case for each supported link mechanism, and run the tests with both R4 and R6 definitions. If differences appear, decide whether the migration should rewrite internal references, reject ambiguous contained resources, or apply a compatibility profile.",
       "backwardCompatibilityAnalysisMd": "The change appears aimed at expressing the same rule more cleanly. A backward-compatible path would have kept the R4 expression or published an official equivalence test suite. The tradeoff is that the old expression contained duplication and may not align with the R6 FHIRPath type model.",
       "reviewerNotesMd": "Human review should focus on whether R6 FHIRPath `as(uri)` is intended to subsume the R4 explicit `as(canonical)`, `as(uri)`, and `as(url)` checks in all relevant contexts.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DomainResource:VALUE_CONSTRAINT:DomainResource.dom-3:8b3d41",
+        "judgment": "No problem",
+        "narrativeMd": "The `dom-3` human rule and error severity are unchanged: contained resources still must be referenced from the containing resource or refer back to it. The R6 FHIRPath rewrites explicit `canonical`, `uri`, and `url` handling into `as(uri)`, and local type evidence shows `canonical` and `url` derive from `uri` in both R4 and R6. I do not see a credible intended old-valid/new-invalid change at the DomainResource path; this is best treated as a validator regression-test item for the expression rewrite rather than a standards compatibility problem.",
+        "keyEvidence": [
+          "R4 and R6 `constraint[key=dom-3]` both have severity `error` and the same human text.",
+          "R4 expression checks descendant `reference`, `canonical`, `uri`, and `url` values; R6 expression uses `select(reference | as(uri))` and `as(uri)='#'`.",
+          "R4 and R6 `StructureDefinition-canonical` and `StructureDefinition-url` both have `baseDefinition` `StructureDefinition/uri`."
+        ],
+        "fmmEffect": "Normative/FMM 5 means an actual error-invariant tightening would be serious, but the evidence points to an equivalent or slightly generalized expression of the same invariant rather than a new conformance rule.",
+        "compatibilityMechanism": "none for intended base conformance: the computable expression changed, so individual FHIRPath engines should be tested, but the underlying validation rule and uri-derived type coverage are preserved.",
+        "lessBreakingAlternativeAssessment": "Keeping the old expression would reduce textual churn, but it would preserve a bulkier, partly duplicated expression and would not provide a materially more compatible base rule once R6 uses `as(uri)` for uri-derived primitives.",
+        "comparisonToExisting": "disagree with the existing potential hard/Medium impact as an action judgment; I agree only that validator behavior around the rewritten expression is worth regression testing."
+      }
     },
     {
       "findingId": "DomainResource:SERIALIZATION_OR_CODEGEN:DomainResource.constraint-xpath:45c7e2",
@@ -529,7 +557,22 @@
       "validationAndCompatibilityMd": "Full FHIRPath-aware validators can continue to enforce the constraints. XPath-only validators can lose executable constraints unless they are updated. This is therefore a runtime compatibility risk, not a direct R4-instance validation break.",
       "migrationGuidanceMd": "Inventory validation tooling for any dependence on `ElementDefinition.constraint.xpath`. Move DomainResource invariant execution to FHIRPath, and treat missing XPath as an explicit unsupported condition rather than silently skipping containment and narrative checks.",
       "backwardCompatibilityAnalysisMd": "The backward-compatible alternative was straightforward: leave the XPath metadata in place. The likely tradeoff is that R6 would continue to carry a secondary constraint language that may not be equally expressive or equally maintained.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DomainResource:SERIALIZATION_OR_CODEGEN:DomainResource.constraint-xpath:45c7e2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 removes the XPath form of the local `dom-*` constraints while retaining FHIRPath expressions. That does not make ordinary DomainResource instances invalid, but it is a real tooling break for XML/Schematron-era validators or generators that consumed `constraint.xpath` from the DomainResource StructureDefinition instead of executing FHIRPath. The break appears proportionate because R4 already described XPath as not useful for non-XML formats and warned it might be removed, and R6 keeps the cross-format expression language.",
+        "keyEvidence": [
+          "R4 `DomainResource` constraints `dom-2` through `dom-6` each include an `xpath` string.",
+          "R6 keeps `dom-2` through `dom-6` but omits `xpath` and supplies FHIRPath `expression` plus `source`.",
+          "R4 `ElementDefinition.constraint.xpath` comment says XPath is generally not useful for JSON and other formats and may be removed in the future.",
+          "R6 `ElementDefinition` no longer has `ElementDefinition.constraint.xpath`, while `constraint.expression` remains."
+        ],
+        "fmmEffect": "Normative/FMM 5 increases concern for tooling that validates core resource invariants, but the removed representation was legacy metadata with an explicit R4 deprecation warning and an available FHIRPath replacement.",
+        "compatibilityMechanism": "metadata/tooling: XPath-only validators, Schematron generators, or code generators can no longer rely on `constraint.xpath`; instance wire compatibility is not directly affected.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 design could have retained `constraint.xpath` as deprecated, non-authoritative metadata. That would help legacy XML tooling, but it would keep duplicate constraint languages in the base model, risk divergence from FHIRPath, and delay the cross-format cleanup.",
+        "comparisonToExisting": "partially agree: the existing report correctly identified a real tooling break and a plausible retained-XPath alternative, but I view the removal as proportionate rather than a change needing renewed DomainResource design attention."
+      }
     },
     {
       "findingId": "DomainResource:SEMANTIC_OR_CONFORMANCE_TEXT:DomainResource.contained:9e6a04",
@@ -657,7 +700,22 @@
       "migrationGuidanceMd": "Flag contained `Parameters` and contained resource types not known to R4 during migration. Confirm that each contained resource is referenced and has clear context/meaning. For R6-only resource types, define an explicit conversion strategy rather than relying on generic contained-resource passthrough.",
       "backwardCompatibilityAnalysisMd": "If the intent was only clarification, a non-normative note would have been less disruptive. If the intent was to define a firm policy for `Parameters`, placing it in the base element text is more discoverable but leaves enforcement partly manual because the StructureDefinition does not encode a concrete invariant.",
       "reviewerNotesMd": "Narrative spec pages would help decide whether this is a new conformance requirement or a clarification of existing practice.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DomainResource:SEMANTIC_OR_CONFORMANCE_TEXT:DomainResource.contained:9e6a04",
+        "judgment": "Unclear",
+        "narrativeMd": "The computable shape of `DomainResource.contained` is unchanged at `0..* Resource`, but R6 adds absolute prose saying a contained `Parameters` resource is allowed if and only if it is referenced by a resource that provides context/meaning, and adds text about additional resources. The Parameters sentence could be read as enforceable base conformance beyond ordinary structural validation, while the additional-resource sentence is mostly R6 expressiveness and downgrade policy. Without official rationale or validator behavior, it is not defensible to decide whether this is merely clarification, a new prose-only restriction, or a meaningful compatibility break.",
+        "keyEvidence": [
+          "R4 `DomainResource.contained` is `0..* Resource` with no Parameters-specific sentence.",
+          "R6 `DomainResource.contained` remains `0..* Resource` and adds: `This is allowed to be a Parameters resource if and only if it is referenced by a resource that provides context/meaning.`",
+          "R6 comment adds that contained resources may be a FHIR specification resource type or an additional resource.",
+          "`Parameters` derives from `Resource` in both the R4 and R6 StructureDefinitions."
+        ],
+        "fmmEffect": "Normative/FMM 5 makes ambiguous conformance prose on a base element worth attention, especially because `contained` is inherited broadly by DomainResource resources.",
+        "compatibilityMechanism": "semantic/documentation: ordinary validators see the same type and cardinality, but stricter conformance review could reject context-free contained Parameters; R6-to-R4 loss is possible for R6 additional resource types.",
+        "lessBreakingAlternativeAssessment": "R6 could have used softer guidance, examples, a warning-level rule, or profile-specific policy for contained Parameters. Those alternatives would preserve more legacy interpretation, but they may not meet the R6 goal if the intent is a firm base rule for context-bearing Parameters.",
+        "comparisonToExisting": "partially agree: the existing report appropriately treated the impact and alternative as uncertain/partial; the fresh review follows the framework's approach for this kind of Parameters prose change and leaves the final action judgment as Unclear."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -829,5 +887,19 @@
       "R6 semantic text that references additional resources",
       "Local invariants rewritten from explicit canonical/url/uri checks to `as(uri)`"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DomainResource.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Unclear": 1,
+      "Breaking but probably OK": 1,
+      "No problem": 2
+    }
   }
 }

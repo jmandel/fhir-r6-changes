@@ -389,7 +389,22 @@
       "validationAndCompatibilityMd": "R4 instances using `fatal`, `error`, `warning`, or `information` remain valid against the R6 required binding. R6 instances using `success` are not valid R4 instances without transformation. Runtime failures are most likely in strict deserializers, generated enum parsers, exhaustive UI severity mappings, and validation gateways.",
       "migrationGuidanceMd": "For R4→R6, no transform is needed for existing severity values. For R6→R4, decide whether to map `success` to `information`, drop the issue, or preserve the original R6 code in `details`, an extension, or out-of-band metadata. Add tests for strict enum parsing and round-trip conversion of successful OperationOutcome responses.",
       "backwardCompatibilityAnalysisMd": "Adding a required-binding code is backward-compatible for R4→R6 validation but not for R6→R4 consumers. The likely goal could have been achieved with `information` plus detail text/coding, but that would make success less standardized and less discoverable. The chosen design is reasonable if R6 prioritizes explicit success semantics over closed-enum compatibility with R4.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OperationOutcome:TERMINOLOGY_BINDING:OperationOutcome.issue.severity:53c7e5",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps `OperationOutcome.issue.severity` at the same path, cardinality, type, and required binding strength, but widens the bound code system with `success`. Existing R4 instances using `fatal`, `error`, `warning`, or `information` still validate in R6, so this is not an old-valid/new-invalid R4-to-R6 break. The real compatibility cost is that R6 instances can now carry a fifth required-bound code that R4 validators, generated enums, or exhaustive severity handling may not accept. That is real migration and down-conversion work, but the added code has a clear purpose and a lossy map such as `success` to `information` is available when R4 exchange is required.",
+        "keyEvidence": [
+          "R4 `OperationOutcome.issue.severity` is `1..1 code` with required binding to `ValueSet/issue-severity|4.0.1` and short text `fatal | error | warning | information`.",
+          "R6 `OperationOutcome.issue.severity` remains `1..1 code` with required binding to `ValueSet/issue-severity|6.0.0-ballot4` and short text `fatal | error | warning | information | success`.",
+          "R6 `CodeSystem-issue-severity` adds `success` with definition `The operation completed successfully`; the four R4 severity concepts are still present.",
+          "R4 OperationOutcome is normative and FMM 5 in the StructureDefinition and maturity map."
+        ],
+        "fmmEffect": "FMM 5/normative raises the burden for changes to required-bound codes on a common infrastructure resource. Here the burden is met enough to avoid Revisit because R4-valid content is preserved and the new success state is a coherent addition, though strict enum consumers still need migration handling.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 instance with `severity=success` is not valid against the R4 required value set and may fail strict R4 enum parsing; there is no old-valid/new-invalid R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "R6 could have continued to represent successful outcomes with `information` plus `issue.code`, `details`, or narrative text. That would reduce closed-enum and down-conversion churn, but it would make success less directly computable and is not needed to preserve R4-valid instances in R6. A mapping rule for R6-to-R4 exchange is a mitigation, not a better base R6 design.",
+        "comparisonToExisting": "agree with the existing no-hard-break and no-less-breaking-base-alternative judgment; the existing Medium impact is reasonable when interpreted as reverse-direction enum/down-conversion risk rather than an R4-to-R6 validation break."
+      }
     },
     {
       "findingId": "OperationOutcome:TERMINOLOGY_BINDING:OperationOutcome.issue.code:684920",
@@ -599,7 +614,22 @@
       "validationAndCompatibilityMd": "All compared R4 IssueType codes are still present in R6, so an R4 instance does not become invalid merely because of this binding. R6 instances using either new code fail R4 required-binding validation unless transformed. Even permissive JSON parsers may have runtime issues if application logic uses exhaustive switches over known R4 issue codes.",
       "migrationGuidanceMd": "Update validators, enum types, UI labels, and business-rule dispatch for `success` and `limited-filter`. For R6→R4 exchange, define explicit maps such as `success`→`informational` or `limited-filter`→`processing`/`business-rule`, and preserve the original R6 code in `details`, an extension, or audit metadata where losslessness matters. Test search responses that include partial-filter warnings.",
       "backwardCompatibilityAnalysisMd": "The additive codes appear useful and avoid overloading broad R4 categories. A backward-compatible alternative would have relied on `details` or profile-specific codes, but that would require out-of-band agreements and make the condition harder for generic clients to detect.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OperationOutcome:TERMINOLOGY_BINDING:OperationOutcome.issue.code:684920",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps `OperationOutcome.issue.code` structurally unchanged and retains a required IssueType binding, but adds `success` and `limited-filter`. All R4 IssueType codes checked remain available in R6, so R4 OperationOutcome instances do not become invalid merely by moving to R6. The compatibility issue is for R6-to-R4 exchange and strict generated code: a search response warning with `limited-filter`, for example, can be valid R6 but unknown to R4 clients. That can matter operationally because the code says some requested filters may not have applied, but adding a precise computable code is a reasonable R6 goal and broad-code workarounds would be less useful for generic clients.",
+        "keyEvidence": [
+          "R4 `OperationOutcome.issue.code` is `1..1 code` with required binding to `ValueSet/issue-type|4.0.1`.",
+          "R6 `OperationOutcome.issue.code` is still `1..1 code` with required binding to `ValueSet/issue-type|6.0.0-ballot4`.",
+          "R6 `CodeSystem-issue-type` adds `limited-filter` (`Some search filters might not have applied on all results...`) and `success` (`The operation completed successfully`).",
+          "R6 adds only guidance that code values should align with severity; it explicitly says there are no strict severity/code pairing rules."
+        ],
+        "fmmEffect": "FMM 5/normative means the enum-expansion cost should be taken seriously, especially because OperationOutcome is used across API error and warning flows. The same maturity context also supports making important outcomes computable in the base vocabulary; because R4 values are retained, this does not rise to Revisit.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `success` or `limited-filter` issue codes fail the R4 required IssueType binding and can break strict R4 enum/switch handling; R4-to-R6 base validation remains preserved.",
+        "lessBreakingAlternativeAssessment": "R6 could have avoided new IssueType codes by using existing broad codes such as `informational`, `processing`, or `business-rule` plus `details` text/coding. That would be friendlier to R4 down-conversion but would hide important semantics from generic R6 clients and make `limited-filter` less reliably machine-detectable. The tradeoff makes the additive base vocabulary change proportionate.",
+        "comparisonToExisting": "agree with the existing impact direction and alternative assessment: the current report correctly treats this as no hard R4-to-R6 break with meaningful R6-to-R4/strict-enum risk, and a broad-code workaround is a lossy migration policy rather than a less-breaking base design."
+      }
     },
     {
       "findingId": "OperationOutcome:TERMINOLOGY_BINDING:OperationOutcome.issue.details:7ac1d1",
@@ -749,7 +779,22 @@
       "migrationGuidanceMd": "Update documentation links and generated terminology metadata from `ValueSet/operation-outcome` to `ValueSet/audit-event-outcome-detail-example` for R6. If supporting both versions, treat the two example ValueSets as closely related because both compose from `http://terminology.hl7.org/CodeSystem/operation-outcome`, but verify external terminology content if exact code lists matter.",
       "backwardCompatibilityAnalysisMd": "The change was probably avoidable by retaining the old canonical as an alias, but the low binding strength means the practical compatibility cost is small. The main tradeoff is canonical tidiness versus old tooling references.",
       "reviewerNotesMd": "Human review is useful only for implementations that generate enums or decision tables from example bindings, or that depend on the R4 package-local `CodeSystem-operation-outcome.json` content.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OperationOutcome:TERMINOLOGY_BINDING:OperationOutcome.issue.details:7ac1d1",
+        "judgment": "No problem",
+        "narrativeMd": "`OperationOutcome.issue.details` remains optional, remains `CodeableConcept`, and keeps an example binding. R6 changes the example ValueSet canonical from `operation-outcome` to `audit-event-outcome-detail-example`, while both local ValueSets compose from the same external operation-outcome code system. Because example bindings do not constrain base instance validity, this is terminology metadata churn rather than a meaningful R4-to-R6 compatibility problem.",
+        "keyEvidence": [
+          "R4 `OperationOutcome.issue.details` is `0..1 CodeableConcept` with example binding to `http://hl7.org/fhir/ValueSet/operation-outcome`.",
+          "R6 `OperationOutcome.issue.details` is `0..1 CodeableConcept` with example binding to `http://hl7.org/fhir/ValueSet/audit-event-outcome-detail-example`.",
+          "Both R4 and R6 example ValueSets include `http://terminology.hl7.org/CodeSystem/operation-outcome` in `compose.include`.",
+          "The path, cardinality, type, binding strength, short text, and comment for `issue.details` are otherwise unchanged."
+        ],
+        "fmmEffect": "FMM 5/normative prompted a careful check that this was not a required or extensible binding change. Since the binding is only example strength and no instance shape changes, maturity does not make the canonical rename a standards-design concern.",
+        "compatibilityMechanism": "metadata/tooling: documentation links, terminology caches, or tools keyed to the example ValueSet URL may need updates; conformant base instances are not made invalid.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the old ValueSet canonical as an alias or retained it for OperationOutcome. That might reduce metadata churn for tooling, but it would not preserve any otherwise-invalid R4 instance because the binding is example-only. The less-breaking alternative is therefore optional hygiene, not a needed base-model design change.",
+        "comparisonToExisting": "agree with the existing Info/no-hard-break assessment and the conclusion that no less-breaking base R6 design is needed; the practical effect is limited to metadata and over-enforcement of an example binding."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -940,5 +985,18 @@
       "Example binding canonical URL changes that may affect generated terminology metadata",
       "Inherited Resource.language binding strengthening excluded from per-resource local findings"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/OperationOutcome.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

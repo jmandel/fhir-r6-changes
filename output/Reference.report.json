@@ -308,7 +308,22 @@
       "validationAndCompatibilityMd": "An R4-valid Reference with only `type` can become R6-invalid. The break is local to the datatype invariant and will surface through R6 validators, generated model validation, profile validators that inherit base constraints, and any FHIRPath-based quality checks. R6-valid References remain representable in R4 for this change because R4 already supports `reference`, `identifier`, `display`, and extensions.",
       "migrationGuidanceMd": "Scan Reference-valued elements for objects where `type.exists()` is true but `reference`, `identifier`, `display`, and `extension` are all absent. If the target can be resolved, populate `reference`; if only a business identifier is known, populate `identifier`; if only human-readable context is known, consider `display`; if the content is genuinely extension-only, carry it as a governed extension. Do not fabricate a literal reference from `type` alone without source data.",
       "backwardCompatibilityAnalysisMd": "The change was probably avoidable as an immediate hard error by first introducing a warning-level or best-practice rule. However, a type-only Reference is not operationally useful as a reference, so the stricter base rule is defensible. The tradeoff is between cleaner R6 semantics and migration friction for historical placeholder data.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Reference:VALUE_CONSTRAINT:Reference:ref2-added:5e0c9a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an error-level ref-2 invariant requiring a Reference to contain reference, identifier, display, or extension. That makes an R4-valid type-only placeholder such as a Reference carrying only type fail R6 validation, so this is a real old-valid/new-invalid break. The break is on a normative core datatype, which matters, but type alone does not identify a target or provide useful display/identifier semantics. Requiring at least one actionable target-bearing or explanatory child is proportionate even though historical placeholder data may need cleanup.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Reference snapshot Reference.constraint has ref-1 and ele-1 but no ref-2.",
+          "R6 StructureDefinition-Reference snapshot Reference.constraint adds ref-2 with severity error and expression: reference.exists() or identifier.exists() or display.exists() or extension.exists().",
+          "R6 marks ref-2 as a condition on Reference.reference, Reference.identifier, and Reference.display; Reference.type does not satisfy it.",
+          "R4 Reference is marked normative with normativeVersion 4.0.0 in the StructureDefinition/maturity inputs."
+        ],
+        "fmmEffect": "Normative R4 status raises the compatibility burden for a new hard invariant. It did not change the judgment to Revisit because the invalidated pattern is a targetless Reference rather than a semantically complete reference.",
+        "compatibilityMechanism": "old-valid/new-invalid: a Reference with only type, or otherwise lacking reference, identifier, display, and extension, can pass R4 base constraints but fail R6 ref-2 as an error invariant.",
+        "lessBreakingAlternativeAssessment": "A warning-level or best-practice invariant would be less breaking, and a transition period would reduce migration friction. Counting type as satisfying the rule would preserve more R4 data but would defeat the R6 goal because type is only an expected target class, not a reference target. The plausible less-breaking designs therefore carry meaningful semantic and conformance tradeoffs.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard R4-to-R6 validation break and medium migration risk. I agree that the break is defensible, but I treat the warning-level alternative as only partially less-breaking because it would not meet the same enforcement goal."
+      }
     },
     {
       "findingId": "Reference:VALUE_CONSTRAINT:Reference:ref1-hash-reference:83a1fb",
@@ -417,7 +432,21 @@
       "validationAndCompatibilityMd": "R4 validators evaluating the R4 `ref-1` expression can reject a bare `#` local reference because there is no fragment id after the hash to match against `contained.id`. R6 validators can accept it only when `%rootResource != %resource`. Strict cross-version validators and converters therefore need context-aware handling rather than a simple string-level rule.",
       "migrationGuidanceMd": "For R6-to-R4 conversion, detect `Reference.reference` equal to `#`. If the reference occurs in a contained-resource context, either retain it with an explicit compatibility warning, map it using an implementation-specific extension, or avoid down-conversion when the relationship is semantically important. Add tests for root-resource and contained-resource contexts because the same string has different validity.",
       "backwardCompatibilityAnalysisMd": "The R6 change appears narrowly justified to express a relationship R4 did not model cleanly. A more R4-compatible design would have avoided the new bare-`#` form, but that would require another representation or leave the intended contained-to-root reference ambiguous.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Reference:VALUE_CONSTRAINT:Reference:ref1-hash-reference:83a1fb",
+        "judgment": "No problem",
+        "narrativeMd": "The ref-1 change is not an R4-to-R6 breaking constraint. R6 wraps the check in reference.exists() implies and adds a narrow contained-resource special case for reference=\"#\" when the root resource is not the current resource. Existing R4-valid references remain acceptable; the only compatibility issue is reverse-direction handling for new R6 content that uses the bare hash form.",
+        "keyEvidence": [
+          "R4 ref-1 expression requires non-hash references or a fragment id matching a contained resource id.",
+          "R6 ref-1 expression adds reference.exists() implies and the special case reference='#' and %rootResource!=%resource.",
+          "The existing report also characterizes the affected direction as R6-to-R4 with low risk."
+        ],
+        "fmmEffect": "Normative R4 status would matter for a direct R4-to-R6 break, but this change is a narrowing of R4 validation risk only in the reverse direction, so maturity does not create a concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: no old-valid/new-invalid R4-to-R6 break; only R6 instances using the new bare '#' contained-resource form may not validate or round-trip cleanly as R4.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R4-to-R6 base design is needed because R4 consumers are not broken. Avoiding the new bare '#' form would be more R4-compatible for down-conversion, but it would also forgo the R6 representation that the special case was added to support.",
+        "comparisonToExisting": "agree: the existing low-impact, reverse-direction assessment matches the fresh review; this is not a hard R4-to-R6 compatibility problem."
+      }
     },
     {
       "findingId": "Reference:TERMINOLOGY_BINDING:Reference.type:2d4b71",
@@ -927,7 +956,22 @@
       "migrationGuidanceMd": "Regenerate resource-type enums and resolver logic from the target FHIR package. During R4-to-R6 conversion, flag `Reference.type` values that are not in the R6 `resource-types` value set and map them only with an authoritative resource migration rule. During R6-to-R4 conversion, flag R6-only type values as lossy or unsupported unless the implementation has a cross-version extension or profile-specific mapping.",
       "backwardCompatibilityAnalysisMd": "The value-set drift is largely unavoidable because `resource-types` reflects the release's resource inventory. The most backward-compatible support would be official alias/deprecation metadata and ConceptMaps for resource renames/removals. Without those, implementations must avoid assuming that identical value-set canonicals mean identical code content across FHIR releases.",
       "reviewerNotesMd": "Human review should decide whether removed resource names have accepted R6 replacements, whether any should be mapped to new R6 resources, and whether local profiles intentionally allow historical resource-type names.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Reference:TERMINOLOGY_BINDING:Reference.type:2d4b71",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Reference.type remains a uri with an extensible binding to the same ValueSet/resource-types canonical, but the versioned value-set content changes materially between R4 and R6. This is not a simple required-binding hard failure in base validation, yet it can break generated resource-type enums, resolver dispatch, strict terminology checks, and cross-version transforms that assume the canonical value set has stable membership. The migration burden is real, but the value set is meant to track the resource inventory of the release, so retaining removed R4 resource names as ordinary R6 resource-type codes would create misleading semantics.",
+        "keyEvidence": [
+          "R4 and R6 StructureDefinition-Reference keep Reference.type as uri 0..1 with extensible binding to http://hl7.org/fhir/ValueSet/resource-types.",
+          "R4 ValueSet/resource-types includes the http://hl7.org/fhir/resource-types code system; the R4 CodeSystem has 148 resource-type concepts.",
+          "R6 ValueSet/resource-types includes 127 explicit concepts from http://hl7.org/fhir/fhir-types.",
+          "Package comparison found 41 R4-only codes, such as Media, ChargeItem, and MedicationKnowledge, and 20 R6-only codes, such as ActorDefinition, DeviceAssociation, and SubscriptionTopic."
+        ],
+        "fmmEffect": "Normative Reference status raises the need to check for hard validation impact. The extensible binding and release-specific resource inventory temper the concern: this is mainly runtime/tooling and conversion work rather than an unavoidable base instance invalidation.",
+        "compatibilityMechanism": "runtime/API/codegen: generated enums, reference resolvers, validators configured stricter than extensible semantics, and R4/R6 converters may fail or need mapping when resource-type codes are removed, added, or moved to the fhir-types system.",
+        "lessBreakingAlternativeAssessment": "R6 could theoretically keep legacy R4 resource-type codes as inactive or deprecated concepts, but doing so in the base resource-types value set would imply that removed R4 resource definitions remain valid R6 reference targets. ConceptMaps, alias/deprecation metadata, and migration guidance are useful mitigations, but they are not a cleaner less-breaking base design that preserves the same release-inventory semantics.",
+        "comparisonToExisting": "agree: the existing report appropriately treats this as potential rather than definite hard instance break, with medium runtime/codegen and conversion risk. I also agree that there is no low-cost less-breaking base design that preserves the R6 goal."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1104,5 +1148,18 @@
       "Resource-specific Reference targetProfile changes",
       "Resource-type ValueSet changes across FHIR versions"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Reference.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

@@ -236,7 +236,21 @@
       "validationAndCompatibilityMd": "Old-valid R4 instances with `medicationCodeableConcept` or `medicationReference` are new-invalid until transformed. R6 instances with `medication.concept` or `medication.reference` are not directly R4-representable.",
       "migrationGuidanceMd": "Map `medicationCodeableConcept` to `medication.concept` and `medicationReference` to `medication.reference`; reverse the mapping for R4 output. Decide policy if an R6 CodeableReference carries both children.",
       "backwardCompatibilityAnalysisMd": "The change is understandable for model consistency, but a transition alias or optional new element would have been more backward-compatible.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicationRequest:SERIALIZATION_OR_CODEGEN:MedicationRequest.medication:2f4a8c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`medication` is required and central to prescribing, so the R4 choice-property to R6 `CodeableReference` change creates real parser, serializer, and generated-model work. The R6 design goal is coherent because it gives one pattern for a medication concept, a Medication reference, or both. Preserving the old choice names as aliases would reduce migration pain but would also create duplicate medication representations on a safety-critical field.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.medication[x]` is 1..1 `CodeableConcept` or `Reference(Medication)`.",
+          "R6 StructureDefinition: `MedicationRequest.medication` is 1..1 `CodeableReference(Medication)`.",
+          "R6 CodeableReference has separate optional `concept` and `reference` children."
+        ],
+        "fmmEffect": "R4 MedicationRequest is FMM 3/trial-use, so compatibility matters for a mature, common medication-order field, but the stability expectation is below normative and does not by itself block a coherent model modernization.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 JSON uses `medicationCodeableConcept` or `medicationReference`, while R6 expects `medication.concept` or `medication.reference`; generated APIs also change.",
+        "lessBreakingAlternativeAssessment": "A base R6 design could have kept the R4 choice names as deprecated aliases or kept `medication[x]` while adding a CodeableReference option. That would preserve many R4 instances, but it would require precedence and consistency rules for two ways to express the central medication.",
+        "comparisonToExisting": "agree: the prior report correctly treated this as a high-burden break with only a partial less-breaking alternative because aliases would duplicate the core medication representation."
+      }
     },
     {
       "findingId": "MedicationRequest:CARDINALITY:MedicationRequest.dosageInstruction:9b1d6e",
@@ -348,7 +362,21 @@
       "validationAndCompatibilityMd": "R4 data with two or more dosageInstruction entries fails R6 max cardinality. R6 stepped/rendered dosage details cannot be safely flattened to R4 without rules.",
       "migrationGuidanceMd": "Build a clinical transform that renders instructions, preserves ordering and timing, and maps R4 Dosage entries into R6 step/component structures. Treat reverse conversion as potentially lossy.",
       "backwardCompatibilityAnalysisMd": "A less-breaking design could have kept the old list and added the new course model, but that would leave two representations to reconcile.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:CARDINALITY:MedicationRequest.dosageInstruction:9b1d6e",
+        "judgment": "Revisit",
+        "narrativeMd": "This change invalidates a common R4 dosage shape and forces a clinically sensitive transformation: an array of `Dosage` entries becomes one `DosageDetails` object with a required rendered instruction when present. Unlike a simple rename, safe migration may require preserving sequence, alternatives, timing, and rendered text. Given the centrality of dosage instructions, the break appears large enough to deserve renewed design review.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.dosageInstruction` is 0..* `Dosage`.",
+          "R6 StructureDefinition: `MedicationRequest.dosageInstruction` is 0..1 `DosageDetails`.",
+          "R6 DosageDetails StructureDefinition: `DosageDetails.renderedInstruction` is 1..1 `markdown`, with repeating `step.component` Dosage entries."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not create normative immutability, but this is mature medication-order content and dosage is safety-critical, so the burden of justification is meaningfully higher than for experimental content.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with multiple dosage instructions or an array-valued `Dosage` field do not fit the R6 max 1 `DosageDetails` shape; reverse conversion may be lossy.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking R6 base design would retain the repeating R4 `Dosage` list and add a distinct optional `DosageDetails` course element. The tradeoff is duplicate safety-critical dosage channels and conflict rules, but that may be preferable to invalidating common prescriptions and requiring expert migration.",
+        "comparisonToExisting": "partially agree: the prior report correctly identified high impact and a partial alternative, but I judge the cardinality/type redesign more concerning and worth revisiting rather than merely probably justified."
+      }
     },
     {
       "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.reported:6b7c12",
@@ -454,7 +482,21 @@
       "validationAndCompatibilityMd": "R4 `reportedBoolean` and `reportedReference` are unknown in R6. R6 multiple information sources or Group source cannot fit cleanly into R4.",
       "migrationGuidanceMd": "Map `reportedBoolean=true` to `isRecordOfRequest=true`; map `reportedReference` to `informationSource` and usually set `isRecordOfRequest=true`. Use extensions for multiple sources in R4.",
       "backwardCompatibilityAnalysisMd": "The split improves clarity but could have been phased with a deprecated old field.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.reported:6b7c12",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 `reported[x]` choice mixed whether the request was reported with who reported it. R6 separates those ideas into `isRecordOfRequest` and `informationSource`, which is a reasonable cleanup even though old property names become invalid. The main migration is manageable for simple boolean and reference cases, while aliases would leave overlapping source semantics.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.reported[x]` is 0..1 boolean or Reference to patient/practitioner/role/related person/organization.",
+          "R6 StructureDefinition: `MedicationRequest.isRecordOfRequest` is 0..1 boolean.",
+          "R6 StructureDefinition: `MedicationRequest.informationSource` is 0..* Reference and also allows Group."
+        ],
+        "fmmEffect": "FMM 3/trial-use keeps compatibility relevant, but this optional field was semantically overloaded, so maturity does not outweigh the clarity gained by the split.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `reportedBoolean` and `reportedReference` are no longer R6 properties; R6 multiple information sources cannot be represented cleanly as one R4 choice.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `reported[x]` as deprecated aliases mapping to the new fields. That would preserve simple R4 instances, but false/absent cases, multiple sources, and disagreement between old and new fields would need nontrivial rules.",
+        "comparisonToExisting": "agree: the prior report's medium impact and partial alternative assessment match the fresh path-level review."
+      }
     },
     {
       "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.reason:4a09de",
@@ -560,7 +602,21 @@
       "validationAndCompatibilityMd": "R4 reason fields are invalid in R6. R6 Procedure/DiagnosticReport/AllergyIntolerance reasons need extensions or local mapping for R4.",
       "migrationGuidanceMd": "Map reasonCode to reason.concept and reasonReference to reason.reference; preserve order if meaningful.",
       "backwardCompatibilityAnalysisMd": "This could have been less disruptive by keeping R4 fields while widening targets.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.reason:4a09de",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 split coded and referenced reasons into separate arrays; R6 consolidates them as repeating `CodeableReference`. The old wire names break, but the new shape is consistent with the R6 modeling direction and can express a reason with both a concept and reference. Keeping both old arrays in base R6 would preserve instances but would duplicate clinical reason paths.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `reasonCode` is 0..* `CodeableConcept`.",
+          "R4 StructureDefinition: `reasonReference` is 0..* Reference to Condition or Observation.",
+          "R6 StructureDefinition: `reason` is 0..* `CodeableReference` targeting Condition, Observation, DiagnosticReport, Procedure, or AllergyIntolerance."
+        ],
+        "fmmEffect": "Because MedicationRequest is FMM 3/trial-use, breaking common clinical reason fields requires a real rationale, but the element is optional and the CodeableReference goal is credible.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `reasonCode` and `reasonReference` are absent in R6; R6 references to newly allowed target types do not fit R4 without policy.",
+        "lessBreakingAlternativeAssessment": "Deprecated aliases for `reasonCode` and `reasonReference` could preserve many R4 instances, but R6 would need merge, ordering, and conflict rules and still would not solve new R6 target types for R4 consumers.",
+        "comparisonToExisting": "agree: the previous medium-impact, partial-alternative conclusion is consistent with this independent assessment."
+      }
     },
     {
       "findingId": "MedicationRequest:REFERENCE_TARGET:MedicationRequest.basedOn:cf91a0",
@@ -636,7 +692,21 @@
       "validationAndCompatibilityMd": "Target-profile-aware validation breaks for the removed target and down-conversion breaks for the added target.",
       "migrationGuidanceMd": "Find ImmunizationRecommendation basedOn links and define a replacement or extension. Map RequestOrchestration to R4 only with explicit local rules.",
       "backwardCompatibilityAnalysisMd": "Keeping the old target while adding the new target would have been backward-compatible.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicationRequest:REFERENCE_TARGET:MedicationRequest.basedOn:cf91a0",
+        "judgment": "Revisit",
+        "narrativeMd": "The path remains repeating `Reference`, but one allowed R4 target, `ImmunizationRecommendation`, was removed while `RequestOrchestration` was added. Adding the new workflow target did not require dropping the old one in the base resource. Because retaining both targets would be a low-cost compatibility design, this target replacement deserves renewed attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.basedOn` targets CarePlan, MedicationRequest, ServiceRequest, or ImmunizationRecommendation.",
+          "R6 StructureDefinition: `MedicationRequest.basedOn` targets CarePlan, MedicationRequest, ServiceRequest, or RequestOrchestration.",
+          "The element cardinality remains 0..* in both versions."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the burden for removing a previously valid workflow reference, especially where the compatible alternative is simply a wider target list.",
+        "compatibilityMechanism": "old-valid/new-invalid: target-profile-aware validation can reject R4 `basedOn` references to ImmunizationRecommendation; R6 RequestOrchestration references are reverse-only loss for R4.",
+        "lessBreakingAlternativeAssessment": "R6 could include both `ImmunizationRecommendation` and `RequestOrchestration` in the target list, then deprecate or profile away the legacy target where inappropriate. The tradeoff is looser base validation, but no duplicate field or difficult precedence rule is introduced.",
+        "comparisonToExisting": "agree: the earlier report identified this as probably avoidable with a straightforward less-breaking target-list design."
+      }
     },
     {
       "findingId": "MedicationRequest:REFERENCE_TARGET:MedicationRequest.performer:8d314e",
@@ -721,7 +791,21 @@
       "validationAndCompatibilityMd": "R4 Device performer references can be new-invalid. R6 multiple performers or new targets cannot be losslessly represented in R4.",
       "migrationGuidanceMd": "Review Device performer references; map device types to DeviceDefinition or R6 `device`, and preserve specific device instances with extensions if needed.",
       "backwardCompatibilityAnalysisMd": "Adding targets/repetition could be compatible; removing Device is the avoidable break.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:REFERENCE_TARGET:MedicationRequest.performer:8d314e",
+        "judgment": "Revisit",
+        "narrativeMd": "`performer` was mostly widened, but R4 `Device` was removed and R6 instead allows `DeviceDefinition` plus additional targets and repetition. The widening is compatible; the break is the dropped specific-device target. A base target list that allowed both Device and DeviceDefinition would preserve old instances while still enabling the R6 model.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.performer` is 0..1 and includes `Device` among allowed reference targets.",
+          "R6 StructureDefinition: `MedicationRequest.performer` is 0..* and includes `DeviceDefinition`, HealthcareService, and Group, but not `Device`.",
+          "R6 StructureDefinition also adds a separate `MedicationRequest.device` 0..* CodeableReference(DeviceDefinition)."
+        ],
+        "fmmEffect": "At FMM 3/trial-use, compatibility expectations are meaningful for implemented medication workflows, and target widening could have met the new goal without invalidating R4 Device references.",
+        "compatibilityMechanism": "old-valid/new-invalid: a target-aware R6 validator can reject R4 performers that reference Device; R6 multiple performers and new targets also require down-conversion policy.",
+        "lessBreakingAlternativeAssessment": "The less-breaking base design is to keep `Device` while adding `DeviceDefinition`, repetition, and the other new targets. This weakens the intended distinction between a specific device and a device definition, but profiles or definitions could guide preferred usage.",
+        "comparisonToExisting": "agree: the prior report's avoidable-break assessment is supported by the fresh evidence."
+      }
     },
     {
       "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.dispenseRequest.performer:70eab5",
@@ -796,7 +880,21 @@
       "validationAndCompatibilityMd": "Old field name is invalid in R6; new field name is invalid in R4.",
       "migrationGuidanceMd": "Rename paths in instances, generated accessors, FHIRPath expressions, indexes, and tests.",
       "backwardCompatibilityAnalysisMd": "A temporary alias would be more compatible but leave duplicate names.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.dispenseRequest.performer:70eab5",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a same-type nested wire rename from `performer` to `dispenser`. The new name is clearer, but the compatibility break is disproportionate because R6 could have kept the old path and clarified its definition, or retained it as a deprecated alias for one transition.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.dispenseRequest.performer` is 0..1 `Reference(Organization)`.",
+          "R6 StructureDefinition: `MedicationRequest.dispenseRequest.dispenser` is 0..1 `Reference(Organization)`.",
+          "No R6 `MedicationRequest.dispenseRequest.performer` element is present in the checked StructureDefinition."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not forbid renames, but for a pure naming improvement it increases the expectation that base compatibility should be preserved when the old path can still carry the same Organization reference.",
+        "compatibilityMechanism": "old-valid/new-invalid: strict R6 parsers do not accept the old nested property name; generated accessors, FHIRPath, and indexes also need renaming.",
+        "lessBreakingAlternativeAssessment": "Keeping `dispenseRequest.performer` with better wording is the lowest-cost alternative. If `dispenser` were added, `performer` could be a deprecated alias, though aliases would need conflict handling when both are present.",
+        "comparisonToExisting": "agree: the existing report correctly treated this as an avoidable compatibility break."
+      }
     },
     {
       "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.instantiates:19ac42",
@@ -878,7 +976,21 @@
       "validationAndCompatibilityMd": "R4 instances containing these fields fail strict R6 validation as unknown elements.",
       "migrationGuidanceMd": "Inventory usage and map to an R6 workflow artifact, extension, or external provenance mechanism.",
       "backwardCompatibilityAnalysisMd": "Removal without a visible replacement is not clearly backward-compatible.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.instantiates:19ac42",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 protocol or definition links through `instantiatesCanonical` and `instantiatesUri` disappear from R6 MedicationRequest without a same-path replacement. These optional fields are useful for traceability to order sets or external protocols, and simply retaining them as deprecated would preserve old data with limited model cost.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.instantiatesCanonical` is 0..* `canonical`.",
+          "R4 StructureDefinition: `MedicationRequest.instantiatesUri` is 0..* `uri`.",
+          "The checked R6 MedicationRequest StructureDefinition has no local elements with those ids."
+        ],
+        "fmmEffect": "For FMM 3/trial-use medication orders, removal of optional traceability fields still carries stability pressure because protocol linkage can affect audit, CDS, and order-set interpretation.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing these elements have unknown local fields in R6 unless transformed or extended.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could keep both fields at 0..* as deprecated while documenting a preferred R6 linkage pattern. The tradeoff is continued legacy surface area, but the fields are optional and distinct, so conflict risk is modest.",
+        "comparisonToExisting": "agree: the prior report's avoidable-removal conclusion is consistent with the fresh review."
+      }
     },
     {
       "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.detectedIssue:0ad62b",
@@ -949,7 +1061,21 @@
       "validationAndCompatibilityMd": "R4 instances with detectedIssue are invalid in R6. The related DetectedIssue resource may still be usable, but not through this local field.",
       "migrationGuidanceMd": "Preserve relationships by updating DetectedIssue resources, using event/provenance links, or adding cross-version extensions.",
       "backwardCompatibilityAnalysisMd": "A deprecated direct reference would have reduced data-loss risk.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:MedicationRequest.detectedIssue:0ad62b",
+        "judgment": "Revisit",
+        "narrativeMd": "`detectedIssue` removal can drop a direct pointer from an order to interaction, duplication, dose, or other safety issues. R4 and R6 DetectedIssue both have `implicated`, so the relationship can often be modeled from the DetectedIssue side, but that does not preserve standalone MedicationRequest instances that carry only the outgoing link. Given the safety relevance, the direct optional link should be reconsidered or explicitly replaced.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.detectedIssue` is 0..* `Reference(DetectedIssue)`.",
+          "The checked R6 MedicationRequest StructureDefinition has no `MedicationRequest.detectedIssue` element.",
+          "R4 and R6 DetectedIssue StructureDefinitions both include `DetectedIssue.implicated` 0..* Reference(Resource)."
+        ],
+        "fmmEffect": "FMM 3/trial-use leaves room for redesign, but a medication-safety link on a mature prescription resource carries enough safety weight that deletion needs strong rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 MedicationRequest instances with `detectedIssue` fail strict R6 validation, and safety context may be lost unless related DetectedIssue resources are also migrated.",
+        "lessBreakingAlternativeAssessment": "R6 could keep `MedicationRequest.detectedIssue` as a deprecated convenience link while making `DetectedIssue.implicated` authoritative. The tradeoff is duplicate bidirectional relationship maintenance, but the old field is optional and safety-relevant.",
+        "comparisonToExisting": "partially agree: the prior report correctly identified a real safety-related break and a partial alternative, but I find the removal more concerning than probably OK because the replacement depends on external resource availability and reconciliation."
+      }
     },
     {
       "findingId": "MedicationRequest:TERMINOLOGY_BINDING:MedicationRequest.status:5cf82d",
@@ -1035,7 +1161,21 @@
       "validationAndCompatibilityMd": "R6 `status=ended` cannot be represented as an R4 required status without choosing stopped, completed, cancelled, or an extension.",
       "migrationGuidanceMd": "Create mapping policy for `ended`; test active-medication and CDS filters for all statuses.",
       "backwardCompatibilityAnalysisMd": "R6 could have kept only specific terminal states for compatibility, but that loses generic ended semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:TERMINOLOGY_BINDING:MedicationRequest.status:5cf82d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds a selectable `ended` status while retaining the R4 status codes checked locally. This does not make old R4 instances invalid, but bidirectional systems need a policy for sending R6 `ended` to R4, where only more specific terminal states such as stopped, completed, or cancelled exist. The generic terminal state is reasonable, so this is a conversion issue rather than a design problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.status` has required binding to `medicationrequest-status|4.0.1`.",
+          "R6 StructureDefinition: `MedicationRequest.status` has required binding to `medicationrequest-status|6.0.0-ballot4`.",
+          "Local CodeSystems show R6 adds `ended`; R4 codes active, on-hold, cancelled, completed, entered-in-error, stopped, draft, and unknown remain present."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes status compatibility important because status is required and a modifier, but the change is additive for R4-to-R6 and therefore carries less design concern than a removed R4 code.",
+        "compatibilityMechanism": "R6-to-R4 loss: `status=ended` has no exact R4 code and must be mapped, extended, or rejected by down-conversion gateways.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design for R4-to-R6 is not needed because no R4 status code was removed. Avoiding `ended` would preserve reverse compatibility but would also remove the R6 generic terminal-state semantics.",
+        "comparisonToExisting": "partially agree: I agree with the reverse-conversion concern and no old-valid/new-invalid break, but treat the additive change as proportionate rather than needing a less-breaking alternative."
+      }
     },
     {
       "findingId": "MedicationRequest:TERMINOLOGY_BINDING:MedicationRequest.courseOfTherapyType:11f7be",
@@ -1108,7 +1248,21 @@
       "validationAndCompatibilityMd": "Not a guaranteed structural failure; validator/profile policy determines impact.",
       "migrationGuidanceMd": "Map local course types to standard continuous/acute/seasonal-style codes where applicable.",
       "backwardCompatibilityAnalysisMd": "Profile-level strengthening would be less disruptive.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:TERMINOLOGY_BINDING:MedicationRequest.courseOfTherapyType:11f7be",
+        "judgment": "No problem",
+        "narrativeMd": "The element remains optional `CodeableConcept` and the value set URL is the same; the material change is binding strength from example to extensible. That can create terminology QA or warning-as-error work for local course codes, but it is not a structural R4-to-R6 break and still leaves room for additional codings when the value set is not applicable.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.courseOfTherapyType` is 0..1 `CodeableConcept` with example binding.",
+          "R6 StructureDefinition: the same element is 0..1 `CodeableConcept` with extensible binding.",
+          "R4 and R6 local ValueSets use the same canonical `http://hl7.org/fhir/ValueSet/medicationrequest-course-of-therapy`."
+        ],
+        "fmmEffect": "FMM 3/trial-use warrants checking terminology tightening, but the optional CodeableConcept shape and extensible binding soften the compatibility concern.",
+        "compatibilityMechanism": "warning-level: validators or QA pipelines may pressure systems toward the standard course-of-therapy codes, but base instance shape is unchanged.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept an example or preferred binding, but extensible is already a relatively compatibility-preserving way to encourage standard coding. Profile-level strengthening would be less disruptive but would not provide the same base interoperability signal.",
+        "comparisonToExisting": "disagree: the prior report treated this as medium impact with a notable alternative; I find it mainly warning-level conformance pressure and not a standards-design problem."
+      }
     },
     {
       "findingId": "MedicationRequest:TERMINOLOGY_BINDING:MedicationRequest.performerType:29c4fb",
@@ -1193,7 +1347,21 @@
       "validationAndCompatibilityMd": "This is a conformance and enum/codegen risk rather than a base structural break.",
       "migrationGuidanceMd": "Create ConceptMaps from SNOMED/local roles to R6 role codes and retain original codings as translations.",
       "backwardCompatibilityAnalysisMd": "The strengthening improves consistency but profile-level adoption would be more compatible.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:TERMINOLOGY_BINDING:MedicationRequest.performerType:29c4fb",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`performerType` keeps the same optional CodeableConcept shape, but R6 replaces a broad example SNOMED performer-role binding with an extensible medication-specific HL7 role set. Existing local or SNOMED codings may need added translations for clean R6 conformance. The medication-specific role goal is reasonable, although a preferred transition would have been gentler.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.performerType` has example binding to `http://hl7.org/fhir/ValueSet/performer-role`.",
+          "R4 performer-role ValueSet is a SNOMED CT is-a filter under concept 223366009.",
+          "R6 StructureDefinition: `performerType` has extensible binding to `http://hl7.org/fhir/ValueSet/medication-intended-performer-role`, composed from the R6 medication-intended-performer-role CodeSystem."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes role-coding compatibility relevant, but this optional element remains a CodeableConcept and the R6 goal of medication-specific performer roles is credible.",
+        "compatibilityMechanism": "warning-level: existing role codes are not structurally invalid, but extensible-binding validation and warning-as-error policies may require mapping to the R6 role set.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could introduce the medication-specific value set as preferred first, or include a broader transition value set. That would preserve more R4 coding practice but weaken uniform R6 conformance and delay role standardization.",
+        "comparisonToExisting": "agree: the previous report's medium conformance concern and partial less-breaking alternative are consistent with this review."
+      }
     },
     {
       "findingId": "MedicationRequest:CONVERSION_OR_MAPPING:MedicationRequest.r6AddedElements:3e5d77",
@@ -1284,7 +1452,21 @@
       "validationAndCompatibilityMd": "R4 instances are unaffected, but R6 instances using these fields produce unknown data in R4.",
       "migrationGuidanceMd": "Use cross-version extensions or local mapping to preserve clinically relevant timing, device, destination, dispenser instruction, and packaging information.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the least disruptive way to extend the model; down-conversion loss is inherent.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:CONVERSION_OR_MAPPING:MedicationRequest.r6AddedElements:3e5d77",
+        "judgment": "No problem",
+        "narrativeMd": "These are optional R6 additions. They can carry clinically useful information that R4 cannot represent directly, but they do not invalidate R4 MedicationRequest instances and are the normal low-risk way for a later FHIR version to add expressiveness.",
+        "keyEvidence": [
+          "R6 StructureDefinition adds optional `statusChanged`, `effectiveTiming[x]`, and `device` elements.",
+          "R6 StructureDefinition adds optional dispenseRequest `destination`, `dispenserInstruction`, and `doseAdministrationAid` elements.",
+          "The checked R4 MedicationRequest StructureDefinition has no matching local elements for these additions."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not turn optional additions into an R4-to-R6 break; maturity mainly reminds bidirectional gateways to preserve or reject new R6 data explicitly.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using these optional fields need extensions, local mapping, or lossy down-conversion for R4 consumers; R4-to-R6 compatibility is unaffected.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed because the additions are optional. Omitting them would reduce R6 expressiveness rather than improve R4-to-R6 compatibility.",
+        "comparisonToExisting": "partially agree: I agree that down-conversion needs attention, but I would lower the design concern because optional additions are not a breaking R6 base design."
+      }
     },
     {
       "findingId": "MedicationRequest:SEMANTIC_OR_CONFORMANCE_TEXT:MedicationRequest.intent:45a6cb",
@@ -1357,7 +1539,21 @@
       "validationAndCompatibilityMd": "Validators may not reject an update, but R6-conformant servers/workflows may require creating a new resource for intent transitions.",
       "migrationGuidanceMd": "Review workflows that mutate intent; create new MedicationRequest resources linked by basedOn for proposal/plan/order transitions.",
       "backwardCompatibilityAnalysisMd": "A softer best-practice rule would be less disruptive but less clear.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicationRequest:SEMANTIC_OR_CONFORMANCE_TEXT:MedicationRequest.intent:45a6cb",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The computable element shape and required binding remain stable, but R6 adds explicit lifecycle guidance that `intent` should not change in place. Systems that promoted proposals or plans by updating the same resource may need a new-resource-plus-`basedOn` workflow. The guidance is proportionate because `intent` changes the meaning of a request and is already a modifier.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `MedicationRequest.intent` is 1..1 code with required MedicationRequest intent binding and no explicit immutability sentence in the checked comment.",
+          "R6 StructureDefinition: `MedicationRequest.intent` remains 1..1 code with required binding.",
+          "R6 comment states intent is expected to be immutable and gives proposal-to-plan/order examples using a new basedOn instance."
+        ],
+        "fmmEffect": "FMM 3/trial-use means lifecycle behavior changes matter, but the change is prose guidance on a modifier element rather than a new structural rejection rule.",
+        "compatibilityMechanism": "semantic/documentation: structural validation is unchanged, but R6-conformant server workflows may reject or discourage in-place intent transitions.",
+        "lessBreakingAlternativeAssessment": "A softer alternative would be best-practice text, a warning-level invariant, or profile-specific lifecycle guidance. That would reduce runtime disruption but would also weaken a useful audit and lifecycle expectation for a modifier element.",
+        "comparisonToExisting": "agree: the prior report treated this as a runtime/semantic concern with only a partial less-breaking alternative, which matches the fresh review."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1537,5 +1733,19 @@
       "DetectedIssue relationship changes",
       "Medication status terminal code handling"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicationRequest.fresh-review.json",
+    "findingDecisionCount": 14,
+    "matchedFindingDecisionCount": 14,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 6,
+      "Breaking but probably OK": 6,
+      "No problem": 2
+    }
   }
 }

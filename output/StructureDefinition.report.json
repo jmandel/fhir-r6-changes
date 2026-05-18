@@ -348,7 +348,21 @@
       "migrationGuidanceMd": "Cross-version tooling should preserve the original FHIR release context for each StructureDefinition and should not validate `type` against only the current R6 `fhir-types` list when processing R4 packages. Build a version-aware type map, and test R4 definitions for removed/renamed resources and datatypes explicitly.",
       "backwardCompatibilityAnalysisMd": "The R6 binding could have been made less disruptive by binding to a versioned union or by publishing an authoritative mapping for historical type codes. That would preserve old metadata at the cost of a less precise current-release type inventory.",
       "reviewerNotesMd": "Terminology impact was assessed by comparing local CodeSystem files, not by asking a terminology server to expand the value sets.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureDefinition:TERMINOLOGY_BINDING:StructureDefinition.type:types-vs-fhir-types",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The binding target for `StructureDefinition.type` changes from the R4 `defined-types` value set to the R6 `fhir-types` value set while staying `extensible`. That means an R4 StructureDefinition whose `type` is no longer an R6 type is not automatically invalid solely because of this binding, but validators, registries, package indexes, and code generators that use the current R6 type inventory as an authority can still warn, reject, or fail to find generated model classes for historical R4 types. The change is real for cross-version conformance tooling, but the R6 goal of having `type` point at the current release type universe is reasonable, and making the base binding a broad historical union would weaken that current-release signal.",
+        "keyEvidence": [
+          "R4 `StructureDefinition.type` binding is extensible to `http://hl7.org/fhir/ValueSet/defined-types`.",
+          "R6 `StructureDefinition.type` binding is extensible to `http://hl7.org/fhir/ValueSet/fhir-types`.",
+          "Local recursive code comparison found 48 R4 StructureDefinition `type` values absent from R6 `fhir-types` and 47 R6 `type` values absent from R4 defined types."
+        ],
+        "fmmEffect": "R4 StructureDefinition is FMM 5 and normative, so central conformance metadata changes deserve caution; the extensible binding and current-release tooling goal keep this from being a direct hard-break Revisit.",
+        "compatibilityMechanism": "runtime/API/codegen: cross-version validators, registries, and generated tooling may treat historical R4 type names as unknown even though the base binding remains extensible.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could use a version-tolerant value set that retains historical type names, possibly with status/version metadata. That would preserve more R4 metadata but would blur whether a type is actually present in the native R6 model and would force more version-aware branching in tooling.",
+        "comparisonToExisting": "partially agree: the existing high tooling impact and partial alternative judgment are broadly right, but the binding strength keeps this as a proportionate compatibility burden rather than a direct hard validation break."
+      }
     },
     {
       "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition-root:sdf30-contentReference",
@@ -466,7 +480,21 @@
       "validationAndCompatibilityMd": "This is old-valid/new-invalid for at least one local R4 core artifact. The failure is at StructureDefinition validation time, before any resource instance conforming to the profile is evaluated. R6-to-R4 representability is not the main issue; the main issue is loading or migrating R4 profiles into R6 tooling.",
       "migrationGuidanceMd": "Migration should scan differentials for `contentReference` when `derivation` is `constraint`. Where the content reference merely repeats base structure, remove it from the differential and rely on snapshot generation from the base. If the profile intended to alter recursive structure, manual redesign is needed because R6 disallows that in constrained types.",
       "backwardCompatibilityAnalysisMd": "A warning or conditional allowance for base-equivalent content references would have been less disruptive. The hard error is probably justified for native R6 authoring clarity, but it is avoidable for legacy-profile ingestion.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition-root:sdf30-contentReference",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 adds an error-level invariant that rejects any constrained StructureDefinition differential containing `contentReference`; R4 had no equivalent rule. This is an old-valid/new-invalid break for at least one R4 core package artifact, not only a theoretical custom-profile issue. Preventing constrained profiles from redefining recursive content models is a valid R6 goal, but applying it as an unconditional base error across normative StructureDefinition metadata is a strong compatibility move and a lower-impact transition or legacy-safe allowance looks plausible.",
+        "keyEvidence": [
+          "R6 root constraint `sdf-30` is error severity with expression `differential.element.where(contentReference.empty().not()).exists() implies derivation = 'specialization'`.",
+          "R4 root constraints do not include `sdf-30`.",
+          "R4 core scan found `StructureDefinition-shareablecodesystem` as a constraint with differential `CodeSystem.concept.concept` contentReference `#CodeSystem.concept`."
+        ],
+        "fmmEffect": "FMM 5 normative status raises the burden of justification because this is a direct error-level break in a core conformance artifact shape.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 StructureDefinition with a constrained differential contentReference can fail R6 validation without changing any other data.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could make this warning-level for one release or allow contentReference in constrained differentials when it exactly preserves the inherited recursive relationship. That adds validator complexity and may retain a confusing authoring pattern, but it would avoid rejecting known legacy core content.",
+        "comparisonToExisting": "partially agree: the existing high impact and partial alternative assessment are supported, but the normative hard break with a concrete R4 core hit makes the finding more deserving of renewed review than the prior `probably justified` tone implies."
+      }
     },
     {
       "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition-root:sdf27-derivation-required",
@@ -579,7 +607,21 @@
       "validationAndCompatibilityMd": "An R4 StructureDefinition with `baseDefinition` and no `derivation` can become invalid in R6. This does not create a major R6-to-R4 representability issue because R4 can carry `derivation` if present.",
       "migrationGuidanceMd": "Before validating R4 StructureDefinitions with R6 rules, scan for `baseDefinition` without `derivation`. Populate `derivation` explicitly based on author intent; do not infer blindly for ambiguous artifacts.",
       "backwardCompatibilityAnalysisMd": "The invariant is probably justified, but a warning-first transition or well-defined inference rule would have been less disruptive for legacy metadata stores.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition-root:sdf27-derivation-required",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an error-level invariant requiring `derivation` whenever `baseDefinition` is present. An R4 artifact that supplied a base but omitted derivation can therefore become invalid, but the field already existed in R4 and the missing value leaves important profile-vs-specialization meaning ambiguous. A scan of the R4 core StructureDefinition package found no affected artifacts, so the break appears limited to incomplete or non-core authoring patterns.",
+        "keyEvidence": [
+          "R4 `StructureDefinition.derivation` is optional and R4 root constraints do not include `sdf-27`.",
+          "R6 root constraint `sdf-27` is error severity with expression `baseDefinition.exists() implies derivation.exists()`.",
+          "Local R4 core scan found 0 StructureDefinitions with `baseDefinition` present and `derivation` absent."
+        ],
+        "fmmEffect": "FMM 5 normative status increases concern for any new error invariant, but the affected metadata is already semantically incomplete and no R4 core examples were found.",
+        "compatibilityMechanism": "old-valid/new-invalid: legacy StructureDefinitions that omit derivation while declaring a baseDefinition can be rejected by R6 validators.",
+        "lessBreakingAlternativeAssessment": "A warning-level rule or narrow inference for obvious cases would be less disruptive. It would not reliably preserve semantics for ambiguous artifacts, and different tools could infer different derivation values, so the hard R6 requirement is a proportionate cleanup.",
+        "comparisonToExisting": "agree: the existing medium impact and partial less-breaking alternative judgment match the path-level evidence."
+      }
     },
     {
       "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition.snapshot.element:sdf28-slicing-description",
@@ -689,7 +731,21 @@
       "validationAndCompatibilityMd": "R4-valid custom StructureDefinitions with under-specified slicing can become R6-invalid. R6 content that satisfies the new rule remains representable in R4 because R4 already has fields for discriminator and description.",
       "migrationGuidanceMd": "Scan snapshots for `slicing` objects. Add a discriminator when slicing is computable; otherwise add a clear `slicing.description` explaining the slicing rule before R6 validation.",
       "backwardCompatibilityAnalysisMd": "The stricter rule is probably justified for authoring quality. A warning-only rule would have been less disruptive but would not guarantee interpretable slicing.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition.snapshot.element:sdf28-slicing-description",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an error-level invariant on snapshot elements requiring a slicing declaration to have either a discriminator or a description. That can reject an R4 snapshot that has an empty or under-described slicing object, but such slicing is difficult for both validators and humans to interpret. The R4 core package scan found no examples, and the less-breaking option is mostly to continue accepting ambiguous conformance metadata.",
+        "keyEvidence": [
+          "R6 `StructureDefinition.snapshot.element` includes error constraint `sdf-28`: slicing must have a discriminator or description.",
+          "R4 `StructureDefinition.snapshot.element` constraints include `sdf-10` but not `sdf-28`.",
+          "Local R4 core scan found 0 snapshot slicing elements with both discriminator and description absent."
+        ],
+        "fmmEffect": "FMM 5 normative status raises the compatibility bar, but the rule targets low-quality or ambiguous metadata and no core R4 examples were found.",
+        "compatibilityMechanism": "old-valid/new-invalid: a legacy snapshot with a bare slicing object can become an R6 validation error.",
+        "lessBreakingAlternativeAssessment": "A warning-level invariant would be less breaking and could identify the issue without rejection. The tradeoff is that R6 would continue accepting slicing declarations that are neither computable nor documented, undermining the conformance-quality goal.",
+        "comparisonToExisting": "agree: the existing medium impact and partial alternative judgment are consistent with the evidence."
+      }
     },
     {
       "findingId": "StructureDefinition:ELEMENT_PRESENCE_OR_IDENTITY:StructureDefinition.versionAlgorithm:added",
@@ -797,7 +853,21 @@
       "validationAndCompatibilityMd": "R4-valid StructureDefinitions do not become invalid because of this optional addition. R6 StructureDefinitions that use it are not natively representable in R4 and may be rejected by strict R4 JSON parsers or generated R4 classes.",
       "migrationGuidanceMd": "R6-to-R4 transforms should map `versionAlgorithm[x]` to an extension or omit it with an explicit loss note. Test both `versionAlgorithmString` and `versionAlgorithmCoding` JSON choice names.",
       "backwardCompatibilityAnalysisMd": "The change follows the least disruptive FHIR pattern for forward compatibility. A standardized cross-version extension would improve reverse compatibility.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "StructureDefinition:ELEMENT_PRESENCE_OR_IDENTITY:StructureDefinition.versionAlgorithm:added",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `StructureDefinition.versionAlgorithm[x]` with string and Coding choices. This does not invalidate R4 StructureDefinition instances and does not force R4 producers to populate a new element. The only material concern is ordinary down-conversion or older-codegen loss when an R6 artifact uses the new field.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot has no `StructureDefinition.versionAlgorithm[x]` element.",
+          "R6 adds `StructureDefinition.versionAlgorithm[x]` as 0..1 with string and Coding types.",
+          "The new element is non-modifier and optional."
+        ],
+        "fmmEffect": "FMM 5 normative status does not make an optional additive element a forward compatibility problem; it only calls for checking that the addition is not mandatory or modifier-like.",
+        "compatibilityMechanism": "R6-to-R4 loss: older R4 serializers or models cannot natively carry the new optional field, but R4-to-R6 instances remain valid on this path.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for the forward direction. R4 extensions or conversion sidecars can preserve the value during down-conversion, but those are migration mechanisms rather than better base R6 designs.",
+        "comparisonToExisting": "disagree: the existing report's medium runtime impact overstates a normal optional addition; its no-applicable-alternative assessment is sound."
+      }
     },
     {
       "findingId": "StructureDefinition:ELEMENT_PRESENCE_OR_IDENTITY:StructureDefinition.copyrightLabel:added",
@@ -889,7 +959,21 @@
       "validationAndCompatibilityMd": "R4 instances remain acceptable without this element. R6 instances using it are not natively representable in R4 and will be unknown to strict R4 parsers.",
       "migrationGuidanceMd": "Backporting should either map the label to an extension or concatenate it into `copyright` with a clear transform policy.",
       "backwardCompatibilityAnalysisMd": "An extension-only design would have been more backward-compatible, but a native optional element is reasonable for common rendering metadata.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "StructureDefinition:ELEMENT_PRESENCE_OR_IDENTITY:StructureDefinition.copyrightLabel:added",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `StructureDefinition.copyrightLabel` as a short display label separate from the full copyright text. Because the element is optional and non-modifier, existing R4 StructureDefinitions do not become invalid. Reverse conversion may lose the display label or need an extension, but that is not an R4-to-R6 compatibility concern.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot has no `StructureDefinition.copyrightLabel` element.",
+          "R6 adds `StructureDefinition.copyrightLabel` as 0..1 string.",
+          "The element separates a rendering label from the existing copyright narrative."
+        ],
+        "fmmEffect": "FMM 5 normative status was considered, but this is an additive optional metadata field with low compatibility risk.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4 has no native field for the new optional label, while R4-to-R6 validation is unaffected.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is necessary. Folding the label into `copyright` or carrying an R4 extension is a down-conversion strategy, not a reason to avoid the optional R6 element.",
+        "comparisonToExisting": "agree: the existing low impact and not-applicable alternative judgment are appropriate."
+      }
     },
     {
       "findingId": "StructureDefinition:TERMINOLOGY_BINDING:StructureDefinition.fhirVersion:r6-codes",
@@ -1025,7 +1109,22 @@
       "validationAndCompatibilityMd": "No R4-valid `fhirVersion=4.0.1` instance becomes invalid in R6 because that code remains allowed. R6 instances using later codes are R6-valid but R4-invalid under required terminology validation.",
       "migrationGuidanceMd": "R6-to-R4 transforms should either omit `fhirVersion`, map it to an extension preserving the exact R6 code, or keep the artifact in an R6-aware package rather than pretending it is R4-native.",
       "backwardCompatibilityAnalysisMd": "This is an unavoidable consequence of adding new FHIR releases. A ConceptMap or cross-version extension can document conversion but cannot make the R6 code part of the old R4 required value set.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "StructureDefinition:TERMINOLOGY_BINDING:StructureDefinition.fhirVersion:r6-codes",
+        "judgment": "Revisit",
+        "narrativeMd": "The required binding for `StructureDefinition.fhirVersion` changes to the R6 version of the FHIR-version value set, and the exact version codes used by R4 and R6 artifacts do not round-trip cleanly. This is stronger than a reverse-only issue: R4 core StructureDefinitions commonly carry `4.0.1`, while the R6 FHIR-version CodeSystem contains `4.0` rather than `4.0.1`; conversely, R6 package artifacts carry `6.0.0-ballot4`, which is absent from the R4 code system. Because the binding is required, unchanged R4 metadata with `fhirVersion: 4.0.1` can become new-invalid under R6 terminology validation.",
+        "keyEvidence": [
+          "R4 `StructureDefinition.fhirVersion` has required binding to `http://hl7.org/fhir/ValueSet/FHIR-version|4.0.1`.",
+          "R6 `StructureDefinition.fhirVersion` has required binding to `http://hl7.org/fhir/ValueSet/FHIR-version|6.0.0-ballot4`.",
+          "R4 package scan found 653 StructureDefinitions with `fhirVersion` `4.0.1`; R6 CodeSystem-FHIR-version contains `4.0` and `6.0` but not `4.0.1` or `6.0.0-ballot4`.",
+          "R6 package scan found 238 StructureDefinitions with `fhirVersion` `6.0.0-ballot4`, which is not in the R4 FHIR-version CodeSystem."
+        ],
+        "fmmEffect": "FMM 5 normative status substantially raises concern because this is a required terminology binding on central conformance metadata and many R4 core artifacts use the affected code.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 StructureDefinitions carrying `fhirVersion` `4.0.1` can fail R6 required-binding validation; there is also R6-to-R4 loss for native R6 version codes.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could keep exact historical published version codes such as `4.0.1` while adding R6 codes, or explicitly include aliases/mappings for patch and ballot labels in the required value set. That would preserve legacy metadata with modest terminology complexity and seems compatible with the stated goal of listing all published FHIR versions.",
+        "comparisonToExisting": "disagree: the existing report treats this mainly as R6-to-R4 medium impact with no relevant alternative, but the local package and code-system evidence show a direct required-binding R4-to-R6 risk and a plausible less-breaking terminology design."
+      }
     },
     {
       "findingId": "StructureDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:StructureDefinition.jurisdiction:maintainer-semantics",
@@ -1169,7 +1268,21 @@
       "validationAndCompatibilityMd": "Instances generally remain structurally valid in both versions. The compatibility issue is behavioral: search, filtering, governance, and implementation-guide selection logic can produce different results if it assumes the R4 meaning in an R6 context.",
       "migrationGuidanceMd": "Review every use of `StructureDefinition.jurisdiction`. If it means intended use, populate the R6 `useContext` jurisdiction coding as well. If it means publisher/maintainer authority, keep it in `jurisdiction`. Do not blindly copy filters from R4 registries into R6 registries.",
       "backwardCompatibilityAnalysisMd": "A new element for maintainer jurisdiction would have been more backward-compatible but less economical. Reusing `useContext` is a reasonable design, but it needs explicit migration guidance.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "StructureDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:StructureDefinition.jurisdiction:maintainer-semantics",
+        "judgment": "Revisit",
+        "narrativeMd": "`StructureDefinition.jurisdiction` keeps the same wire shape but its primary meaning shifts from the region where the definition is intended to be used to the jurisdiction of the authority maintaining the resource, with R6 guidance to represent intended jurisdiction through `useContext`. That is a silent semantic change for registries, IG selection, regulatory filtering, and deployment rules that already stored intended-use jurisdictions in the R4 element. Because the R6 goal could be met by adding a distinct maintainer-jurisdiction concept or preserving the old meaning while using `useContext` guidance, this deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 definition: `A legal or geographic region in which the structure definition is intended to be used.`",
+          "R6 definition: `A legal or geographic region in which the authority that maintains the resource is operating.`",
+          "R6 comment encourages migrating jurisdictional use context to `useContext` with usage-context-type `jurisdiction`."
+        ],
+        "fmmEffect": "FMM 5 normative status raises concern because the same normative element is being reinterpreted without a wire-format signal.",
+        "compatibilityMechanism": "semantic/documentation: old data remains syntactically valid but can be read as maintainer authority jurisdiction instead of intended-use jurisdiction.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could retain the R4 intended-use meaning and add an optional maintainer or authority jurisdiction element, or make the maintainer concept a profile/useContext convention. That adds some model surface and possible overlap, but avoids silent reinterpretation of existing data.",
+        "comparisonToExisting": "agree: the existing medium semantic impact and yes alternative judgment are supported by the path-level evidence."
+      }
     },
     {
       "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition.url:cnl1-warning",
@@ -1284,7 +1397,21 @@
       "validationAndCompatibilityMd": "This is not old-valid/new-invalid under normal FHIR validation because severity is `warning`. It may be runtime-breaking only for pipelines configured to reject warnings.",
       "migrationGuidanceMd": "Scan canonical URLs for `|`, `#`, and spaces. Mint clean replacement canonicals where possible; if an old URL is already published, keep redirects or alias mappings so references continue to resolve.",
       "backwardCompatibilityAnalysisMd": "The warning-level approach is backward-compatible enough. Making this a hard error would have been more disruptive.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition.url:cnl1-warning",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds warning-level `cnl-1` guidance that canonical URLs should not contain pipe, hash, or space characters because those characters interfere with canonical-reference parsing. This does not make R4 instances invalid under base validation. Some publication pipelines may choose to fail on warnings, but the base design already uses the less severe mechanism and targets a real canonical hygiene issue.",
+        "keyEvidence": [
+          "R4 `StructureDefinition.url` has no `cnl-1` constraint in the inspected element.",
+          "R6 `StructureDefinition.url` adds `cnl-1` with severity `warning` and expression `exists() implies matches('^[^|# ]+$')`.",
+          "The element remains required uri with unchanged path and cardinality."
+        ],
+        "fmmEffect": "FMM 5 normative status supports caution, but warning severity is an intentionally compatibility-preserving way to express this rule.",
+        "compatibilityMechanism": "warning-level: strict CI or registries may promote warnings to failures, but the base R6 rule is not an error-level old-valid/new-invalid break.",
+        "lessBreakingAlternativeAssessment": "The main quieter alternative would be narrative-only guidance, but that would remove computable detection of canonical parsing hazards. Since R6 uses a warning rather than an error, a materially less-breaking base design is not needed.",
+        "comparisonToExisting": "agree: the existing low impact and no-applicable-alternative assessment are appropriate."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1505,5 +1632,19 @@
       "fhir-types binding changes",
       "contentReference restrictions in constrained differentials"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/StructureDefinition.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 3,
+      "No problem": 3
+    }
   }
 }

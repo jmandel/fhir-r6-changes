@@ -377,7 +377,21 @@
       "migrationGuidanceMd": "Inventory uses of `manufacturer`. If it denotes the legal MAH, rename to `marketingAuthorizationHolder`. If it denotes the physical manufacturer, preserve it in an extension or another product-definition resource rather than mapping it as MAH. Test cases should include a product where the manufacturer and MAH are different.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by retaining `manufacturer` and adding `marketingAuthorizationHolder` as a new, more precise optional element. That alternative would keep R4 instances valid but would leave implementers with two related roles to reconcile.",
       "reviewerNotesMd": "The structural match is clear, but the semantic match is intentionally only medium-confidence because the old and new role definitions differ.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.manufacturer:mah-rename",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Medication.manufacturer` is not present in the R6 base resource, and the nearest R6 slot, `marketingAuthorizationHolder`, is a different legal/regulatory role. An old instance with `manufacturer` is rejected by an R6 validator unless transformed, and a blind transform can be wrong when the physical manufacturer differs from the marketing authorization holder. Because the affected resource is mature trial-use medication content and the migration requires semantic judgment, this deserves renewed standards/design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot.element[id=Medication.manufacturer]: `0..1 Reference(Organization)`, summary=true, short `Manufacturer of the item`.",
+          "R6 StructureDefinition has `Medication.marketingAuthorizationHolder` as `0..1 Reference(Organization)` and no `Medication.manufacturer` element.",
+          "R6 `marketingAuthorizationHolder` definition says the MAH may manufacture the product or contract manufacturing to other organizations."
+        ],
+        "fmmEffect": "Supplied R4 FMM 3 and trial-use status create a meaningful stability expectation for common Medication exchange, though not a normative one; that pushes a semantically non-equivalent rename toward Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances carrying `manufacturer` have an element unknown to base R6, and generated models/business rules also move from a manufacturer property to a MAH property.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained optional `manufacturer` while adding optional `marketingAuthorizationHolder`, or clarified `manufacturer` while distinguishing it from MAH. The tradeoff is two related organization roles and consistency guidance, but that is lower cost than forcing a semantically unsafe rename.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a hard break with a real less-breaking base design."
+      }
     },
     {
       "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.form:doseform-rename",
@@ -537,7 +551,21 @@
       "validationAndCompatibilityMd": "An R4 instance with `form` is invalid against the R6 StructureDefinition due to an unknown element. An R6 instance with `doseForm` is invalid against R4 for the same reason. The underlying CodeableConcept can usually be carried across without loss, subject to terminology differences in the example value set.",
       "migrationGuidanceMd": "Rename `form` to `doseForm` for R4→R6 and reverse the rename for R6→R4. Update generated model properties, FHIRPath expressions, mapping rules, search/extraction logic, and tests that refer to `Medication.form`.",
       "backwardCompatibilityAnalysisMd": "Because the element definition and binding are otherwise unchanged, preserving `form` would have been the least disruptive design. If both names existed, a constraint could have prohibited sending both simultaneously while allowing legacy data to validate.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.form:doseform-rename",
+        "judgment": "Revisit",
+        "narrativeMd": "`Medication.form` became `Medication.doseForm` with the same cardinality, datatype, example binding, and descriptive meaning. The data migration is usually mechanical, but the base wire name changed, so unconverted R4 instances and generated property references fail. For FMM 3 trial-use content, a pure clarity rename with a low-cost compatible design is disproportionate enough to revisit.",
+        "keyEvidence": [
+          "R4 snapshot.element[id=Medication.form]: `0..1 CodeableConcept`, example binding to `medication-form-codes`, definition `Describes the form of the item`.",
+          "R6 snapshot.element[id=Medication.doseForm]: `0..1 CodeableConcept`, same example binding and same definition text.",
+          "No R6 snapshot element with id/path `Medication.form` is present."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not forbid renames, but this is a mature central resource and the change appears to be naming clarity rather than a necessary model correction.",
+        "compatibilityMechanism": "old-valid/new-invalid: `form` is not a base R6 Medication element; R6 `doseForm` is also not a base R4 Medication element.",
+        "lessBreakingAlternativeAssessment": "Yes. Keeping `form` and clarifying its definition to mean dose form would preserve R4 instances without duplicate data. A deprecated alias would also work but would need a mutual-exclusion rule if both names were allowed.",
+        "comparisonToExisting": "partially agree: the existing report correctly flags the hard rename and a Yes alternative, but the practical data-loss risk is narrow because values can be transformed losslessly."
+      }
     },
     {
       "findingId": "Medication:SERIALIZATION_OR_CODEGEN:Medication.amount:package-size",
@@ -727,7 +755,21 @@
       "migrationGuidanceMd": "Create explicit mapping rules for known package patterns. Simple R4 `amount` values may map to `packageSize.amountPerItem`, but package-count data should populate `numberOfItems`. For R6→R4, preserve `packageSize` in extensions or product-definition resources if both children are clinically or operationally meaningful.",
       "backwardCompatibilityAnalysisMd": "The improved model could have been introduced additively while retaining `amount` as deprecated. That would avoid immediate validation breaks but leave overlapping ways to say package size.",
       "reviewerNotesMd": "Human review is needed for any migration rule that tries to infer whether an R4 `amount` is per item, per package, or total package content.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Medication:SERIALIZATION_OR_CODEGEN:Medication.amount:package-size",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 used one `Medication.amount` Ratio for package amount; R6 replaces it with a `packageSize` backbone that can distinguish item count from amount per item. This is a hard wire/codegen break for old data and can be lossy in reverse, but the R6 goal addresses a real ambiguity in the R4 shape. Retaining the old field would create overlapping package-size representations for operational quantity data, so the break appears proportionate.",
+        "keyEvidence": [
+          "R4 snapshot.element[id=Medication.amount]: `0..1 Ratio`, summary=true, short `Amount of drug in package`.",
+          "R6 snapshot.element[id=Medication.packageSize]: `0..1 BackboneElement`, summary=true, with invariant `med-1` requiring `numberOfItems` or `amountPerItem`.",
+          "R6 `Medication.packageSize.numberOfItems` is `0..1 SimpleQuantity`; `Medication.packageSize.amountPerItem` is `0..1 Ratio`; no R6 `Medication.amount` element is present."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the bar for disrupting package quantity exchange, but it also leaves room for a proportionate redesign that fixes an ambiguous mature element.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `amount` is unknown in R6 and must be restructured; R6 `packageSize` values, especially count plus amount-per-item, do not collapse cleanly to the single R4 Ratio.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept deprecated `amount` and added `packageSize`, preserving simple R4 instances. The tradeoff is duplicate/conflicting ways to state package size and no full representation of R6 count-plus-per-item semantics in the old field.",
+        "comparisonToExisting": "agree: the existing report correctly identifies a high-impact hard break and only a partial less-breaking alternative."
+      }
     },
     {
       "findingId": "Medication:TYPE_DOMAIN:Medication.ingredient.item:codeable-reference",
@@ -920,7 +962,21 @@
       "validationAndCompatibilityMd": "R4 `itemCodeableConcept` and `itemReference` are unknown in R6. R6 `item.concept` and `item.reference` are not R4 element names. R6 references to `SubstanceDefinition` are additionally outside the R4 target domain, so they cannot be represented as valid R4 Medication ingredient references without an extension or resource-specific transformation.",
       "migrationGuidanceMd": "Transform `itemCodeableConcept` to `item.concept` and `itemReference` to `item.reference`. Add tests for both forms and for `SubstanceDefinition` references. For R6→R4, map `Substance` and `Medication` references back to `itemReference`, concepts to `itemCodeableConcept`, and preserve `SubstanceDefinition` references in extensions or a separate migration artifact.",
       "backwardCompatibilityAnalysisMd": "The R6 approach is cleaner for new implementations but breaks a required R4 element. A transitional design with both `item[x]` and `item` would have been more compatible, though it would burden implementations with duplicate representations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Medication:TYPE_DOMAIN:Medication.ingredient.item:codeable-reference",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The required ingredient identity changed from R4 choice serialization (`itemCodeableConcept` or `itemReference`) to an R6 `CodeableReference` object, and R6 also allows `SubstanceDefinition`. This is a real serializer/codegen break on clinically important content, but the R6 pattern is coherent for concept-or-reference modeling. Keeping the old choice beside `CodeableReference` would duplicate a required ingredient identity and require precedence rules, so the break is probably acceptable.",
+        "keyEvidence": [
+          "R4 snapshot.element[id=Medication.ingredient.item[x]]: `1..1` choice of `CodeableConcept` or `Reference(Substance|Medication)`.",
+          "R6 snapshot.element[id=Medication.ingredient.item]: `1..1 CodeableReference` targeting `Substance`, `SubstanceDefinition`, or `Medication`.",
+          "`SubstanceDefinition` is absent from the R4 core package and present in the R6 core package."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes this central ingredient path important, but the maturity level still permits a well-justified model-wide datatype modernization.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 choice-suffixed names are not R6 element names; reverse conversion can also lose `SubstanceDefinition` references or a CodeableReference that carries both concept and reference.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained `item[x]` as deprecated compatibility fields while adding `item` CodeableReference, but that would create duplicate required ingredient identity representations and difficult consistency rules.",
+        "comparisonToExisting": "agree: the existing report's hard-break impact and Partial alternative assessment match the independent path-level assessment."
+      }
     },
     {
       "findingId": "Medication:TYPE_DOMAIN:Medication.ingredient.strength:choice-expanded",
@@ -1129,7 +1185,21 @@
       "validationAndCompatibilityMd": "R4 `strength` is not an R6 field name; R6 expects a choice-suffixed name. R6 `strengthQuantity` and `strengthCodeableConcept` are not valid R4 Medication elements and cannot always be converted to a Ratio without assumptions about denominator and units.",
       "migrationGuidanceMd": "For R4→R6, rewrite Ratio values from `strength` to `strengthRatio`. For R6→R4, map `strengthRatio` back to `strength` but retain `strengthQuantity` and `strengthCodeableConcept` in extensions or require manual conversion rules. Test dose-calculation and display logic with Ratio, Quantity, and coded strength examples.",
       "backwardCompatibilityAnalysisMd": "R6's expanded choice is clinically useful, but the same goal could have been achieved by adding optional elements while preserving the old Ratio name. The cleaner R6 representation trades off against strict instance compatibility.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Medication:TYPE_DOMAIN:Medication.ingredient.strength:choice-expanded",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `ingredient.strength` was a Ratio named `strength`; R6 turns the path into `strength[x]`, so even the retained Ratio value now serializes as `strengthRatio`, while coded and Quantity strengths are added. This breaks old instances and generated code, and reverse migration can be lossy for the new types. The added choices address real strength-expression cases such as simple quantities and coded `trace`/`qs`, and a compatible design would leave multiple mutually exclusive strength fields, so the redesign looks proportionate.",
+        "keyEvidence": [
+          "R4 snapshot.element[id=Medication.ingredient.strength]: `0..1 Ratio`.",
+          "R6 snapshot.element[id=Medication.ingredient.strength[x]]: `0..1` choice of `Ratio`, `CodeableConcept`, or `Quantity` with preferred binding to `medication-ingredientstrength`.",
+          "R6 CodeSystem `medication-ingredientstrength` includes `qs` and `trace` codes."
+        ],
+        "fmmEffect": "FMM 3/trial-use increases concern because ingredient strength is safety-relevant, but the R6 widening has a plausible clinical modeling rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `strength` is not the R6 choice-suffixed name; R6 `strengthCodeableConcept` and `strengthQuantity` have no base R4 equivalent.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could keep `strength` as Ratio and add separate coded/quantity elements with an invariant allowing only one, but that would be less regular than a FHIR choice and would create conflict handling for safety-relevant strength data.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a hard serialization/type break with only a partial less-breaking alternative."
+      }
     },
     {
       "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.ingredient.role:added",
@@ -1250,7 +1320,21 @@
       "validationAndCompatibilityMd": "R4→R6 is safe because the element is optional. R6→R4 is lossy: `ingredient.role` is an unknown element in R4, and collapsing it to `isActive` only preserves a small part of the semantics.",
       "migrationGuidanceMd": "When converting R6 to R4, preserve `ingredient.role` in an extension if the role affects product logic, display, or analytics. Do not assume all roles map cleanly to `isActive=true/false`.",
       "backwardCompatibilityAnalysisMd": "As an optional addition, this is the least disruptive R6-side design. The compatibility burden belongs in cross-version extensions or profiles for systems that must project R6 data into R4.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.ingredient.role:added",
+        "judgment": "No problem",
+        "narrativeMd": "`Medication.ingredient.role` is an optional R6 addition. It does not invalidate any R4 Medication instance migrating forward, and the fact that populated R6 role data needs an R4 extension or loss policy is a normal downgrade issue for a new optional capability. This is useful migration awareness, not a base R4-to-R6 design problem.",
+        "keyEvidence": [
+          "No R4 snapshot element with id/path `Medication.ingredient.role` is present.",
+          "R6 snapshot.element[id=Medication.ingredient.role]: `0..1 CodeableConcept`, example binding to `v3-RoleClassIngredientEntity`.",
+          "R4 and R6 both retain `Medication.ingredient.isActive` as `0..1 boolean`."
+        ],
+        "fmmEffect": "FMM 3/trial-use keeps Medication ingredient data important, but optional additive fields are the compatibility-preserving way to evolve mature trial-use content.",
+        "compatibilityMechanism": "R6-to-R4 loss: a populated R6 role is not a base R4 element, but there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "Not applicable. The base R6 design is already additive and optional; R4 downgrade preservation belongs in extensions, profiles, or conversion policy, not in a less-breaking R6 design.",
+        "comparisonToExisting": "partially agree: the existing report correctly says no hard break and no base alternative is needed, but I would not treat this as a material R4-to-R6 concern."
+      }
     },
     {
       "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.batch:instance-rename",
@@ -1409,7 +1493,21 @@
       "validationAndCompatibilityMd": "R4 `batch` is unknown in R6, so old instances with lot or expiration data fail validation until transformed. R6 `instance` is unknown in R4, and `instance.identifier` has no corresponding R4 element. Generated code must update nested component names and property paths.",
       "migrationGuidanceMd": "Map `batch.lotNumber` to `instance.lotNumber` and `batch.expirationDate` to `instance.expirationDate`. For R6→R4, map those fields back to `batch` but keep `instance.identifier` in an extension if serial/physical-instance identifiers are used.",
       "backwardCompatibilityAnalysisMd": "The rename seems avoidable because the old backbone could have been extended. If R6 needed the broader concept of a physical instance, a transition element or extension guidance could have reduced validation breaks.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.batch:instance-rename",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Medication.batch` moved to R6 `Medication.instance`; lot number and expiration date are essentially the same data under a new parent, with an added physical-instance identifier. Because lot and expiration data support recall, inventory, and safety workflows, a direct wire rename on FMM 3 medication content is material. The old backbone could plausibly have been retained and extended, so this rename should be revisited.",
+        "keyEvidence": [
+          "R4 snapshot.element[id=Medication.batch]: `0..1 BackboneElement` with `lotNumber` and `expirationDate` children.",
+          "R6 snapshot.element[id=Medication.instance]: `0..1 BackboneElement` with `lotNumber` and `expirationDate` children and no `Medication.batch` element.",
+          "R6 adds `Medication.instance.identifier` as `0..* Identifier` for the physical instance, typically a serial number."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises compatibility expectations for safety and inventory data such as lot and expiration, even though it is not normative.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `batch` is unknown in R6; R6 `instance.identifier` also has no base R4 location for reverse conversion.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept `batch`, broadened its definition if needed, and added `batch.identifier`. That preserves existing lot/expiration instances without duplicate paths; the main cost is retaining an older name that may be narrower than the intended R6 concept.",
+        "comparisonToExisting": "agree: the existing report correctly identifies a high-impact hard break and a plausible less-breaking base design."
+      }
     },
     {
       "findingId": "Medication:REFERENCE_TARGET:Medication.definition:definition-targets",
@@ -1539,7 +1637,21 @@
       "validationAndCompatibilityMd": "R4→R6 is unaffected unless profiles require `definition`. R6→R4 loses the reference unless an extension or external association is used. Strict R4 validators reject `definition`, and the referenced resource types are not valid R4 core resources.",
       "migrationGuidanceMd": "For R6→R4, preserve `definition` in an extension, external cross-reference table, or implementation-guide-specific mapping. If the referenced product-definition resource contains safety- or regulatory-critical content, do not silently drop it.",
       "backwardCompatibilityAnalysisMd": "This is an additive R6 feature, so the main issue is not an avoidable R4→R6 break. Backward compatibility requires a cross-version representation convention because R4 cannot natively host the element or targets.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Medication:REFERENCE_TARGET:Medication.definition:definition-targets",
+        "judgment": "No problem",
+        "narrativeMd": "`Medication.definition` is an optional R6 addition linking Medication to newer definitional product resources. It does not make any R4 Medication instance invalid in R6. A populated R6 reference cannot be represented in plain R4 because both the element and the target resources are absent there, but that is expected for new R6 expressiveness rather than an R4-to-R6 break.",
+        "keyEvidence": [
+          "No R4 snapshot element with id/path `Medication.definition` is present.",
+          "R6 snapshot.element[id=Medication.definition]: `0..1 Reference` to `MedicinalProductDefinition`, `AdministrableProductDefinition`, `PackagedProductDefinition`, or `ManufacturedItemDefinition`.",
+          "Those four target StructureDefinitions are absent from the R4 core package and present in the R6 core package."
+        ],
+        "fmmEffect": "FMM 3/trial-use means product-definition links can matter when used, but optional additive R6 links are compatible with forward migration of R4 data.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated R6 `definition` references and their target resources cannot be represented in base R4, but R4-to-R6 instances are unaffected.",
+        "lessBreakingAlternativeAssessment": "Not applicable. No less-breaking R6 base design is needed for R4 compatibility because the field is optional and additive; downgrade handling requires extension or external-link policy.",
+        "comparisonToExisting": "partially agree: the existing downgrade facts and Not applicable alternative are right, but I would classify the finding as no R4-to-R6 problem rather than a medium-impact break."
+      }
     },
     {
       "findingId": "Medication:TERMINOLOGY_BINDING:Medication.status:status-meaning",
@@ -1740,7 +1852,21 @@
       "migrationGuidanceMd": "Review all business logic attached to `Medication.status`, especially filters for active formularies, orderable products, and catalog maintenance. If product market availability is needed separately from record currentness, do not rely solely on R6 `Medication.status` without a profile, extension, or linked product-definition data.",
       "backwardCompatibilityAnalysisMd": "If the change is intended as clarification, stronger narrative migration notes would make it safer. If it is a normative semantic shift, preserving the old concept or adding a distinct element/code system could have reduced ambiguity.",
       "reviewerNotesMd": "Full terminology expansion was not required to see the three local codes, but official narrative/change notes would improve confidence about intent.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Medication:TERMINOLOGY_BINDING:Medication.status:status-meaning",
+        "judgment": "Unclear",
+        "narrativeMd": "The literal status codes and required binding remain the same, but local CodeSystem definitions moved from medication availability wording to medication-record currentness/reference wording. That could affect business rules that treat `active` as availability, especially because `status` is a modifier. However, the Medication element definition and comment remain largely availability/local-drug-record oriented, so the evidence does not prove whether R6 intended a normative semantic shift or a clarification of the existing local-record concept. Official rationale or terminology governance notes are needed.",
+        "keyEvidence": [
+          "R4 and R6 `Medication.status` are both `0..1 code`, `isModifier=true`, with required binding to versioned `medication-status` ValueSets.",
+          "R4 CodeSystem `active` definition: `The medication is available for use.` R6 definition: `The medication record is current and is appropriate for reference in new instances.`",
+          "The R6 StructureDefinition `Medication.status` definition/comment still says the status indicates if the medication is in active use in a local drug database or inventory."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises concern for a modifier status on a central Medication resource, but the ambiguity between clarification and semantic change prevents a firmer judgment.",
+        "compatibilityMechanism": "semantic/documentation: the same instances validate, but runtime rules or enum documentation that attach behavior to `active`/`inactive` may interpret the codes differently.",
+        "lessBreakingAlternativeAssessment": "Unknown or Partial. If R6 truly changed the concept, a separate record-currentness element or code system would be less surprising but would add model complexity; if this is only clarification, no less-breaking design is needed.",
+        "comparisonToExisting": "partially agree: the existing report correctly spots a semantic risk and partial alternative, but I would not accept its confidence/proportionality conclusion without official intent evidence."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1917,5 +2043,20 @@
       "batch/package/instance naming changes across medication resources",
       "R6-only product-definition resource references"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Medication.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Unclear": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 2
+    }
   }
 }

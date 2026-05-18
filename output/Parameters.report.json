@@ -265,7 +265,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is old-valid/new-invalid when a parameter uses `valueContributor`. R4 cardinality and `inv-1` allow exactly one value branch, so a `valueContributor` branch can be valid in R4. In R6, the same branch is outside the allowed type domain. This does not create a reverse representability problem because R4 is the version that had the branch.",
       "migrationGuidanceMd": "Inventory operation definitions and test fixtures for `valueContributor`. There is no universal lossless replacement in R6 `Parameters`: `ContactDetail` or `ExtendedContactDetail` may preserve some party/contact information but not necessarily the contributor role; an extension can preserve the exact R4 shape; and operation-specific redesign may be preferable. Tests should include strict validation of migrated Parameters and generated choice accessors.",
       "backwardCompatibilityAnalysisMd": "The change was probably tied to removal of the R4 `Contributor` datatype, but the supplied inputs do not show the rationale. A backward-compatible transition could have retained a deprecated `Contributor` branch or supplied a standard cross-version extension. The tradeoff is that R6 would continue carrying an obsolete datatype in a central, normative operation payload resource.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Parameters:TYPE_DOMAIN:Parameters.parameter.value[x]:f0cf76",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "This is a real forward break for the specific choice branch: an R4 operation payload can legally contain `parameter.valueContributor`, while the R6 `Parameters.parameter.value[x]` type list has no `Contributor` branch. Strict R6 validators and generated SDKs will reject or fail to expose that choice. The practical blast radius looks narrow, though: a targeted check of core R4 OperationDefinitions found no operation parameter typed as `Contributor`, and keeping this branch in `Parameters` would require R6 to retain the removed `Contributor` datatype as a compatibility surface. For the local Parameters design, the break is proportionate; any deeper objection belongs mainly to the datatype-level removal.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Parameters snapshot element `Parameters.parameter.value[x]` includes type `Contributor`.",
+          "R6 StructureDefinition-Parameters snapshot element `Parameters.parameter.value[x]` omits `Contributor`; no R6 `StructureDefinition-Contributor.json` is present.",
+          "Targeted search of R4 core `OperationDefinition-*.json` found no `Contributor` parameter type."
+        ],
+        "fmmEffect": "R4 Parameters is FMM 5 and normative, so an old-valid/new-invalid choice removal needs a strong reason. That pressure is mitigated here by the narrow apparent use and by the fact that the local Parameters choice follows the broader R6 datatype inventory.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `valueContributor` instances fall outside the R6 `value[x]` type domain, with related runtime/API/codegen loss of the generated choice accessor.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design would retain a deprecated R6 `Contributor` datatype and keep `valueContributor` for a transition period. That would preserve old payloads, but it is not low cost because it keeps an otherwise removed datatype in validators, schemas, serializers, and generated APIs for a central operation carrier.",
+        "comparisonToExisting": "partially agree with the existing high-impact finding and non-Yes alternative judgment: the hard break is real, but the likely runtime prevalence appears lower than a broad High rating suggests, and the only base alternative has material datatype-level cost."
+      }
     },
     {
       "findingId": "Parameters:TYPE_DOMAIN:Parameters.parameter.value[x]:6ae434",
@@ -439,7 +453,21 @@
       "validationAndCompatibilityMd": "R4-valid instances are not invalidated by this widening. The compatibility problem is R6-to-R4: a payload containing `valueCodeableReference`, `valueInteger64`, `valueRatioRange`, `valueAvailability`, `valueExtendedContactDetail`, or `valueVirtualServiceDetail` is outside the R4 Parameters value type list and cannot be represented directly as a legal R4 `value[x]` branch.",
       "migrationGuidanceMd": "For each operation parameter, define an explicit down-conversion rule. Some cases can be mapped with loss under constraints, such as concept-only `CodeableReference` to `CodeableConcept` or reference-only `CodeableReference` to `Reference`. `integer64` may exceed R4 integer limits and may need string/decimal/extension handling. Availability/contact/virtual-service datatypes generally need extensions, resources, or operation redesign for R4 clients.",
       "backwardCompatibilityAnalysisMd": "The widening is probably justified because Parameters should support the release's datatype set. The less-breaking alternative would be to keep the base type list R4-compatible and force new structures through extensions or older types, but that would weaken R6 expressiveness and move complexity into every operation definition.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Parameters:TYPE_DOMAIN:Parameters.parameter.value[x]:6ae434",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Adding `integer64`, `CodeableReference`, `RatioRange`, `Availability`, `ExtendedContactDetail`, and `VirtualServiceDetail` is not a forward R4-to-R6 validation break; old R4 `value[x]` choices remain allowed except for the separate `Contributor` removal. It is still a concrete cross-version burden because an R6 operation can now serialize choice names and datatype shapes that an R4 Parameters parser cannot accept. That burden is proportionate: a generic Parameters carrier should be able to carry current R6 datatypes directly, and suppressing the choices would push avoidable work into every operation definition or force extensions/older encodings.",
+        "keyEvidence": [
+          "R4 `Parameters.parameter.value[x]` lacks the six listed R6 datatype choices.",
+          "R6 `Parameters.parameter.value[x]` includes `integer64`, `CodeableReference`, `RatioRange`, `Availability`, `ExtendedContactDetail`, and `VirtualServiceDetail`.",
+          "R6 core `OperationDefinition-Subscription-events.json` uses `integer64` parameters, showing at least one added choice is used by core R6 operation surface."
+        ],
+        "fmmEffect": "FMM 5/normative status keeps cross-version operation payload stability important, but the change is an additive R6 widening rather than an old-valid/new-invalid R4 break.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 payloads using new choice names such as `valueInteger64` or `valueCodeableReference` cannot be represented directly as valid R4 `Parameters.parameter.value[x]` without operation-specific mapping or loss.",
+        "lessBreakingAlternativeAssessment": "The base alternative would be to omit these R6 datatype choices or require extensions/older proxy types. That would preserve R4 parser compatibility but would fail the R6 goal of making Parameters a direct carrier for the release's datatype set.",
+        "comparisonToExisting": "agree with the existing judgment that this is not an R4-to-R6 hard break and that no useful less-breaking base design exists; the high impact is best understood as reverse-version conversion risk."
+      }
     },
     {
       "findingId": "Parameters:SEMANTIC_OR_CONFORMANCE_TEXT:Parameters.parameter.part:cbbb83",
@@ -567,7 +595,21 @@
       "migrationGuidanceMd": "When bridging R6 to R4, check whether the target R4 system has a custom nesting-depth limit. If it does, flattening or operation-specific restructuring may be required, and the transform may be lossy because nested grouping can carry meaning. Test operation handlers with zero, one, and multiple part nesting levels.",
       "backwardCompatibilityAnalysisMd": "Removing an unenforced comment may be justified if the real model has always been recursive. A backward-compatible alternative would have added explicit clarification rather than deleting the limit outright, but without narrative change notes the intended semantics remain a human-review point.",
       "reviewerNotesMd": "Confirm against the rendered R6 Parameters page or ballot notes whether deeper nesting is explicitly intended, merely tolerated, or still discouraged elsewhere.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Parameters:SEMANTIC_OR_CONFORMANCE_TEXT:Parameters.parameter.part:cbbb83",
+        "judgment": "No problem",
+        "narrativeMd": "The computable model did not become stricter. R4 and R6 both use `contentReference: #Parameters.parameter` for `parameter.part`, and neither version has a FHIRPath invariant limiting nesting depth. R6 removed a prose sentence that conflicted with the recursive structure and with evidence from core R4 OperationDefinitions that already define nested parameter parts. A custom R4 implementation that enforced the old sentence could still need policy work, but that is not a base R4-to-R6 break caused by R6.",
+        "keyEvidence": [
+          "R4 `Parameters.parameter.part` has comment `Only one level of nested parameters is allowed.`",
+          "R4 and R6 both retain `contentReference: #Parameters.parameter`; no depth-limiting FHIRPath constraint was added or removed.",
+          "Targeted checks found R4 core OperationDefinitions with nested `part` depth greater than one, including CodeSystem and ConceptMap operations."
+        ],
+        "fmmEffect": "FMM 5/normative status argues for caution with conformance text, but here the R6 change removes an inconsistent non-computable statement rather than invalidating conformant instances.",
+        "compatibilityMechanism": "semantic/documentation: the only change is removal of prose; structural validation remains recursive and unchanged for this path.",
+        "lessBreakingAlternativeAssessment": "R6 could have replaced the sentence with transitional clarification about recursive parts and operation-defined limits. That might help readers, but it is not needed to preserve R4-valid instances and would risk perpetuating the old inconsistency.",
+        "comparisonToExisting": "disagree with the existing Medium impact and partial alternative framing: the evidence points to a documentation cleanup with no meaningful path-level compatibility problem."
+      }
     },
     {
       "findingId": "Parameters:SEMANTIC_OR_CONFORMANCE_TEXT:Parameters.parameter.resource:bb78c0",
@@ -678,7 +720,21 @@
       "migrationGuidanceMd": "For cross-version operation gateways, detect the concrete `resourceType` under `parameter.resource`. If it is not an R4 core resource, decide whether the operation can transform it to an R4 resource, carry it through Binary/extension/out-of-band packaging, or reject it with a clear OperationOutcome. Include parser tests with unknown resourceType values if additional resources are in scope.",
       "backwardCompatibilityAnalysisMd": "The change may be justified by R6's broader resource model, but the base `Resource`/additional-resource analysis belongs with the `Resource` infrastructure report. A backward-compatible local alternative would have required operation definitions or profiles to opt into additional resources instead of placing the allowance in the base Parameters text.",
       "reviewerNotesMd": "Review the R6 additional-resource narrative and any operation definitions that use additional resources before assigning a final prevalence or safety rating.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Parameters:SEMANTIC_OR_CONFORMANCE_TEXT:Parameters.parameter.resource:bb78c0",
+        "judgment": "No problem",
+        "narrativeMd": "`Parameters.parameter.resource` remains typed as `Resource` with the same cardinality and invariant relationship. R6 adds prose saying the contained resource may be a specification-defined resource or an additional resource. That can matter to an R4-only parser receiving an R6 payload with an unknown concrete `resourceType`, but that is a reverse-version/general additional-resource issue rather than a local R4-to-R6 break in Parameters. Ordinary R4 resource-valued parameters are not made invalid.",
+        "keyEvidence": [
+          "R4 and R6 both define `Parameters.parameter.resource` as type `Resource` with cardinality `0..1`.",
+          "R6 adds the comment phrase `This may be a resource defined in the FHIR specification, or an additional resource`.",
+          "The unchanged `inv-1` relationship still controls the choice between `value[x]`, `resource`, and `part`."
+        ],
+        "fmmEffect": "Normative FMM 5 status raises sensitivity to semantic shifts, but the formal path shape is unchanged and the risk is reverse-only for R4 systems that cannot handle R6 additional resources.",
+        "compatibilityMechanism": "semantic/documentation: R6 clarifies allowed resource kinds in prose; any R6-to-R4 parser failure comes from unknown concrete resources rather than a narrowed Parameters element.",
+        "lessBreakingAlternativeAssessment": "A stricter base design could require operation definitions or profiles to opt into additional resources. That would be more restrictive and somewhat friendlier to closed R4 parsers, but it would not meet the R6 goal of documenting Parameters as a generic whole-resource operation carrier.",
+        "comparisonToExisting": "disagree with the existing Medium/High reverse-risk framing for this local finding: the concern is real for cross-version additional-resource handling, but the Parameters path itself has no meaningful R4-to-R6 compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -875,5 +931,18 @@
       "Resource-typed local elements whose R6 text permits additional resources",
       "Comment-only conformance limits removed without computable invariants"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Parameters.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 2
+    }
   }
 }

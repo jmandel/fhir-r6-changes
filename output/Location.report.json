@@ -356,7 +356,21 @@
       "migrationGuidanceMd": "For upgrade, wrap each R4 `telecom` item in an `ExtendedContactDetail` entry, normally as `Location.contact[i].telecom[0]`; if existing profiles used `ContactPoint.use`, review whether it should remain on the ContactPoint or become `contact.purpose`. For downgrade, preserve only nested `contact.telecom` in R4 `telecom` and move purpose/name/address/organization/period to extensions or sidecar records if needed.",
       "backwardCompatibilityAnalysisMd": "The richer contact model addresses real limitations of flat contact points, but removing the old element forces migration of every instance and client path. A backward-compatible alternative existed in the form of an additive `contact` element plus deprecated `telecom`, but that would require duplicate-use guidance.",
       "reviewerNotesMd": "Review implementations that used `Location.telecom` for web booking URLs or billing phone numbers; those are likely candidates for R6 contact purpose grouping.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.telecom:8a20bd",
+        "judgment": "Revisit",
+        "narrativeMd": "`Location.telecom` is a common, concrete directory contact path in R4, and R6 removes that wire name in favor of richer `Location.contact` entries. R4 instances with phone, email, fax, or URL contact points become invalid without transformation, generated clients lose a familiar property, and down-converting R6 contact purpose/name/address/organization/period content is not lossless. The richer R6 model is useful, but this is a mature resource and the break lands on operationally important contact information.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Location.telecom` is 0..* `ContactPoint` for contact details of communication devices at the location.",
+          "R6 StructureDefinition: `Location.telecom` is absent and `Location.contact` is 0..* `ExtendedContactDetail`.",
+          "R6 `ExtendedContactDetail` includes purpose, name, telecom, address, organization, and period."
+        ],
+        "fmmEffect": "R4 Location is trial-use/FMM 3, so it is not protected like normative content, but it is mature enough that a common contact field deserves real compatibility weight; R6 metadata marks Location normative/FMM 5, increasing the cost of carrying an avoidable late break forward.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `Location.telecom` fail strict R6 validation unless transformed; generated API paths also change and richer R6 contacts create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could add `Location.contact` while retaining deprecated `Location.telecom` as a flat shortcut that maps to `contact.telecom`. That would create duplicate contact representations and require conflict rules when both are present, but it would preserve most existing R4 contact data and client paths while still allowing richer contacts.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment: the hard break and downgrade loss are real, but I give the deprecated-shortcut alternative enough weight to make this worth revisiting."
+      }
     },
     {
       "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.physicalType:7b365f",
@@ -534,7 +548,21 @@
       "validationAndCompatibilityMd": "This is hard instance-breaking in both raw directions because the element name changed. Binding strength is only example, so terminology validation is not the main break; the property path is. Generated classes also change property names, which affects serializers, mappers, and search/index extraction logic.",
       "migrationGuidanceMd": "Move `Location.physicalType` to `Location.form` during upgrade and reverse that mapping during downgrade when the coding is meaningful in R4. If R6 uses a virtual-specific form code not recognized by the R4 value set, preserve it with an extension or accept terminology loss.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias or retaining the old element with updated wording would have avoided a raw instance break. The tradeoff would be a less precise element name and potential confusion between `physicalType` and virtual form.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.physicalType:7b365f",
+        "judgment": "Revisit",
+        "narrativeMd": "`Location.physicalType` to `Location.form` is essentially a wire-name replacement with the same cardinality and datatype. Existing R4 data using `physicalType` becomes invalid in R6 even though the R6 value set still draws from the same `location-physical-type` code system. The R6 wording adds virtual forms, but the compatibility cost of a rename looks disproportionate to that goal.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Location.physicalType` is 0..1 `CodeableConcept`, summary true, example-bound to `location-physical-type`.",
+          "R6 StructureDefinition: `Location.form` is 0..1 `CodeableConcept`, summary true, and `Location.physicalType` is absent.",
+          "Local value sets: R4 `location-physical-type` and R6 `location-form` both include `http://terminology.hl7.org/CodeSystem/location-physical-type`."
+        ],
+        "fmmEffect": "Trial-use/FMM 3 softens the stability expectation compared with normative content, but this mature path had a simple stable representation and the R6 resource is now normative/FMM 5; a mostly cosmetic rename should carry a high justification burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `Location.physicalType` are rejected by strict R6 validation, and generated code/FHIRPath references to the old property break.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `physicalType` with updated wording to include virtual forms, or added `form` while keeping `physicalType` as a deprecated alias for at least a transition. The main tradeoff is living with a less ideal legacy name or duplicate alias metadata, which is modest compared with a wire-level rename.",
+        "comparisonToExisting": "agree with the existing Yes alternative judgment and with treating the change as significant, though the operational safety risk is lower than the overall High label suggests."
+      }
     },
     {
       "findingId": "Location:TYPE_DOMAIN:Location.hoursOfOperation:b48fa4",
@@ -756,7 +784,21 @@
       "migrationGuidanceMd": "Upgrade transforms should create one `Location.hoursOfOperation` object, append each R4 repetition to `availableTime`, map `openingTime` to `availableStartTime`, map `closingTime` to `availableEndTime`, and preserve `daysOfWeek` and `allDay`. Test multiple intervals per day, all-day availability, omitted times, and profiles that previously sliced or constrained the R4 backbone.",
       "backwardCompatibilityAnalysisMd": "The reusable datatype likely reduces duplication across resources, but an additive compatibility period could have avoided breaking existing instances. A profile-only or extension-based introduction would have been less disruptive but weaker as a standard base-model guarantee.",
       "reviewerNotesMd": "Check whether any implementation serializes `hoursOfOperation` as a singleton despite max `*`; those systems still need child-name and type migration even if the outer cardinality does not visibly change in their data.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Location:TYPE_DOMAIN:Location.hoursOfOperation:b48fa4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps the `hoursOfOperation` name but changes the shape from repeated R4 backbone entries to one `Availability` value with nested `availableTime` entries and different child names. Raw R4 JSON will not validate as R6, and generated model classes change. However, the core R4 opening-hours fields have direct R6 counterparts, and the new datatype gives a reusable place for structured exceptions, so the break appears tied to a substantive modeling improvement rather than a simple rename.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Location.hoursOfOperation` is 0..* `BackboneElement` with `daysOfWeek`, `allDay`, `openingTime`, and `closingTime`.",
+          "R6 StructureDefinition: `Location.hoursOfOperation` is 0..1 `Availability` and includes exceptions in its definition.",
+          "R6 `Availability.availableTime` repeats and has `daysOfWeek`, `allDay`, `availableStartTime`, and `availableEndTime`; `Availability.notAvailableTime` represents unavailable periods."
+        ],
+        "fmmEffect": "FMM 3/trial-use means compatibility matters for directory scheduling data, but it also leaves room for a proportionate refactor when the new model solves a broader recurring availability problem.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with the old backbone array and child names do not match the R6 `Availability` shape; generated API classes and R6-to-R4 conversion of richer exception data also change.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could keep the R4 backbone as deprecated or introduce a separate Availability-valued element while leaving `hoursOfOperation` unchanged. That would preserve old instances, but it would maintain two schedule models, require precedence and reconciliation rules, and make adoption of the reusable `Availability` datatype less clean.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment: the break is real, but the alternative carries enough duplicate-model cost that I judge the R6 change probably acceptable."
+      }
     },
     {
       "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.availabilityExceptions:e41e40",
@@ -906,7 +948,21 @@
       "validationAndCompatibilityMd": "R4 data with `availabilityExceptions` is old-valid/new-invalid until moved. R6 data with multiple `notAvailableTime` entries or `during` periods can be downgraded only by concatenating text or using extensions, so round-trip fidelity is limited.",
       "migrationGuidanceMd": "Upgrade by creating or reusing `Location.hoursOfOperation` and adding a `notAvailableTime` entry whose `description` contains the R4 text. Do not invent `during` periods unless source data supports them. Downgrade should preserve R6 descriptions in `availabilityExceptions` only when a single textual summary is acceptable; otherwise use extensions or manual review.",
       "backwardCompatibilityAnalysisMd": "The structured model is likely better for computable closures, but a deprecated text field could have preserved old instances and let systems gradually adopt periods. The compatibility alternative mainly trades model cleanliness for data continuity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.availabilityExceptions:e41e40",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4's single free-text `availabilityExceptions` element is removed and the exception concept moves into structured `Availability.notAvailableTime` content under R6 `hoursOfOperation`. Old instances with the text field need transformation, but the R6 model can preserve the text as a description and can add dates or periods that R4 could not carry. The compatibility burden is real, yet it is paired with a clearer model for closures and exceptional availability.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Location.availabilityExceptions` is 0..1 `string` describing departures from normal opening hours.",
+          "R6 StructureDefinition: `Location.availabilityExceptions` is absent and `Location.hoursOfOperation` is defined as including exceptions.",
+          "R6 `Availability.notAvailableTime.description` is a 0..1 string and `notAvailableTime.during` is a 0..1 `Period`."
+        ],
+        "fmmEffect": "At FMM 3/trial-use, removing a scheduling text field should not be dismissed, but the maturity level still permits a proportionate move from unstructured text into a reusable structured availability datatype.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `availabilityExceptions` use a removed top-level element; R6-to-R4 conversion of multiple dated exception periods can be lossy.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained deprecated `availabilityExceptions` as a free-text shortcut mapped to `hoursOfOperation.notAvailableTime.description`. That would preserve old text, but it would leave closure information in two places and weaken the move to structured unavailable periods.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative judgment: the old field removal is a genuine break, but the structured replacement makes the less-breaking alternative less attractive."
+      }
     },
     {
       "findingId": "Location:TERMINOLOGY_BINDING:Location.type:b08461",
@@ -1079,7 +1135,21 @@
       "migrationGuidanceMd": "Inventory existing `Location.type` code systems and downstream use. Do not blindly copy all R4 `type` codings as R6 service types unless their meaning is service availability. Use an official ConceptMap if one becomes available; otherwise document local mapping decisions and preserve unmapped codings as translations or extensions where necessary.",
       "backwardCompatibilityAnalysisMd": "A new path for service types would have made the semantic shift explicit and avoided overloading old `type` consumers. The chosen design keeps the familiar path but requires migration review to prevent silent interpretation errors.",
       "reviewerNotesMd": "This finding has high structural confidence but only medium terminology-mapping confidence because no expansion or ConceptMap was available.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Location:TERMINOLOGY_BINDING:Location.type:b08461",
+        "judgment": "Revisit",
+        "narrativeMd": "`Location.type` remains structurally valid as repeating `CodeableConcept`, but its meaning changes from the function performed at the location to services available at the location, and its terminology changes from an extensible v3 role-type value set to a preferred service-type value set. This is a silent semantic break: existing data can pass validation while downstream directory, routing, referral, or eligibility logic reads the same path with a different interpretation.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Location.type` means type of function performed at the location and is extensible-bound to `v3-ServiceDeliveryLocationRoleType`.",
+          "R6 StructureDefinition: `Location.type` means types of services available at this location and is preferred-bound to `service-type`.",
+          "Local value sets use different terminology families: v3 RoleCode for R4 and `http://terminology.hl7.org/CodeSystem/service-type` for R6."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not prohibit semantic evolution, but this is a mature, summary directory classification field; the risk is not just churn but silent misclassification on a path implementers already know.",
+        "compatibilityMechanism": "semantic/documentation: old data is usually still syntactically valid, but the same path now carries a different business meaning and validation/code-generation policies may materialize a different code set.",
+        "lessBreakingAlternativeAssessment": "A clearer less-breaking design would keep `Location.type` for role or function, possibly deprecated, and add a distinct service-type element for available services. That adds another classification field, but it avoids repurposing an existing path and makes migration intent explicit.",
+        "comparisonToExisting": "agree with the existing Medium impact and Yes alternative judgment; the absence of a hard validation break does not remove the need to revisit the semantic repurposing."
+      }
     },
     {
       "findingId": "Location:TYPE_DOMAIN:Location.description:f3e262",
@@ -1213,7 +1283,21 @@
       "validationAndCompatibilityMd": "Typical R4 strings should remain valid R6 markdown content. R6 markdown can be downgraded to an R4 string textually, but the fact that the content is intended for markdown rendering is not represented in R4. The main compatibility issue is codegen and UI processing, not base instance rejection.",
       "migrationGuidanceMd": "Update generated types and UI rendering/sanitization pipelines for `Location.description`. Treat migrated R4 text as plain markdown-safe text. When downgrading, preserve the raw text and document that rendering intent may be lost.",
       "backwardCompatibilityAnalysisMd": "Because serialization stays string-like, this is a relatively safe way to add formatting semantics. The less-breaking alternative of retaining `string` would avoid type changes but would not communicate markdown support to tooling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Location:TYPE_DOMAIN:Location.description:f3e262",
+        "judgment": "No problem",
+        "narrativeMd": "Changing `Location.description` from `string` to `markdown` does not create a meaningful instance-compatibility issue because both are primitive JSON strings and ordinary R4 description text remains representable. The main effect is tooling and rendering behavior: generated primitive wrappers or display sanitization may change, but the wire content is not invalidated by the type label alone.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Location.description` is 0..1 `string`.",
+          "R6 StructureDefinition: `Location.description` is 0..1 `markdown`.",
+          "R6 `markdown` primitive is defined as a string that may contain GitHub Flavored Markdown syntax, and systems are not required to process markdown."
+        ],
+        "fmmEffect": "Even with FMM 3/trial-use maturity, the compatibility mechanism is too small to justify concern; maturity does not turn a same-wire-shape primitive clarification into a hard break.",
+        "compatibilityMechanism": "metadata/tooling: the primitive label and rendering expectations change, but old string-valued JSON remains a string-valued element in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed. Keeping `string` would avoid some generated-type churn, but it would also fail to signal markdown rendering semantics; because old instances remain representable, this is not a design problem.",
+        "comparisonToExisting": "agree with the existing Low impact and Not applicable alternative judgment."
+      }
     },
     {
       "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.virtualService:4e9d6d",
@@ -1332,7 +1416,21 @@
       "validationAndCompatibilityMd": "Old R4 instances remain valid with respect to this addition. R6 instances using `virtualService` are not R4-valid unless the content is transformed to extensions or external records. Strict R4 parsers will reject the element.",
       "migrationGuidanceMd": "For R6-to-R4 downgrade, define a cross-version extension strategy or preserve virtual connection details in an associated scheduling/appointment context when appropriate. Avoid silently dropping `sessionKey`, `additionalInfo`, or dial-in addresses if they are needed for access.",
       "backwardCompatibilityAnalysisMd": "The additive design is backward-compatible in the upgrade direction. No base R4-compatible representation exists except extensions, so a fully backward-compatible alternative would have required standardizing such an extension before or alongside the R6 element.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.virtualService:4e9d6d",
+        "judgment": "No problem",
+        "narrativeMd": "`Location.virtualService` is an optional R6 addition. It does not invalidate any R4 Location when moving forward to R6. A system that must down-convert R6 virtual connection details to pure R4 may lose channel type, address choice, additional info, participant limits, or session key, but that is the normal reverse-direction limitation of adding useful new optional content, not a reason to revisit the R6 base design.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `Location.virtualService` is 0..* `VirtualServiceDetail`; no corresponding R4 Location element exists.",
+          "R6 `VirtualServiceDetail` includes channel type, `address[x]`, additional info, max participants, and session key.",
+          "R4 StructureDefinition element list has no `Location.virtualService`."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not add stability pressure against optional additions. The change improves R6 expressiveness while preserving all R4 instances in the upgrade direction.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using the new optional element cannot be represented losslessly in R4 core, but there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base alternative is needed for an optional addition. R4 extensions or cross-version mappings can mitigate downgrade loss, but they are not a less-breaking R6 base design.",
+        "comparisonToExisting": "disagree with the existing Medium overall concern while agreeing that downgrade loss exists; for fresh R4-to-R6 review this is an additive no-problem change."
+      }
     },
     {
       "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.code-characteristic:d5e335",
@@ -1454,7 +1552,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is unaffected when these fields are absent. R6 instances containing them will fail R4 validation as unknown elements and cannot be round-tripped without an extension or external mapping convention.",
       "migrationGuidanceMd": "When downgrading, decide whether `code` should become an extension, a local identifier, or be omitted; do not automatically merge it into `Location.identifier` unless the code truly functions as an identifier. Preserve `characteristic` as a standard or local extension if directory behavior depends on it.",
       "backwardCompatibilityAnalysisMd": "Additive optional fields are the normal backward-compatible way to evolve a resource in the forward direction. Complete cross-version compatibility would require paired R4 extensions and mapping rules, which were not present in the supplied inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.code-characteristic:d5e335",
+        "judgment": "No problem",
+        "narrativeMd": "`Location.code` and `Location.characteristic` are optional R6 additions for geospatial/administrative codes and attributes such as wheelchair accessibility. They do not make any R4 instance invalid and do not force existing R4 clients to change when upgrading. Pure R4 down-conversion may need extensions or may lose the new classifications, but that is an expected cost of adding optional expressive fields.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `Location.code` is 0..* `CodeableConcept` for geospatial or administrative codes.",
+          "R6 StructureDefinition: `Location.characteristic` is 0..* `CodeableConcept` for attributes such as wheelchair accessibility.",
+          "R4 StructureDefinition element list has no `Location.code` or `Location.characteristic`."
+        ],
+        "fmmEffect": "The artifact's FMM 3/trial-use maturity does not weigh against additive optional fields that preserve R4 instances; any concern is limited to reverse conversion of new R6 content.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using these optional additions have no lossless R4 core target, but there is no forward R4-to-R6 validation or API break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base alternative is needed. Standard or local R4 extensions can carry similar concepts during downgrade, but those are migration mitigations rather than changes to the R6 base model.",
+        "comparisonToExisting": "disagree with the existing Medium overall concern while agreeing that pure R4 round-trip can lose new R6 data; this additive change is not a meaningful compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1628,5 +1740,19 @@
       "Location/service terminology migrations from role/function to service-type",
       "R6 virtualService adoption across scheduling and directory resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Location.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 2,
+      "No problem": 3
+    }
   }
 }

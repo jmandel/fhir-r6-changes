@@ -249,7 +249,23 @@
       "validationAndCompatibilityMd": "R4-valid content that includes `graph` becomes R6-invalid as a base instance. This affects R4→R6 validation and parsers that reject unknown elements. It does not create a significant R6→R4 representability issue because R6 has no corresponding field to map back.",
       "migrationGuidanceMd": "Inventory R4 `MessageDefinition` instances with `graph`. For each one, decide whether the referenced `GraphDefinition` information belongs in a profile, implementation guide rule, extension, or external migration note. A transform cannot be assumed lossless because R6 does not expose a direct target element.",
       "backwardCompatibilityAnalysisMd": "The removal could have been less disruptive if R6 retained the element as deprecated or provided a mapped successor. Because neither is visible in the base StructureDefinition, old content needs explicit migration policy rather than automatic field renaming.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MessageDefinition:ELEMENT_PRESENCE_OR_IDENTITY:MessageDefinition.graph:1f4a9e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "This is a real forward-compatibility break for the narrow case where an R4 MessageDefinition actually populated `graph`: the R6 base resource has no such element, so strict validators and generated R6 models have nowhere to put the old canonical references. If used, the element could carry meaningful bundle-construction intent, so migration may need a conscious replacement strategy rather than a blind drop. The design concern is softened because MessageDefinition is FMM 1/trial-use, the local R6 package no longer includes GraphDefinition as a resource, and a quick check did not show strong evidence of broad production dependence on this path. Retaining the field would also imply retaining support for a removed modeling mechanism, so the break appears proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot has MessageDefinition.graph 0..* canonical and describes it as a GraphDefinition reference controlling resources added to the bundle and profiles.",
+          "R6 StructureDefinition-MessageDefinition has no MessageDefinition.graph element.",
+          "R6 package glob found no StructureDefinition-GraphDefinition.json, while R4 does contain GraphDefinition.",
+          "R4 maturity map reports MessageDefinition as FMM 1 and trial-use.",
+          "Lightweight web/local example check found examples and messaging references, but no strong evidence of broad production use of MessageDefinition.graph."
+        ],
+        "fmmEffect": "FMM 1/trial-use substantially softened the stability concern; I treated this as a narrow path-level break rather than evidence of broad deployed impact.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance containing MessageDefinition.graph is not valid against the R6 base StructureDefinition; generated R6 models also lose the path.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could keep graph as a deprecated optional legacy element, but because R6 also removes GraphDefinition, that would preserve a pointer to an obsolete resource model and increase validator/model burden. That tradeoff makes the alternative only partially attractive.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative assessment: the hard break is real, but low FMM, no quick production-use evidence, and GraphDefinition removal make it less revisit-worthy than the current high-impact framing suggests."
+      }
     },
     {
       "findingId": "MessageDefinition:TERMINOLOGY_BINDING:MessageDefinition.focus.code:7c2d41",
@@ -662,7 +678,23 @@
       "migrationGuidanceMd": "Scan all `focus.code` values. Codes still present in R6 can be carried forward. Codes removed from the R6 ValueSet need resource-specific migration decisions, often involving renamed/replaced resources or retiring the message definition. R6-only codes need extensions or cannot be represented as valid R4 `focus.code` values. Test mappings for each removed or added code used by local definitions.",
       "backwardCompatibilityAnalysisMd": "The strict change is understandable because `focus.code` should refer to resources in the active release, but it could have been made easier to bridge by publishing an explicit cross-version ConceptMap or retaining legacy codes as deprecated in a version-independent resource-type ValueSet.",
       "reviewerNotesMd": "Removed-code impact depends on whether real MessageDefinition instances used the removed resource types. The package did not contain R4 MessageDefinition examples to estimate prevalence.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageDefinition:TERMINOLOGY_BINDING:MessageDefinition.focus.code:7c2d41",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The element shape is stable, but the required resource-type domain follows the FHIR release. R4 MessageDefinitions focused on resource codes removed by R6 can become invalid, and generated enums or dispatch tables may need updates. That is a concrete break, but it is tied to the broader fact that those resource types are no longer R6 resources or have been replaced. Keeping `focus.code` aligned with the current release is a coherent base-model goal, and broadening a required binding to include obsolete R4-only resource codes would make R6 MessageDefinition less precise. With MessageDefinition at FMM 1 and no strong evidence of broad production dependence, the migration burden appears acceptable.",
+        "keyEvidence": [
+          "R4 MessageDefinition.focus.code is 1..1 code with required binding to http://hl7.org/fhir/ValueSet/resource-types|4.0.1.",
+          "R6 MessageDefinition.focus.code is still 1..1 code but required-bound to http://hl7.org/fhir/ValueSet/resource-types|6.0.0-ballot4.",
+          "Current report terminology comparison identifies 41 R4 resource codes absent from the R6 ValueSet and 20 R6 codes absent from R4.",
+          "Examples of removed R4 codes include GraphDefinition, DocumentManifest, RequestGroup, SupplyRequest, TestScript, and VerificationResult.",
+          "R4 maturity map reports MessageDefinition as FMM 1 and trial-use."
+        ],
+        "fmmEffect": "FMM 1/trial-use lowered the expectation that R6 preserve every R4 resource-code value in this low-maturity messaging artifact.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 MessageDefinition.focus.code using an R4-only resource code fails the R6 required binding; runtime/API/codegen enum dispatch can also break.",
+        "lessBreakingAlternativeAssessment": "R6 could define a version-spanning or legacy-inclusive resource-type ValueSet, but that would weaken the meaning of a required binding to resources available in the current release and would force consumers to handle focus codes for resources R6 cannot validate as resources. A ConceptMap is useful migration support, but not a less-breaking base design.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative assessment: the break is real for removed codes, but the less-breaking alternative has larger semantic costs than the current report implies."
+      }
     },
     {
       "findingId": "MessageDefinition:ELEMENT_PRESENCE_OR_IDENTITY:MessageDefinition.versionAlgorithm-copyrightLabel:a82b65",
@@ -860,7 +892,22 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid merely because R6 added optional fields. However, an R6 instance containing either field is not directly valid as R4 unless the information is dropped or converted to extensions. The risk is data loss or converter failure rather than R4→R6 validation failure.",
       "migrationGuidanceMd": "For R4→R6, no action is required unless implementations want to populate the new metadata. For R6→R4, decide whether to drop the values, use extensions, or block conversion when version ordering/copyright rendering metadata must be preserved. Test both `versionAlgorithmString` and `versionAlgorithmCoding` branches.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the least disruptive base-resource design for new capabilities. They still need cross-version extension guidance for lossless downgrade, but preserving R4 wire compatibility while adding first-class R6 metadata is reasonable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MessageDefinition:ELEMENT_PRESENCE_OR_IDENTITY:MessageDefinition.versionAlgorithm-copyrightLabel:a82b65",
+        "judgment": "No problem",
+        "narrativeMd": "These are optional R6 metadata additions. Existing R4 MessageDefinition instances do not need to contain them and do not become invalid because R6 added them. The only real compatibility issue is reverse conversion or downgrade loss when an R6 instance uses `versionAlgorithm[x]` or `copyrightLabel`, which is not a base R4-to-R6 break for old content.",
+        "keyEvidence": [
+          "R6 adds MessageDefinition.versionAlgorithm[x] as 0..1 string|Coding with an extensible version-algorithm binding.",
+          "R6 adds MessageDefinition.copyrightLabel as 0..1 string.",
+          "R4 MessageDefinition has no versionAlgorithm[x] or copyrightLabel elements.",
+          "Both new R6 elements are optional additions."
+        ],
+        "fmmEffect": "FMM 1/trial-use did not need to soften anything material because optional additions do not create a forward compatibility concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 instance using the new metadata cannot be represented in base R4 without dropping it or using extensions, but R4-valid instances remain R6-valid on this point.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed. Optional addition is already the compatibility-preserving way to add first-class metadata.",
+        "comparisonToExisting": "disagree with the existing medium-impact framing while agreeing that no less-breaking alternative is needed; the report treats reverse-conversion loss as more important than the requested R4-to-R6 path warrants."
+      }
     },
     {
       "findingId": "MessageDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:MessageDefinition.jurisdiction:bd91c0",
@@ -1014,7 +1061,22 @@
       "migrationGuidanceMd": "Review each use of `jurisdiction`. If it identifies the maintaining authority, keep it. If it identifies intended use, copy or move it to `useContext` with `usage-context-type#jurisdiction`, while deciding whether to retain `jurisdiction` for backward compatibility. Test search/indexing logic that filters by jurisdiction.",
       "backwardCompatibilityAnalysisMd": "Changing the meaning in place is disruptive because no wire-format signal marks old semantics. A separate new element would have avoided that ambiguity, but the R6 design appears to prefer consistency with canonical-resource metadata patterns.",
       "reviewerNotesMd": "The exact terminology expansion of `http://terminology.hl7.org/ValueSet/jurisdiction` was not available in the core package, so binding-content equivalence was not fully verified.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:MessageDefinition.jurisdiction:bd91c0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The wire shape did not change, but the meaning did: R4 used `jurisdiction` for intended use jurisdiction, while R6 uses it for the jurisdiction of the maintaining authority and points intended-use jurisdiction toward `useContext`. A migrated R4 instance can therefore validate while being semantically misleading in catalogue search, publication, or governance workflows. That is a real semantic migration issue, but it is metadata-level, not a hard instance break, and R6 gives a migration direction. Given MessageDefinition's FMM 1 status, the standards-alignment goal looks proportionate.",
+        "keyEvidence": [
+          "R4 MessageDefinition.jurisdiction is 0..* CodeableConcept with extensible jurisdiction binding and definition 'region in which the message definition is intended to be used'.",
+          "R6 MessageDefinition.jurisdiction remains 0..* CodeableConcept but is defined as the jurisdiction where the maintaining authority operates.",
+          "R6 comment says implementations are encouraged to migrate intended-use jurisdiction to useContext with usage-context-type#jurisdiction.",
+          "R4 maturity map reports MessageDefinition as FMM 1 and trial-use."
+        ],
+        "fmmEffect": "FMM 1/trial-use softened the concern from revisit-level despite a genuine semantic shift, because this is optional metadata on a low-maturity artifact.",
+        "compatibilityMechanism": "semantic/documentation: old data still validates, but unchanged R4 values can be interpreted as authority jurisdiction rather than intended-use jurisdiction in R6.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept jurisdiction as intended-use jurisdiction and added a separate authority-jurisdiction element, preserving old semantics. The tradeoff is divergence from the broader canonical-resource metadata alignment and duplicate jurisdiction channels, while R6 already offers useContext as the intended-use home.",
+        "comparisonToExisting": "partially agree with the existing medium-impact and partial-alternative assessment: the semantic risk is real, but the base-design rationale and low FMM make it probably acceptable."
+      }
     },
     {
       "findingId": "MessageDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:MessageDefinition.experimental:e63b5f",
@@ -1134,7 +1196,23 @@
       "validationAndCompatibilityMd": "There is no base validation break because cardinality and type are unchanged. The break is semantic and runtime: lifecycle filters, publication pipelines, and production deployment checks may need new rules for interpreting historical R4 `experimental=true` values.",
       "migrationGuidanceMd": "Do not blindly carry `experimental=true` forward if local governance used it as a temporary pre-production marker. Review whether the artifact is permanently example/test content. If it is expected to become production content, consider setting `experimental=false` in R6 with documented rationale or using other lifecycle metadata.",
       "backwardCompatibilityAnalysisMd": "The R6 clarification likely prevents misuse of the flag, but redefining an existing boolean creates ambiguity for migrated artifacts. A separate maturity or production-readiness field would have been less ambiguous but more complex.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:MessageDefinition.experimental:e63b5f",
+        "judgment": "No problem",
+        "narrativeMd": "R6 strengthens the lifecycle explanation for `experimental`, especially by saying that true means no version of the resource is intended for genuine use. But the R4 element already meant the MessageDefinition was for testing, education, evaluation, or marketing and not for genuine usage. The path, cardinality, and type are unchanged, and old instances remain valid. The practical issue is mostly publication or lifecycle policy for systems that used `experimental` as a temporary draft flag, not a material base compatibility problem for this low-maturity artifact.",
+        "keyEvidence": [
+          "R4 MessageDefinition.experimental is 0..1 boolean with definition that the message definition is for testing/education/evaluation/marketing and not genuine usage.",
+          "R6 MessageDefinition.experimental remains 0..1 boolean and says no version of the resource will ever be intended for genuine usage.",
+          "R6 comment adds lifecycle guidance that experimental should remain true across versions if true for any version.",
+          "Local R6 MessageDefinition examples use experimental=true; local R4 package did not include MessageDefinition example resources.",
+          "R4 maturity map reports MessageDefinition as FMM 1 and trial-use."
+        ],
+        "fmmEffect": "FMM 1/trial-use strongly softened the concern; without evidence of production reliance on a transient per-version interpretation, I did not treat the wording change as a significant break.",
+        "compatibilityMechanism": "semantic/documentation: the boolean wire format is unchanged; only lifecycle interpretation and tooling policy may shift.",
+        "lessBreakingAlternativeAssessment": "R6 could preserve the looser per-version wording and add a separate 'never production' indicator, but that would add metadata complexity for a distinction that is already close to the R4 wording. A separate base element is not justified for this path.",
+        "comparisonToExisting": "disagree with the existing medium-impact and yes-alternative assessment: the report correctly noticed stronger wording, but I do not see a material compatibility problem or a clearly better base design for MessageDefinition."
+      }
     },
     {
       "findingId": "MessageDefinition:VALUE_CONSTRAINT:MessageDefinition.url-name:0b9c77",
@@ -1261,7 +1339,22 @@
       "validationAndCompatibilityMd": "Under standard severity handling, R4 instances do not become R6-invalid because these constraints are warnings. Compatibility risk appears when local policy treats warnings as errors or when generated code assumes names and URLs satisfy the stronger R6 patterns.",
       "migrationGuidanceMd": "Normalize `url` values to avoid `|`, `#`, and spaces, and prefer names with at least two code-generation-friendly characters. Do not fail bulk migration solely on these warning constraints unless local governance explicitly requires warning-free artifacts.",
       "backwardCompatibilityAnalysisMd": "Keeping the changes as warnings is a backward-compatible mitigation. Making them errors would have been substantially more disruptive. The remaining issue is operational rather than structural.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MessageDefinition:VALUE_CONSTRAINT:MessageDefinition.url-name:0b9c77",
+        "judgment": "No problem",
+        "narrativeMd": "The constraints are warning-level processability checks, not hard validity rules. R6 adds a URL warning against `|`, `#`, and spaces and changes the name warning to the common canonical-resource pattern. A local pipeline that treats warnings as errors may need configuration or data cleanup, but base R6 validation does not reject otherwise valid R4 MessageDefinition instances on these constraints.",
+        "keyEvidence": [
+          "R4 root constraint msd-0 is severity warning for machine-friendly name matching [A-Z]([A-Za-z0-9_]){0,254}.",
+          "R6 root constraint cnl-0 is severity warning for canonical-resource name matching ^[A-Z]([A-Za-z0-9_]){1,254}$.",
+          "R6 MessageDefinition.url has cnl-1 severity warning prohibiting |, #, and spaces.",
+          "The relevant constraints are warnings rather than errors."
+        ],
+        "fmmEffect": "FMM 1/trial-use further lowers concern, but the main reason is that warning-level constraints do not create base old-valid/new-invalid behavior.",
+        "compatibilityMechanism": "warning-level: warning-as-error tooling may fail locally, but base validation severity remains warning.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed. Warning-level constraints are already the less-breaking alternative to cardinality, type, or error-level restrictions.",
+        "comparisonToExisting": "agree with the existing low-impact and not-applicable alternative judgment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1429,5 +1522,18 @@
       "Required bindings to release-specific resource type ValueSets",
       "Removal of GraphDefinition references from message-related artifacts"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MessageDefinition.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 3,
+      "No problem": 3
+    }
   }
 }

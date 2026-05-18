@@ -305,7 +305,23 @@
       "migrationGuidanceMd": "Inventory all R4 `ImmunizationEvaluation` records and consumers before upgrading. Do not merely drop the resource: decide an explicit R6 representation, preserve links to the evaluated `Immunization`, retain evaluation outcome and reason semantics, and update API/search/codegen layers. If no official replacement is available, use a governed extension/profile or retained legacy store and add tests that an example R4 record either converts losslessly or is intentionally quarantined.",
       "backwardCompatibilityAnalysisMd": "The removal could have been less disruptive if R6 retained the resource as deprecated or provided a standard replacement artifact and conversion map. Those alternatives preserve old validation and interoperability at the cost of keeping legacy model surface. Because no such artifact is visible in the supplied package, the change is not backward compatible for existing instances.",
       "reviewerNotesMd": "Confirm against official R6 ballot narrative or change notes before finalizing production guidance. The local package evidence is sufficient for validation impact but not for standards-process rationale.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImmunizationEvaluation:ARTIFACT_IDENTITY:root:83a7e2b1",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 defines `ImmunizationEvaluation` as a concrete resource, but the supplied R6 ballot package has no matching StructureDefinition or package-index entry. That makes an R4 instance using `resourceType: ImmunizationEvaluation` fail strict R6 validation and removes the usual server route, generated class, and resource-type enum surface. Low maturity means the removal is not automatically disproportionate, but the resource carries dose-validity conclusions that are directly relevant to immunization forecasting and public-health exchange, and I found implementation-guide evidence that the resource has been profiled outside core. The absence of an obvious first-class R6 successor therefore deserves standards/design attention rather than being treated as harmless retirement.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ImmunizationEvaluation.json defines url http://hl7.org/fhir/StructureDefinition/ImmunizationEvaluation, kind resource, type ImmunizationEvaluation, FMM 0, standards status trial-use.",
+          "Supplied R6 path StructureDefinition-ImmunizationEvaluation.json is absent and the R6 package .index.json query returned no ImmunizationEvaluation or immunization-evaluation entries.",
+          "R6 StructureDefinition-Immunization.json contains protocolApplied fields but no separate evaluation resource identity.",
+          "FHIR R5 ImmunizationEvaluation page says evaluating administered doses is central to ensuring protection and prerequisite to generating patient-specific immunization recommendations: https://fhir.hl7.org/fhir/immunizationevaluation.html",
+          "QI-Core STU6 publishes a qicore-immunizationevaluation profile for querying and retrieving a patient's Immunization Evaluation: https://www.hl7.org/fhir/us/qicore/STU6/StructureDefinition-qicore-immunizationevaluation.html"
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability expectation and makes resource retirement more plausible than it would be for mature content. I did not let FMM eliminate the concern because the domain is public-health/safety relevant and an official IG profile shows implementation relevance.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 resource instance has a resourceType that is not defined in the supplied R6 package; runtime/API/codegen surfaces also disappear.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained the resource as deprecated, informative, or transition-only while pointing new implementations to a successor pattern. The tradeoff is real maintenance and possible duplicate representations, but preserving the resource identity is a straightforward base-design compatibility path.",
+        "comparisonToExisting": "partially agree: I agree this is a hard identity break with a plausible less-breaking alternative, but the prior Critical framing should be tempered by FMM 0 and limited direct production-use evidence."
+      }
     },
     {
       "findingId": "ImmunizationEvaluation:CONVERSION_OR_MAPPING:root:1f7cd957",
@@ -456,7 +472,23 @@
       "migrationGuidanceMd": "Define a mapping table for every R4 local element. Treat `series`, `authority`, `targetDisease`, `doseNumber[x]`, and `seriesDoses[x]` as only partial candidates for `Immunization.protocolApplied`. Preserve `identifier`, `status`, `date`, `patient`, `immunizationEvent`, `doseStatus`, `doseStatusReason`, and `description` through extensions, related resources, or a retained legacy store unless official R6 guidance supplies another target. Test both valid and not-valid dose evaluations.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative would have supplied an explicit successor model or retained the old resource long enough to allow gradual migration. The partial structural overlap in `Immunization` is not enough because it lacks the evaluation result and lifecycle semantics.",
       "reviewerNotesMd": "If official R6 narrative recommends `Observation` or a specific extension for immunization evaluation, this finding should be updated to reference that replacement and reassess losslessness.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImmunizationEvaluation:CONVERSION_OR_MAPPING:root:1f7cd957",
+        "judgment": "Revisit",
+        "narrativeMd": "The conversion issue is not just that the old resource name vanished. The R4 resource records an evaluation result with its own identity, date, evaluated Immunization reference, target disease, dose status, reasons, and series position. R6 `Immunization.protocolApplied` can carry some protocol context, but its definition is about the protocol followed by the provider administering the dose, not a retrospective determination that the dose counted or did not count. A converter therefore needs policy or expert judgment and may lose or conflate clinically meaningful evaluation facts.",
+        "keyEvidence": [
+          "R4 differential includes patient, date, authority, targetDisease, immunizationEvent, doseStatus, doseStatusReason, description, series, doseNumber[x], and seriesDoses[x].",
+          "R6 Immunization.protocolApplied is optional 0..* and defined as the protocol followed by the provider who administered the dose.",
+          "R6 Immunization.protocolApplied.doseNumber and seriesDoses are CodeableConcept elements about intended practitioner protocol, not R4 positiveInt|string evaluation fields.",
+          "Local R6 Immunization element scan found status/statusReason, isSubpotent/subpotentReason, and protocolApplied, but no doseStatus or doseStatusReason equivalent.",
+          "FHIR R5 ImmunizationEvaluation content describes the resource as communicating whether a vaccine administration event was valid or not valid relative to recommendations."
+        ],
+        "fmmEffect": "FMM 0/trial-use reduces the presumption that R6 must preserve the exact R4 model. It does not remove the need to revisit the mapping gap because the migration is lossy and the affected facts are used for public-health and safety-sensitive immunization decision support.",
+        "compatibilityMechanism": "semantic/documentation: after the structural removal, the remaining R6 candidate fields do not preserve the same evaluation semantics, so R4-to-R6 conversion can drop or misstate dose-validity facts.",
+        "lessBreakingAlternativeAssessment": "Partial. A base R6 successor resource or evaluation backbone could preserve the evaluation outcome while allowing the old resource to retire, or the old resource could be retained during transition. Both approaches reduce data loss but create duplicate-representation and governance costs; extensions or ConceptMaps alone would be mitigations, not a less-breaking base design.",
+        "comparisonToExisting": "partially agree: I agree the mapping risk is high and the alternative is only partial, but the potential-hard-break wording is derivative of the resource removal rather than an independent validation mechanism for this finding."
+      }
     },
     {
       "findingId": "ImmunizationEvaluation:TERMINOLOGY_BINDING:doseStatus:8dba1882",
@@ -619,7 +651,23 @@
       "migrationGuidanceMd": "Preserve `doseStatus` and `doseStatusReason` explicitly during migration. If using extensions, bind them to the original code systems or an officially mapped successor and keep the evaluated `Immunization` link. Do not map `doseStatus=notvalid` to `Immunization.status=entered-in-error` or `not-done`; those statuses have different meanings.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative would have kept the terminology artifacts and exposed a standard R6 path for evaluation outcome. Without that, implementations must create local conventions, which increases interoperability risk.",
       "reviewerNotesMd": "Terminology confidence would improve by checking the current external THO package and any R6 narrative guidance for retained or renamed immunization-evaluation code systems.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImmunizationEvaluation:TERMINOLOGY_BINDING:doseStatus:8dba1882",
+        "judgment": "Revisit",
+        "narrativeMd": "`doseStatus` was the mandatory R4 element that carried whether the evaluated dose counted, with standard example terminology for `valid` and `notvalid`. Because the R6 package removes the resource and has no evident equivalent path, the issue is a semantic/runtime loss rather than a standalone binding-strength validation break. The binding was only example strength, which softens the compatibility claim, but the lost status values are central to the resource's purpose and to downstream forecasting, audit, and public-health logic.",
+        "keyEvidence": [
+          "R4 ImmunizationEvaluation.doseStatus is 1..1 CodeableConcept with example binding to ValueSet/immunization-evaluation-dose-status.",
+          "R4 CodeSystem-immunization-evaluation-dose-status defines valid and notvalid.",
+          "R4 dose-status-reason code system includes reasons such as coldchbrk, explot, outsidesched, prodrecall, and advstorage.",
+          "R6 Immunization.status is about the immunization event itself, and statusReason is for not-done or entered-in-error rather than dose validity.",
+          "R6 Immunization.isSubpotent/subpotentReason can address potency-related issues but not the broader schedule-validity evaluation represented by doseStatus."
+        ],
+        "fmmEffect": "FMM 0/trial-use and the example binding strength both soften the stability concern; conformant R4 instances were not required to use only the example codes. The concern remains because dose validity is safety/public-health relevant and the status element is mandatory within the R4 resource.",
+        "compatibilityMechanism": "semantic/documentation: the terminology change is not an independent old-valid/new-invalid break from binding strength, but losing the first-class doseStatus path and standard valid/notvalid vocabulary can change decision-support and reporting behavior.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could retain the dose-validity CodeSystem/ValueSets and provide an equivalent base path in a retained or successor model. That would preserve core semantics, but it may perpetuate legacy terminology and requires rules if R6 also wants dose validity represented elsewhere.",
+        "comparisonToExisting": "partially agree: I agree that losing valid/notvalid semantics is important, but the previous High runtime framing overstates the terminology binding by itself because it was example strength and the larger break comes from resource removal."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -761,5 +809,17 @@
       "R4 clinical evaluation resources merged into event resources",
       "R4 example-bound local terminology lost during resource retirement"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ImmunizationEvaluation.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3
+    }
   }
 }

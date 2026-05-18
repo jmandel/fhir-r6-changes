@@ -401,7 +401,22 @@
       "migrationGuidanceMd": "Map R4 exposureBackground, exposureVariant, and outcome to R6 variableDefinition entries with roles population, exposure, and outcome. Define a policy for observed vs intended and use extensions or rejection for covariates and Group-targeted variables when down-converting.",
       "backwardCompatibilityAnalysisMd": "Deprecated aliases would have reduced validation breaks but created duplicate authoritative representations. R6 favors one richer model over direct compatibility.",
       "reviewerNotesMd": "Human review is needed for observed/intended mapping and clinical interpretation of covariates.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Evidence:SLICING_AND_CONTENT_MODEL:Evidence.exposureBackground:7a4c2d",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 Evidence made `exposureBackground` mandatory and represented population, exposure, and outcome as direct `Reference(EvidenceVariable)` paths. R6 removes those wire paths and uses `variableDefinition` entries with required role codes plus observed/intended references that may target `Group` or `EvidenceVariable`. A strict R6 validator therefore rejects an untransformed R4 Evidence instance, and reverse conversion of richer R6 variables is not mechanical. Although R4 Evidence was FMM 0/trial-use, this is the core PICO-like model of the resource and the migration can require policy or expert judgment, so the remodel deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Evidence.exposureBackground` is 1..1 `Reference(EvidenceVariable)`; `exposureVariant` and `outcome` are 0..* `Reference(EvidenceVariable)`.",
+          "R6 StructureDefinition: `Evidence.variableDefinition` is 0..*; `variableRole` is 1..1 required-bound to population/exposure/outcome/covariate; `observed` and `intended` reference `Group` or `EvidenceVariable`.",
+          "HL7 R4 Evidence page describes Evidence as commonly bundling PICO variables and says it references EvidenceVariable two or more times.",
+          "Quick web check found an HL7 EBMonFHIR continuous-build/ballot IG, but no supplied production instance corpus."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use lowers the stability burden and prevents assuming broad deployment impact. It does not erase concern because the removed required path is central to any valid R4 Evidence instance and the remodel affects generated APIs, validation, and bidirectional mapping.",
+        "compatibilityMechanism": "old-valid/new-invalid: every valid R4 Evidence has `exposureBackground`, which is absent in R6; R6-to-R4 is also lossy for covariates, Group targets, and observed/intended distinctions.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking base design could have retained deprecated `exposureBackground`, `exposureVariant`, and `outcome` while adding `variableDefinition`. That would preserve most R4 instances, but it creates duplicate authoritative variable representations and difficult consistency rules across role codes and observed/intended choices.",
+        "comparisonToExisting": "partially agree with the existing Critical impact and Partial alternative judgment: the hard break and partial alternative are real, but FMM 0 and the legitimate R6 modeling goal make broad critical impact less certain."
+      }
     },
     {
       "findingId": "Evidence:CONVERSION_OR_MAPPING:Evidence.statistic:3f19b8",
@@ -558,7 +573,22 @@
       "migrationGuidanceMd": "For R6-to-R4, reject statistic-rich Evidence, preserve content as extensions, or flatten selected facts into description/note with clear loss warnings. Test clinical safety before flattening.",
       "backwardCompatibilityAnalysisMd": "A separate resource or extension strategy would be less disruptive but would make the new computable evidence model less uniform.",
       "reviewerNotesMd": "Prevalence in deployed R6 systems is unknown because no instance corpus was supplied.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Evidence:CONVERSION_OR_MAPPING:Evidence.statistic:3f19b8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The added R6 `statistic`, `certainty`, `assertion`, `studyDesign`, and `synthesisType` content is optional, so it does not invalidate R4 instances moving forward. The real issue is reverse compatibility: an R6 Evidence with quantitative results, sample size, model characteristics, or certainty ratings cannot be represented in base R4 Evidence without extensions, narrative flattening, or rejection. That is a meaningful down-conversion burden, but it is proportionate to the R6 goal of making Evidence carry computable evidence results rather than only the research context.",
+        "keyEvidence": [
+          "R6 StructureDefinition adds `Evidence.statistic` 0..*, `Evidence.certainty` 0..*, `Evidence.assertion` 0..1, `Evidence.studyDesign` 0..*, and `Evidence.synthesisType` 0..*.",
+          "R6 `Evidence.statistic` includes structured quantity, sample size, attribute estimates, confidence interval/range, and model-characteristic content.",
+          "R4 Evidence top-level elements contain metadata plus variable references, with no local statistic or certainty backbone.",
+          "HL7 EBMonFHIR continuous-build IG was checked as implementation-relevance context, but it is not production-use proof."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens expectations that R6 should remain down-convertible to the early R4 model. The safety relevance of statistics and certainty means converters must be explicit about loss, but low maturity supports allowing the richer R6 model.",
+        "compatibilityMechanism": "R6-to-R4 loss: valid R6 statistic/certainty/assertion content has no equivalent base R4 Evidence structure, but R4-to-R6 validation is not broken by these optional additions.",
+        "lessBreakingAlternativeAssessment": "No real less-breaking base R6 design is apparent for R4-to-R6 compatibility because the additions are optional. Extension-only or companion-resource approaches would help older R4 consumers but would weaken the core R6 computable evidence model and are migration mitigations, not less-breaking base designs.",
+        "comparisonToExisting": "partially agree with the existing High impact and Not applicable alternative judgment: the R6-to-R4 loss is real, but this should be framed as proportionate reverse-direction loss rather than a high R4-to-R6 break."
+      }
     },
     {
       "findingId": "Evidence:ELEMENT_PRESENCE_OR_IDENTITY:Evidence.relatedArtifact:5d0e91",
@@ -746,7 +776,22 @@
       "migrationGuidanceMd": "Create a mapping table for relationship types and a policy for target[x]. Preserve label/display/citation with extensions or markdown when lossless mapping is required.",
       "backwardCompatibilityAnalysisMd": "Keeping relatedArtifact as deprecated would preserve old instances but require synchronization with relatesTo.",
       "reviewerNotesMd": "The R6 artifact-relationship ValueSet was referenced but not found as a local core package ValueSet file.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Evidence:ELEMENT_PRESENCE_OR_IDENTITY:Evidence.relatedArtifact:5d0e91",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "An R4 Evidence instance that uses `relatedArtifact` is old-valid/new-invalid because R6 replaced the datatype field with `relatesTo`. The successor is not a simple rename: R6 requires a `CodeableConcept` relationship type and a single required `target[x]`, while R4 `RelatedArtifact` had label/display/citation/url/document/resource siblings. Mapping citation and relationship metadata may need policy, but R6's broader relationship model has a clear computability goal and retaining both fields would create duplicate relationship mechanisms on the same resource.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Evidence.relatedArtifact` is 0..* `RelatedArtifact` for documentation, citations, and bibliographic references.",
+          "R4 `RelatedArtifact` has required code `type` plus optional `label`, `display`, `citation`, `url`, `document`, and `resource` children.",
+          "R6 StructureDefinition: `Evidence.relatesTo` is 0..* `BackboneElement`; `relatesTo.type` is 1..1 `CodeableConcept`; `relatesTo.target[x]` is 1..1 uri/Attachment/canonical/Reference/markdown.",
+          "No supplied instance corpus showed how often R4 Evidence used related artifacts."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use lowers the compatibility burden, and the path is optional. Citation and provenance are important for evidence artifacts, so the concern is not dismissed, but the low maturity supports accepting a cleaner R6 relationship model.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `relatedArtifact` fail strict R6 validation; reverse mapping from `relatesTo` to R4 can lose target shape or label/display details.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could have retained deprecated `relatedArtifact` alongside `relatesTo`. It would preserve old instances, but the two shapes are not one-to-one and would add duplicate relationship representations, target precedence questions, and long-term tooling burden.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment: the break and partial alternative are real, but FMM 0, optional cardinality, and the broader R6 relationship goal make the existing impact look overstated."
+      }
     },
     {
       "findingId": "Evidence:ELEMENT_PRESENCE_OR_IDENTITY:Evidence.shortTitle:9c6ab4",
@@ -881,7 +926,22 @@
       "migrationGuidanceMd": "Inventory usage and preserve values with extensions, profiles, or documented conventions. Test search indexes and discovery UI that used topic, jurisdiction, or effectivePeriod.",
       "backwardCompatibilityAnalysisMd": "Retaining optional deprecated fields would have been a straightforward compatibility path; the local inputs do not justify the removals.",
       "reviewerNotesMd": "Profile-specific mappings to useContext or other metadata may exist but are not implied by the base StructureDefinition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Evidence:ELEMENT_PRESENCE_OR_IDENTITY:Evidence.shortTitle:9c6ab4",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 optional metadata fields `shortTitle`, `subtitle`, `jurisdiction`, `effectivePeriod`, and `topic` have no same-path or direct same-type R6 successor on Evidence. Any R4 instance using them becomes new-invalid, and downstream display, filtering, or repository discovery behavior may silently lose information during migration. Low R4 maturity keeps this from being a high-stability violation, but the fields are independent optional metadata and retaining them as deprecated elements appears to have low interoperability cost compared with the validation break.",
+        "keyEvidence": [
+          "R4 StructureDefinition includes `Evidence.shortTitle` 0..1 string, `subtitle` 0..1 string, `jurisdiction` 0..* CodeableConcept, `effectivePeriod` 0..1 Period, and `topic` 0..* CodeableConcept.",
+          "R6 Evidence top-level paths include `citeAs`, `experimental`, `purpose`, and other metadata additions, but no `shortTitle`, `subtitle`, `jurisdiction`, `effectivePeriod`, or `topic` paths.",
+          "Existing R6 alternatives such as `title`, `description`, and `useContext` do not provide direct base preservation of all removed values.",
+          "No production corpus was supplied; the judgment rests on structural avoidability rather than demonstrated prevalence."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens assumptions about prevalence and business impact. The low-FMM caution does not remove the concern because the less-breaking design is simple and the removed optional metadata does not appear to conflict with R6's core evidence model.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances using any of the removed metadata properties are rejected by R6 validators and generated R6 models expose no corresponding properties.",
+        "lessBreakingAlternativeAssessment": "Yes: R6 could have retained these optional fields as deprecated base elements while documenting preferred newer conventions. The tradeoff is a slightly larger metadata surface and some overlap, but little duplicate-authority or safety risk compared with the variable and relationship remodels.",
+        "comparisonToExisting": "agree with the existing Yes alternative judgment and general avoidability concern, while treating the practical impact as likely lower than the report's broad metadata-risk framing because the resource was FMM 0 and the fields are optional."
+      }
     },
     {
       "findingId": "Evidence:CARDINALITY:Evidence.status:1e8fa0",
@@ -1056,7 +1116,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 instances with status remain valid for this element. R6-to-R4 fails when status is absent; runtime code must handle null/missing status.",
       "migrationGuidanceMd": "Require explicit status for R4 output or document a missing-to-unknown policy. Do not treat missing as active.",
       "backwardCompatibilityAnalysisMd": "Keeping status mandatory would preserve R4 compatibility and use the existing unknown code, but R6 chose omission with meaningWhenMissing.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Evidence:CARDINALITY:Evidence.status:1e8fa0",
+        "judgment": "No problem",
+        "narrativeMd": "Changing `Evidence.status` from 1..1 in R4 to 0..1 in R6 is a relaxation for R4-to-R6 migration: any R4 instance that had the required status still satisfies the R6 element shape. The only concern is reverse direction when an R6 instance omits status, and R6 explicitly says missing means unknown while the required publication-status code set still includes `unknown`. That is a converter policy issue, not a meaningful design break for this path.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Evidence.status` min=1 max=1, required-bound to publication-status, modifier and summary.",
+          "R6 StructureDefinition: `Evidence.status` min=0 max=1, same required publication-status code set, modifier and summary, with `meaningWhenMissing` = `Value is unknown.`",
+          "Local terminology comparison showed publication-status codes unchanged: draft, active, retired, unknown.",
+          "No R4-valid instance becomes invalid solely because the R6 minimum cardinality decreased."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use further lowers concern. Even without the low-FMM discount, this path is not an R4-to-R6 break because it relaxes validation and provides explicit missing-value semantics.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 instance may omit `status`, but the loss is limited because R6 defines the missing meaning and R4 has an `unknown` code; there is no old-valid/new-invalid mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 compatibility. Keeping `status` mandatory would make R6-to-R4 output easier, but it would remove the R6 relaxation and is not needed to preserve R4-valid instances.",
+        "comparisonToExisting": "disagree with the existing Medium impact and high reverse-risk emphasis: the reverse-direction policy is real but small and directly mitigated by `meaningWhenMissing` plus the existing `unknown` code."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1245,5 +1320,19 @@
       "R6 MetadataResource implementation",
       "Variable role and Group target modeling"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Evidence.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

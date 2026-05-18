@@ -315,7 +315,21 @@
       "validationAndCompatibilityMd": "An R4-valid instance that omits `statusReason` is still structurally compatible with R6. An R6-valid instance that includes `statusReason` is not representable in base R4 without extension data, and a strict R4 validator would reject the unknown element. Generated serializers may also drop the string if no extension mapping is configured.",
       "migrationGuidanceMd": "For R4-to-R6 migration, no value needs to be backfilled unless local policy requires status reasons for specific statuses. For R6-to-R4 migration, define an extension or conversion rule to carry the string, and test cancelled/status-changed examples so the reason is not silently discarded.",
       "backwardCompatibilityAnalysisMd": "The base R6 addition is forward-compatible for R4 data, but cross-version compatibility depends on a published R4 representation. An optional extension-based bridge would have reduced data-loss risk for R4 consumers while allowing R6 to expose the field directly.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CoverageEligibilityRequest:ELEMENT_PRESENCE_OR_IDENTITY:CoverageEligibilityRequest.statusReason:2f96a1",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds `CoverageEligibilityRequest.statusReason` as an optional 0..1 string. R4 had no such element, so R4 instances remain valid when moved forward to R6. The only concrete compatibility issue is that R6 instances using the new field cannot be represented in base R4 without an extension or conversion rule, and strict R4 models may drop or reject it. That downgrade concern does not make the optional R6 base addition a design problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `CoverageEligibilityRequest.statusReason` element.",
+          "R6 StructureDefinition defines `statusReason` 0..1 `string`, `isSummary=true`, `isModifier=false`, with definition `Used to indicate why the status has changed.`",
+          "R4 baseline is trial-use/FMM 2; R6 metadata is FMM 4/normative but does not increase the R4 compatibility burden."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. Because the change is optional and additive, maturity does not raise a stability concern; the R6 maturity only indicates the target design may now be more stable.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 `statusReason` value is not base-R4 representable and may be rejected by strict R4 consumers; there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed. Making the element optional already preserves R4-valid instances; R4 extensions, ConceptMaps, or StructureMaps are useful downgrade mitigations but not better base R6 designs.",
+        "comparisonToExisting": "partially agree: I agree with the existing no-hard-break and Not applicable alternative conclusions, but the Medium impact framing is too strong for a reverse-only optional addition when judging R4-to-R6 base compatibility."
+      }
     },
     {
       "findingId": "CoverageEligibilityRequest:ELEMENT_PRESENCE_OR_IDENTITY:CoverageEligibilityRequest.event:ba3c88",
@@ -461,7 +475,22 @@
       "validationAndCompatibilityMd": "R4 instances remain valid in R6 because `event` is optional. R6 instances with `event` are valid only if each repetition has both `type` and `when[x]`; those instances are not valid base R4 JSON. R4 validators and generated classes will treat `event` as unknown unless extension handling or a custom model is used.",
       "migrationGuidanceMd": "For R4-to-R6 migration, leave `event` absent unless reliable event information exists. For R6-to-R4 migration, define a loss policy: use an extension for full fidelity, map only narrowly understood service timing into `serviced[x]`, and flag cases with multiple events or non-service event types for review.",
       "backwardCompatibilityAnalysisMd": "The addition is likely justified by new information requirements, but an official extension and conversion map would make the change less disruptive for R4 consumers. Without those, each implementation must choose between data loss, non-standard extensions, or rejecting R6 event-bearing requests.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CoverageEligibilityRequest:ELEMENT_PRESENCE_OR_IDENTITY:CoverageEligibilityRequest.event:ba3c88",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an optional repeatable `event` backbone with required `type` and `when[x]` children when an event is present. R4 had only `serviced[x]`, which remains in R6 and captures a single service timing without an event kind. Event-bearing R6 data therefore needs real downgrade or mixed-version mapping policy, especially for multiple or non-service events, but the R6 goal is reasonable and the optional addition does not invalidate existing R4 payloads.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `CoverageEligibilityRequest.event` element; R4 `serviced[x]` is 0..1 `date|Period` for estimated service date(s).",
+          "R6 StructureDefinition defines `event` 0..* BackboneElement.",
+          "R6 `event.type` is required 1..1 CodeableConcept with example binding to `ValueSet/datestype`; R6 `event.when[x]` is required 1..1 `dateTime|Period`.",
+          "R6 keeps `CoverageEligibilityRequest.serviced[x]` with the same 0..1 `date|Period` shape."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. It does not justify ignoring real financial workflow mapping work, but it also lowers the case for revisiting an optional additive R6 model that fills an R4 expressivity gap.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `event` repetitions, event types, and some timing values cannot be represented in base R4 except by extensions or lossy mapping to `serviced[x]`; R4-to-R6 validation remains compatible because the new backbone is optional.",
+        "lessBreakingAlternativeAssessment": "No compelling less-breaking base R6 design. Using only `serviced[x]` would not support multiple typed events, and keeping the concept only as an extension would reduce R6 standardization. Published extensions or conversion maps would help downgrade fidelity but are migration aids rather than base-design alternatives.",
+        "comparisonToExisting": "agree: the existing Medium R6-to-R4 risk and Not applicable alternative judgment are reasonable; the fresh review treats the risk as proportionate rather than a reason to revisit the R6 base design."
+      }
     },
     {
       "findingId": "CoverageEligibilityRequest:SEMANTIC_OR_CONFORMANCE_TEXT:CoverageEligibilityRequest.provider:ce41c0",
@@ -617,7 +646,23 @@
       "migrationGuidanceMd": "Review how `provider` is populated and consumed. If existing R4 data uses it as the request submitter/requestor, confirm whether that party is also the R6 billing provider or accountable party. Where those roles differ, use profiles, extensions, implementation guidance, or separate local fields to avoid silently changing meaning.",
       "backwardCompatibilityAnalysisMd": "Because the element's computable definition did not change, a clearer backward-compatible path would have been narrative text that explicitly preserved requestor semantics while adding billing-provider guidance, or a separate element/extension for billing accountability. That would reduce semantic ambiguity without disrupting existing data interpretation.",
       "reviewerNotesMd": "The R6 comment says 'claim' and 'claim resource' inside CoverageEligibilityRequest. This may be deliberate financial-resource harmonization, but it may also be a copied comment; official narrative change notes would improve confidence.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CoverageEligibilityRequest:SEMANTIC_OR_CONFORMANCE_TEXT:CoverageEligibilityRequest.provider:ce41c0",
+        "judgment": "Revisit",
+        "narrativeMd": "`CoverageEligibilityRequest.provider` keeps the same 0..1 Reference shape and targets, but the R6 comment changes the business framing from the party responsible for the eligibility request toward a billing-provider/data-accountability role and even refers to `the claim resource`. Validators and generated code will not reveal this shift, while payer routing, accountability, audit, and UI labels may rely on the R4 requestor meaning. The R6 definition and requirements still say request/requestor, so the comment looks ambiguous enough that a low-cost wording fix should be reconsidered.",
+        "keyEvidence": [
+          "R4 `provider` is 0..1 Reference to Practitioner, PractitionerRole, or Organization; definition is `The provider which is responsible for the request.`",
+          "R4 comment says the party is responsible for the eligibility request and not necessarily professionally responsible for listed products and services.",
+          "R6 `provider` keeps the same cardinality, type, target profiles, definition, and requirements.",
+          "R6 comment says the party is accountable for data content within the claim and `This field is the Billing Provider`, referring to `this claim resource` inside CoverageEligibilityRequest.",
+          "Related R6 Claim and ExplanationOfBenefit provider comments checked locally use responsible-for-claim wording, which makes the CoverageEligibilityRequest billing-provider/claim-resource wording look especially ambiguous."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral: not a normative hard-break case, but not low enough to dismiss a hidden semantic change in a financial/accountability field. The revisit rationale comes from the business semantics and the apparent low-cost clarification path.",
+        "compatibilityMechanism": "semantic/documentation: the same instance remains structurally valid, but business logic may reinterpret `provider` from eligibility-request responsibility/requestor to billing provider or data-accountable party without a computable signal.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could keep the R4 request-responsibility meaning and add non-exclusive text such as `in many billing workflows this is the billing provider or data-accountable party`; if a distinct billing-provider role is required, a separate optional element or profile guidance would avoid silently changing existing provider semantics. The wording-only option has very low model cost.",
+        "comparisonToExisting": "agree: the existing Medium semantic impact and Yes less-breaking alternative are supported, and the independent review also finds this specific wording change revisit-worthy."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -790,5 +835,19 @@
       "event backbone additions on financial resources",
       "provider comments that shift requestor semantics toward billing-provider/accountability semantics"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/CoverageEligibilityRequest.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

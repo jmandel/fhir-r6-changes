@@ -276,7 +276,22 @@
       "migrationGuidanceMd": "Inventory all `SubstanceProtein` instances, references, profiles, search usage, and generated code. Select an R6 target representation, likely a `SubstanceDefinition` profile plus extensions or documented use of `structure.representation` and related elements. Build and test an explicit transform rather than renaming `resourceType`; include tests for resource dispatch, validation, persistence discriminators, and reference/search behavior.",
       "backwardCompatibilityAnalysisMd": "The removal was probably motivated by consolidation of draft substance specialization resources into `SubstanceDefinition`. A backward-compatible design could have kept `SubstanceProtein` as deprecated or published a normative cross-version bridge. That would reduce implementer disruption but preserve a larger legacy resource surface in core.",
       "reviewerNotesMd": "Human review should confirm whether HL7 published a ballot note, cross-version extension, or ConceptMap for this specific consolidation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceProtein:ARTIFACT_IDENTITY:root:6e7f2a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 core no longer includes a `SubstanceProtein` StructureDefinition, so an R4 instance whose `resourceType` is `SubstanceProtein` has no same-named R6 base resource. That is a real top-level break for validators, generated model enums, REST routing, persistence discriminators, and references expecting the old resource identity. The break is still probably proportionate: the R4 resource was FMM 0/trial-use, and R6 `SubstanceDefinition` explicitly maps the IDMP substance model to derived classes including Protein, suggesting an intentional consolidation rather than an accidental deletion. Regulatory IDMP substance exchange is important, but the quick external check showed current public implementation evidence around `SubstanceDefinition` and FHIR IDMP services, not strong evidence that retaining the draft R4 `SubstanceProtein` resource identity is necessary in base R6.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-SubstanceProtein.json` defines a concrete resource of type `SubstanceProtein`, status draft, standards-status trial-use, FMM 0, category Specialized.Medication Definition.",
+          "R6 package index contains `StructureDefinition-SubstanceDefinition.json` and `StructureDefinition-Substance.json`, but no `StructureDefinition-SubstanceProtein.json`.",
+          "R6 `SubstanceDefinition` root mapping includes `idmp-substance` with `Substance (and derived classes: Chemical, Polymer, Protein, Nucleic_Acid, Structurally_Diverse)`.",
+          "EMA SPOR/PMS/SMS page checked: ISO IDMP substance data is regulatory-relevant and HL7 FHIR is replacing an existing product-data submission format; UMC IDMP IG checked: its production FHIR API maintains GSIDs through `SubstanceDefinition`."
+        ],
+        "fmmEffect": "R4 FMM 0 and trial-use status materially soften the stability concern. The resource-type break is hard, but low maturity means the finding should not be treated as critical solely because old instances fail in R6; the domain evidence keeps it from being dismissed as irrelevant.",
+        "compatibilityMechanism": "old-valid/new-invalid, runtime/API/codegen: old R4 `resourceType: SubstanceProtein` instances and generated APIs have no same resource identity in R6 core.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists in principle: keep `SubstanceProtein` as a deprecated legacy resource or compatibility alias for one release. That would preserve old wire identity, but it would also continue a separate resource family with duplicate models, endpoints, search behavior, references, and codegen alongside the consolidated `SubstanceDefinition` design. For an FMM 0 draft resource, that tradeoff is not clearly low-cost.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the existing report correctly identifies a hard resource-identity break and high migration burden for affected systems, but its Critical framing overstates the stability expectation for FMM 0 content. I agree that there is no clearly low-cost less-breaking base design for preserving the old resource identity."
+      }
     },
     {
       "findingId": "SubstanceProtein:CONVERSION_OR_MAPPING:SubstanceProtein.subunit:2c1a90",
@@ -464,7 +479,22 @@
       "migrationGuidanceMd": "Define a mapping policy before migrating data. For each R4 field, decide whether it maps to a generic `SubstanceDefinition` element, a governed extension, a linked `DocumentReference`, or is retained only as narrative. Test for lossless round-trip of sequence strings, sequence attachments, subunit ordering, disulfide linkage values, and terminal modification identifiers. Do not rely on unprofiled free text for regulated exchange.",
       "backwardCompatibilityAnalysisMd": "The break could have been reduced by adding optional protein-specific backbone elements or official extensions to `SubstanceDefinition`. That approach would preserve R4 semantics while still allowing consolidation. The tradeoff is that R6 would carry more specialized fields, some of which came from a low-maturity R4 resource.",
       "reviewerNotesMd": "If an official R6 implementation guide provides a SubstanceDefinition protein profile, this finding should be refined against that profile.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceProtein:CONVERSION_OR_MAPPING:SubstanceProtein.subunit:2c1a90",
+        "judgment": "Revisit",
+        "narrativeMd": "The affected R4 paths are the substance's protein-specific substance data, not incidental metadata: sequence type, subunit count, disulfide linkage, each subunit's amino-acid sequence or attachment, length, and terminal modification identifiers/text. In R6 `SubstanceDefinition`, the closest base structures are generic properties and structure representations; they do not provide named counterparts for the protein subunit model. A migration can store something somewhere, but without base R6 fields or a standardized mapping, the result risks losing computable meaning or becoming implementation-specific. Because these fields describe regulated biological substance identity, migration may require domain judgment rather than a simple mechanical transform.",
+        "keyEvidence": [
+          "R4 `SubstanceProtein` defines `sequenceType`, `numberOfSubunits`, repeating `disulfideLinkage`, and repeating `subunit` with `sequence`, `length`, `sequenceAttachment`, `nTerminalModificationId`, `nTerminalModification`, `cTerminalModificationId`, and `cTerminalModification`.",
+          "R6 `SubstanceDefinition.property.value[x]` is generic and permits CodeableConcept, Quantity, Range, date, boolean, and Attachment; it does not provide named protein sequence or subunit slots.",
+          "R6 `SubstanceDefinition.structure.representation` has generic representation string/format/document fields, and the extracted `SubstanceDefinition` protein-term evidence only showed `structure.molecularWeight` as explicitly protein-relevant.",
+          "EMA SPOR/PMS/SMS and UMC IDMP FHIR API pages checked: substance definitions and GSIDs are regulatory implementation concerns, which increases the significance of lossy protein-identity mapping even though the R4 resource is low maturity."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens the general stability expectation, but the affected paths are central to the draft resource's purpose and the domain is regulatory medicinal-substance identification. That keeps the path-level lossy-migration concern significant despite low FMM.",
+        "compatibilityMechanism": "R6-to-R4 loss: the main problem is not a separate validator failure beyond the removed resource, but loss of named computable protein sequence/subunit semantics when mapping to generic R6 `SubstanceDefinition` structures.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking R6 base design would keep the consolidated `SubstanceDefinition` resource but add an optional protein-specific backbone or named optional elements corresponding to the R4 subunit/sequence/disulfide/terminal-modification fields. That would avoid preserving a separate legacy resource while giving migrated data stable base paths. The tradeoff is added domain-specific complexity in `SubstanceDefinition`, but it appears materially less disruptive than leaving all protein-specific semantics to extensions or local properties.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: I agree the mapping risk is high and potentially lossy for affected data, but the old report did not identify a less-breaking base design. I find a partial alternative worth revisiting: preserve named protein-specific structures inside `SubstanceDefinition` rather than only relying on generic properties or representations."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -623,5 +653,18 @@
       "Compare R4 SubstanceProtein, SubstanceNucleicAcid, SubstancePolymer, SubstanceSpecification, SubstanceSourceMaterial, and SubstanceReferenceInformation against R6 SubstanceDefinition.",
       "Look for official cross-version extensions or ConceptMaps for removed R4 substance specialization resources."
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SubstanceProtein.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 1
+    }
   }
 }

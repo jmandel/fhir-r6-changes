@@ -378,7 +378,21 @@
       "migrationGuidanceMd": "Map each R4 `PractitionerRole.telecom[n]` to an R6 `PractitionerRole.contact[n].telecom[0]` or group multiple telecom points into one contact only when local policy says they share the same purpose/person/period. For R6-to-R4, preserve `contact.purpose`, `name`, `address`, `organization`, and `period` in extensions or sidecar data if round-trip fidelity is required. Test direct validation, generated model serialization, summary responses, and UI rendering of contact details.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible design could have retained `telecom` as deprecated while adding `contact`. That would have avoided immediate instance rejection but created duplicate contact channels. The R6 design is cleaner and more expressive but makes a migration transform mandatory for existing R4 data.",
       "reviewerNotesMd": "Review local policy for whether multiple R4 telecom repetitions should become separate R6 contacts or one contact with multiple `telecom` entries.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PractitionerRole:ELEMENT_PRESENCE_OR_IDENTITY:PractitionerRole.telecom:214471",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `PractitionerRole.telecom` was a repeatable `ContactPoint`; R6 removes that wire element and uses repeatable `PractitionerRole.contact` of `ExtendedContactDetail`, with the old contact points nested under `contact.telecom`. A directory server or generated client that sends or reads `telecom` must transform data or change property access, so this is a real path-level break. The forward transform is usually mechanical, and the R6 datatype adds purpose, named contact, address, organization, and period rather than merely renaming a field. Preserving `telecom` in base R6 would reduce migration friction but would also leave competing contact representations in the same resource, so the break looks proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition-PractitionerRole: `PractitionerRole.telecom` is 0..* `ContactPoint`, summary=true.",
+          "R6 StructureDefinition-PractitionerRole: no local `PractitionerRole.telecom`; `PractitionerRole.contact` is 0..* `ExtendedContactDetail`, summary=false.",
+          "R6 StructureDefinition-ExtendedContactDetail: nested `ExtendedContactDetail.telecom` is 0..* `ContactPoint` and the datatype also has purpose, name, address, organization, and period."
+        ],
+        "fmmEffect": "R4 PractitionerRole is FMM 2 and trial-use, which is neutral: it does not erase the wire/API break, but it also does not create normative stability pressure. The coherent R6 datatype goal and feasible migration path dominate the judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: untransformed R4 instances containing `telecom` are not valid against the R6 resource shape, and generated models change from a direct `ContactPoint[]` property to `ExtendedContactDetail[]`; R6-to-R4 conversion can also lose richer contact fields.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept deprecated `telecom` while adding `contact`, possibly with guidance or an invariant discouraging both. That would preserve old instances but creates duplicate contact channels, conflict/precedence rules, summary-behavior questions, and long-lived support for the obsolete representation.",
+        "comparisonToExisting": "partially agree with the existing high hard-break and runtime assessment. I do not treat a less-breaking alternative as wholly unavailable, but the plausible alternative has enough duplicate-representation cost that it does not change the final judgment."
+      }
     },
     {
       "findingId": "PractitionerRole:ELEMENT_PRESENCE_OR_IDENTITY:PractitionerRole.availableTime:b1635b",
@@ -589,7 +603,21 @@
       "migrationGuidanceMd": "Create an explicit availability transform. Map R4 `availableTime[]` to R6 `availability.availableTime[]`, `notAvailable[]` to `availability.notAvailableTime[]`, and consider mapping `availabilityExceptions` to a `notAvailableTime.description` entry when no more precise period is available. Drop or review start/end times when `allDay=true` before R6 validation. For R6-to-R4, use extensions or manual review for `Availability.period` and not-available periods with no description.",
       "backwardCompatibilityAnalysisMd": "The reusable datatype likely improves consistency across resources, but the same goal could have been introduced less disruptively by retaining deprecated old fields during a transition period. The stricter `av-1` invariant is also a behavior change for old all-day records with times; a warning-first approach would have been less disruptive but less precise.",
       "reviewerNotesMd": "Pay special attention to local data where `allDay=true` coexists with start/end times and to text-only `availabilityExceptions` that do not identify a period.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PractitionerRole:ELEMENT_PRESENCE_OR_IDENTITY:PractitionerRole.availableTime:b1635b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 exposed scheduling fields directly on PractitionerRole: `availableTime`, `notAvailable`, and `availabilityExceptions`. R6 replaces them with one optional `availability` element of datatype `Availability`, whose children carry the available and unavailable periods. Untransformed R4 instances and generated-code references to the old names break, and availability data can affect scheduling. However, most forward migration is a structural nesting transform, and the reusable datatype is a reasonable R6 modeling goal. Keeping both old local fields and the new datatype would create competing schedule sources and precedence problems.",
+        "keyEvidence": [
+          "R4 StructureDefinition-PractitionerRole: `availableTime` and `notAvailable` are 0..* BackboneElements; `availabilityExceptions` is 0..1 string.",
+          "R6 StructureDefinition-PractitionerRole: `PractitionerRole.availability` is 0..1 `Availability`; the old local fields are absent.",
+          "R6 StructureDefinition-Availability: `availableTime` and `notAvailableTime` are repeatable nested elements, and `av-1` is an error invariant forbidding start/end times when `allDay` is true."
+        ],
+        "fmmEffect": "R4 PractitionerRole is FMM 2 and trial-use, so maturity is a neutral factor. The operational importance of scheduling matters, but the resource did not have a mature or normative stability expectation in R4.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 instances using the removed local scheduling fields fail the R6 wire shape until transformed, and generated APIs move from local BackboneElement collections plus a string to an `Availability` datatype. There is also limited R6-to-R4 loss for R6-only availability details and optional description-less unavailable periods.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the old fields as deprecated aliases while adding `availability`, or could have introduced the `av-1` rule first as a warning. Those choices would preserve more old data but would duplicate schedule semantics, require conflict rules when old and new fields disagree, and weaken the reusable-datatype cleanup.",
+        "comparisonToExisting": "partially agree with the existing hard-break/high-impact assessment for untransformed data. I see plausible less-breaking transitional designs, but their duplicate-schedule cost makes the current R6 design probably acceptable."
+      }
     },
     {
       "findingId": "PractitionerRole:CONVERSION_OR_MAPPING:PractitionerRole.network:af338e",
@@ -705,7 +733,21 @@
       "validationAndCompatibilityMd": "Old R4 instances remain valid with respect to these additions because the new elements are optional. Valid R6 instances that contain them are not valid base R4 instances. Strict R4 validators and generated R4 classes will reject the fields unless they are converted to extensions or removed.",
       "migrationGuidanceMd": "Define down-conversion policy before accepting R6 data. Prefer official or project-wide extensions for `network`, `display`, `characteristic`, and `communication` when R4 round-trip fidelity matters. If dropping these fields, document that directory semantics are lost and include tests showing the loss is expected.",
       "backwardCompatibilityAnalysisMd": "Adding optional elements is a backward-compatible R4-to-R6 design. The unavoidable compatibility issue is reverse conversion to the older R4 model. Extensions and cross-version mappings are the practical compatibility mechanism.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "PractitionerRole:CONVERSION_OR_MAPPING:PractitionerRole.network:af338e",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 elements are optional additions: `network`, `display`, `characteristic`, and `communication`. They do not make any R4 PractitionerRole instance invalid in R6 and do not require R4 producers to change. A mixed-version system that down-converts R6 to R4 can lose these directory attributes unless it uses extensions or a profile-specific mapping, but that is a reverse-version representability issue rather than a base R4-to-R6 break. Adding first-class optional directory fields is a normal and proportionate evolution for trial-use content.",
+        "keyEvidence": [
+          "R6 StructureDefinition-PractitionerRole: `network` is 0..* Reference(Organization), `display` is 0..1 string, `characteristic` is 0..* CodeableConcept, and `communication` is 0..* CodeableConcept.",
+          "R4 StructureDefinition-PractitionerRole: no same-name local elements for these four fields.",
+          "All four R6 fields are optional, so existing R4 instances remain structurally compatible in the forward direction."
+        ],
+        "fmmEffect": "R4 PractitionerRole is FMM 2 and trial-use. That neutral maturity context supports allowing optional model growth when it does not invalidate old instances.",
+        "compatibilityMechanism": "R6-to-R4 loss: valid R6 instances that populate these optional fields cannot be represented as base R4 PractitionerRole without extensions, dropping data, or custom mapping. There is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "For reverse compatibility, these concepts could have been published only as standard extensions so R4 could carry them in its extension mechanism. That would be less disruptive for down-conversion but would sacrifice first-class R6 search, code generation, documentation, and validation semantics; it is not a better base R6 design for the forward model.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies no forward hard break and real R6-to-R4 loss, but I would not treat the optional additions as a medium-impact R4-to-R6 compatibility problem."
+      }
     },
     {
       "findingId": "PractitionerRole:TERMINOLOGY_BINDING:PractitionerRole.specialty:0a3fae",
@@ -842,7 +884,21 @@
       "validationAndCompatibilityMd": "FHIR validators do not reject non-preferred or non-example CodeableConcepts solely because of these binding strengths. The practical effect is conformance and tooling behavior: warnings, recommendations, generated documentation, and profile inheritance may differ.",
       "migrationGuidanceMd": "If an implementation depends on C80 specialty coding, carry that requirement in an R6 profile or implementation guide rather than relying on the base `PractitionerRole.specialty` binding. Regression tests should distinguish base-resource validity from profile-level terminology expectations.",
       "backwardCompatibilityAnalysisMd": "The change is effectively backward compatible for instances because it weakens rather than strengthens terminology expectations. A stronger binding could still be supplied by profiles where appropriate.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "PractitionerRole:TERMINOLOGY_BINDING:PractitionerRole.specialty:0a3fae",
+        "judgment": "No problem",
+        "narrativeMd": "`PractitionerRole.specialty` keeps the same path, cardinality, datatype, and value set URL while the binding strength drops from preferred to example. That weakens base terminology pressure rather than making old data invalid. Validators, documentation generators, or enum-hint tooling may change their recommendations, but this is not a material compatibility break for instances or APIs.",
+        "keyEvidence": [
+          "R4 StructureDefinition-PractitionerRole: `PractitionerRole.specialty` is 0..* `CodeableConcept` with preferred binding to `http://hl7.org/fhir/ValueSet/c80-practice-codes`.",
+          "R6 StructureDefinition-PractitionerRole: the same element remains 0..* `CodeableConcept` with the same value set URL but example binding strength.",
+          "Local R4 and R6 ValueSet-c80-practice-codes compose definitions use the same SNOMED CT value set URL and listed specialty concepts, with display-text differences visible locally."
+        ],
+        "fmmEffect": "R4 PractitionerRole is FMM 2 and trial-use. Even with a stronger maturity level this would be low concern because the computable change is a weakening, not a hardening; FMM 2 reinforces that no special stability issue is present.",
+        "compatibilityMechanism": "metadata/tooling: the binding metadata may affect recommendations, QA output, generated documentation, or profile authors' expectations. It does not create an old-valid/new-invalid instance break.",
+        "lessBreakingAlternativeAssessment": "Retaining preferred strength would preserve the old recommendation but would not be less breaking for instances; it would be more prescriptive than R6. Profiles or IGs that need stronger specialty coding expectations can still impose them.",
+        "comparisonToExisting": "agree with the existing low/no-hard-break impact assessment and with not identifying a meaningful less-breaking base alternative."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1014,5 +1070,18 @@
       "Provider directory resources adding network/display/communication metadata",
       "Bindings weakened from preferred to example for clinical specialty-like fields"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/PractitionerRole.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 2
+    }
   }
 }

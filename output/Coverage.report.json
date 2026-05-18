@@ -322,7 +322,21 @@
       "migrationGuidanceMd": "Classify each Coverage before conversion. Organization payors will often map to `kind = insurance` plus `insurer`; Patient or RelatedPerson payors will often map to `kind = self-pay` plus `paymentBy.party`. Do not blindly default every record to `insurance`; test self-pay, patient-pay agreements, absent/ambiguous payor data, and `other` payer scenarios.",
       "backwardCompatibilityAnalysisMd": "The semantic goal appears sound, but making the discriminator mandatory in the base resource is disruptive. A backward-compatible alternative would have made it optional or profile-required first, preserving R4 data while encouraging migration. The tradeoff is that base R6 validation could not enforce the insurer/paymentBy split uniformly.",
       "reviewerNotesMd": "Human review is needed where R4 `payor` does not clearly identify an Organization insurer or a self-pay party.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Coverage:ELEMENT_PRESENCE_OR_IDENTITY:Coverage.kind:8f4b31",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds a new mandatory `Coverage.kind` discriminator with a required coverage-kind binding and error constraints that use it to separate insurance from self-pay. An R4 Coverage has no such element, so a direct structural migration must classify the coverage before it can validate. That is a real break for billing data, but the R6 goal is coherent: without a base discriminator, generic validators cannot consistently enforce the new `insurer` versus `paymentBy` model.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `Coverage.kind` element.",
+          "R6 `Coverage.kind` is 1..1 `code` with required binding to `http://hl7.org/fhir/ValueSet/coverage-kind|6.0.0-ballot4`.",
+          "R6 local constraints `cov-insured-1` and `cov-self-pay-1` require `insurer` for insurance and `paymentBy` for self-pay."
+        ],
+        "fmmEffect": "Coverage is supplied as R4 FMM 2 and trial-use. That is neutral stability pressure: it does not erase a central billing migration burden, but it also does not create a normative presumption against the change.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 Coverage that otherwise maps forward lacks the required `kind` code, and generated R6 models also need a non-null discriminator value.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have made `kind` optional, warning-level, or profile-required during a transition. That would preserve old instances but would not meet the same base-R6 goal of making every Coverage computably classifiable for the insurer/paymentBy constraints.",
+        "comparisonToExisting": "partially agree: the existing report correctly treats this as high-impact with only a partial less-breaking alternative, but the fresh path-level judgment is that the mandatory discriminator is proportionate rather than a design issue to revisit."
+      }
     },
     {
       "findingId": "Coverage:ELEMENT_PRESENCE_OR_IDENTITY:Coverage.payor:3dbad7",
@@ -543,7 +557,21 @@
       "migrationGuidanceMd": "Build an explicit payer classifier. Map a single Organization payor to `kind = insurance` and `insurer` when it represents an insurance issuer. Map patient-pay or related-person payors to `kind = self-pay` and `paymentBy.party`. Preserve ambiguous or mixed cases with extensions, manual review queues, or implementation-guide-specific rules. Update searches, indexes, and business logic that used `Coverage.payor`.",
       "backwardCompatibilityAnalysisMd": "The change likely addresses genuine ambiguity, but removing a required R4 element rather than deprecating it creates a hard break. An additive transition would have been possible by keeping `payor` while introducing the more precise fields, but it would have complicated validation and allowed conflicting representations.",
       "reviewerNotesMd": "This finding should be reviewed with billing/domain experts, especially for non-insurance agreements, multiple payors, and `kind = other`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Coverage:ELEMENT_PRESENCE_OR_IDENTITY:Coverage.payor:3dbad7",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 required `Coverage.payor` as the payer/issuer reference, while R6 removes that path and splits the model into `insurer` for insurance and `paymentBy.party` for self-pay or non-insurance payment parties. This breaks wire format, FHIRPath, and generated APIs that refer to `payor`, and some mappings need business judgment. The old element was overloaded, though, and the R6 split addresses a real modeling problem around insurer versus patient or other self-pay responsibility.",
+        "keyEvidence": [
+          "R4 `Coverage.payor` is 1..* Reference(Organization | Patient | RelatedPerson).",
+          "R6 has no `Coverage.payor` element.",
+          "R6 adds `Coverage.insurer` 0..1 Reference(Organization) and `Coverage.paymentBy.party` 1..1 Reference(Patient | RelatedPerson | Organization)."
+        ],
+        "fmmEffect": "Coverage is FMM 2 and trial-use, so the maturity context is neutral. The central billing role raises practical migration importance, but FMM 2 does not by itself make the split unacceptable.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 JSON containing the required `payor` path is not an R6 Coverage, and client code, searches, mappings, and FHIRPath expressions using `Coverage.payor` must be rewritten.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `payor` as a deprecated alias or kept the old path while adding clarifying fields. That would preserve more R4 payloads, but it would duplicate the central payer representation, require conflict rules with `insurer` and `paymentBy`, and weaken the cleanup of an overloaded element.",
+        "comparisonToExisting": "agree: the existing report's high impact and partial alternative assessment match the independent review; the final judgment is that the break is real but likely justified by the model split."
+      }
     },
     {
       "findingId": "Coverage:TYPE_DOMAIN:Coverage.subscriberId:f1a6ce",
@@ -705,7 +733,21 @@
       "validationAndCompatibilityMd": "R4-valid JSON with `subscriberId` as a string becomes R6-invalid due to type mismatch. R6 JSON with `subscriberId` as an array of Identifier objects is not R4-valid. Reverse conversion can choose one Identifier.value, but loses system, type, period, assigner, extensions, and additional repetitions.",
       "migrationGuidanceMd": "For R4-to-R6, wrap the old string as `subscriberId[0].value` and populate `system`, `type`, or `assigner` only when a reliable source exists. For R6-to-R4, define a deterministic selection rule and preserve unrepresented Identifier metadata with extensions or an audit trail. Update codegen, database columns, indexes, and search extraction logic.",
       "backwardCompatibilityAnalysisMd": "The richer Identifier model is likely justified, but replacing a same-name primitive with a repeating complex datatype was avoidable. An additive field or transition profile would have reduced breakage at the cost of temporary duplication.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Coverage:TYPE_DOMAIN:Coverage.subscriberId:f1a6ce",
+        "judgment": "Revisit",
+        "narrativeMd": "`Coverage.subscriberId` changes from a single primitive string to a repeating `Identifier`. Any R4 instance with `subscriberId: \"...\"` needs a shape-changing transform before R6 validation, and reverse conversion from multiple or system-qualified identifiers can lose information. Supporting richer identifiers is a good goal for eligibility and claims workflows, but replacing the existing scalar path looks avoidable.",
+        "keyEvidence": [
+          "R4 `Coverage.subscriberId` is 0..1 `string`.",
+          "R6 `Coverage.subscriberId` is 0..* `Identifier`.",
+          "The element requirements in both versions identify subscriber IDs as needed by insurers for correspondence and claims."
+        ],
+        "fmmEffect": "FMM 2/trial-use makes this a neutral maturity case, but subscriber identifiers are central enough to Coverage exchange that a hard representation break still deserves scrutiny.",
+        "compatibilityMechanism": "old-valid/new-invalid: the JSON type changes from a primitive scalar to repeating complex Identifier objects; R6-to-R4 loss is also possible for systems, assigners, periods, extensions, and extra repetitions.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design would retain the R4 string path and add a new optional repeating Identifier element, or otherwise stage the richer representation. The tradeoff is duplicate identifier representations and precedence rules, but that cost seems modest compared with breaking a common member-lookup field.",
+        "comparisonToExisting": "agree: the existing high-impact and Yes less-breaking-alternative assessment is supported by the fresh review."
+      }
     },
     {
       "findingId": "Coverage:TYPE_DOMAIN:Coverage.class.value:49c0e2",
@@ -905,7 +947,21 @@
       "validationAndCompatibilityMd": "An R4 Coverage.class entry with `value: \"GRP123\"` becomes R6-invalid because R6 expects an Identifier object. An R6 Identifier-valued class can be downgraded to R4 only by choosing `Identifier.value` and losing system, type, period, assigner, and extensions.",
       "migrationGuidanceMd": "Wrap each R4 class value string in an Identifier object. Where payer-specific namespaces are known, populate `Identifier.system` or `assigner`; otherwise leave only `value` and document the limitation. Update serializers, FHIRPath expressions, and database schema for nested Identifier fields.",
       "backwardCompatibilityAnalysisMd": "This change is semantically reasonable but mechanically breaking. The same goal could have been achieved by an additive Identifier element or a transition period, at the cost of temporary duplication.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Coverage:TYPE_DOMAIN:Coverage.class.value:49c0e2",
+        "judgment": "Revisit",
+        "narrativeMd": "`Coverage.class.value` remains required when a class component is present, but its type changes from string to `Identifier`. Existing R4 class components such as group or plan numbers therefore fail R6 validation unless transformed into Identifier objects. The forward transform is usually mechanical, but the base wire-format break appears larger than necessary for adding identifier metadata.",
+        "keyEvidence": [
+          "R4 `Coverage.class.value` is 1..1 `string` with definition `The alphanumeric string value associated with the insurer issued label.`",
+          "R6 `Coverage.class.value` is 1..1 `Identifier` with definition `The alphanumeric identifier associated with the insurer issued label.`",
+          "Both versions describe the value as necessary to identify the policy, group, or plan."
+        ],
+        "fmmEffect": "Coverage is FMM 2/trial-use, so maturity does not strongly raise or lower the concern. The decision rests mainly on the direct type break and availability of a less-breaking design.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 class entries with scalar `value` are not R6-shaped, and generated clients change from a string property to an Identifier object.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `class.value` as the legacy string and added an optional sibling for assigning system or full Identifier metadata. That would introduce possible duplication and matching rules, but it would preserve the required R4 field while enabling richer identifiers.",
+        "comparisonToExisting": "agree: the existing report's high impact and Yes less-breaking alternative are consistent with this path-level assessment."
+      }
     },
     {
       "findingId": "Coverage:CARDINALITY:Coverage.costToBeneficiary.value:2e6a58",
@@ -1077,7 +1133,21 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid solely because of this cardinality decrease. Conversely, an R6-valid costToBeneficiary entry without `value[x]` is invalid in R4. New R6 dimensions are also not R4-representable except by extension or data loss.",
       "migrationGuidanceMd": "For R4-to-R6, copy existing `value[x]`, `type`, and exception data unchanged. For R6-to-R4, either require `value[x]`, drop value-less entries, synthesize a value only with clear business rules, or preserve the entry and new dimensions in extensions. Add tests for cost entries with and without amounts.",
       "backwardCompatibilityAnalysisMd": "This is mostly an intentional widening rather than an R4-to-R6 break. The compatibility tradeoff is acceptable if R6 needs to represent benefit dimensions without known amounts, but it requires explicit downgrade policy.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Coverage:CARDINALITY:Coverage.costToBeneficiary.value:2e6a58",
+        "judgment": "No problem",
+        "narrativeMd": "R6 lowers `Coverage.costToBeneficiary.value[x]` from required to optional and adds optional benefit dimensions under the same component. That is a widening change for R4-to-R6 migration: an R4 component that has the required value remains structurally acceptable on this path. New R6 value-less or more dimensioned components may not round-trip to R4 cleanly, but that is a reverse-conversion limitation rather than a base compatibility break.",
+        "keyEvidence": [
+          "R4 `Coverage.costToBeneficiary.value[x]` is 1..1 Quantity(SimpleQuantity) or Money.",
+          "R6 `Coverage.costToBeneficiary.value[x]` is 0..1 with the same Quantity(SimpleQuantity) or Money choice types.",
+          "R6 adds optional `category`, `network`, `unit`, and `term` elements under `costToBeneficiary`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral here. Because the change is widening/additive for R4-to-R6, maturity does not create a reason to revisit it.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 can express cost components without `value[x]` or with additional dimensions that R4 cannot natively carry, but no R4-valid value on this path becomes R6-invalid.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed. Keeping `value[x]` mandatory would be more restrictive, not less breaking, and the added dimensions are optional.",
+        "comparisonToExisting": "partially agree: the existing report correctly says there is no hard R4-to-R6 break, but I would downgrade the finding from a medium compatibility concern to no problem for this review."
+      }
     },
     {
       "findingId": "Coverage:SEMANTIC_OR_CONFORMANCE_TEXT:Coverage.status:b7e942",
@@ -1240,7 +1310,21 @@
       "migrationGuidanceMd": "Review eligibility, billing, and UI logic that uses `Coverage.status`. Treat `period` and payer-specific rules as the source for in-force determinations. Preserve `statusReason` during downgrade with an extension if the reason must survive R6-to-R4 exchange.",
       "backwardCompatibilityAnalysisMd": "The clarification is backward-compatible and safety-positive. It does not appear to require an alternative design beyond documenting the semantic distinction and optional status reason mapping.",
       "reviewerNotesMd": "Confidence that this is a semantic clarification rather than a new normative rule would improve with narrative ballot change notes.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Coverage:SEMANTIC_OR_CONFORMANCE_TEXT:Coverage.status:b7e942",
+        "judgment": "No problem",
+        "narrativeMd": "The computable shape of `Coverage.status` is unchanged: it is still a required code with the same apparent fm-status choices. R6 adds prose clarifying that the status is the resource instance status and not proof that a policy is in force at a particular time. That may correct local business assumptions, but it does not make R4 instances invalid or create a new base validator requirement.",
+        "keyEvidence": [
+          "R4 `Coverage.status` is 1..1 `code` with required `fm-status|4.0.1` binding and definition `The status of the resource instance.`",
+          "R6 `Coverage.status` remains 1..1 `code` with required `fm-status|6.0.0-ballot4` binding and adds text directing in-force evaluation to `period`.",
+          "The current report notes the local R4 and R6 fm-status CodeSystems contain the same codes: active, cancelled, draft, entered-in-error."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Since the change is a clarification rather than a structural or terminology restriction, stability pressure does not alter the judgment.",
+        "compatibilityMechanism": "semantic/documentation: implementations that treated `active` as in-force may need business-rule changes, but the base element cardinality, type, modifier status, and required code family are not materially narrowed.",
+        "lessBreakingAlternativeAssessment": "No meaningful less-breaking base design is needed. Softer prose would be possible, but the R6 wording is already a clarification of resource-status semantics rather than a new computable constraint.",
+        "comparisonToExisting": "partially agree: I agree there is no hard instance break, but I do not agree that this rises to a medium compatibility concern under the fresh-review rubric."
+      }
     },
     {
       "findingId": "Coverage:CONVERSION_OR_MAPPING:Coverage.optional-r6-fields:0a91fd",
@@ -1355,7 +1439,21 @@
       "validationAndCompatibilityMd": "R4 validators reject these R6-native paths unless they are transformed into extensions. The risk is not old-valid/new-invalid; it is R6-valid/not-R4-representable without loss.",
       "migrationGuidanceMd": "Define downgrade extensions or sidecar mappings for R6-only fields before enabling bidirectional exchange. For integrations that only consume R6, update generated models and serializers to include the new optional elements. For R4 partners, document which fields are dropped or extension-carried.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the usual backward-compatible way to evolve a resource. The residual issue is inherent to cross-version downgrade, not a flaw in R6 forward compatibility.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Coverage:CONVERSION_OR_MAPPING:Coverage.optional-r6-fields:0a91fd",
+        "judgment": "No problem",
+        "narrativeMd": "The cited R6 fields are optional additions with no native R4 equivalents. They can matter to bidirectional converters because R6 data such as status reason, InsurancePlan linkage, or payment responsibility may need extensions or may be dropped when producing R4. They do not, however, make any R4 Coverage invalid in R6, and optional additive expressivity is normally the compatibility-preserving way to evolve a resource.",
+        "keyEvidence": [
+          "R6 adds optional `Coverage.statusReason` 0..1 `string`.",
+          "R6 adds optional `Coverage.insurancePlan` 0..1 Reference(InsurancePlan).",
+          "R6 adds optional `Coverage.paymentBy.responsibility` 0..1 `string`; R4 has no matching native paths."
+        ],
+        "fmmEffect": "Coverage is FMM 2/trial-use, which is neutral. Because these are optional additions, FMM does not raise them into a design concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using the new optional fields cannot be represented in plain R4 without extensions or loss, but this is not an old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "Not adding the fields would avoid reverse-mapping loss but would also forgo R6 expressivity. Making them optional is already the less-breaking base approach.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies reverse-conversion loss and no hard break, but the fresh judgment is no problem rather than a medium-impact concern."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1551,5 +1649,19 @@
       "Same-path primitive string to Identifier replacements",
       "R6 mandatory discriminator elements with required bindings"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Coverage.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 2,
+      "No problem": 3
+    }
   }
 }

@@ -20,6 +20,20 @@ To preview against a different report dir (e.g. dev fixtures):
 DATA_DIR=./fixtures bun run build:data
 ```
 
+After `node scripts/merge_fresh_reviews.mjs --in-place`, the normal
+`bun run build:data` command reads embedded `finding.freshReview` content from
+`../output/*.report.json`.
+
+To preview a scratch merge while review agents are still running:
+
+```bash
+DATA_DIR=../batch/fresh-review/merged-preview REVIEW_DIR=none bun run build:data
+```
+
+Use `REVIEW_DIR=none` when the report JSON already embeds
+`finding.freshReview` and the bundle should not read the live review sidecar
+directory.
+
 ## Build (static)
 
 ```bash

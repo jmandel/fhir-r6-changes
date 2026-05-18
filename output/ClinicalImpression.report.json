@@ -279,7 +279,22 @@
       "migrationGuidanceMd": "Inventory all R4 `ClinicalImpression` usage before upgrading. Decide whether to preserve records as legacy R4 payloads, transform them into a bundle of R6 resources, or carry original details through extensions/profiles. Test validation, persistence, search, subscriptions, analytics, and generated-code paths that assume a `ClinicalImpression` resource type. Do not use a blind field rename; no direct R6 target was found.",
       "backwardCompatibilityAnalysisMd": "Complete removal is the most disruptive option. A backward-compatible transition could have kept the resource with deprecated status, made profiles or best-practice guidance point elsewhere, and supplied a ConceptMap for element-level migration. That alternative would reduce validation and runtime breaks but would keep an arguably obsolete aggregate resource in the core surface.",
       "reviewerNotesMd": "Confirm against official R6 ballot narrative, change proposals, or work-group notes before finalizing a production migration policy. The local package evidence is strong for absence, but it does not reveal the intended replacement strategy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ClinicalImpression:ARTIFACT_IDENTITY:ClinicalImpression:7b8f2d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 has `ClinicalImpression` as a concrete resource, while the supplied R6 ballot package has no matching StructureDefinition, package-index entry, or package-wide reference. That means an R4 `resourceType: \"ClinicalImpression\"` instance, generated model class, REST endpoint, or search surface will not carry forward as a native R6 base resource. This is a real whole-resource compatibility break, but I would not mark it `Revisit` on the current evidence: the R4 artifact is FMM 0/trial-use, quick public-documentation checks show generic SDK support but not broad production IG use, and retaining the resource in base R6 would keep a low-maturity aggregate assessment model alive indefinitely.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ClinicalImpression.json: id/type ClinicalImpression, kind resource, abstract false, status draft, standards-status trial-use, FMM 0.",
+          "R6 package check: StructureDefinition-ClinicalImpression.json is absent; .index.json has no ClinicalImpression filename/id/url/type entry; package-wide search found no ClinicalImpression references.",
+          "R4 package index contains ClinicalImpression search parameters; the R6 package index contains none.",
+          "Lightweight web check: HAPI/Firely/Python SDKs expose R4 ClinicalImpression for spec completeness, but I found no strong evidence of broad production use or inclusion in major production IGs such as US Core."
+        ],
+        "fmmEffect": "FMM 0 and trial-use substantially soften the stability concern. The removal is technically hard-breaking, but low maturity means the base specification has more room to retire the resource unless there is strong implementation or safety evidence; the quick check did not find broad production-use evidence.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: an R4-valid ClinicalImpression resource has no R6 base StructureDefinition, generated class, resource-type enum entry, REST endpoint, or search parameters in the supplied package.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists in the narrow sense: R6 could retain ClinicalImpression as deprecated or retired while directing new implementations to more specific resources. That would preserve most R4 wire/API compatibility, but it is not low-cost because it would keep a low-FMM aggregate resource, duplicate newer representations, and impose ongoing validator/search/codegen support.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment. I agree the resource removal is a hard compatibility break and that retaining a deprecated resource is only a partial alternative, but the existing Critical framing overstates the action concern once FMM 0 and the lack of broad production-use evidence are applied."
+      }
     },
     {
       "findingId": "ClinicalImpression:CONVERSION_OR_MAPPING:ClinicalImpression:2e4a91",
@@ -406,7 +421,22 @@
       "migrationGuidanceMd": "Define a migration profile before converting data. At minimum, preserve the original `ClinicalImpression.identifier`, `status`, `subject`, `encounter`, `effective[x]`, `date`, `assessor`, and `previous` relationship, and explicitly link generated R6 resources back to the source assessment using `Provenance`, extensions, identifiers, or a local container pattern. Test round-trip cases with multiple findings, multiple investigation groups, prognosis codes/references, and entered-in-error status.",
       "backwardCompatibilityAnalysisMd": "A formally published mapping artifact would be a less disruptive alternative to leaving each implementation to infer a decomposition. It could still encourage use of specific resources while preserving enough metadata to reconstruct R4 `ClinicalImpression` for cross-version exchange.",
       "reviewerNotesMd": "This finding intentionally does not assert that R6 officially split ClinicalImpression into the listed candidate resources. It reports the practical migration risk observed from the local package: no single native replacement is evident.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ClinicalImpression:CONVERSION_OR_MAPPING:ClinicalImpression:2e4a91",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The mapping problem is real but derivative of the resource removal: R4 ClinicalImpression can carry one assessment identity with status, subject, encounter, timing, previous assessment, problems, investigation groups, findings, prognosis, supporting information, and notes. The adjacent R6 resources I checked cover narrower pieces rather than a single renamed successor, so an implementation that used ClinicalImpression would need a profile-specific decomposition and could lose the original assessment grouping without extra linkage. Still, for base R6 this appears proportionate: the artifact was FMM 0/trial-use, public evidence for broad production exchange is weak, and preserving a generic aggregate container would materially conflict with the likely cleanup goal.",
+        "keyEvidence": [
+          "R4 ClinicalImpression local elements include required status and subject plus identifier, encounter, effective[x], assessor, previous, problem, investigation, finding, prognosisCodeableConcept, prognosisReference, supportingInfo, and note.",
+          "R6 Condition, Observation, DiagnosticReport, RiskAssessment, CarePlan, and ClinicalUseDefinition root definitions cover adjacent clinical concepts but not the same single aggregate assessment container.",
+          "No R6 ClinicalImpression StructureDefinition or direct successor was found in the package index or package-wide search.",
+          "Lightweight web check found SDK availability but no strong evidence that ClinicalImpression is broadly profiled or mandated in major production implementation guides."
+        ],
+        "fmmEffect": "The low FMM reduces the burden on R6 to preserve a lossless base mapping for every R4 use. I still treat the migration as meaningful for actual adopters because decomposition can be expert-dependent and clinically contextual, but low maturity and limited public adoption evidence keep it below `Revisit`.",
+        "compatibilityMechanism": "R6-to-R4 loss and runtime/API/codegen: individually valid R6 Condition/Observation/DiagnosticReport/RiskAssessment resources do not by themselves identify the original ClinicalImpression grouping, ordering, status, and narrative context; generated code also loses the old aggregate class boundary.",
+        "lessBreakingAlternativeAssessment": "A transitional aggregate resource or retained deprecated ClinicalImpression would be less lossy for existing data, but it would create duplicate base representations and ambiguous precedence when the same facts appear both in the aggregate and in specific resources. ConceptMaps, StructureMaps, extensions, or local profiles are useful migration mitigations, but they are not themselves less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment. I agree there is high migration and round-trip risk for systems that actually used ClinicalImpression, and I agree the available base-design alternative is only partial; I would soften the broad impact concern because the artifact is FMM 0 and quick usage checks did not show widespread production dependence."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -545,5 +575,17 @@
       "Aggregate clinical resources decomposed into more specific resources",
       "Modifier status semantics preserved during migration"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ClinicalImpression.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2
+    }
   }
 }

@@ -347,7 +347,22 @@
       "migrationGuidanceMd": "Map `data-collection` to `data-exchange` only when the report carries data-of-interest. Use `other` only with an explanatory extension/profile rule. Update enum handling and tests for missing `type`.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias would have avoided strict validation failure while still allowing the clearer R6 code. Without it, converters need an explicit policy.",
       "reviewerNotesMd": "No official cross-version ConceptMap was supplied; the mapping is inferred from definitions and `mrp-1`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MeasureReport:TERMINOLOGY_BINDING:MeasureReport.type:data-collection",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 required `MeasureReport.type` and accepted the required-bound code `data-collection`; R6 makes `type` optional but removes that code, adds `data-exchange` and `other`, and changes the local no-group invariant to the new code. An R4 data-collection report therefore fails the R6 required binding, and enum-based clients need an explicit rename policy. This looks like a terminology cleanup with an avoidable validation break, especially because R6 prose still describes the data-collection concept.",
+        "keyEvidence": [
+          "R4 StructureDefinition `MeasureReport.type`: min 1, required ValueSet `measure-report-type|4.0.1`, definition/comment for `data-collection`.",
+          "R6 StructureDefinition `MeasureReport.type`: min 0, required ValueSet `measure-report-type|6.0.0-ballot4`, comment uses `data-exchange` and definition mentions `other`.",
+          "Local CodeSystem comparison: R4 has `data-collection`; R6 removes it and adds `data-exchange` and `other`.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral rather than normative, but it does not soften a required-code removal that appears largely avoidable in a quality-report exchange path.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 report with `type: data-collection` violates the R6 required binding; generated enum handling also changes.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could keep `data-collection` as a deprecated or legacy code while adding `data-exchange` and `other`, and the invariant could accept either old or new data-of-interest code. The tradeoff is duplicate codes for one concept, but that is a modest terminology debt compared with rejecting old reports.",
+        "comparisonToExisting": "agree with the existing high impact and Yes alternative judgment; the fresh review independently finds this break likely avoidable."
+      }
     },
     {
       "findingId": "MeasureReport:REFERENCE_TARGET:MeasureReport.reporter:Location-removed",
@@ -497,7 +512,22 @@
       "validationAndCompatibilityMd": "R4 instances with `reporter.reference` resolving to Location are old-valid/new-invalid. R6 `location` has no native R4 element.",
       "migrationGuidanceMd": "Audit Location reporters. Map to `location` for data-source location; map to Organization or PractitionerRole when the Location was standing in for an accountable reporter.",
       "backwardCompatibilityAnalysisMd": "Keeping Location as a deprecated target would have preserved old instances but retained ambiguity between reporting entity and reported-data location.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MeasureReport:REFERENCE_TARGET:MeasureReport.reporter:Location-removed",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed `MeasureReport.reporter` to reference a Location and defined reporter as the individual, location, or organization reporting the data. R6 removes Location from `reporter` and adds a separate repeating `MeasureReport.location` for the location for which data is being reported. That new element is not a lossless substitute when the Location was used as the reporting party, so some migrations require human judgment rather than a mechanical move.",
+        "keyEvidence": [
+          "R4 StructureDefinition `MeasureReport.reporter`: Reference targets Practitioner, PractitionerRole, Location, and Organization.",
+          "R6 StructureDefinition `MeasureReport.reporter`: Reference targets Practitioner, PractitionerRole, and Organization only.",
+          "R6 StructureDefinition `MeasureReport.location`: 0..* Reference(Location), defined as the location for which data is being reported.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use keeps the stability burden moderate, but this is still a direct target-profile narrowing on an exchange participant field.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `reporter` pointing to a Location no longer satisfies the R6 target list; mapping to `location` can change reporter-vs-subject-location semantics.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 design could retain Location as a deprecated `reporter` target while adding `location` for data-source locations and documenting preferred use. The tradeoff is continued ambiguity for legacy Location reporters, but keeping the old target would preserve valid instances and avoid forcing lossy mappings.",
+        "comparisonToExisting": "partially agree with the existing high impact and Partial alternative judgment; I agree the new split has a rationale, but the remaining lossy reporter case makes the narrowing worth revisiting."
+      }
     },
     {
       "findingId": "MeasureReport:ELEMENT_PRESENCE_OR_IDENTITY:improvementNotation:moved",
@@ -670,7 +700,22 @@
       "validationAndCompatibilityMd": "Strict R6 validation rejects unknown root `improvementNotation`. R6 group-specific notation and guidance are not base-R4 representable.",
       "migrationGuidanceMd": "Copy a uniform old root value to each R6 group only when appropriate. Otherwise derive group values from the referenced Measure or require review.",
       "backwardCompatibilityAnalysisMd": "A root default/deprecated alias would have softened migration but introduced conflict rules with group-level values.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MeasureReport:ELEMENT_PRESENCE_OR_IDENTITY:improvementNotation:moved",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had root `MeasureReport.improvementNotation` as a modifier because it changes score interpretation. R6 removes the root element and adds group-level `group.improvementNotation` plus guidance; R4 instances with the root element are not R6-valid, and R6 per-group notation cannot always be represented in R4. The per-group goal is reasonable, but the move is safety-significant, and the R6 group element is not flagged as a modifier even though its comment still describes modifier-like critical interpretation behavior.",
+        "keyEvidence": [
+          "R4 StructureDefinition `MeasureReport.improvementNotation`: 0..1 CodeableConcept, required binding, `isModifier=true`.",
+          "R6 StructureDefinition has no root `MeasureReport.improvementNotation` and adds `MeasureReport.group.improvementNotation` plus `improvementNotationGuidance`.",
+          "R6 `MeasureReport.group.improvementNotation`: 0..1 CodeableConcept, extensible binding, `isModifier=false`, comment says it is critical for interpreting the measure score.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the old element was a modifier tied to score interpretation, so the safety and business semantics carry more weight than maturity alone.",
+        "compatibilityMechanism": "old-valid/new-invalid: old root `improvementNotation` is absent in R6; runtime/API/codegen paths also move from a resource-level property to group-level properties.",
+        "lessBreakingAlternativeAssessment": "Partial but important. R6 could retain the root element as a deprecated default for reports whose groups share the same notation while adding group-level overrides and conflict rules; it could also preserve modifier signaling on the group element. The tradeoff is duplicate representation and precedence complexity, but the current design may create avoidable validation failures and interpretation risk.",
+        "comparisonToExisting": "partially agree with the existing high impact and Partial alternative judgment; I disagree that the break is comfortably justified because the modifier/score-interpretation risk deserves renewed review."
+      }
     },
     {
       "findingId": "MeasureReport:SERIALIZATION_OR_CODEGEN:measureScore-choice",
@@ -872,7 +917,22 @@
       "validationAndCompatibilityMd": "R4 `measureScore` JSON is not the R6 choice name. R6 `measureScoreBoolean`, `measureScoreRatio`, and other non-Quantity forms are not base-R4 representable.",
       "migrationGuidanceMd": "Rename R4 `measureScore` at group and stratum levels to `measureScoreQuantity`. Add choice-aware model accessors and conversion tests.",
       "backwardCompatibilityAnalysisMd": "Choice syntax is clean for R6, but retaining the old Quantity field name would have avoided the common hard break.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MeasureReport:SERIALIZATION_OR_CODEGEN:measureScore-choice",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 group and stratum `measureScore` were Quantity fields serialized as `measureScore`; R6 changes them to `measureScore[x]`, so even the unchanged Quantity case serializes as `measureScoreQuantity`. This is a real wire-format and generated-model break, and non-Quantity R6 scores cannot be represented natively in R4. The R6 goal of supporting non-Quantity scores is strong enough that the standard FHIR choice design looks proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition `MeasureReport.group.measureScore` and `group.stratifier.stratum.measureScore`: 0..1 Quantity.",
+          "R6 StructureDefinition `MeasureReport.group.measureScore[x]` and stratum `measureScore[x]`: Quantity, dateTime, CodeableConcept, Period, Range, Duration, boolean, Ratio.",
+          "R4-only/R6-only element comparison shows old `measureScore` ids removed and choice ids added.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use makes this a neutral-stability case; the judgment turns on the real codegen break versus the modeling benefit.",
+        "compatibilityMechanism": "runtime/API/codegen: FHIR choice conversion changes JSON property names and generated accessors; unchanged R4 Quantity instances also become old-valid/new-invalid until renamed.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could keep the old Quantity `measureScore` and add a separate alternate-score choice or backbone, but that would create parallel representations for the same fact and require conflict rules. The cleaner choice shape has material compatibility cost but also material long-term modeling benefit.",
+        "comparisonToExisting": "agree with the existing high impact and Partial alternative judgment; the break is real, but the alternative has enough duplication and validation cost that the change is probably acceptable."
+      }
     },
     {
       "findingId": "MeasureReport:SERIALIZATION_OR_CODEGEN:stratum-value-choice",
@@ -1101,7 +1161,22 @@
       "validationAndCompatibilityMd": "Old `value` JSON is not the R6 choice form. New R6 boolean, Quantity, Range, or Reference stratum values have no R4 native equivalent.",
       "migrationGuidanceMd": "Rename R4 coded values to `valueCodeableConcept` at both stratum and component locations. Do not coerce non-coded R6 values to CodeableConcept unless a domain coding policy exists.",
       "backwardCompatibilityAnalysisMd": "The added types could have been introduced through extensions or parallel fields while preserving old `value`, trading model neatness for compatibility.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MeasureReport:SERIALIZATION_OR_CODEGEN:stratum-value-choice",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 stratum `value` and component `value` were CodeableConcept fields; R6 makes them `value[x]` choices, so the old coded value becomes `valueCodeableConcept` on the wire. That breaks existing serialized instances and generated SDK properties, while new boolean, Quantity, Range, and Reference strata have no native R4 slot. The broader datatype support is a reasonable R6 goal for stratifiers that are not naturally coded concepts.",
+        "keyEvidence": [
+          "R4 StructureDefinition `MeasureReport.group.stratifier.stratum.value`: 0..1 CodeableConcept.",
+          "R4 StructureDefinition `MeasureReport.group.stratifier.stratum.component.value`: 1..1 CodeableConcept.",
+          "R6 StructureDefinition corresponding `value[x]` elements: CodeableConcept, boolean, Quantity, Range, Reference.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; it does not erase the serialization break, but it also does not create a normative presumption against reshaping an experimental quality-report detail.",
+        "compatibilityMechanism": "runtime/API/codegen: the FHIR choice conversion changes JSON property names and generated accessors; R6 non-CodeableConcept values create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could retain CodeableConcept `value` and add a separate typed value element, but that would duplicate the stratum value concept and complicate uniqueness, comparison, and conflict handling. The alternative is less breaking but not obviously better for the base model.",
+        "comparisonToExisting": "agree with the existing high impact and Partial alternative judgment; the migration cost is real, but the less-breaking design has meaningful long-term tradeoffs."
+      }
     },
     {
       "findingId": "MeasureReport:CARDINALITY:group.stratifier.code:max-1",
@@ -1265,7 +1340,22 @@
       "validationAndCompatibilityMd": "Multiple R4 code repetitions are old-valid/new-invalid. One R6 CodeableConcept is valid R4 because R4 allowed repeats.",
       "migrationGuidanceMd": "Find repeated stratifier codes. Merge only when semantically safe; otherwise split/review the stratifier design against the Measure.",
       "backwardCompatibilityAnalysisMd": "The cleaner model could have been achieved by guidance rather than max-cardinality narrowing.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MeasureReport:CARDINALITY:group.stratifier.code:max-1",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed repeating `group.stratifier.code` CodeableConcepts; R6 narrows the field to one CodeableConcept and adds correspondence text to the Measure stratifier. An R4 instance with multiple CodeableConcept repetitions is invalid in R6, and merging repeated CodeableConcepts is not always safe because repetitions can carry distinct text or coding groupings. Since CodeableConcept already supports multiple codings, the hard max-cardinality break appears more avoidable than necessary.",
+        "keyEvidence": [
+          "R4 StructureDefinition `MeasureReport.group.stratifier.code`: 0..* CodeableConcept.",
+          "R6 StructureDefinition `MeasureReport.group.stratifier.code`: 0..1 CodeableConcept with example binding.",
+          "R6 definition says the element SHALL include at least the codings in the corresponding Measure stratifier.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the blast radius is limited to a nested stratifier field and prevalence is likely lower than the score/type changes.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 reports with more than one `group.stratifier.code` repetition exceed the R6 max of 1.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could keep `0..*`, add guidance that a single CodeableConcept with multiple codings is preferred, and let stricter profiles require `0..1`. The tradeoff is continued base allowance for unusual repeated concepts, but that seems modest compared with requiring potentially lossy merges.",
+        "comparisonToExisting": "agree with the existing medium impact and Yes alternative judgment; the fresh review treats the easy base-compatible alternative as reason to revisit."
+      }
     },
     {
       "findingId": "MeasureReport:VALUE_CONSTRAINT:population-count-xor",
@@ -1429,7 +1519,23 @@
       "migrationGuidanceMd": "Populate exactly one of `count` or `countQuantity` for each population if targeting strict R6 validation. Convert Quantity to R4 count only when unitless/integral; otherwise use extensions or reject reverse conversion.",
       "backwardCompatibilityAnalysisMd": "A pure mutual-exclusion invariant would have allowed old no-count populations and avoided the hard break.",
       "reviewerNotesMd": "The misspelling `statum` and wording/expression mismatch suggest this invariant deserves human review.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MeasureReport:VALUE_CONSTRAINT:population-count-xor",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 population and stratum-population `count` were optional integers with no `countQuantity`. R6 adds optional `countQuantity` but also adds error constraints using `count.exists() xor countQuantity.exists()`. Because both child elements remain optional, the literal `xor` requires exactly one count form, so old populations with no count become invalid even though the human text only says the two fields are mutually exclusive. This looks like an avoidable invariant bug or at least an over-strong constraint.",
+        "keyEvidence": [
+          "R4 StructureDefinition `MeasureReport.group.population.count`: 0..1 integer; no `countQuantity`.",
+          "R6 StructureDefinition `MeasureReport.group.population`: constraint `mrp-3` expression `count.exists() xor countQuantity.exists()`.",
+          "R6 StructureDefinition `MeasureReport.group.stratifier.stratum.population`: constraint `mrp-4` with the same expression.",
+          "R6 `countQuantity` definitions explain Quantity support for units and decimal composite measure counts.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but a likely expression/text mismatch in an error-level invariant should not be excused by maturity.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 populations with neither `count` nor `countQuantity` fail R6 `xor`; R6 Quantity counts also create R6-to-R4 loss unless safely reducible to integer.",
+        "lessBreakingAlternativeAssessment": "Yes. A not-both invariant such as `count.exists().not() or countQuantity.exists().not()` would preserve R4 no-count populations while still preventing conflicting representations. If exact-one is intended, the human text, cardinalities, and migration rationale need to say so explicitly.",
+        "comparisonToExisting": "agree with the existing high impact and Yes alternative judgment; the fresh evidence strengthens the case for revisit because the invariant wording and expression diverge."
+      }
     },
     {
       "findingId": "MeasureReport:SEMANTIC_OR_CONFORMANCE_TEXT:Measure-linkId-correspondence",
@@ -1549,7 +1655,23 @@
       "validationAndCompatibilityMd": "Generic validation may pass old missing-linkId reports, but R6 measure processors may not be able to match report results to the Measure reliably.",
       "migrationGuidanceMd": "When the Measure is available, populate linkIds from the corresponding Measure group/population/stratifier elements and test cross-resource matching.",
       "backwardCompatibilityAnalysisMd": "Explicit transition support for old `id`-based matching would reduce ecosystem breakage but increases receiver complexity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MeasureReport:SEMANTIC_OR_CONFORMANCE_TEXT:Measure-linkId-correspondence",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional `linkId` fields for groups, populations, and stratifiers and strengthens text saying these parts correspond to the referenced Measure. There is no direct structural rejection because the new fields are 0..1 and no invariant requires them, and R6 comments explicitly note that previous versions used `id` and that systems may support that for backward compatibility. Still, conformance-aware quality-measure tooling may require linkId-based matching, so R4-era id/convention matching has real migration work.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `MeasureReport.group.linkId`, population linkId, stratifier linkId, or stratum population linkId fields.",
+          "R6 StructureDefinition adds those linkId fields as optional strings.",
+          "R6 `MeasureReport.group.linkId` and related comments say previous FHIR versions used `id` and systems MAY support this for backwards compatibility.",
+          "R6 Measure StructureDefinition defines corresponding Measure `linkId` elements for report linkage.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; because this is mostly semantic conformance text rather than a validator-enforced base break, maturity does not push it to Revisit.",
+        "compatibilityMechanism": "semantic/documentation: no base cardinality or invariant rejects old reports, but R6 processors may shift from id/convention matching to linkId matching.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could more explicitly accept legacy `id` matching whenever linkId is absent, but full equivalence forces receivers to maintain two matching mechanisms and handle conflicts. The existing comments already provide some transition path, so a stronger less-breaking design has nontrivial receiver burden.",
+        "comparisonToExisting": "partially agree with the existing medium impact and Partial alternative judgment; I agree on migration risk, but the fresh review treats this as semantic/tooling pressure rather than a hard instance break."
+      }
     },
     {
       "findingId": "MeasureReport:CONVERSION_OR_MAPPING:R6-only-elements:roundtrip-risk",
@@ -1672,7 +1794,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 remains structurally valid for these additions. R6-to-R4 conversion is lossy or extension-dependent.",
       "migrationGuidanceMd": "For R6-to-R4 exchange, define extension mappings for critical new metadata or reject unsupported fields. Do not silently drop messages, data update type, supplemental data, or subject-list details if they affect workflow.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the standard non-breaking way to evolve FHIR resources; the unavoidable risk is reverse-version representability.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MeasureReport:CONVERSION_OR_MAPPING:R6-only-elements:roundtrip-risk",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds many optional elements such as category, messages, dataUpdateType, reportingVendor, location, inputParameters, linkIds, countQuantity, subject-report details, and supplementalData. These additions do not invalidate any R4 MeasureReport instance when moving forward to R6. They can be lossy when converting an R6 instance back to base R4, but that is expected mixed-version conversion planning rather than a less-breaking R6 base-design problem.",
+        "keyEvidence": [
+          "R6-only element comparison lists optional additions including `MeasureReport.category`, `messages`, `dataUpdateType`, `reportingVendor`, `location`, `inputParameters`, and `supplementalData`.",
+          "R6-only nested additions include `linkId`, `title`, `description`, `countQuantity`, `subjectReport`, `subjects`, and `improvementNotationGuidance`.",
+          "R4 StructureDefinition lacks native slots for those R6 additions.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use does not materially affect this judgment because optional additive evolution is normally compatible regardless of maturity.",
+        "compatibilityMechanism": "R6-to-R4 loss: valid R6 content using new optional elements may need extensions, profiles, rejection, or loss when sent to R4, but R4-to-R6 validation is not broken.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Removing optional R6 elements would reduce expressiveness, and R4 backport extensions or conversion policies are mitigations rather than less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree with the existing conversion-risk finding and Not applicable alternative judgment, but disagree with treating optional additions as a material R4-to-R6 compatibility problem."
+      }
     },
     {
       "findingId": "MeasureReport:SEMANTIC_OR_CONFORMANCE_TEXT:evaluatedResource:individual-only",
@@ -1798,7 +1935,22 @@
       "validationAndCompatibilityMd": "Base structural validation may pass, but R6 conformance-aware tooling can treat non-individual evaluatedResource use as invalid or non-conformant.",
       "migrationGuidanceMd": "Review evaluatedResource use on summary, subject-list, and data-exchange reports. Use it in R6 individual reports or move audit packaging to Provenance, operation outputs, or profile-specific extensions.",
       "backwardCompatibilityAnalysisMd": "A SHOULD-level rule would have been less disruptive but less effective at bounding resource size.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MeasureReport:SEMANTIC_OR_CONFORMANCE_TEXT:evaluatedResource:individual-only",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The computable type of `evaluatedResource` remains Reference(Resource), but R4 described it as a reference to a Bundle containing resources used in calculation while R6 says this usage is only allowed for individual reports to keep MeasureReport size bounded. Base structural validation may not catch this because there is no new invariant, but conformance-aware R6 tooling can reject or flag evaluated resources on summary, subject-list, or data-exchange reports. The size-bound rationale is concrete and proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition `MeasureReport.evaluatedResource`: 0..* Reference(Resource), definition says reference to a Bundle containing resources used in calculation.",
+          "R6 StructureDefinition `MeasureReport.evaluatedResource`: same target type, definition says usage is only allowed for individual reports.",
+          "R6 comment repeats that evaluated resources are only reported for individual reports.",
+          "R4 maturity evidence: MeasureReport is FMM 2 and trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; because the change is semantic text with a clear resource-size rationale, it does not warrant Revisit on maturity grounds.",
+        "compatibilityMechanism": "semantic/documentation: no target-profile change occurs, but R6 conformance-aware processors may reject non-individual use that R4 text allowed.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could make individual-report use a SHOULD or profile-level rule, preserving legacy audit bundles for aggregate reports, but that would weaken the stated payload-size bound and leave the risk to profiles or operations.",
+        "comparisonToExisting": "agree with the existing medium impact and Partial alternative judgment; the break is potential and semantic, but the R6 rationale is strong enough that it is probably acceptable."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1963,5 +2115,19 @@
       "required code replaced by renamed code",
       "BackboneElement.id to linkId migration"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MeasureReport.fresh-review.json",
+    "findingDecisionCount": 10,
+    "matchedFindingDecisionCount": 10,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 5,
+      "Breaking but probably OK": 4,
+      "No problem": 1
+    }
   }
 }

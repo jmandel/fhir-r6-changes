@@ -326,7 +326,21 @@
       "migrationGuidanceMd": "For R4→R6, map the old string to `response.identifier.value` only after confirming that it is the identifier used for the original message Bundle; assign a stable `system` when one is known. For R6→R4, only a lossy projection to a single id string is possible unless an extension or side table preserves Identifier details. Test acknowledgement matching against historical messages before switching correlation logic.",
       "backwardCompatibilityAnalysisMd": "The R6 goal appears reasonable, but replacing the element in place was disruptive. A choice type or new optional element could have allowed old instances to validate while encouraging Bundle-level correlation. The tradeoff would have been a longer period of dual semantics.",
       "reviewerNotesMd": "Human review is needed for each integration because the correct `Identifier.system` and the relationship between MessageHeader.id and Bundle.identifier are deployment-specific.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageHeader:TYPE_DOMAIN:MessageHeader.response.identifier:fe8312",
+        "judgment": "Revisit",
+        "narrativeMd": "This is both a wire-shape break and a correlation-semantics break on a required response child. R4 carries a primitive id for the original MessageHeader; R6 requires an Identifier for the original Bundle. A parser can mechanically reject the old string, and a mapper still needs a deployment-specific decision about whether the old MessageHeader.id is the same business identifier as the Bundle.identifier.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.response.identifier: min 1..1, type id, definition references the original MessageHeader.id.",
+          "R6 StructureDefinition MessageHeader.response.identifier: min 1..1, type Identifier, definition references the original Bundle.identifier.",
+          "Artifact context supplied as FMM 4, trial-use."
+        ],
+        "fmmEffect": "FMM 4/trial-use means this is mature content with meaningful stability expectations, especially because acknowledgement correlation is operationally central, though not protected as normative.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 primitive response.identifier string is not valid as an R6 Identifier object; R6-to-R4 projection is also lossy for Identifier metadata and the referent changed.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design plausibly exists: keep the R4 id field for a transition and add a separate Bundle Identifier field or choice arm. The tradeoff is dual correlation identifiers and conflict rules, but that seems manageable enough to warrant renewed design review.",
+        "comparisonToExisting": "partially agree with the existing high impact assessment and the concern about semantic migration; I would treat the less-breaking alternative as a stronger reason to revisit, not merely a partial mitigation."
+      }
     },
     {
       "findingId": "MessageHeader:SERIALIZATION_OR_CODEGEN:MessageHeader.source.endpoint:32fe8b",
@@ -486,7 +500,21 @@
       "validationAndCompatibilityMd": "Untransformed R4 instances with `source.endpoint` are old-valid/new-invalid under strict R6 validation because the element name changed. R6 instances with no source endpoint are valid in R6 but cannot satisfy R4 `source.endpoint` min=1. R6 `endpointReference` content also cannot be carried in the R4 primitive URL element without resolving it to an address or using an extension.",
       "migrationGuidanceMd": "For R4→R6, rename `source.endpoint` to `source.endpointUrl`. For R6→R4, require a policy: copy `endpointUrl` when present; for `endpointReference`, resolve the referenced Endpoint address if available or preserve the reference in an extension/side channel; reject or profile messages that omit the endpoint when an R4 representation is required.",
       "backwardCompatibilityAnalysisMd": "The richer Endpoint reference could have been introduced without renaming the existing primitive field, but FHIR choice typing provides a cleaner single logical endpoint element. The backwards-compatible alternative would avoid universal R4 instance rewrites but add another parallel field to the model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MessageHeader:SERIALIZATION_OR_CODEGEN:MessageHeader.source.endpoint:32fe8b",
+        "judgment": "Revisit",
+        "narrativeMd": "The source endpoint changed from a required primitive property to an optional choice. Existing R4 instances use source.endpoint, while R6 URL content is serialized as source.endpointUrl and can also be absent or reference an Endpoint. This is a broad mechanical break for validators, generated models, and acknowledgement routing logic.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.source.endpoint: min 1..1, type url.",
+          "R6 StructureDefinition MessageHeader.source.endpoint[x]: min 0..1, types url or Reference(Endpoint).",
+          "The element definition in both versions ties the value to routing acknowledgements."
+        ],
+        "fmmEffect": "FMM 4/trial-use raises the burden for invalidating a required routing field that every complete R4 source component had to carry.",
+        "compatibilityMechanism": "old-valid/new-invalid: source.endpoint is not the R6 choice-property name for a URL; runtime/API/codegen code also has to handle endpointUrl, endpointReference, and omission.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained source.endpoint as the URL field and added a separate optional source.endpointReference, with mutual-exclusion guidance. That is less idiomatic than a single FHIR choice and risks legacy duplication, but it would preserve existing R4 source endpoints.",
+        "comparisonToExisting": "agree with the existing high impact and less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "MessageHeader:SERIALIZATION_OR_CODEGEN:MessageHeader.destination.endpoint:5b9d79",
@@ -649,7 +677,21 @@
       "validationAndCompatibilityMd": "An R4 destination containing `endpoint` is not valid R6 as-is; it must be transformed to `endpointUrl`. R6 destination entries can omit endpoint or use `endpointReference`, both of which create R6→R4 representability failures because R4 requires a primitive URL for each destination.",
       "migrationGuidanceMd": "Map R4 `destination[].endpoint` to R6 `destination[].endpointUrl`. When converting R6 to R4, require a destination URL, resolve referenced Endpoint resources where possible, or preserve unresolved Endpoint references outside the base R4 element. Include test cases for multiple destinations, omitted endpoints, and Endpoint references.",
       "backwardCompatibilityAnalysisMd": "This could have been less disruptive by keeping the old primitive element and adding a reference element. The R6 choice is internally consistent but imposes a mandatory wire-format rewrite and a reverse-conversion policy.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MessageHeader:SERIALIZATION_OR_CODEGEN:MessageHeader.destination.endpoint:5b9d79",
+        "judgment": "Revisit",
+        "narrativeMd": "Each R4 destination occurrence required destination.endpoint as a primitive URL, but R6 turns that into optional endpoint[x]. Old destination URLs therefore need a property-name rewrite, and R6 destinations can omit the endpoint or point at an Endpoint resource that R4 cannot carry directly.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.destination.endpoint: min 1..1, type url.",
+          "R6 StructureDefinition MessageHeader.destination.endpoint[x]: min 0..1, types url or Reference(Endpoint).",
+          "The element definition is destination routing in both versions."
+        ],
+        "fmmEffect": "FMM 4/trial-use makes this central routing-path break more concerning than ordinary ballot churn, even though the resource was not normative in R4.",
+        "compatibilityMechanism": "old-valid/new-invalid: destination.endpoint is not valid R6 choice serialization for a URL; R6-to-R4 loss also occurs for omitted endpoints or Endpoint references.",
+        "lessBreakingAlternativeAssessment": "Yes. Keeping destination.endpoint for the URL form and adding destination.endpointReference would preserve R4 wire content while supporting Endpoint resources. The cost is a less tidy model and precedence or at-most-one rules.",
+        "comparisonToExisting": "agree with the existing high impact and less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.sender:620c70",
@@ -821,7 +863,21 @@
       "migrationGuidanceMd": "Move root `sender` into `source.sender` during R4→R6 conversion. For R6→R4, move `source.sender` back only when the reference target is Organization, Practitioner, or PractitionerRole; otherwise use an extension, Task/Provenance context, or a project-specific policy. Review any security rules that used the sender path.",
       "backwardCompatibilityAnalysisMd": "The path move is understandable, but not strictly backward-compatible. A deprecation period with both paths or a formal cross-version extension would have reduced migration pain. The R6 ballot comment suggesting future removal means implementers should avoid making new long-lived dependencies on this element without reviewing the messaging workflow.",
       "reviewerNotesMd": "The exact future role of `source.sender` is uncertain because the R6 comment mentions possible removal in favor of Task.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.sender:620c70",
+        "judgment": "Revisit",
+        "narrativeMd": "The sender was not simply widened; its path moved from the resource root to source.sender. Existing R4 payloads, FHIRPath expressions, generated accessors, and trust/routing checks that read MessageHeader.sender will miss the value unless transformed. R6 also allows Patient and Device senders that cannot be projected back into the R4 sender slot without policy.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.sender: root 0..1 Reference to Practitioner, PractitionerRole, or Organization.",
+          "R6 StructureDefinition MessageHeader.source.sender: nested 0..1 Reference to Device, Organization, Patient, Practitioner, or PractitionerRole.",
+          "R6 comment says the element is proposed for removal in favor of Task."
+        ],
+        "fmmEffect": "FMM 4/trial-use increases concern because sender identity can feed trust and authorization decisions; the ballot comment about possible future removal also weakens confidence that the breaking move is settled.",
+        "compatibilityMechanism": "old-valid/new-invalid: root MessageHeader.sender is no longer an R6 element; runtime/API/codegen paths change and R6-to-R4 loss exists for new sender target types.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept the root sender element, widened its target list, and clarified that it represents the source-side sender, or kept one path deprecated during transition. The tradeoff is an untidy root placement or duplicate path if both were kept.",
+        "comparisonToExisting": "agree with the existing high impact and less-breaking alternative concern."
+      }
     },
     {
       "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.destination.target:ac5149",
@@ -946,7 +1002,21 @@
       "validationAndCompatibilityMd": "Any R4 instance carrying `destination.target` is invalid against the R6 base resource. R6 has no same-named field, so strict parsers will reject or drop the old data. The issue is primarily R4→R6; reverse conversion is not applicable because R6 no longer has this element.",
       "migrationGuidanceMd": "Inventory messages using `destination.target`. If the target Device corresponds to a known network endpoint, create/reference an Endpoint and populate `destination.endpointReference`; otherwise consider `destination.receiver` only when it truly represents the intended real-world recipient. Use extensions or manual review when the old target was strictly a routing-hop identifier.",
       "backwardCompatibilityAnalysisMd": "The removal may be intended to consolidate routing around Endpoint and receiver references, but without an explicit replacement it is not clearly backward-compatible. Keeping a deprecated optional target would have preserved legacy multi-hop routing while allowing profiles to discourage new use.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.destination.target:ac5149",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 destination.target carried a Device target for cases where the message first goes to an intermediary. R6 has no same element, and endpoint[x] or receiver are not exact replacements without local routing knowledge. When this field is used, migration can lose the distinction between a transport endpoint, real-world receiver, and final target system.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.destination.target: 0..1 Reference(Device), definition covers target end system behind an intermediary.",
+          "R6 MessageHeader snapshot has destination.endpoint[x] and destination.receiver but no MessageHeader.destination.target element.",
+          "Artifact context supplied as FMM 4, trial-use."
+        ],
+        "fmmEffect": "FMM 4/trial-use keeps the stability concern meaningful despite the element being optional and probably less common.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 destination.target property is not valid in R6; migration may also be semantically lossy for multi-hop routing.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained destination.target as an optional deprecated Device reference while recommending Endpoint or receiver where appropriate. The cost is legacy routing overlap and the need for precedence guidance.",
+        "comparisonToExisting": "agree with the existing medium impact and less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.enterer:e7493e",
@@ -1062,7 +1132,21 @@
       "validationAndCompatibilityMd": "This is an old-valid/new-invalid element removal. Strict R6 validation rejects the `enterer` property. There is no R6-to-R4 representability issue from this change because R6 no longer defines the element.",
       "migrationGuidanceMd": "Map `enterer` to Provenance, AuditEvent, Task, or an extension according to local governance. Test downstream audit and authorization workflows that previously read `MessageHeader.enterer`.",
       "backwardCompatibilityAnalysisMd": "Removing an optional attribution element is disruptive when used. A deprecation period or standard cross-version extension would have allowed old messages to validate while encouraging richer Provenance usage.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.enterer:e7493e",
+        "judgment": "Revisit",
+        "narrativeMd": "The R4 enterer field provided direct data-entry attribution on the message header. R6 removes the field, so existing messages that used it fail validation and any preservation of the attribution has to move into Provenance, Task, AuditEvent, or an extension with role-specific mapping rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.enterer: 0..1 Reference to Practitioner or PractitionerRole.",
+          "R4 definition identifies the person or device that performed data entry leading to the message.",
+          "R6 MessageHeader snapshot has no MessageHeader.enterer element."
+        ],
+        "fmmEffect": "FMM 4/trial-use makes removal of an audit-relevant attribution path worth scrutiny, though the optional cardinality limits the likely blast radius.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with enterer are not valid R6; semantic preservation requires expert mapping outside MessageHeader.",
+        "lessBreakingAlternativeAssessment": "Yes. Keeping enterer as an optional deprecated field while documenting a preferred Provenance or Task mapping would preserve old messages. The tradeoff is overlapping attribution locations and possible inconsistency during transition.",
+        "comparisonToExisting": "agree with the existing medium impact and less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.author:751682",
@@ -1177,7 +1261,21 @@
       "validationAndCompatibilityMd": "R4 messages with `author` fail R6 base validation. No R6 same-path field exists, so old parsers and code generators cannot preserve this value without an explicit extension or separate resource.",
       "migrationGuidanceMd": "Map author attribution to Provenance.agent, Task requester/owner, or an implementation-specific extension after confirming the intended role. Regression-test workflows that used MessageHeader author for authorization or audit display.",
       "backwardCompatibilityAnalysisMd": "A deprecated optional field or cross-version extension would have been less disruptive. The likely benefit of removal is simpler MessageHeader participant modeling, but that benefit depends on consistent use of other resources.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.author:751682",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 author captured who decided the event represented by the message should happen, which is distinct from the transport sender or data enterer. R6 removes that local role without an exact MessageHeader replacement, making old instances invalid and requiring a policy decision about where authorship belongs.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.author: 0..1 Reference to Practitioner or PractitionerRole.",
+          "R4 definition describes the logical author or decision source for the message.",
+          "R6 MessageHeader snapshot has no MessageHeader.author element."
+        ],
+        "fmmEffect": "FMM 4/trial-use gives moderate stability weight to this optional but accountability-relevant role.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 author content is rejected by the R6 base shape; migration to Provenance, Task, focus resources, or extensions is semantic rather than mechanical.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained author as optional/deprecated and supplied mapping guidance to richer workflow or provenance resources. The cost is duplicate authorship representations that profiles would need to reconcile.",
+        "comparisonToExisting": "agree with the existing medium impact and less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.responsible:123c41",
@@ -1293,7 +1391,21 @@
       "validationAndCompatibilityMd": "R4 instances with `responsible` are invalid in R6. The loss is semantic as well as structural because no R6 MessageHeader field has the same responsibility meaning.",
       "migrationGuidanceMd": "Do not blindly map `responsible` to sender or receiver. Determine whether the value represents a legal organization, accountable clinician, or workflow owner, then map to Provenance, Task, event-specific focus resources, or an extension. Include human review for records where accountability is legally relevant.",
       "backwardCompatibilityAnalysisMd": "The removal may simplify MessageHeader, but without a formal replacement it was probably avoidable from a backward-compatibility perspective. A deprecated optional element would have preserved old responsibility data during migration.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.responsible:123c41",
+        "judgment": "Revisit",
+        "narrativeMd": "The responsible party is an accountability field, not just a cosmetic participant. Removing it makes R4 messages with policy or organizational responsibility invalid in R6 and leaves no exact local place to carry the same assertion. Mapping it to sender or receiver would often change the meaning.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.responsible: 0..1 Reference to Practitioner, PractitionerRole, or Organization.",
+          "R4 definition says this party accepts overall responsibility for message contents.",
+          "R6 MessageHeader snapshot has no MessageHeader.responsible element."
+        ],
+        "fmmEffect": "FMM 4/trial-use strengthens concern because responsibility can be compliance-, audit-, or authorization-relevant, even though the field is optional.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 responsible content has no R6 MessageHeader element and preservation requires semantic mapping to another resource or extension.",
+        "lessBreakingAlternativeAssessment": "Yes. A deprecated optional responsible field with guidance toward Provenance, Task, or focus-resource responsibility would have preserved old accountability data. The tradeoff is overlap and conflict handling when both legacy and richer representations are present.",
+        "comparisonToExisting": "agree with the existing medium impact and less-breaking alternative judgment, including the higher business-risk concern."
+      }
     },
     {
       "findingId": "MessageHeader:TYPE_DOMAIN:MessageHeader.event[x]:9f80be",
@@ -1462,7 +1574,21 @@
       "migrationGuidanceMd": "Update R6 models and dispatch logic to accept `eventCanonical`. For R6→R4, decide whether canonical URLs can be safely serialized as `eventUri` and document the loss of target-profile typing. Include tests for all three event choice arms.",
       "backwardCompatibilityAnalysisMd": "The change is mostly additive and justified, but official conversion guidance would reduce ambiguity. Keeping only URI would have preserved R4 shape but weakened R6 semantic typing.",
       "reviewerNotesMd": "The binding metadata remains `example`; the material mechanical change is the added canonical choice, not a binding-strength change.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageHeader:TYPE_DOMAIN:MessageHeader.event[x]:9f80be",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds an eventCanonical choice while retaining the R4 eventCoding and eventUri choices. That means existing R4 event values remain valid in R6. Implementations that exchange R6 content with R4 systems need a conversion policy for canonical events, but this is an additive expressivity change rather than a problematic R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.event[x]: required choice of Coding or uri.",
+          "R6 StructureDefinition MessageHeader.event[x]: required choice of Coding, uri, or canonical targeting EventDefinition or SubscriptionTopic.",
+          "The binding remains example strength in both versions."
+        ],
+        "fmmEffect": "FMM 4/trial-use makes event dispatch important, but it does not turn an additive choice that preserves old arms into a forward compatibility problem.",
+        "compatibilityMechanism": "R6-to-R4 loss: eventCanonical has no R4 choice arm, but R4 eventCoding and eventUri remain valid R6.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 preservation. Using only uri would ease reverse conversion but would lose the stronger canonical target semantics that R6 is adding.",
+        "comparisonToExisting": "partially agree with the existing reverse-conversion risk, but disagree that this should be treated as a material break needing renewed base-design attention."
+      }
     },
     {
       "findingId": "MessageHeader:REFERENCE_TARGET:MessageHeader.destination.receiver:b03b53",
@@ -1605,7 +1731,21 @@
       "validationAndCompatibilityMd": "All R4 receiver targets are still accepted in R6. R6 Device, Patient, or RelatedPerson receiver references are not valid in R4 for this element, so R6→R4 conversion needs a policy or loses receiver specificity.",
       "migrationGuidanceMd": "Update R6 validators and generated models to allow the new target types. For R6→R4, reject unsupported receiver targets, map them through extensions, or use profile-specific routing conventions. Test access-control and routing code with each new target type.",
       "backwardCompatibilityAnalysisMd": "The widening is likely justified by real-world routing needs. A less disruptive approach would keep the base list narrow and allow new targets by profile, but that fragments interoperability.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MessageHeader:REFERENCE_TARGET:MessageHeader.destination.receiver:b03b53",
+        "judgment": "No problem",
+        "narrativeMd": "The receiver reference target list was widened while keeping all R4 target types. Existing R4 receiver references to Practitioner, PractitionerRole, or Organization remain valid in R6. The only compatibility issue is reverse conversion or R4-era code that cannot accept the new R6 receiver types.",
+        "keyEvidence": [
+          "R4 StructureDefinition MessageHeader.destination.receiver targets Practitioner, PractitionerRole, and Organization.",
+          "R6 StructureDefinition MessageHeader.destination.receiver retains those targets and adds Device, Patient, and RelatedPerson.",
+          "Cardinality remains 0..1 and the element path is unchanged."
+        ],
+        "fmmEffect": "FMM 4/trial-use supports careful handling of recipient identity, but the additive widening preserves the R4 domain and therefore does not raise a forward stability concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: Device, Patient, and RelatedPerson receivers cannot be represented in the R4 receiver target set, while existing R4 receivers continue to validate in R6.",
+        "lessBreakingAlternativeAssessment": "Not applicable for backward preservation. Keeping new receiver types only in profiles or extensions would be less expressive and would not improve R4-to-R6 validity.",
+        "comparisonToExisting": "partially agree with the existing reverse-conversion concern, but disagree with treating this as a problematic breaking change for the base R4-to-R6 path."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1831,5 +1971,18 @@
       "Resource participant fields removed in favor of Provenance or Task",
       "Choice elements adding canonical target profiles"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MessageHeader.fresh-review.json",
+    "findingDecisionCount": 10,
+    "matchedFindingDecisionCount": 10,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 8,
+      "No problem": 2
+    }
   }
 }

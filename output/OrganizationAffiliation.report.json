@@ -380,7 +380,23 @@
       "migrationGuidanceMd": "Update models and transforms to write `OrganizationAffiliation.contact`. For simple R4 contacts, map `telecom[n]` to either `contact[n].telecom[0]` or to a grouped `contact[0].telecom[n]` according to local semantics. Add fixtures for multiple telecoms, ranked telecoms, contact periods, and rich R6 contact content. For R6→R4, use extensions or a sidecar mapping if contact purpose/name/address/organization/period must survive.",
       "backwardCompatibilityAnalysisMd": "The model change could have been less disruptive by adding `contact` while preserving `telecom` as deprecated for a transition period. That would have allowed old instances and clients to continue working while enabling richer R6 contact detail. The cost would be temporary duplication and a need to define precedence when both elements are present.",
       "reviewerNotesMd": "No official cross-version StructureMap was available, so grouping policy for R4 telecom repetitions is a migration design decision rather than a computable fact from the supplied inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OrganizationAffiliation:ELEMENT_PRESENCE_OR_IDENTITY:OrganizationAffiliation.telecom:8f7c2a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed affiliation-specific contact channels as `OrganizationAffiliation.telecom` `ContactPoint[]`; R6 removes that wire path and uses `OrganizationAffiliation.contact` `ExtendedContactDetail[]`. A conformant R4 provider-directory instance with `telecom` is therefore not directly accepted by an R6 structural validator or generated R6 model, even though the basic meaning can often be transformed into `contact.telecom`. The richer R6 datatype is a reasonable direction, but the affected R4 path is used by official R4 provider-directory profiling, and a base transitional/deprecated `telecom` path would preserve many existing instances while still allowing the richer `contact` model. The duplicate-contact tradeoff is real, but not obviously enough to justify a hard path removal without renewed review.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot: `OrganizationAffiliation.telecom` is 0..* `ContactPoint`, `isSummary=true`, definition contact details at the participating organization.",
+          "R6 StructureDefinition snapshot: `OrganizationAffiliation.contact` is 0..* `ExtendedContactDetail`; no `OrganizationAffiliation.telecom` element is present.",
+          "R6 `ExtendedContactDetail` includes `purpose`, `name`, `telecom`, `address`, `organization`, and `period`, showing the intended richer contact model.",
+          "HL7 Da Vinci PDEX Plan-Net STU 1.2 describes an R4 FHIR interface for payer provider directories and profiles OrganizationAffiliation: https://hl7.org/fhir/us/davinci-pdex-plan-net/STU1.2/index.html",
+          "Plan-Net OrganizationAffiliation profile marks `OrganizationAffiliation.telecom` MustSupport: https://hl7.org/fhir/us/davinci-pdex-plan-net/STU1.2/StructureDefinition-plannet-OrganizationAffiliation.json"
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use lowers the default stability expectation, but documented R4 provider-directory use and MustSupport profiling of this exact path prevent dismissing the hard break as merely experimental churn.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 instances containing `telecom` use a path absent from the R6 resource, and generated clients or serializers that expose `telecom` must be changed.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design could have retained optional deprecated `telecom` for one release while adding `contact`. That preserves most R4 payloads but introduces duplicate representations and precedence rules when both old and new contact paths are populated.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial-alternative assessment, but I judge the production provider-directory evidence and plausible transitional base design as enough to warrant Revisit rather than accepting the break as probably justified."
+      }
     },
     {
       "findingId": "OrganizationAffiliation:VALUE_CONSTRAINT:OrganizationAffiliation.contact:bb84d1",
@@ -527,7 +543,22 @@
       "migrationGuidanceMd": "Inventory R4 OrganizationAffiliation telecoms with `use='home'` before migration. Decide whether they are data-quality errors, should be changed to `work`, should drop the use code, or should be preserved in an extension for audit. Do not blindly rewrite `home` to `work` without confirming business meaning.",
       "backwardCompatibilityAnalysisMd": "The same policy could have been introduced less disruptively as an implementation-guide rule, a warning invariant, or a staged deprecation. Making it a base error gives stronger consistency but causes migration exceptions for historical R4 data.",
       "reviewerNotesMd": "Because the old path is removed, this finding should be read together with the contact-model replacement finding. It isolates the additional validation failure that remains after a syntactic telecom-to-contact transform.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OrganizationAffiliation:VALUE_CONSTRAINT:OrganizationAffiliation.contact:bb84d1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "After the contact-path migration, an R4 `telecom` entry with `use='home'` can become an R6 `contact.telecom` value that violates the new `org-3` error constraint; R6 also forbids `contact.address.use='home'`. This is a real conditional validation break, but the affected resource is about official organizational affiliations, where personal home contact semantics are plausibly inappropriate. The break should be called out for historical data cleanup, yet the base rule appears proportionate because a warning-only rule would not provide the same computable guarantee.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot: `OrganizationAffiliation.telecom` has no local constraint excluding `ContactPoint.use='home'`.",
+          "R6 StructureDefinition snapshot: `OrganizationAffiliation.contact` includes `org-3` error constraint `telecom.where(use = 'home').empty()`.",
+          "R6 StructureDefinition snapshot: `OrganizationAffiliation.contact` includes `org-4` error constraint `address.where(use = 'home').empty()`.",
+          "R4/R6 contact-point and address use code systems still contain `home`; the narrowing is local to OrganizationAffiliation contact content."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens the compatibility concern, and the specific constraint aligns with the organizational-contact domain rather than changing a mature clinical path.",
+        "compatibilityMechanism": "old-valid/new-invalid: a syntactically migrated R4 home-use contact can fail R6 validation because the new invariant is error-level.",
+        "lessBreakingAlternativeAssessment": "A warning-level invariant or IG/profile rule would be less breaking for historical data, but it would materially weaken the base guarantee that OrganizationAffiliation contacts are not home contacts.",
+        "comparisonToExisting": "agree with the existing medium, conditional-break assessment and partial alternative judgment; the fresh review gives more weight to low FMM and the plausible data-quality rationale."
+      }
     },
     {
       "findingId": "OrganizationAffiliation:FLAGS_AND_MODIFIERS:OrganizationAffiliation.contact:12c9ef",
@@ -620,7 +651,22 @@
       "validationAndCompatibilityMd": "This is not an instance-validity break. It is a serialization/API behavior risk: full R6 resources can contain `contact`, but summary views may omit it. Generated summary serializers and clients that use `_summary=true` need to be retested.",
       "migrationGuidanceMd": "Clients that need affiliation contact data should request full resources, verify R6 SearchParameter behavior, or explicitly include contact data through supported server mechanisms. Regression tests should compare full and summary responses before and after migration.",
       "backwardCompatibilityAnalysisMd": "The less disruptive choice would have been to keep the replacement contact element in the summary set. If the concern was payload size or sensitivity, narrower guidance or server-level controls could have been used instead of a base summary flag change.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OrganizationAffiliation:FLAGS_AND_MODIFIERS:OrganizationAffiliation.contact:12c9ef",
+        "judgment": "Revisit",
+        "narrativeMd": "The replacement contact path is no longer a summary element: R4 `telecom` was `isSummary=true`, while R6 `contact` is `isSummary=false`. This does not invalidate instances, but it can silently remove affiliation contact data from `_summary=true` reads, summary serializers, or clients that use summary responses for provider-directory browsing. Because `ExtendedContactDetail` child fields are themselves summary-capable and the R4 Plan-Net profile marks `telecom` MustSupport, the base choice to drop the parent from summary output deserves renewed review unless there is a clear payload or sensitivity rationale.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot: `OrganizationAffiliation.telecom.isSummary=true`.",
+          "R6 StructureDefinition snapshot: `OrganizationAffiliation.contact.isSummary=false`.",
+          "R6 `ExtendedContactDetail` children such as `purpose`, `name`, `telecom`, `address`, `organization`, and `period` are marked summary in the datatype snapshot.",
+          "Plan-Net OrganizationAffiliation profile marks R4 `OrganizationAffiliation.telecom` MustSupport and summary: https://hl7.org/fhir/us/davinci-pdex-plan-net/STU1.2/StructureDefinition-plannet-OrganizationAffiliation.json"
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use would normally make a summary-flag change less concerning, but documented provider-directory profiling of the exact old path raises the practical runtime/API concern.",
+        "compatibilityMechanism": "runtime/API/codegen: base instances remain valid, but summary-mode API responses and generated summary serializers can omit contact data that R4 clients previously received.",
+        "lessBreakingAlternativeAssessment": "The direct less-breaking design is to mark R6 `OrganizationAffiliation.contact` as summary. Its tradeoff is larger summary payloads and possible exposure of richer contact details, but those child fields are already summary-capable in the datatype and provider-directory contact details are often intended for publication.",
+        "comparisonToExisting": "partially agree with the existing runtime-risk and partial-alternative assessment, but the fresh review treats the low-cost summary-compatible design and Plan-Net evidence as stronger reasons to Revisit."
+      }
     },
     {
       "findingId": "OrganizationAffiliation:TERMINOLOGY_BINDING:OrganizationAffiliation.specialty:df7a33",
@@ -791,7 +837,22 @@
       "validationAndCompatibilityMd": "An R4 instance with any `CodeableConcept` remains structurally representable in R6, and an R6 instance remains structurally representable in R4. The practical difference is validator and tooling behavior: R4 preferred bindings may produce guidance or warnings where R6 example bindings generally should not.",
       "migrationGuidanceMd": "Review specialty validation, UI pick lists, and analytics rules. If a deployment still requires C80/SNOMED specialty coding, capture that requirement in a profile rather than relying on the R6 base binding.",
       "backwardCompatibilityAnalysisMd": "The change is backward-compatible for instances but not for conformance expectations. If the goal was flexibility, a profile-based approach could have preserved a stronger base recommendation while allowing local overrides.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OrganizationAffiliation:TERMINOLOGY_BINDING:OrganizationAffiliation.specialty:df7a33",
+        "judgment": "No problem",
+        "narrativeMd": "The base binding on `OrganizationAffiliation.specialty` weakens from preferred to example while the element remains optional, repeating, and `CodeableConcept`. This does not reject any R4 instance; if anything, it reduces base conformance pressure. Implementations that need a tighter specialty vocabulary can and already do impose profile-level bindings, so this is an interoperability-policy shift rather than a compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot: `OrganizationAffiliation.specialty` is 0..* `CodeableConcept` with preferred binding to `http://hl7.org/fhir/ValueSet/c80-practice-codes`.",
+          "R6 StructureDefinition snapshot: same path and type with example binding to the same value set canonical.",
+          "Packaged value set compose comparison in the report evidence found the same 117 SNOMED codes with display-only changes.",
+          "Plan-Net demonstrates profile-level control by applying its own required specialty value set to the R4 profile: https://hl7.org/fhir/us/davinci-pdex-plan-net/STU1.2/StructureDefinition-plannet-OrganizationAffiliation.json"
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use further lowers concern, and the change is permissive rather than restrictive.",
+        "compatibilityMechanism": "none: no old-valid/new-invalid, API, or data-loss mechanism is created by weakening a preferred binding to example.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed. Keeping the preferred binding would preserve stronger vocabulary guidance, but it would not make R4 instances more valid in R6 than the current example binding does.",
+        "comparisonToExisting": "agree with the existing low-impact and not-applicable alternative assessment."
+      }
     },
     {
       "findingId": "OrganizationAffiliation:SEMANTIC_OR_CONFORMANCE_TEXT:OrganizationAffiliation.network:5a7d09",
@@ -916,7 +977,21 @@
       "validationAndCompatibilityMd": "No base validator will reject an instance because of this wording change. The compatibility issue is interpretation: a valid R6 non-insurance network reference can be carried in R4 syntax but may be misleading to R4-era applications or profiles that encoded the old insurance-network assumption.",
       "migrationGuidanceMd": "Review business rules, search filters, and UI labels that assume `network` means insurance network. If projecting R6 data to R4 consumers, consider profile metadata, extensions, or documentation to distinguish non-insurance network affiliations.",
       "backwardCompatibilityAnalysisMd": "The change is structurally backward-compatible. A stricter backward-compatible approach would have kept the old wording and used profiles for broader networks, but that would preserve an insurance-centric base model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OrganizationAffiliation:SEMANTIC_OR_CONFORMANCE_TEXT:OrganizationAffiliation.network:5a7d09",
+        "judgment": "No problem",
+        "narrativeMd": "R6 broadens the prose for `OrganizationAffiliation.network` from specifically a health insurance provider network to a network generally, while keeping the same cardinality and `Reference(Organization)` target. Existing R4 insurance-network uses remain valid and still fit the R6 comment that health insurance networks are a common example. The main risk is reverse semantic interpretation if non-insurance R6 networks are sent to R4-era consumers, not an R4-to-R6 compatibility break for this path.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot: `OrganizationAffiliation.network` is 0..* `Reference(Organization)` with short/definition beginning `Health insurance provider network`.",
+          "R6 StructureDefinition snapshot: same cardinality and target type, with definition `The network...` and comment `Commonly used for Health Insurance provider networks`.",
+          "Plan-Net marks R4 `OrganizationAffiliation.network` MustSupport for payer provider directories, confirming domain relevance but not a structural break: https://hl7.org/fhir/us/davinci-pdex-plan-net/STU1.2/StructureDefinition-plannet-OrganizationAffiliation.json"
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens stability pressure, and the R4 use case is preserved as an R6 example rather than removed.",
+        "compatibilityMechanism": "semantic/documentation: no structural validator or generated API break; only broader interpretation and possible R6-to-R4 semantic mismatch.",
+        "lessBreakingAlternativeAssessment": "A narrower base design could have kept the insurance-specific wording and left broader networks to profiles, but that would be a semantic policy choice, not a less-breaking design needed to preserve R4-valid instances.",
+        "comparisonToExisting": "agree with the existing low-impact, structurally compatible assessment and not-applicable alternative judgment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1068,5 +1143,19 @@
       "Local organization-contact constraints forbidding use='home'",
       "Specialty binding strength changes from preferred to example"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/OrganizationAffiliation.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 1,
+      "No problem": 2
+    }
   }
 }

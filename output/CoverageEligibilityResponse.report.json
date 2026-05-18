@@ -317,7 +317,21 @@
       "validationAndCompatibilityMd": "R4-valid instances do not become invalid in R6 because the constraint was weakened. The reverse is not true: an R6 instance without `request` is not a valid R4 `CoverageEligibilityResponse`. Strict R4 serializers and validators must either reject the instance or add a request reference through a lossy or synthetic transform.",
       "migrationGuidanceMd": "R4→R6 migration can leave `request` unchanged. R6→R4 migration should test for missing `request`; if absent, determine whether a real `CoverageEligibilityRequest` can be located, whether a placeholder request is acceptable in the implementation context, or whether the response must remain R6-only. Business rules that assumed a non-null request link should be reviewed.",
       "backwardCompatibilityAnalysisMd": "The change is backward-compatible in the forward R4→R6 direction but not in round-trip/downgrade scenarios. A less disruptive design for R4 consumers would have been to keep `request` mandatory and define an extension for unavailable request details, but that would not allow base R6 instances to represent responses with no request resource at all.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CoverageEligibilityResponse:CARDINALITY:CoverageEligibilityResponse.request:8e48f6",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 weakens `CoverageEligibilityResponse.request` from required to optional. That is not an old-valid/new-invalid R4-to-R6 instance break, but it removes a guarantee that R4 clients and business reconciliation logic could rely on: a response may no longer carry a direct request link. The direct concern is R6-to-R4 conversion or mixed-version consumption when an R6 response legitimately omits the request. The change is still proportionate because preserving the R4 guarantee would require keeping `request` mandatory, which would defeat the apparent R6 goal of allowing responses when no FHIR CoverageEligibilityRequest is available.",
+        "keyEvidence": [
+          "R4 StructureDefinition `CoverageEligibilityResponse.request`: min=1, max=1, Reference(CoverageEligibilityRequest), isSummary=true.",
+          "R6 StructureDefinition `CoverageEligibilityResponse.request`: min=0, max=1 with the same reference target.",
+          "R4 artifact maturity/status: FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral under the framework: it does not create a normative-level stability burden, but the request link is still business/audit relevant enough to count as real mixed-version migration work.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6-valid response without `request` cannot satisfy R4's 1..1 cardinality, and R6 consumers can no longer safely assume the link is present.",
+        "lessBreakingAlternativeAssessment": "The only base-model alternative is to keep `request` mandatory. That would preserve the R4 invariant and simplify downgrade, but it would not meet the R6 design goal for responses without an explicit FHIR request resource. Locating or synthesizing a request is migration policy, not a less-breaking R6 base design.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the reverse-direction risk is real and no useful less-breaking base alternative is apparent, but FMM 2 makes this a proportionate compatibility burden rather than a reason to revisit the standard."
+      }
     },
     {
       "findingId": "CoverageEligibilityResponse:ELEMENT_PRESENCE:CoverageEligibilityResponse.event:1c8a55",
@@ -472,7 +486,22 @@
       "migrationGuidanceMd": "For R4→R6, no transform is required unless local extensions previously captured event dates; those extensions can be mapped to `event` with manual confirmation of event type. For R6→R4, preserve event data in a cross-version extension or implementation-specific extension, and test strict R4 validation with and without the extension. Avoid mapping all events to `serviced[x]` unless the event type is specifically a service date and the date precision is compatible.",
       "backwardCompatibilityAnalysisMd": "The addition could have been modeled as an extension for better R4 compatibility, but a core backbone is more usable for generated classes and standardized validation. The compatibility cost is mainly borne by downgrade and dual-version systems.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "A narrative spec page or official diff would improve confidence about whether `event` is intended to subsume any prior extension patterns."
+      "reviewerNotesMd": "A narrative spec page or official diff would improve confidence about whether `event` is intended to subsume any prior extension patterns.",
+      "freshReview": {
+        "findingId": "CoverageEligibilityResponse:ELEMENT_PRESENCE:CoverageEligibilityResponse.event:1c8a55",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an optional repeatable `event` backbone with mandatory `type` and `when[x]` inside each event. This does not invalidate R4 instances moving forward, but R6 responses that use the field carry typed timing information that has no base R4 home. Dropping it during downgrade can lose business timing context such as expected service dates or card-print events. The addition is nevertheless proportionate because making the concept first-class gives R6 validators, models, and mappers a clear place for event dates; an extension-only design would mainly shift the burden to profiles and cross-version conventions.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `CoverageEligibilityResponse.event`, `event.type`, or `event.when[x]` element.",
+          "R6 StructureDefinition adds `CoverageEligibilityResponse.event` as 0..* BackboneElement.",
+          "R6 `event.type` is 1..1 CodeableConcept with preferred `ValueSet/datestype`; R6 `event.when[x]` is 1..1 `dateTime` or `Period`.",
+          "R4 artifact maturity/status: FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It softens any stability complaint about an additive R6 model improvement, while the financial timing context keeps the R6-to-R4 loss from being purely cosmetic.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 event entries are unknown in base R4 and require an extension, profile-specific mapping, or data loss when downgrading.",
+        "lessBreakingAlternativeAssessment": "A core extension instead of a backbone would preserve more R4 round-trip behavior, but that is a backport/mitigation pattern and would weaken first-class R6 validation and generated-model support. No clearly better base R6 design preserves the same computability without duplicating event representations.",
+        "comparisonToExisting": "agree with the existing impact direction and no-forward-hard-break assessment; the fresh review also treats the optional addition as proportionate despite the real downgrade loss."
+      }
     },
     {
       "findingId": "CoverageEligibilityResponse:ELEMENT_PRESENCE:CoverageEligibilityResponse.statusReason:4b9e22",
@@ -592,7 +621,22 @@
       "validationAndCompatibilityMd": "Forward validation is safe because the element is optional. Strict R4 validation of an R6 instance containing `statusReason` will fail on an unknown element, and a lossy downgrade that drops the reason can leave consumers with only the status code.",
       "migrationGuidanceMd": "Map prior R4 extensions that carried status-change reasons into `statusReason` where possible. For R6→R4, define a cross-version extension for the reason if the information is operationally important. Add tests for cancelled and entered-in-error statuses because those are the statuses most likely to need a reason.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified as a first-class explanation for a modifier status. It could have been introduced as a standard extension for better R4 compatibility, but that would have provided weaker model and summary support.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CoverageEligibilityResponse:ELEMENT_PRESENCE:CoverageEligibilityResponse.statusReason:4b9e22",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `statusReason` as a summary string explaining why the response status changed. Existing R4 instances remain valid without it, and the underlying modifier status code is unchanged. R4 downgrade can lose the explanation unless an extension is used, but this is a small additive context field rather than a material R4-to-R6 compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `CoverageEligibilityResponse.statusReason` element.",
+          "R6 StructureDefinition adds `statusReason` as 0..1 `string`, isSummary=true.",
+          "R6 comment says IGs may require `statusReason` when status is `cancelled`.",
+          "R4 artifact maturity/status: FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because the change is optional and low-impact, maturity does not raise it into a standards concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: a populated R6 reason has no R4 base element, but losing it does not change the actual `status` value.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for R4-to-R6 compatibility. An R4 extension can preserve the reason during downgrade, but an extension-only R6 design would lose summary and generated-model support for a low-risk optional field.",
+        "comparisonToExisting": "agree with the existing low-impact assessment; the fresh review frames the reverse preservation issue as too small for a breaking judgment."
+      }
     },
     {
       "findingId": "CoverageEligibilityResponse:TERMINOLOGY_BINDING:CoverageEligibilityResponse.outcome:7a91bd",
@@ -752,7 +796,22 @@
       "migrationGuidanceMd": "Regenerate model bindings and enum metadata for R6. Treat the four observed codes as identity-mapped unless an official ConceptMap or expansion says otherwise. Tests should cover all four mandatory outcome codes and should avoid asserting the R4 ValueSet canonical in R6 validators.",
       "backwardCompatibilityAnalysisMd": "Because the code set appears unchanged, a canonical alias or published ConceptMap would have minimized disruption. The new canonical is probably justified for clearer semantics, but tooling migration should not be overlooked simply because instance code strings remain the same.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Confirm with an official R4→R6 diff or terminology expansion whether the identity mapping of all four outcome codes is intentional and complete."
+      "reviewerNotesMd": "Confirm with an official R4→R6 diff or terminology expansion whether the identity mapping of all four outcome codes is intentional and complete.",
+      "freshReview": {
+        "findingId": "CoverageEligibilityResponse:TERMINOLOGY_BINDING:CoverageEligibilityResponse.outcome:7a91bd",
+        "judgment": "No problem",
+        "narrativeMd": "`CoverageEligibilityResponse.outcome` remains a required primitive `code`, but the required binding changes from the R4 remittance outcome value set to the R6 eligibility outcome value set. Local terminology evidence shows the same four code values and definitions, so ordinary instances using `queued`, `complete`, `error`, or `partial` are not meaningfully broken by value. The main effect is terminology metadata, generated enum names, and cache/profile churn around the binding canonical.",
+        "keyEvidence": [
+          "R4 `outcome` binding: required `http://hl7.org/fhir/ValueSet/remittance-outcome|4.0.1`.",
+          "R6 `outcome` binding: required `http://hl7.org/fhir/ValueSet/eligibility-outcome|6.0.0-ballot4`.",
+          "Local R4 `CodeSystem-remittance-outcome` and R6 `CodeSystem-eligibility-outcome` both contain `queued`, `complete`, `error`, and `partial` with matching definitions.",
+          "R4 artifact maturity/status: FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Since the observed instance code domain is unchanged, maturity does not justify escalating metadata churn to a revisit finding.",
+        "compatibilityMechanism": "metadata/tooling: generated terminology bindings, canonical URLs, profiles, tests, and terminology caches may need updates, but no old-valid/new-invalid code value was found.",
+        "lessBreakingAlternativeAssessment": "A less-churn design could have retained the old `remittance-outcome` canonical or published explicit equivalence while improving documentation. The tradeoff is keeping a misleading remittance-oriented name on eligibility semantics. Because the wire-level code set appears unchanged, that alternative would be helpful for tooling but is not strong enough to make the R6 design a material compatibility problem.",
+        "comparisonToExisting": "partially agree with the existing low instance-impact assessment and same-code evidence, but disagree with treating the less-breaking alternative as a reason for concern; this looks like metadata/tooling churn rather than a change needing standards redesign."
+      }
     },
     {
       "findingId": "CoverageEligibilityResponse:TYPE_DOMAIN:CoverageEligibilityResponse.insurance.item.description:2fb5cd",
@@ -896,7 +955,22 @@
       "migrationGuidanceMd": "Regenerate models and serializers to pick up the markdown primitive. Review UI rendering and escaping paths for benefit descriptions. For R6→R4 export, preserve the text value but document that markdown semantics may be lost unless a profile or extension signals them.",
       "backwardCompatibilityAnalysisMd": "The semantic goal could have been achieved by retaining `string` and adding narrative guidance, but a computable markdown type makes renderer and code generator expectations clearer. The tradeoff is low-level type churn rather than instance-shape breakage.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "A full primitive datatype and narrative comparison would improve confidence about validation subtleties such as markdown-specific escaping or length expectations."
+      "reviewerNotesMd": "A full primitive datatype and narrative comparison would improve confidence about validation subtleties such as markdown-specific escaping or length expectations.",
+      "freshReview": {
+        "findingId": "CoverageEligibilityResponse:TYPE_DOMAIN:CoverageEligibilityResponse.insurance.item.description:2fb5cd",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`insurance.item.description` keeps the same path and JSON string-valued property, but its primitive type changes from `string` to `markdown`. Plain R4 strings should remain syntactically acceptable because R6 markdown derives from string, but generated SDKs, primitive wrappers, validation metadata, and UI rendering/sanitization paths may change. The burden is real for code and display layers, yet the R6 goal of making formatted benefit descriptions computable is reasonable.",
+        "keyEvidence": [
+          "R4 `CoverageEligibilityResponse.insurance.item.description`: 0..1 `string`.",
+          "R6 `CoverageEligibilityResponse.insurance.item.description`: 0..1 `markdown`.",
+          "R6 `StructureDefinition-markdown` has baseDefinition `http://hl7.org/fhir/StructureDefinition/string`.",
+          "R4 artifact maturity/status: FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It allows model refinement where justified, but the path can affect payer-facing benefit descriptions, so codegen and rendering changes still deserve migration attention.",
+        "compatibilityMechanism": "runtime/API/codegen: generated primitive types and renderers may change even though the JSON property remains a string and typical R4 text remains acceptable.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could keep `string` and add prose saying markdown is allowed, or add a separate markdown extension. The first lacks a computable rendering/sanitization signal, and the second risks duplicate divergent descriptions. The selected type change is proportionate.",
+        "comparisonToExisting": "agree with the existing assessment that this is not a hard instance break but does create real generated-type and rendering work; the partial alternative has meaningful tradeoffs."
+      }
     },
     {
       "findingId": "CoverageEligibilityResponse:TERMINOLOGY_BINDING:benefit-preferred-bindings:aa2609",
@@ -1029,7 +1103,22 @@
       "migrationGuidanceMd": "Review local payer code systems for benefit unit, term, and type. Where a local concept corresponds to a preferred standard code, add the standard coding alongside the local coding. Configure validation pipelines so preferred-binding warnings are triaged rather than treated as hard failures unless a local profile deliberately elevates them.",
       "backwardCompatibilityAnalysisMd": "The change is intentionally less disruptive than an extensible or required binding. A fully backward-compatible approach would leave the base binding as example and rely on profiles, but that would not move the ecosystem toward shared terminology. Preferred is a compromise.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "The R6 package includes the ValueSets but not the external terminology.hl7.org CodeSystem files for these three bindings, so code-level changes could not be compared locally."
+      "reviewerNotesMd": "The R6 package includes the ValueSets but not the external terminology.hl7.org CodeSystem files for these three bindings, so code-level changes could not be compared locally.",
+      "freshReview": {
+        "findingId": "CoverageEligibilityResponse:TERMINOLOGY_BINDING:benefit-preferred-bindings:aa2609",
+        "judgment": "No problem",
+        "narrativeMd": "R6 strengthens the bindings for `insurance.item.unit`, `insurance.item.term`, and `insurance.item.benefit.type` from example to preferred while keeping the same value set URLs. Preferred bindings do not make local payer codes invalid; they mainly create stronger guidance and possible warnings. That is useful migration awareness, but not a material base compatibility break.",
+        "keyEvidence": [
+          "R4 bindings for `unit`, `term`, and `benefit.type` have strength `example`.",
+          "R6 bindings for the same three elements have strength `preferred`.",
+          "The value set URLs remain `benefit-unit`, `benefit-term`, and `benefit-type` in both R4 and R6.",
+          "R4 artifact maturity/status: FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral and does not turn warning-level terminology guidance into a breaking change.",
+        "compatibilityMechanism": "warning-level: validators, QA gates, or authoring tools may emit stronger recommendations, but base R6 validation still permits non-preferred local codings.",
+        "lessBreakingAlternativeAssessment": "A less disruptive option would keep example bindings and push preferred terminology into IGs or prose. That would reduce warnings but would also weaken the computable ecosystem-wide signal to use shared benefit terminology. Since preferred remains non-invalidating, the R6 design is acceptable.",
+        "comparisonToExisting": "agree with the existing low-impact direction; the fresh review treats this as warning-level conformance pressure and therefore a no-problem finding."
+      }
     },
     {
       "findingId": "CoverageEligibilityResponse:FLAGS_AND_MODIFIERS:CoverageEligibilityResponse.error.code:94e1af",
@@ -1152,7 +1241,22 @@
       "validationAndCompatibilityMd": "No R4 instance becomes invalid, and no R6-only data is introduced by the flag itself. The compatibility issue is projection shape: strict clients or tests that compare summary payloads may see extra error code content in R6.",
       "migrationGuidanceMd": "Review summary-mode API tests and clients that render or redact summary resources. If error details are sensitive in a deployment, ensure summary response policies explicitly account for R6 `error.code` inclusion.",
       "backwardCompatibilityAnalysisMd": "This could have been avoided by leaving `isSummary=false`, but including error codes in summaries is operationally useful and is not a hard instance break.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CoverageEligibilityResponse:FLAGS_AND_MODIFIERS:CoverageEligibilityResponse.error.code:94e1af",
+        "judgment": "No problem",
+        "narrativeMd": "`CoverageEligibilityResponse.error.code` changes only by becoming part of summary views. Its path, cardinality, type, and example binding are otherwise stable. Summary-mode responses or generated summary DTOs may include more error detail in R6, but stored instances are not invalidated and no data element is removed.",
+        "keyEvidence": [
+          "R4 `CoverageEligibilityResponse.error.code`: 1..1 CodeableConcept, isSummary=false.",
+          "R6 `CoverageEligibilityResponse.error.code`: 1..1 CodeableConcept, isSummary=true.",
+          "The example binding remains `http://hl7.org/fhir/ValueSet/adjudication-error`.",
+          "R4 artifact maturity/status: FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The compatibility mechanism is limited to projection behavior, so maturity does not raise this above routine migration awareness.",
+        "compatibilityMechanism": "runtime/API/codegen: `_summary` responses and summary projections may expose `error.code` where R4 summaries did not, but the instance content model is unchanged.",
+        "lessBreakingAlternativeAssessment": "Leaving `isSummary=false` would preserve R4 summary shape, but it would fail the apparent operational goal of surfacing actionable error codes in summaries. Given the narrow projection-only effect, the change is acceptable.",
+        "comparisonToExisting": "agree with the existing info/low-impact assessment and partial alternative tradeoff; this does not warrant a breaking judgment."
+      }
     },
     {
       "findingId": "CoverageEligibilityResponse:ELEMENT_PRESENCE:CoverageEligibilityResponse.error.expression:5d0f6d",
@@ -1268,7 +1372,22 @@
       "validationAndCompatibilityMd": "R4 instances are unaffected because the element is optional. R6 instances containing `error.expression` are not valid R4 base instances unless the data is transformed to an extension or dropped. Summary payloads may also include these expressions in R6.",
       "migrationGuidanceMd": "For R6→R4, preserve expressions in an extension if downstream users need repair guidance. Validate that expression strings use the constrained simple FHIRPath subset. Review summary clients for the new field.",
       "backwardCompatibilityAnalysisMd": "A cross-version extension could avoid base R4 rejection, but a core element gives stronger model support for error localization. The change is additive and therefore not disruptive for R4→R6 validation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CoverageEligibilityResponse:ELEMENT_PRESENCE:CoverageEligibilityResponse.error.expression:5d0f6d",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional repeatable `error.expression` strings to identify implicated elements using a constrained FHIRPath subset. R4 error entries only had the error code, so R6-to-R4 downgrade needs an extension or loses this repair guidance. Because the field is optional and auxiliary to the actual error code, the compatibility concern is limited.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `CoverageEligibilityResponse.error.expression` element.",
+          "R6 `CoverageEligibilityResponse.error.expression`: 0..* `string`, isSummary=true.",
+          "R6 definition describes a simple FHIRPath subset for identifying elements related to the issue.",
+          "R4 artifact maturity/status: FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The additive field improves usability of error repair without imposing a forward validation burden.",
+        "compatibilityMechanism": "R6-to-R4 loss: strict R4 resources cannot carry the new expression field except through an extension, but losing it does not change the error code itself.",
+        "lessBreakingAlternativeAssessment": "A cross-version extension can preserve expressions for R4 consumers, but extension-only modeling in R6 would be less discoverable and less consistently supported than a core element. No better base R6 design is apparent.",
+        "comparisonToExisting": "agree with the existing low-impact, additive assessment; the fresh judgment classifies the reverse loss as too limited for a breaking concern."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1435,5 +1554,18 @@
       "Financial resources that changed outcome bindings from remittance-outcome to domain-specific outcome ValueSets",
       "Financial resources adding statusReason or error.expression"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/CoverageEligibilityResponse.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 3,
+      "No problem": 5
+    }
   }
 }

@@ -308,7 +308,21 @@
       "validationAndCompatibilityMd": "An R4 Claim with `patient` and no `subject` is old-valid/new-invalid. A Patient subject maps back to R4, but a Group subject is not cleanly R4-representable.",
       "migrationGuidanceMd": "Map `Claim.patient` to `Claim.subject`, update FHIRPath/search/index code, and add tests for Patient and Group subjects. For R6 Group subjects, use an extension, reject reverse conversion, or split claims according to local policy.",
       "backwardCompatibilityAnalysisMd": "The change likely aligns Claim with common FHIR `subject` conventions. A deprecated alias would have been less disruptive but would require consistency rules between two recipient elements.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.patient:6f1b22",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 requires `Claim.patient` as `Reference(Patient)`, while R6 removes that member and requires `Claim.subject` as `Reference(Patient|Group)`. An untransformed R4 Claim is therefore missing the required R6 element and has an unknown old member, and generated models/FHIRPath expressions also move from `patient` to `subject`. The R6 goal of supporting group subjects is reasonable, but this is a required, central billing-recipient path and a less disruptive base design appears available.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Claim.patient` min=1 max=1 type `Reference(Patient)`.",
+          "R6 StructureDefinition: `Claim.subject` min=1 max=1 type `Reference(Patient|Group)`; no R6 `Claim.patient` element.",
+          "R4 maturity map: Claim is FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it does not create normative stability pressure, but it also does not soften this required-path, high-use billing-recipient break.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with required `patient` and no `subject` fail R6 structure validation; runtime/API/codegen also changes the property name, and R6 `Group` subjects introduce R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained `Claim.patient` as the recipient element and widened its target to Patient or Group, or kept `patient` as a deprecated alias while introducing `subject`. The tradeoff is an imperfect name for Group claims or duplicate recipient fields requiring consistency rules, but the base break for every R4 Claim would be avoided.",
+        "comparisonToExisting": "agree with the existing High impact and Yes alternative judgment; the independent assessment also finds the rename disproportionate enough to revisit."
+      }
     },
     {
       "findingId": "Claim:TYPE_DOMAIN:Claim.supportingInfo.timing:3c26cf",
@@ -467,7 +481,21 @@
       "validationAndCompatibilityMd": "R4 `timingPeriod` remains compatible, but R4 `timingDate` is old-valid/new-invalid. R6 `timingTiming` is not R4-representable; R6 `dateTime` can down-convert only when loss of time/timezone detail is acceptable.",
       "migrationGuidanceMd": "Transform `timingDate` to `timingDateTime` and preserve precision. For reverse conversion, reject or extension-map `Timing`; down-convert `dateTime` only under explicit business rules.",
       "backwardCompatibilityAnalysisMd": "Adding expressive choices was likely justified. Removing `date` was probably avoidable by retaining it for a transition period.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Claim:TYPE_DOMAIN:Claim.supportingInfo.timing:3c26cf",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed `supportingInfo.timingDate` and `timingPeriod`; R6 allows `timingDateTime`, `timingPeriod`, and `timingTiming`. The added `dateTime` and `Timing` choices are useful, but removing the existing `date` choice changes the serialized choice suffix for date-only supporting information. A date-only R4 value can usually be represented semantically as a date-precision `dateTime`, but the wire member and generated choice accessor still break.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Claim.supportingInfo.timing[x]` types are `date` and `Period`.",
+          "R6 StructureDefinition: `Claim.supportingInfo.timing[x]` types are `dateTime`, `Period`, and `Timing`.",
+          "The path is optional supporting information, not a whole-resource behavior change."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because the affected path is optional, FMM does not by itself make the change high-impact, but the avoidable choice-suffix break still matters.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `timingDate` member is not an R6 choice member; R6 `Timing` also creates R6-to-R4 loss, and `dateTime` reverse conversion can be lossy when time or timezone detail is present.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained `date` while adding `dateTime` and `Timing`. That would preserve R4 instances and still meet the expressiveness goal; the cost is a longer choice list and duplicate date-only encodings that receivers may normalize.",
+        "comparisonToExisting": "agree with the existing Medium hard-break assessment and Yes alternative judgment; the fresh review emphasizes that retaining `date` is a modest base-design cost."
+      }
     },
     {
       "findingId": "Claim:SLICING_AND_CONTENT_MODEL:Claim.item.bodySite:0a3bf9",
@@ -669,7 +697,21 @@
       "validationAndCompatibilityMd": "R4 line items with `bodySite` or `subSite` need restructuring for R6. R6 line items with multiple sites or BodyStructure references cannot be represented losslessly in R4.",
       "migrationGuidanceMd": "Create an R6 `bodySite` array when old `bodySite` or `subSite` exists. Map the old CodeableConcept to `bodySite[0].site[0].concept` and old sub-sites to `bodySite[0].subSite`. For R6-to-R4, only single coded sites map cleanly.",
       "backwardCompatibilityAnalysisMd": "The more expressive model is useful, but replacing an existing datatype at the same path was probably avoidable through a new optional element or transitional alias.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Claim:SLICING_AND_CONTENT_MODEL:Claim.item.bodySite:0a3bf9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `Claim.item.bodySite` is a single `CodeableConcept` with repeating sibling `item.subSite`; R6 turns `item.bodySite` into a repeating backbone whose required `site` entries are `CodeableReference(BodyStructure)` and whose `subSite` values are nested. This is a real structure and generated-type break for item anatomy, and R6 can represent multiple sites or BodyStructure references that R4 cannot. However, the R6 model directly improves site/sub-site association and reference support, and the obvious less-breaking design would leave two competing anatomy representations in the same resource.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Claim.item.bodySite` max=1 type `CodeableConcept`; `Claim.item.subSite` max=* type `CodeableConcept`.",
+          "R6 StructureDefinition: `Claim.item.bodySite` max=* type `BackboneElement`; `Claim.item.bodySite.site` min=1 max=* type `CodeableReference(BodyStructure)`.",
+          "R6 nests `Claim.item.bodySite.subSite` under each body-site component."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The body-site path is billing-relevant, but the resource is not mature enough for that alone to outweigh a well-motivated content-model improvement.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `bodySite` CodeableConcept is not an R6 backbone element and R4 `item.subSite` is absent; runtime/API/codegen types change, with R6-to-R4 loss for multiple sites or BodyStructure references.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept the old `bodySite`/`subSite` fields and added a new detailed repeating anatomy element, but that would create duplicate same-resource representations and hard precedence/consistency rules when both old and new anatomy fields are populated.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the break is substantial, but the fresh assessment treats the R6 model goal and the alternative's ambiguity as sufficient to make it probably OK."
+      }
     },
     {
       "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.diagnosis.packageCode:bb7f11",
@@ -807,7 +849,21 @@
       "validationAndCompatibilityMd": "R4 data using `diagnosis.packageCode` is old-valid/new-invalid. R6 root `diagnosisRelatedGroup` can be down-converted only if local rules identify which R4 diagnosis should carry it.",
       "migrationGuidanceMd": "Detect all old package codes. If exactly one distinct code exists, map it to `diagnosisRelatedGroup`; if multiple exist, use extensions or manual review.",
       "backwardCompatibilityAnalysisMd": "The move was likely motivated by claim-level DRG semantics, but a deprecated nested alias would have reduced migration ambiguity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.diagnosis.packageCode:bb7f11",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 stores the package billing or DRG code under each diagnosis as `Claim.diagnosis.packageCode`; R6 removes that child and introduces a single root `Claim.diagnosisRelatedGroup`. This is more than a path move because the context changes from per-diagnosis to per-claim. Single-code migrations are straightforward, but multiple diagnosis-level package codes cannot be carried losslessly into one root element, and DRG/package codes are directly reimbursement-relevant.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Claim.diagnosis.packageCode` max=1 type `CodeableConcept`, definition covers package billing or DRG code.",
+          "R6 StructureDefinition: `Claim.diagnosisRelatedGroup` max=1 type `CodeableConcept` with the same package billing/DRG definition at Claim root.",
+          "R4 packageCode requirements refer to relating the current diagnosis to a package billing code."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, so the judgment is driven by the path-level lossiness and reimbursement relevance rather than by a high maturity guarantee.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `diagnosis.packageCode` is not an R6 element; R6-to-R4 loss and expert-dependent migration occur when multiple old diagnosis-level codes or a single R6 root code must be assigned back to a specific diagnosis.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained a deprecated diagnosis-level package code while adding the root DRG, or added a repeatable association that preserves diagnosis context. The tradeoff is real conflict and precedence handling between per-diagnosis and claim-level DRG semantics, but the current single root field loses distinctions R4 could express.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative judgment; the fresh review gives more weight to lossy, business-critical migration and therefore marks this for revisit."
+      }
     },
     {
       "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.careTeam.responsible:91a61a",
@@ -909,7 +965,21 @@
       "validationAndCompatibilityMd": "R4 instances with `careTeam.responsible` are old-valid/new-invalid. Reverse conversion is structurally simpler because there is no R6 counterpart, but migrated R4 information must not be silently dropped.",
       "migrationGuidanceMd": "Inventory use of `careTeam.responsible` and define a mapping to `careTeam.role`, an extension, or a documented business rule. Test multiple-care-team-member cases.",
       "backwardCompatibilityAnalysisMd": "The removal was avoidable by retaining the optional boolean as deprecated. Without rationale, implementations may choose inconsistent replacements.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.careTeam.responsible:91a61a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had an optional `Claim.careTeam.responsible` boolean identifying the billing or responsible party and distinguishing the lead member when multiple parties are present. R6 keeps `careTeam` and `role` but has no direct boolean replacement. R4 instances using the flag fail R6 validation, and automated migration risks losing lead-responsibility semantics unless a local coded-role or extension policy is chosen.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Claim.careTeam.responsible` min=0 max=1 type `boolean`.",
+          "R4 requirements: when multiple parties are present it is required to distinguish the lead or responsible individual.",
+          "R6 StructureDefinition careTeam children include no `responsible` element."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the path carries billing responsibility semantics and the element was a small optional flag, so the maturity context does not justify silent removal.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 careTeam entries containing `responsible` are invalid in R6; runtime/API/codegen loses the boolean and migration can become semantic/documentation-dependent.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept the optional boolean as deprecated, or defined a clear coded-role equivalent and transition rule. Keeping one legacy boolean has modest base-model cost compared with the risk of inconsistent local mappings.",
+        "comparisonToExisting": "agree with the existing Medium impact and Yes alternative judgment; the independent review also finds the removal avoidable enough to revisit."
+      }
     },
     {
       "findingId": "Claim:SEMANTIC_OR_CONFORMANCE_TEXT:Claim.careTeam.qualification:54f0d8",
@@ -1057,7 +1127,21 @@
       "validationAndCompatibilityMd": "Any R4 use of `careTeam.qualification` is old-valid/new-invalid. A direct rename preserves syntax but can change meaning if the value was a credential.",
       "migrationGuidanceMd": "Map clear specialty values to `careTeam.specialty`; preserve credentials in extensions or provider records. Review local value sets before automated rename.",
       "backwardCompatibilityAnalysisMd": "A transition retaining `qualification` would have been less disruptive. The chosen rename improves clarity but requires human review for mixed credential/specialty code systems.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Claim:SEMANTIC_OR_CONFORMANCE_TEXT:Claim.careTeam.qualification:54f0d8",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Claim.careTeam.qualification` covered a practitioner credential or specialization; R6 uses `Claim.careTeam.specialty` for practitioner or provider specialization. Although the datatype and value set are similar, the name and semantics narrow. R4 credential values are old-valid/new-invalid at the wire level and may not be safely mapped to a specialty without terminology or business review.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Claim.careTeam.qualification` max=1 type `CodeableConcept`, short text `Practitioner credential or specialization`.",
+          "R6 StructureDefinition: `Claim.careTeam.specialty` max=1 type `CodeableConcept`, definition says specialization applicable for the service.",
+          "Both elements use the provider-qualification value set, but the R6 field name and prose focus on specialty."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The trial-use status allows model clarification, but it does not remove the concern that credential data may be forced into a narrower specialty field.",
+        "compatibilityMechanism": "old-valid/new-invalid plus semantic/documentation: R4 `careTeam.qualification` is absent in R6, and some old values lose meaning if mechanically renamed to `specialty`.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have added `specialty` while retaining `qualification` for credentials or legacy values. That avoids invalidating R4 data, but it creates overlapping fields and requires rules for values that are both qualifications and specialties.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative judgment; the fresh review agrees the evidence is not clearly justified and treats the semantic narrowing as revisit-worthy."
+      }
     },
     {
       "findingId": "Claim:CARDINALITY:required-fields-loosened:29db73",
@@ -1178,7 +1262,21 @@
       "validationAndCompatibilityMd": "R6-to-R4 conversion must add, derive, reject, or extension-map missing provider, priority, and insurance. Runtime code should treat these R6 properties as optional.",
       "migrationGuidanceMd": "Define defaulting/rejection/profile rules for missing fields and test each omission independently.",
       "backwardCompatibilityAnalysisMd": "This is a loosening, so no forward compatibility alternative is needed. The burden shifts to profiles and converters.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Claim:CARDINALITY:required-fields-loosened:29db73",
+        "judgment": "No problem",
+        "narrativeMd": "R6 lowers the minimum cardinality of `Claim.provider`, `Claim.priority`, and `Claim.insurance` from required to optional. That weakens base guarantees and creates reverse-conversion or nullability work for systems processing R6 Claims, but it does not invalidate any R4 Claim. For exchanges that still require these fields, an R6 profile can restore the R4-like requirements without needing a different base design.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Claim.provider`, `Claim.priority`, and `Claim.insurance` have min=1.",
+          "R6 StructureDefinition: the same paths have min=0.",
+          "Definitions and requirements for priority and insurance remain substantially similar while cardinality is loosened."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because this is a loosening with no old-valid/new-invalid effect, the maturity status does not push the finding toward revisit.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances may omit fields that R4 required, and generated R6 models expose optional properties; there is no R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 compatibility. Keeping the fields required would preserve stronger base guarantees but would reduce R6 flexibility; profiles are the appropriate mechanism for workflows that need R4-style completeness.",
+        "comparisonToExisting": "disagree with the existing Medium impact framing; agree that no less-breaking R4-to-R6 base alternative is needed, but the fresh review treats this reverse-only issue as no problem."
+      }
     },
     {
       "findingId": "Claim:CARDINALITY:Claim.item.productOrService:8671ac",
@@ -1288,7 +1386,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe for existing coded lines. R6-to-R4 must derive, reject, expand, or extension-map ranges and missing product/service codes.",
       "migrationGuidanceMd": "Update processing to handle absent productOrService and productOrServiceEnd; define reverse-conversion rules for code ranges.",
       "backwardCompatibilityAnalysisMd": "The range feature required a new element, but base cardinality loosening means profiles should enforce exact line coding where adjudication requires it.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Claim:CARDINALITY:Claim.item.productOrService:8671ac",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 makes `productOrService` optional at item, detail, and subDetail levels and adds matching `productOrServiceEnd` fields for code ranges. Existing R4 coded line items remain valid in R6, so this is not a forward instance break. The compatibility burden is still real because product/service coding is central to claim adjudication, R6 processors must handle missing or range-based codes, and R6-to-R4 conversion may need rejection, expansion, or extensions.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Claim.item.productOrService`, `Claim.item.detail.productOrService`, and `Claim.item.detail.subDetail.productOrService` have min=1.",
+          "R6 StructureDefinition: the same paths have min=0 and mention use with `productOrServiceEnd` ranges.",
+          "R6 adds `productOrServiceEnd` at item, detail, and subDetail levels."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The affected path is billing-central, so the reverse/nullability burden is not dismissed, but trial-use status supports proportionate model evolution.",
+        "compatibilityMechanism": "R6-to-R4 loss and runtime/API/codegen: R6 line items can omit R4-required codes or use code ranges, and generated R6 models make a previously required billing code optional; R4-to-R6 instances with a code remain valid.",
+        "lessBreakingAlternativeAssessment": "No R4-to-R6 alternative is required because R4 data is preserved. A stricter base could have kept `productOrService` required while adding `productOrServiceEnd`, but that may block R6 use cases with grouped, deferred, or lower-level coding; R6 profiles can re-require exact line codes where needed.",
+        "comparisonToExisting": "agree with the existing Medium, reverse-direction impact and Not applicable alternative judgment; the fresh review classifies the burden as real but proportionate."
+      }
     },
     {
       "findingId": "Claim:TYPE_DOMAIN:Claim.supportingInfo.value:0f6ac3",
@@ -1456,7 +1568,21 @@
       "validationAndCompatibilityMd": "No R4-valid value is invalidated. R6 values using new choice suffixes are not cleanly R4-representable except by extension, indirection, or lossy transformation.",
       "migrationGuidanceMd": "Update choice-switching code to handle or reject new suffixes. Define per-category reverse mappings rather than converting all values to strings.",
       "backwardCompatibilityAnalysisMd": "This is forward-compatible and likely intentional; a smaller choice expansion would be easier but less semantically rich.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Claim:TYPE_DOMAIN:Claim.supportingInfo.value:0f6ac3",
+        "judgment": "No problem",
+        "narrativeMd": "R6 greatly expands `Claim.supportingInfo.value[x]`, but the R4 choices remain allowed. This is an additive/widening change: R4 values using boolean, string, Quantity, Attachment, or Reference are still structurally valid in R6. New R6 suffixes increase generated-code branching and may not convert back to R4, but that is an expected consequence of broader expressiveness rather than a reason to revisit the base model.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `supportingInfo.value[x]` types include boolean, string, Quantity, Attachment, and Reference(Resource).",
+          "R6 StructureDefinition: the same path includes those types plus a broad set of primitive, datatype, and metadata choices.",
+          "The path name and cardinality remain the same."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Since the change is widening-only for R4 instances, FMM does not create a compatibility concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 choice suffixes often have no R4 equivalent; no old-valid/new-invalid R4-to-R6 mechanism is present.",
+        "lessBreakingAlternativeAssessment": "Not applicable for backward compatibility. R6 profiles can restrict the choice set for bidirectional R4 exchanges; limiting the base expansion would reduce implementation branching but also reduce useful evidence fidelity.",
+        "comparisonToExisting": "disagree with the existing Medium overall impact as a fresh R4-to-R6 concern; agree that no less-breaking base alternative is needed for preserving R4 instances."
+      }
     },
     {
       "findingId": "Claim:REFERENCE_TARGET:reference-targets-widened:1db217",
@@ -1584,7 +1710,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe. R6-to-R4 conversion must check targets and reject, substitute, or extension-map new target resources.",
       "migrationGuidanceMd": "Update generated unions, validators, access-control checks, and search indexes. For bidirectional exchange, constrain profiles to the R4 target subset or implement target-specific conversion.",
       "backwardCompatibilityAnalysisMd": "This is additive and forward-compatible; reverse conversion limitations are inherent once new targets are allowed.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Claim:REFERENCE_TARGET:reference-targets-widened:1db217",
+        "judgment": "No problem",
+        "narrativeMd": "The affected references keep their existing paths and R4 target types while adding more target resource types in R6. Widening reference targets is forward-compatible for R4 instances. Implementers still need to update generated unions, authorization checks, and R6-to-R4 converters for the new targets, but that is normal additive model evolution and can be constrained by profiles for bidirectional exchange.",
+        "keyEvidence": [
+          "R4 `Claim.enterer` targets Practitioner and PractitionerRole; R6 also allows Patient and RelatedPerson.",
+          "R4 `Claim.facility` targets Location; R6 also allows Organization.",
+          "R6 `Claim.prescription` and `Claim.originalPrescription` add ServiceRequest while retaining the R4 targets."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because target widening does not invalidate R4 references, maturity status does not increase the compatibility concern.",
+        "compatibilityMechanism": "R6-to-R4 loss and runtime/API/codegen: new target types need converter and union-type handling, but no R4-valid reference becomes invalid in R6.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 compatibility. A narrower R6 base would avoid reverse-conversion checks but would also forgo the intended broader actor, facility, and order representations; profiles can constrain target sets where necessary.",
+        "comparisonToExisting": "partially agree with the existing reverse-conversion concerns and Not applicable alternative judgment, but disagree with treating the widening as a meaningful R4-to-R6 problem."
+      }
     },
     {
       "findingId": "Claim:TERMINOLOGY_BINDING:example-to-preferred-bindings:4c87c2",
@@ -1703,7 +1843,21 @@
       "validationAndCompatibilityMd": "Base R6 validation should still accept CodeableConcepts outside preferred value sets. The practical risk is behavioral and conformance-related.",
       "migrationGuidanceMd": "Review local code systems for the affected elements and prefer the referenced value sets where practical. Do not blindly map codes without terminology review.",
       "backwardCompatibilityAnalysisMd": "Preferred binding is a backward-compatible way to improve terminology alignment, though CI or certification tooling may treat warnings as failures.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Claim:TERMINOLOGY_BINDING:example-to-preferred-bindings:4c87c2",
+        "judgment": "No problem",
+        "narrativeMd": "Several Claim CodeableConcept bindings move from example to preferred. A preferred binding recommends a value set but does not make out-of-set codes structurally invalid in the base resource. The practical effect is terminology guidance and possible warnings or QA pressure, not a hard R4-to-R6 instance break.",
+        "keyEvidence": [
+          "R4 `Claim.priority`, `fundsReserve`, `careTeam.role`, `supportingInfo.category`, `diagnosis.type`, `diagnosis.onAdmission`, and `procedure.type` bindings are example.",
+          "R6 changes those same bindings to preferred while keeping CodeableConcept datatypes.",
+          "FHIR binding strength preferred is weaker than required and does not by itself reject other CodeableConcept codings."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The change is warning-level terminology guidance, so FMM does not create a revisit concern.",
+        "compatibilityMechanism": "warning-level: preferred bindings may produce terminology warnings or stricter local QA behavior, but base R6 validation should still accept out-of-set CodeableConcepts.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Keeping example bindings would be less noisy but would weaken interoperability guidance; no base design change is needed to preserve R4 instance validity.",
+        "comparisonToExisting": "agree with the existing Low impact and Not applicable alternative judgment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1859,5 +2013,19 @@
       "example-to-preferred binding strength changes",
       "R4 required financial fields loosened in R6"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Claim.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 5,
+      "Breaking but probably OK": 2,
+      "No problem": 4
+    }
   }
 }

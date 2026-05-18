@@ -20,6 +20,12 @@ const BREAK_COLOR: Record<string, string> = {
   Unknown: "#7B8494",
   No: "#2F8A4F",
 };
+const FRESH_REVIEW_COLOR: Record<string, string> = {
+  "Revisit": "#EC2028",
+  "Unclear": "#8A6800",
+  "Breaking but probably OK": "#2E5DA8",
+  "No problem": "#2F8A4F",
+};
 
 export function FindingPage({ findingId }: { findingId: string }) {
   const f = findingById(findingId);
@@ -43,6 +49,7 @@ export function FindingPage({ findingId }: { findingId: string }) {
   const ex = f.examples ?? {};
   const overallImpact = impact.overallImpact ?? "Info";
   const verdict = just.justificationVerdict;
+  const freshReview = f.freshReview;
 
   return (
     <>
@@ -71,6 +78,14 @@ export function FindingPage({ findingId }: { findingId: string }) {
               </>
             )}
             {delta.deltaKind && <><dt>Delta kind</dt><dd><code>{delta.deltaKind}</code></dd></>}
+            {freshReview?.judgment && (
+              <>
+                <dt>Overall Assessment</dt>
+                <dd style={{ color: FRESH_REVIEW_COLOR[freshReview.judgment] ?? undefined, fontWeight: 700 }}>
+                  {freshReview.judgment}
+                </dd>
+              </>
+            )}
             {loc.oldPath && <><dt>R4 path</dt><dd><SpecLink href={specUrl("R4", loc.oldPath)} title="Open in R4 spec"><code>{loc.oldPath}</code></SpecLink></dd></>}
             {loc.newPath && <><dt>R6 path</dt><dd><SpecLink href={specUrl("R6", loc.newPath)} title="Open in R6 ballot4 spec"><code>{loc.newPath}</code></SpecLink></dd></>}
           </dl>
@@ -103,6 +118,31 @@ export function FindingPage({ findingId }: { findingId: string }) {
             </section>
           )}
         </QuestionGroup>
+
+        {freshReview && (
+          <QuestionGroup q="Overall Assessment">
+            <Section title="Reviewer narrative" md={freshReview.narrativeMd} />
+            {(freshReview.compatibilityMechanism || freshReview.fmmEffect || freshReview.lessBreakingAlternativeAssessment || freshReview.comparisonToExisting) && (
+              <section className="section">
+                <h2>Decision details</h2>
+                <dl className="detail-meta">
+                  {freshReview.compatibilityMechanism && <><dt>Mechanism</dt><dd>{freshReview.compatibilityMechanism}</dd></>}
+                  {freshReview.fmmEffect && <><dt>FMM effect</dt><dd>{freshReview.fmmEffect}</dd></>}
+                  {freshReview.lessBreakingAlternativeAssessment && <><dt>Alternative</dt><dd>{freshReview.lessBreakingAlternativeAssessment}</dd></>}
+                  {freshReview.comparisonToExisting && <><dt>Existing report</dt><dd>{freshReview.comparisonToExisting}</dd></>}
+                </dl>
+              </section>
+            )}
+            {Array.isArray(freshReview.keyEvidence) && freshReview.keyEvidence.length > 0 && (
+              <section className="section">
+                <h2>Key evidence</h2>
+                <ul>
+                  {freshReview.keyEvidence.map((item, i) => <li key={i}>{item}</li>)}
+                </ul>
+              </section>
+            )}
+          </QuestionGroup>
+        )}
 
         {(ex.examplesMd || ex.oldValidNewInvalidJson || ex.r6NotRepresentableInR4Json || ex.migrationExampleJson) && (
           <section className="section">

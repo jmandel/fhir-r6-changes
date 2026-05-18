@@ -17,6 +17,12 @@ const VERDICT_COLOR: Record<string, string> = {
 const BCALT_COLOR: Record<string, string> = {
   "Yes": "#EC2028", "Partial": "#F09225", "No": "#6B635C", "Not applicable": "#9C948C", "Unknown": "#8A6800",
 };
+const FRESH_REVIEW_COLOR: Record<string, string> = {
+  "Revisit": "#EC2028",
+  "Unclear": "#8A6800",
+  "Breaking but probably OK": "#2E5DA8",
+  "No problem": "#2F8A4F",
+};
 
 export function ArtifactPage({ artifactName }: { artifactName: string }) {
   const r = artifactByName(artifactName);
@@ -37,7 +43,7 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
   const findings = r.findings ?? [];
   const cls = (s: string) => s.replace(/\s+/g, "-");
 
-  let altYes = 0, altPartial = 0, altNone = 0, needsReview = 0;
+  let altYes = 0, altPartial = 0, altNone = 0, needsReview = 0, freshRevisit = 0;
   for (const f of findings) {
     const alt = f.justification?.backwardCompatibleAlternativeAvailable;
     const v = f.justification?.justificationVerdict;
@@ -45,6 +51,7 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
     else if (alt === "Partial") altPartial++;
     else if (alt === "No") altNone++;
     if (alt === "Yes" && (v === "Justified" || v === "Probably justified")) needsReview++;
+    if (f.freshReview?.judgment === "Revisit") freshRevisit++;
   }
 
   return (
@@ -100,8 +107,8 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
           </div>
           <div className="stat">
             <div className="k">Needs review</div>
-            <div className="v" style={{ color: "#EC2028" }}>{needsReview}</div>
-            <div className="d">bcAlt=Yes but verdict justified</div>
+            <div className="v" style={{ color: "#EC2028" }}>{freshRevisit || needsReview}</div>
+            <div className="d">{freshRevisit ? "overall assessment = Revisit" : "bcAlt=Yes but verdict justified"}</div>
           </div>
         </div>
 
@@ -124,6 +131,7 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
               <colgroup>
                 <col style={{ width: 260 }} />
                 <col style={{ width: 90 }} />
+                <col style={{ width: 150 }} />
                 <col style={{ width: 170 }} />
                 <col style={{ width: 150 }} />
                 <col />
@@ -132,6 +140,7 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
                 <tr>
                   <th>Path</th>
                   <th>Impact</th>
+                  <th>Overall Assessment</th>
                   <th>Verdict</th>
                   <th>Less-breaking alt</th>
                   <th>Delta</th>
@@ -140,6 +149,7 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
               <tbody>
                 {findings.map((f) => {
                   const overall = f.impact?.overallImpact ?? "Info";
+                  const freshReview = f.freshReview?.judgment;
                   const verdict = f.justification?.justificationVerdict;
                   const bcAlt = f.justification?.backwardCompatibleAlternativeAvailable;
                   const path = f.affectedLocation?.newPath ?? f.affectedLocation?.oldPath;
@@ -161,6 +171,9 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
                           <span className="impact-dot" style={{ background: IMPACT_COLOR[overall] }} />
                           <span style={{ color: IMPACT_COLOR[overall], fontWeight: 600 }}>{overall}</span>
                         </td>
+                        <td className="ft-verdict">
+                          {freshReview ? <span style={{ color: FRESH_REVIEW_COLOR[freshReview] ?? "var(--ink-2)", fontWeight: freshReview === "Revisit" ? 700 : 500 }}>{freshReview}</span> : <span className="dim">—</span>}
+                        </td>
                         <td className="ft-verdict">{verdict ? <span style={{ color: VERDICT_COLOR[verdict] ?? "var(--ink-2)" }}>{verdict}</span> : <span className="dim">—</span>}</td>
                         <td className="ft-bcalt">
                           {bcAlt ? <span style={{ color: BCALT_COLOR[bcAlt] ?? "var(--ink-2)", fontWeight: bcAlt === "Yes" ? 700 : bcAlt === "Partial" ? 600 : 500 }}>{bcAlt}</span> : <span className="dim">—</span>}
@@ -168,7 +181,7 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
                         <td className="ft-delta">{f.structuredDelta?.deltaKind ? <code className="delta-code">{f.structuredDelta.deltaKind}</code> : <span className="dim">—</span>}</td>
                       </tr>
                       <tr className="ft-title-row" onClick={open}>
-                        <td colSpan={5}>
+                        <td colSpan={6}>
                           <a className="ft-title" href={href} target="_blank" rel="noopener">{f.title}</a>
                           {f.justification?.inferredGoal && (
                             <div className="ft-goal">{f.justification.inferredGoal}</div>

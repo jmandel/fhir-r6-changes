@@ -315,7 +315,23 @@
       "validationAndCompatibilityMd": "An R4-valid SampledData fragment with `period` is not R6-valid as-is because `period` is an unknown element in R6 and the R6 timing representation is not satisfied. R6 regular intervals can often be mapped back to R4 by converting to milliseconds, but that mapping can be lossy or invalid for units that do not have a safe millisecond conversion.",
       "migrationGuidanceMd": "For R4-to-R6, map `period` to `interval` and set `intervalUnit` to the UCUM code `ms`; do not also populate `offsets`. Update generated classes, serializers, validators, and FHIRPath expressions from `period` to `interval`. For R6-to-R4, only map `interval` to `period` when the unit can be converted to milliseconds and the conversion policy is explicit.",
       "backwardCompatibilityAnalysisMd": "The change probably reflects a real modeling improvement, but it was not fully backward compatible. A deprecated `period` alias or an optional default of milliseconds could have reduced breakage, at the cost of duplicate representations and less explicit units.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SampledData:ELEMENT_PRESENCE_OR_IDENTITY:SampledData.period:8b7e2a",
+        "judgment": "Revisit",
+        "narrativeMd": "`SampledData.period` is a required R4 timing element and R6 no longer defines that path, replacing the regular-sampling concept with `interval` plus a separate unit. An R4 Observation carrying `valueSampledData.period` is therefore not accepted as the same path in R6, and generated/client code that reads or writes `.period` must be changed. The rename looks broader than necessary for the R6 goal because the regular-spacing decimal could have stayed on the old wire name with clarified semantics, so this deserves renewed design review even though SampledData was trial-use in R4.",
+        "keyEvidence": [
+          "R4 `SampledData.period` is 1..1 decimal and defined as milliseconds between samples.",
+          "R6 has no `SampledData.period`; R6 `SampledData.interval` is 0..1 decimal and participates in `sdd-1`.",
+          "R6 `SampledData.intervalUnit` is 1..1 with a required UCUM binding, showing that units were separated from the interval amount.",
+          "Observation.value[x] and Observation.component.value[x] include SampledData in both R4 and R6.",
+          "R4 StructureDefinition and r4-maturity metadata checked: SampledData standards status is trial-use."
+        ],
+        "fmmEffect": "R4 SampledData is trial-use rather than normative, so stability expectations are softer; however this is the required timing path for every R4 SampledData and is exposed through Observation value paths, so trial-use status does not make the same-fact rename harmless.",
+        "compatibilityMechanism": "old-valid/new-invalid: raw R4 instances use `period`, which is not an R6 element; runtime/API/codegen also changes because the `.period` property is replaced by the R6 timing model.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design appears plausible: keep `period` as the regular-sampling amount, broaden its definition to use `intervalUnit`, and use `offsets` only for irregular sampling. The tradeoff is carrying a legacy time-flavored name and possibly an implicit millisecond default, but it avoids rejecting the old wire path.",
+        "comparisonToExisting": "agree with the existing High impact and Yes alternative judgment; the fresh assessment independently finds a direct path break and a plausible lower-cost base design."
+      }
     },
     {
       "findingId": "SampledData:CARDINALITY:SampledData.intervalUnit:9f4c11",
@@ -470,7 +486,22 @@
       "validationAndCompatibilityMd": "Raw R4 SampledData cannot satisfy R6 validation because `intervalUnit` was not present in R4. Conversely, R6 content using explicit units may not be representable in R4 without converting to milliseconds and losing the original unit expression.",
       "migrationGuidanceMd": "For R4-to-R6, populate `intervalUnit` with `ms` when converting `period`. Validate the code against UCUM and add tests for missing, invalid, and non-time unit values. For R6-to-R4, define whether units are converted to milliseconds, preserved in an extension, or rejected if not safely convertible.",
       "backwardCompatibilityAnalysisMd": "The mandatory field is probably justified by the need to eliminate implicit units. A less-breaking optional default could have helped old instances but would provide weaker conformance guarantees and make unit mistakes harder to detect.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SampledData:CARDINALITY:SampledData.intervalUnit:9f4c11",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`SampledData.intervalUnit` is a new mandatory code with a required UCUM binding. Any base R4 SampledData lacks this element, so a raw migrated instance cannot be R6-valid, and constructors/validators must now supply and validate a UCUM unit. This is a real hard break, but the R6 goal is strong: sample spacing and offset units should be computable instead of embedded only in `period` prose. Making the unit optional or defaulted to milliseconds would preserve more old content, but it would keep an implicit-unit mode that R6 is reasonably trying to remove.",
+        "keyEvidence": [
+          "R4 has `SampledData.period` in milliseconds and no `SampledData.intervalUnit` element.",
+          "R6 `SampledData.intervalUnit` is 1..1 code with required binding to `http://hl7.org/fhir/ValueSet/ucum-units|6.0.0-ballot4`.",
+          "R6 `SampledData.interval` and `SampledData.offsets` both depend on the unit context for correct interpretation.",
+          "R4 metadata checked: SampledData is trial-use."
+        ],
+        "fmmEffect": "Trial-use status softens the stability objection compared with normative content. Because unit errors can change interpretation of sampled measurements, the mandatory explicit unit still carries a reasonable safety and interoperability justification.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-valid SampledData cannot contain `intervalUnit`, while R6 requires it; runtime/API/codegen is also affected because producers must populate a new required property and terminology validators must check UCUM.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design exists: make `intervalUnit` 0..1 and define absence as milliseconds, perhaps while requiring it for offsets or non-millisecond intervals. That would preserve legacy content but materially weakens the explicit-unit guarantee and forces receivers to support implicit units indefinitely.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the break is hard, but the fresh judgment treats the required unit as proportionate to the R6 goal."
+      }
     },
     {
       "findingId": "SampledData:CONVERSION_OR_MAPPING:SampledData.offsets:df3a21",
@@ -601,7 +632,22 @@
       "validationAndCompatibilityMd": "An R6 instance with `offsets` and no `interval` can validate in R6 under `sdd-1`. The same content is invalid as R4 because `offsets` and `intervalUnit` are unknown and R4 requires `period`. Even if a converter emits a period, the result is only valid and faithful when the offsets form a uniform sequence.",
       "migrationGuidanceMd": "For R6-to-R4, detect `offsets`. If offsets are uniformly spaced, convert the spacing to milliseconds and populate `period`; otherwise use an extension, preserve the original R6 payload, or reject with a clear lossiness error. Test irregular, negative, and multi-dimensional cases because the R6 comment ties point counts to offsets multiplied by dimensions.",
       "backwardCompatibilityAnalysisMd": "A core element was likely needed to standardize irregular sampling. A standard extension would have been more backward compatible with R4 but less discoverable and less enforceable in base R6 validation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SampledData:CONVERSION_OR_MAPPING:SampledData.offsets:df3a21",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`SampledData.offsets` is optional R6 support for irregularly spaced samples. It does not make an old R4 instance invalid by itself because old instances never had this element, but it creates valid R6 SampledData that base R4 cannot faithfully represent when offsets are non-uniform, negative, or otherwise not reducible to a single period. A down-converter may have to reject the instance, use an extension, or collapse timing information. As a new base capability for data R4 could not model, a core element is reasonable and an extension-only design would undercut interoperability.",
+        "keyEvidence": [
+          "R4 SampledData has a single required `period` for uniform spacing and no `offsets` element.",
+          "R6 `SampledData.offsets` is 0..1 string containing increasing decimal offsets; its units come from `intervalUnit`.",
+          "R6 root invariant `sdd-1` makes `offsets` mutually exclusive with `interval`.",
+          "Observation.value[x] and Observation.component.value[x] expose SampledData in both releases."
+        ],
+        "fmmEffect": "Trial-use status reduces the expectation that R6 must preserve every R4-era limitation. The reverse-conversion loss is still meaningful because timing changes can alter interpretation, but it concerns new R6 expressiveness rather than preservation of old R4 content.",
+        "compatibilityMechanism": "R6-to-R4 loss: valid R6 irregular offsets have no base R4 representation except when they can be safely collapsed to a uniform millisecond period.",
+        "lessBreakingAlternativeAssessment": "No compelling less-breaking base R6 design exists for this specific optional capability. Keeping irregular timing only in an extension or sidecar could ease some R4 round-tripping, but it would fail the R6 goal of a discoverable, consistently validated base representation.",
+        "comparisonToExisting": "partially agree with the existing High reverse-risk assessment and Not applicable alternative judgment; the fresh review emphasizes that this is not a forward R4-to-R6 instance break."
+      }
     },
     {
       "findingId": "SampledData:SEMANTIC_OR_CONFORMANCE_TEXT:SampledData.data-codeMap:c6d0e4",
@@ -749,7 +795,22 @@
       "migrationGuidanceMd": "Inventory any code that parses `SampledData.data` tokens as decimals with only E/L/U exceptions. For R6, update parsers to detect and resolve coded tokens through `codeMap`. For R6-to-R4, either reject coded data, map codes to numeric or E/L/U values when clinically safe, or preserve the R6 representation in an extension or sidecar. Test mixed numeric/coded strings and reserved E/L/U behavior.",
       "backwardCompatibilityAnalysisMd": "The broader semantics were not fully backward compatible with existing numeric assumptions. A separate coded-data field or extension would have made the change more explicit to parsers, but at the cost of splitting the compact series representation.",
       "reviewerNotesMd": "Human review should confirm intended coded-token grammar, reserved-code behavior, and whether any official ConceptMaps or examples constrain this feature more tightly than the local StructureDefinition text.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SampledData:SEMANTIC_OR_CONFORMANCE_TEXT:SampledData.data-codeMap:c6d0e4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps `SampledData.data` as a string but widens its token semantics from decimal values plus E/L/U to decimal values or codes, and adds optional `codeMap` to define code meanings. Existing R4 data strings remain within the R6 value domain, so this is not a structural old-valid/new-invalid break. The real risk is runtime and reverse compatibility: parsers that assume decimals/E/L/U may reject or misinterpret R6 coded tokens, and base R4 has no place to preserve `codeMap` meanings. The R6 goal is plausible, and without concrete cited production examples this looks like a proportionate R6-only expansion rather than a clear redesign candidate.",
+        "keyEvidence": [
+          "R4 `SampledData.data` is a string of decimal values with special E, L, and U tokens.",
+          "R6 `SampledData.data` is still string but allows decimal values or codes, and `SampledData.codeMap` is 0..1 canonical targeting ConceptMap.",
+          "R6 `SampledData.codeMap` comment excludes redefining E/U/L and their lowercase forms.",
+          "Local package search found the element definitions but no concrete `codeMap` instances; a quick targeted web search did not establish cited production-use evidence."
+        ],
+        "fmmEffect": "Trial-use status and lack of quick production-use evidence soften the case for Revisit. The concern remains real if coded tokens represent clinically meaningful device states, but the supplied evidence supports a bounded compatibility burden rather than a disproportionate break.",
+        "compatibilityMechanism": "runtime/API/codegen and R6-to-R4 loss: decimal-token parsers may fail on valid R6 codes, and R4 cannot carry the `codeMap` canonical or coded-token semantics in the base datatype.",
+        "lessBreakingAlternativeAssessment": "A separate coded-data element or profile/extension could reduce surprise for numeric parsers, but it would split the compact sample stream and would not preserve any additional R4-valid instances. There is no clearly better less-breaking base design without sacrificing the R6 goal.",
+        "comparisonToExisting": "partially agree with the existing High impact and Not applicable alternative judgment; the fresh review agrees on runtime/reverse risk but gives less weight to impact because R4 data is widened, not invalidated, and production evidence was not found quickly."
+      }
     },
     {
       "findingId": "SampledData:VALUE_CONSTRAINT:SampledData.sdd-1:1a2b3c",
@@ -872,7 +933,22 @@
       "migrationGuidanceMd": "Migration tooling should implement `sdd-1` explicitly. Unit tests should include interval-only, offsets-only, neither, and both cases. UI and API models should present timing as a choice rather than two independent optional fields.",
       "backwardCompatibilityAnalysisMd": "The invariant is justified by the added offsets capability. A less strict base model would be easier for producers but would allow uninterpretable or contradictory SampledData instances.",
       "reviewerNotesMd": "The R6 root comment still says the data is not interpretable without `origin, period, and dimensions`, even though `period` no longer exists. The computable invariant appears authoritative, but the narrative wording should be reviewed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SampledData:VALUE_CONSTRAINT:SampledData.sdd-1:1a2b3c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`sdd-1` is an error-level invariant requiring exactly one of `interval` or `offsets`. R4 already required regular timing through `period`; the new rule preserves the requirement that SampledData have interpretable timing after R6 makes the two timing representations individually optional. It can reject naive migrations that drop `period` or new R6 instances that omit both or supply both timing choices, but that is guarding against uninterpretable or contradictory sample timing. The rule appears proportionate even though it is coupled to the period-to-interval redesign.",
+        "keyEvidence": [
+          "R4 `SampledData.period` is 1..1, so R4 SampledData had a required timing amount.",
+          "R6 `SampledData.interval` and `SampledData.offsets` are each 0..1 and both list condition `sdd-1`.",
+          "R6 root constraint `sdd-1` has severity error and expression `interval.exists().not() xor offsets.exists().not()`.",
+          "R4 metadata checked: SampledData is trial-use."
+        ],
+        "fmmEffect": "Trial-use status softens the stability concern, and the invariant is primarily a computability/safety guard rather than an arbitrary new restriction. The coupling to the removed `period` path keeps it from being a pure no-op for migration.",
+        "compatibilityMechanism": "old-valid/new-invalid: a raw R4 instance has `period` rather than `interval` or `offsets` and therefore fails the R6 timing-choice invariant; in practice this is tightly coupled to the period replacement. Validators and code generators must also account for the invariant despite 0..1 cardinalities.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design exists only if the old timing path were retained: the invariant could require exactly one of `period`, `interval`, or `offsets`, or one of retained `period` and `offsets`. That reduces migration failures but creates duplicate regular-timing representations, conflict rules, and a risk that deprecated timing paths remain permanent. Making the invariant warning-level or profile-only would allow missing or conflicting timing in base R6.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative judgment; the fresh review agrees this is potential and coupled, but treats the error invariant itself as a justified timing-safety rule."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1044,5 +1120,18 @@
       "R6 datatype elements that add optional canonical ConceptMap references",
       "FHIRPath invariants that make individually optional timing fields effectively mandatory choices"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SampledData.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 4
+    }
   }
 }

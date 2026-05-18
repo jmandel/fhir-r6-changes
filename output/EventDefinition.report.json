@@ -291,7 +291,21 @@
       "migrationGuidanceMd": "When converting R6 to R4, preserve the algorithm in an agreed extension if version ordering matters. Test conversion using semantic versioning, date-like versions, and opaque strings. If the element is dropped, document that version ordering reverts to implementation-specific behavior.",
       "backwardCompatibilityAnalysisMd": "The optional addition was relatively backward-compatible for R4-to-R6. The unavoidable incompatibility is that R4's base model cannot carry the information without an extension.",
       "reviewerNotesMd": "Human review is recommended when an R6 artifact includes a FHIRPath string algorithm because safe downgrade may require evaluating or preserving executable logic.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EventDefinition:ELEMENT_PRESENCE_OR_IDENTITY:EventDefinition.versionAlgorithm:6b8c2a",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `versionAlgorithm[x]` to describe how artifact versions are ordered. Existing R4 EventDefinition instances do not contain this element and are not made invalid by the R6 base model; the only meaningful loss is when an R6 instance using the new element is downgraded to R4 without an extension. For an FMM 0 trial-use artifact, that reverse-only metadata loss does not warrant renewed standards attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `EventDefinition.versionAlgorithm[x]` element.",
+          "R6 StructureDefinition defines `EventDefinition.versionAlgorithm[x]` as 0..1 with `string` and `Coding` choices and an extensible `version-algorithm` binding.",
+          "Lightweight public-use search found no strong evidence of broad direct production reliance on EventDefinition beyond generic full-FHIR platform support."
+        ],
+        "fmmEffect": "R4 FMM 0 and trial-use status soften the stability concern; no quick evidence of material production use was found, so an optional reverse-only addition is low concern.",
+        "compatibilityMechanism": "R6-to-R4 loss - R6 instances that populate `versionAlgorithm[x]` have no native R4 slot, but R4-to-R6 instances remain structurally valid.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6 compatibility. Keeping this only in an extension would preserve downgrade shape but would make version ordering less visible to generic R6 tooling.",
+        "comparisonToExisting": "Partially agree with the existing no-hard-break and not-applicable alternative assessment, but the existing Medium impact overstates a reverse-only optional addition for FMM 0 content."
+      }
     },
     {
       "findingId": "EventDefinition:ELEMENT_PRESENCE_OR_IDENTITY:EventDefinition.copyrightLabel:20f55d",
@@ -411,7 +425,21 @@
       "validationAndCompatibilityMd": "An R4 instance without the field remains acceptable in R6. A strict R4 parser will reject an R6 instance containing `copyrightLabel` unless the element is removed or converted to an extension.",
       "migrationGuidanceMd": "For R6-to-R4, either preserve `copyrightLabel` in an extension or concatenate it into `copyright` with a clear convention. Legal or publishing workflows should test that rendered notices are not lost.",
       "backwardCompatibilityAnalysisMd": "An optional element is less disruptive than changing `copyright` cardinality or type. R4 compatibility could only have been preserved by using an extension, which would reduce generic R6 renderer support.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EventDefinition:ELEMENT_PRESENCE_OR_IDENTITY:EventDefinition.copyrightLabel:20f55d",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `copyrightLabel` for short display-ready copyright text. This does not invalidate or reinterpret R4 EventDefinition instances; at most, an R6 label cannot be represented in native R4 except by extension or by folding it into `copyright`.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `EventDefinition.copyrightLabel` element.",
+          "R6 StructureDefinition defines `EventDefinition.copyrightLabel` as 0..1 `string` for a short footer-style copyright label.",
+          "The existing `copyright` element remains present as markdown in both R4 and R6."
+        ],
+        "fmmEffect": "FMM 0/trial-use status further reduces concern because the change is optional and additive, not a break in a mature contract.",
+        "compatibilityMechanism": "R6-to-R4 loss - R6-only display metadata has no base R4 element; there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "Not applicable as a less-breaking R6 base design: an optional element is already compatibility-preserving for R4-to-R6. An extension helps downgrade/backport scenarios but is not a better R6 base design.",
+        "comparisonToExisting": "Agree with the existing Low impact and not-applicable alternative judgment."
+      }
     },
     {
       "findingId": "EventDefinition:TYPE_DOMAIN:EventDefinition.usage:574f8e",
@@ -539,7 +567,21 @@
       "migrationGuidanceMd": "Review generated EventDefinition models and mapping code for `usage`. Treat existing text as markdown-safe plain text unless it contains characters that a renderer interprets unexpectedly. Add tests for plain text, markdown formatting, and extensions on the primitive element.",
       "backwardCompatibilityAnalysisMd": "A less disruptive alternative would have left the primitive type as `string` and documented markdown allowance, but that would weaken semantic precision. A new optional field would avoid type replacement but introduce duplication.",
       "reviewerNotesMd": "The hard-instance impact depends on validator behavior for markdown primitives and is therefore marked Potential rather than Yes.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EventDefinition:TYPE_DOMAIN:EventDefinition.usage:574f8e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`EventDefinition.usage` changes from FHIR primitive `string` to `markdown`. Ordinary JSON values remain string-shaped and the R6 markdown regex is broad, so this is not a clear old-valid/new-invalid instance break. It can still break generated APIs, primitive-specific validators, FHIRPath type checks, or code expecting a string primitive. The affected element is optional descriptive usage text, and the R6 goal of declaring renderable markdown semantics is reasonable.",
+        "keyEvidence": [
+          "R4 StructureDefinition declares `EventDefinition.usage` type `string`.",
+          "R6 StructureDefinition declares `EventDefinition.usage` type `markdown` with the same 0..1 cardinality.",
+          "Primitive definitions show both serialize through string values; R6 markdown uses a broad `^[\\s\\S]+$` value regex."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability burden and no quick production-use evidence was found, but generated client code can still see a real type migration.",
+        "compatibilityMechanism": "runtime/API/codegen - the primitive identity changes from `string` to `markdown`, affecting type-aware tooling even though normal wire values remain string-shaped.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept `usage` as `string` and documented markdown allowance, or added a parallel markdown field, but those options either hide markdown semantics from generic renderers or create duplicate authoritative fields.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Partial alternative assessment; the practical issue is codegen/type-aware tooling, while the hard-instance risk is low because lexical values remain string-compatible."
+      }
     },
     {
       "findingId": "EventDefinition:TERMINOLOGY_BINDING:EventDefinition.subject:7a4d91",
@@ -783,7 +825,21 @@
       "migrationGuidanceMd": "Define a ConceptMap or deterministic mapping from R4 resource-type codings to R6 fhir-type codings for overlapping codes. For R6-only participant codes, decide whether to preserve them as extensions, downgrade to a broader supported code, or require manual review.",
       "backwardCompatibilityAnalysisMd": "The model preserved the element and choice types, which is good for wire compatibility. The main avoidable pain would have been reduced by publishing explicit cross-version terminology mappings and perhaps broadening the old value set instead of switching canonical value sets.",
       "reviewerNotesMd": "Terminology expansions were not available; the code comparison is based on ValueSet compose definitions in the supplied packages.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EventDefinition:TERMINOLOGY_BINDING:EventDefinition.subject:7a4d91",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`EventDefinition.subject[x]` keeps the same cardinality and `CodeableConcept`/`Reference(Group)` choice shape, but its CodeableConcept binding changes from R4 `subject-type` to R6 `participant-resource-types`. Because the binding is extensible, this is mainly terminology conformance pressure rather than a base structural rejection. Existing R4 codings using `http://hl7.org/fhir/resource-types` may need migration to R6 `http://hl7.org/fhir/fhir-types` codings for clean validation and indexing, while the R6 value set reasonably broadens participant-like subjects.",
+        "keyEvidence": [
+          "R4 binding is extensible to `http://hl7.org/fhir/ValueSet/subject-type`.",
+          "R6 binding is extensible to `http://hl7.org/fhir/ValueSet/participant-resource-types`.",
+          "R4 subject-type uses `http://hl7.org/fhir/resource-types` codes; R6 participant-resource-types uses `http://hl7.org/fhir/fhir-types` and adds CareTeam, Group, HealthcareService, PractitionerRole, and RelatedPerson."
+        ],
+        "fmmEffect": "FMM 0 lowers the stability expectation, but the subject path is directly tied to event applicability, so terminology migration is still a real implementation concern.",
+        "compatibilityMechanism": "warning-level - extensible binding changes can produce terminology warnings or warning-as-error failures and can affect indexing, but they do not by themselves make the element structurally invalid.",
+        "lessBreakingAlternativeAssessment": "Partial. A transitional value set including both old resource-type codings and new fhir-types codings would preserve more R4 terminology conformance, but it would create duplicate code-system representations for the same resource concepts and complicate authoring and validation.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Partial alternative assessment; the binding change is real, but extensible strength and FMM 0 make it less severe than a hard break."
+      }
     },
     {
       "findingId": "EventDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:EventDefinition.jurisdiction:b2c309",
@@ -970,7 +1026,21 @@
       "migrationGuidanceMd": "Audit uses of `jurisdiction` in repositories, search indexes, and selection rules. If an R4 value represented intended use, populate an R6 `useContext` jurisdiction as well as, or instead of, `jurisdiction` according to local policy. Do not assume a lossless R6-to-R4 conversion without deciding how to merge maintaining-authority and intended-use jurisdictions.",
       "backwardCompatibilityAnalysisMd": "This semantic reuse was probably avoidable by adding a new maintainer-jurisdiction element, but the R6 pattern may be part of a broader canonical resource governance cleanup. Human review is needed because the computable diff does not provide rationale.",
       "reviewerNotesMd": "The R6 external jurisdiction ValueSet was not available locally, so binding-content impact is less certain than the semantic text change.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EventDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:EventDefinition.jurisdiction:b2c309",
+        "judgment": "Revisit",
+        "narrativeMd": "`EventDefinition.jurisdiction` keeps the same wire shape but changes meaning from the jurisdiction where the artifact is intended to be used to the jurisdiction where the maintaining authority operates, with R6 guidance to use `useContext` for jurisdiction of use. That can silently invert filtering or policy selection logic: an R4 value that meant applicability in France, for example, might be read in R6 as the maintainer's operating jurisdiction. Migrating old values is expert-dependent because the old code does not reveal whether it should become maintainer jurisdiction, use-context jurisdiction, or both.",
+        "keyEvidence": [
+          "R4 definition: `jurisdiction` is a legal or geographic region in which the event definition is intended to be used.",
+          "R6 definition: `jurisdiction` is a region in which the authority that maintains the resource is operating.",
+          "R6 comment includes a deprecation note encouraging migration of jurisdiction-of-use to `useContext` with the jurisdiction usage-context code."
+        ],
+        "fmmEffect": "FMM 0/trial-use status softens broad stability claims, but jurisdiction can drive legal, regulatory, or deployment applicability and the migration is not mechanically inferable, so low maturity does not eliminate the concern.",
+        "compatibilityMechanism": "semantic/documentation - the instance remains valid, but the same path now answers a different governance question that can change selection behavior.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have preserved `jurisdiction` as intended-use jurisdiction and added an optional maintainer or authority jurisdiction element, or relied on a clearly named governance slot for the new fact. The tradeoff is extra model surface and less uniformity with broader canonical-resource cleanup, but it avoids silent reinterpretation.",
+        "comparisonToExisting": "Agree with the existing Medium impact and Yes less-breaking alternative assessment."
+      }
     },
     {
       "findingId": "EventDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:EventDefinition.experimental:de9a7b",
@@ -1098,7 +1168,21 @@
       "validationAndCompatibilityMd": "No old-valid instance becomes invalid solely because of this text change. Runtime systems that filter on `experimental` may behave differently because R6 defines absence as false and true as a cross-version never-production assertion.",
       "migrationGuidanceMd": "Review artifacts with `experimental=true`. If the artifact was merely a draft on a path to production, consider whether it should remain the same canonical resource in R6 or be reissued with corrected lifecycle metadata.",
       "backwardCompatibilityAnalysisMd": "The change could have been less surprising as supplemental guidance, but clarifying the existing flag avoids creating another lifecycle element.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EventDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:EventDefinition.experimental:de9a7b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`experimental` remains an optional boolean, but R6 strengthens the lifecycle meaning: if true, no version of the resource will ever be intended for genuine use, and the flag should remain true across versions. R4 wording could be read as a temporary testing, education, evaluation, or marketing status. That can affect publication filters or promotion workflows, but the R6 safety goal of making non-production artifacts consistently recognizable is coherent.",
+        "keyEvidence": [
+          "R4 definition says `experimental` means authored for testing, education, evaluation, or marketing and not intended for genuine usage.",
+          "R6 definition says no version of the resource will ever be intended for genuine usage.",
+          "R6 comment says if experimental is true for any version, it should be true for all versions, and adds meaningWhenMissing treating absence as not experimental."
+        ],
+        "fmmEffect": "FMM 0/trial-use status reduces the expectation that temporary experimental workflows must be preserved, especially without evidence of broad EventDefinition production use.",
+        "compatibilityMechanism": "semantic/documentation - same boolean wire value can trigger different lifecycle filtering or publication policy, but there is no structural validation break.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained the old temporary-use meaning and added a separate never-production qualifier, or made the cross-version rule best-practice guidance. Those designs would reduce surprise but add lifecycle complexity or weaken consistent filtering.",
+        "comparisonToExisting": "Partially agree with the existing Medium impact and Partial alternative assessment; the semantic migration is real, but the R6 rationale and low FMM make it proportionate."
+      }
     },
     {
       "findingId": "EventDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:EventDefinition.date:fa7c1d",
@@ -1207,7 +1291,21 @@
       "validationAndCompatibilityMd": "No validation break is expected. Business rules that sort by publication date, calculate artifact age, or determine latest content may change behavior if they do not distinguish publication and revision semantics.",
       "migrationGuidanceMd": "Audit uses of `EventDefinition.date` in repositories and publication tooling. If a separate publication date is needed, preserve it through Provenance, extensions, or release metadata rather than assuming `date` carries that meaning in R6.",
       "backwardCompatibilityAnalysisMd": "The change likely fixes a pre-existing ambiguity. A more backward-compatible but larger change would have introduced explicit separate date fields.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EventDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:EventDefinition.date:fa7c1d",
+        "judgment": "No problem",
+        "narrativeMd": "`EventDefinition.date` keeps the same `dateTime` type and cardinality. Although the R4 definition used publication-date wording, R4 already had the short label `Date last changed` and said the date must change when version, status, or substantive content changes. R6 clarifies that this is the date last significantly changed. A publisher-date sorting rule may need interpretation, but this is closer to clarification of an already mixed definition than a material compatibility break.",
+        "keyEvidence": [
+          "R4 `EventDefinition.date` is 0..1 `dateTime` and its definition says published, but also says it must change with business version, status, and substantive content changes.",
+          "R6 `EventDefinition.date` is 0..1 `dateTime` and says last significantly changed.",
+          "No cardinality, type, or constraint change was identified for the element."
+        ],
+        "fmmEffect": "FMM 0/trial-use status further softens any concern from a wording clarification on optional metadata.",
+        "compatibilityMechanism": "semantic/documentation - the text is clarified without changing validation or API shape.",
+        "lessBreakingAlternativeAssessment": "Not needed. Separate publication-date and revision-date elements could be clearer, but that is a larger model enhancement rather than a necessary less-breaking design for this low-risk clarification.",
+        "comparisonToExisting": "Partially agree with the existing Low impact; disagree that a Partial less-breaking alternative is important for this finding because the R4 wording was already internally mixed."
+      }
     },
     {
       "findingId": "EventDefinition:VALUE_CONSTRAINT:EventDefinition.root-canonical-warnings:1f0e65",
@@ -1339,7 +1437,21 @@
       "validationAndCompatibilityMd": "An R4 instance with a URL containing `#`, `|`, or a space, or a one-character name such as `A`, can become warning-nonconformant in R6. It should not become invalid unless a local validator treats warnings as failures.",
       "migrationGuidanceMd": "Review canonical URLs and machine names before publication. Avoid embedding version separators or fragments in `url`; use canonical version syntax and separate `version` instead. Decide whether CI treats warning constraints as blocking.",
       "backwardCompatibilityAnalysisMd": "Warning severity is the compatibility-preserving design. The same guidance as an error would have been a hard break.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EventDefinition:VALUE_CONSTRAINT:EventDefinition.root-canonical-warnings:1f0e65",
+        "judgment": "No problem",
+        "narrativeMd": "R6 replaces the EventDefinition name warning with a more explicit canonical-resource warning and adds a warning on `url` to avoid characters that make canonical references hard to process. These constraints are warnings, not errors. Implementations that fail builds on warnings may need policy changes, but the base R6 model is not making R4 instances invalid.",
+        "keyEvidence": [
+          "R4 root constraint `evd-0` is severity `warning` for machine-usable names.",
+          "R6 root constraint `cnl-0` is severity `warning` with an anchored name regex.",
+          "R6 `EventDefinition.url` adds `cnl-1` as severity `warning` against `|`, `#`, and spaces."
+        ],
+        "fmmEffect": "FMM 0/trial-use status makes warning-only conformance churn a weak stability concern.",
+        "compatibilityMechanism": "warning-level - validators may report new warnings, but standard validation does not reject instances solely for these conditions.",
+        "lessBreakingAlternativeAssessment": "Not applicable. A narrative-only note would be quieter for warning-as-error pipelines, but warning severity is already the compatibility-preserving computable design.",
+        "comparisonToExisting": "Agree with the existing Low impact and not-applicable alternative judgment."
+      }
     },
     {
       "findingId": "EventDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:EventDefinition.governance-text:2dbe44",
@@ -1442,7 +1554,21 @@
       "validationAndCompatibilityMd": "No structural validation break is expected. The compatibility issue is that the same `publisher` string may answer a different operational question in R6.",
       "migrationGuidanceMd": "Review publisher/steward metadata for managed EventDefinition catalogs. If the R4 publisher is not the ongoing steward, update R6 publisher/contact metadata or record the distinction in extensions or Provenance.",
       "backwardCompatibilityAnalysisMd": "The wording change preserves wire compatibility but not necessarily governance semantics. A less ambiguous alternative would have added a separate steward field.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EventDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:EventDefinition.governance-text:2dbe44",
+        "judgment": "No problem",
+        "narrativeMd": "R6 governance wording clarifies that `publisher` is responsible for release and ongoing maintenance and tells authors to put short copyright declarations in `copyrightLabel`. The publisher change is modest because the R4 comment already described the publisher or steward as primarily responsible for maintenance, and `copyrightLabel` itself is optional additive metadata. This is governance-text cleanup rather than a meaningful R4-to-R6 compatibility break.",
+        "keyEvidence": [
+          "R4 `publisher` definition says organization or individual that published the event definition, while its comment already discusses publisher or steward maintenance responsibility.",
+          "R6 `publisher` definition says organization or individual responsible for release and ongoing maintenance.",
+          "R6 `copyright` comment directs short copyright declarations to the optional `copyrightLabel` element."
+        ],
+        "fmmEffect": "FMM 0/trial-use status further lowers concern for this optional governance metadata wording change.",
+        "compatibilityMechanism": "semantic/documentation - wire shape is preserved and the change mainly clarifies stewardship and display guidance.",
+        "lessBreakingAlternativeAssessment": "Not needed. A separate steward or maintainer element could reduce semantic overlap, but it would add governance surface area and the R4 text already overlapped publisher and steward responsibilities.",
+        "comparisonToExisting": "Partially agree with the existing Low impact; the proposed Partial less-breaking alternative seems heavier than necessary for this small semantic clarification."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1620,5 +1746,19 @@
       "jurisdiction moved toward useContext jurisdiction semantics",
       "usage string-to-markdown primitive changes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/EventDefinition.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 5
+    }
   }
 }

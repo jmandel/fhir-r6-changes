@@ -414,7 +414,22 @@
       "migrationGuidanceMd": "Migration must populate `membership` explicitly. A reasonable but review-dependent starting rule is: groups whose listed members define membership map to `enumerated`; characteristic-defined cohorts map to `definitional`; groups whose kind cannot be bound to FHIR resource types map to `conceptual`. Preserve the original R4 `actual` in an extension or audit trail when the inference is uncertain, and test cases with members, characteristics, both, and neither.",
       "backwardCompatibilityAnalysisMd": "The change is semantically valuable but could have been staged more compatibly by retaining `actual` as deprecated. Because R6 makes the new code mandatory and removes the old boolean, a lossless automatic transform is not always possible.",
       "reviewerNotesMd": "No local R4-to-R6 ConceptMap for `actual` to `membership` was found in the package inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Group:ELEMENT_PRESENCE_OR_IDENTITY:Group.actual-membership:0f6b41",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a central old-valid/new-invalid change: every R4 Group has `actual`, while R6 requires `membership` and has no `actual`. The R6 model is semantically better, but migration is not just a rename because `actual=true/false` does not determine whether membership is enumerated, definitional, or conceptual. Even with R4 Group at FMM 1, official R4 Bulk Data group export uses Group as an operational patient-cohort handle, so a mandatory cohort-membership discriminator break deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Group.actual` is 1..1 boolean and root constraint `grp-1` allows members only when `actual = true`.",
+          "R6 StructureDefinition: `Group.membership` is 1..1 code with required binding to `group-membership-basis`; `Group.actual` is absent.",
+          "R6 `group-membership-basis` codes are `definitional`, `conceptual`, and `enumerated`.",
+          "HL7 Bulk Data Access v3.0.0 is based on FHIR R4 and defines `[base]/Group/[id]/$export` for group-scoped export, including patient-compartment guidance: https://hl7.org/fhir/uv/bulkdata/OperationDefinition-group-export.json"
+        ],
+        "fmmEffect": "R4 Group is FMM 1/trial-use, which normally softens stability concerns, but this path is mandatory and central to Group membership semantics; documented R4 Group use in Bulk Data cohort export keeps the break implementation-relevant despite low FMM.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance contains required `actual` and lacks required R6 `membership`; runtime/API/codegen and R6-to-R4 loss also arise because the old boolean and new three-code basis are not lossless equivalents.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have retained deprecated `actual` and added `membership` with transition rules such as preferring `membership` when present. That would preserve most R4 instances but creates duplicate representations and conflict rules; those tradeoffs are real, yet the mandatory hard replacement still looks worth revisiting.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial alternative judgment; the fresh review puts more weight on low R4 FMM, but documented Group cohort workflows and the mandatory lossy transform keep this at Revisit."
+      }
     },
     {
       "findingId": "Group:ELEMENT_PRESENCE_OR_IDENTITY:Group.active:7ad2c9",
@@ -586,7 +601,22 @@
       "validationAndCompatibilityMd": "R4 data with `active` becomes R6-invalid unless the element is removed. R6 data with `status=draft`, `status=retired`, or `status=unknown` can be reduced only approximately to an R4 boolean.",
       "migrationGuidanceMd": "Define a site policy before conversion: commonly `active=true` maps to `status=active`, `active=false` maps to `status=retired`, and missing `active` may map to omitted `status` or `active`. Keep original values in an extension if record availability and publication lifecycle are distinct in the source system.",
       "backwardCompatibilityAnalysisMd": "The change aligns Group with R6 canonical resource conventions, but the old element could have remained as a deprecated alias to preserve instance compatibility.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Group:ELEMENT_PRESENCE_OR_IDENTITY:Group.active:7ad2c9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Group.active` was removed and the nearest R6 lifecycle field is optional modifier `Group.status`. Populated R4 `active` values need transformation, and `active=false` is only approximately `status=retired` because record availability and canonical publication status are not identical. The removal is avoidable in a narrow compatibility sense, but for an FMM 1 trial-use resource the shift toward CanonicalResource lifecycle metadata is a reasonable R6 goal.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Group.active` is 0..1 boolean, summary=true, with meaning-when-missing that the resource is generally assumed active.",
+          "R6 StructureDefinition: `Group.active` is absent; `Group.status` is 0..1 code bound to `publication-status` and isModifier=true.",
+          "R6 `Group.status` modifier reason says applications should not use a retired Group without due consideration.",
+          "Targeted production-use check found Group cohort workflows generally, but not active-specific implementation evidence."
+        ],
+        "fmmEffect": "FMM 1/trial-use substantially softens the stability concern for this optional field; lifecycle mistakes can matter, but the evidence did not show `active` itself as a widely depended-on production element.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances that populate `active` contain an unknown R6 element unless transformed; R6-to-R4 loss exists for `draft`, `retired`, and `unknown` status nuances.",
+        "lessBreakingAlternativeAssessment": "Retaining deprecated `active` while adding `status` would be less breaking and technically straightforward, but it would leave two lifecycle fields with different semantics and require precedence/conflict rules. Given low FMM and the canonical lifecycle objective, that alternative does not clearly outweigh the R6 simplification.",
+        "comparisonToExisting": "partially agree with the existing medium impact and yes alternative judgment; disagree that the avoidable alternative necessarily makes this a Revisit-level issue under low FMM."
+      }
     },
     {
       "findingId": "Group:TERMINOLOGY_BINDING:Group.type:bb41e2",
@@ -797,7 +827,22 @@
       "validationAndCompatibilityMd": "R4-to-R6: no hard break from this element alone. R6-to-R4: missing `type` and newly added codes are invalid under R4 cardinality and required terminology binding.",
       "migrationGuidanceMd": "For R6-to-R4 transforms, reject or extension-preserve conceptual Groups without `type`. For new type codes, do not coerce them into old broad categories unless a business-approved ConceptMap exists; otherwise preserve the original code in an extension and flag the record.",
       "backwardCompatibilityAnalysisMd": "The expansion is intrinsically incompatible with R4 required terminology. A backward-compatible R4 representation would require extensions or profiles rather than a base-code mapping.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Group:TERMINOLOGY_BINDING:Group.type:bb41e2",
+        "judgment": "No problem",
+        "narrativeMd": "For R4-to-R6 migration, this is widening/relaxation rather than a break. R4 required `type`, and all R4 group-type codes remain valid in R6; R6 only adds codes and permits omitted `type` for conceptual Groups through the new membership rule. New R6 categories may not down-convert to R4, but that is expected for new R6 expressivity.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Group.type` is 1..1 code with required binding to `group-type|4.0.1`.",
+          "R6 StructureDefinition: `Group.type` is 0..1 code with required binding to `group-type|6.0.0-ballot4` and condition `grp-2`.",
+          "R6 `group-type` CodeSystem retains R4 codes `person`, `animal`, `practitioner`, `device`, `medication`, and `substance`, and adds additional resource-kind codes.",
+          "R6 root constraint requires `type` unless `membership = 'conceptual'`."
+        ],
+        "fmmEffect": "FMM 1/trial-use reinforces not over-reading a reverse-only limitation as a standards stability problem; existing R4 instances are preserved for this path.",
+        "compatibilityMechanism": "R6-to-R4 loss: conceptual Groups without `type` and Groups with new type codes cannot be represented in R4 without extensions or policy; there is no old-valid/new-invalid mechanism for R4 `Group.type` values.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R4-to-R6 base design is needed because R4 codes and populated `type` values still validate in R6. Suppressing new codes or keeping `type` always mandatory would reduce R6 functionality without improving R4 instance migration.",
+        "comparisonToExisting": "disagree with the existing high overall impact for this finding as an R4-to-R6 compatibility concern; agree only that R6-to-R4 conversion needs policy for new categories."
+      }
     },
     {
       "findingId": "Group:REFERENCE_TARGET:Group.member.entity:3b9e80",
@@ -947,7 +992,21 @@
       "validationAndCompatibilityMd": "Old R4 references remain valid in R6. R6 references to new target types are not R4-representable as core `Group.member.entity` values.",
       "migrationGuidanceMd": "For backward conversion, detect new target resource types before serializing to R4. Use extensions or reject with a clear error rather than silently omitting members. Update R6 client code, validators, and search/indexing logic to handle the larger target set.",
       "backwardCompatibilityAnalysisMd": "The change is a necessary consequence of expanding Group beyond the R4 member categories. R4 compatibility cannot be preserved without making the new references non-core extension content.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Group:REFERENCE_TARGET:Group.member.entity:3b9e80",
+        "judgment": "No problem",
+        "narrativeMd": "`Group.member.entity` only widens its target profiles. The R4 target set is retained, so R4 member references continue to fit R6. New R6 member target types are a down-conversion issue, not a reason to revisit the R6 base design for R4 compatibility.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Group.member.entity` targets Patient, Practitioner, PractitionerRole, Device, Medication, Substance, and Group.",
+          "R6 StructureDefinition: the same targets remain and additional targets include CareTeam, HealthcareService, Location, Organization, RelatedPerson, Specimen, MedicinalProductDefinition, SubstanceDefinition, BiologicallyDerivedProduct, and NutritionProduct.",
+          "R6 `group-type` CodeSystem similarly expands the supported member categories."
+        ],
+        "fmmEffect": "Low R4 FMM further lowers concern because the path is not narrowed for existing R4 data; the only incompatibility is new R6 content going backward.",
+        "compatibilityMechanism": "R6-to-R4 loss: a new R6 member reference such as `Organization/example` is outside the R4 target profile set; no old-valid/new-invalid R4-to-R6 break is present.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base alternative is applicable for R4-to-R6 preservation. Keeping only the R4 targets would avoid down-conversion loss but would defeat the R6 goal of Groups over the expanded set of member resource kinds.",
+        "comparisonToExisting": "disagree with treating this as high impact for fresh R4-to-R6 review; agree with the existing evidence that backward conversion of new R6 targets is lossy."
+      }
     },
     {
       "findingId": "Group:TERMINOLOGY_BINDING:Group.code:4c0a12",
@@ -1099,7 +1158,22 @@
       "validationAndCompatibilityMd": "R4 instances are not automatically invalid merely because their code is outside the R6 extensible value set, but R6 conformance tooling can raise stronger issues than R4. The larger risk is behavioral: the same element name now carries different modeling intent.",
       "migrationGuidanceMd": "Audit uses of `Group.code`. Map source codes to the R6 group-code value set when there is a clear equivalent; otherwise preserve original coding/text and consider adding a local extension or profile guidance. Update business rules to distinguish group type, group use, and member characteristics.",
       "backwardCompatibilityAnalysisMd": "The more compatible design would have added a new group-use element while retaining the old member-kind role for `code`. R6 chose a simpler base model at the cost of semantic migration work.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Group:TERMINOLOGY_BINDING:Group.code:4c0a12",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Group.code` keeps the same cardinality and CodeableConcept type, but its modeling intent shifts from loose member-kind detail to group use, with an extensible R6 value set. That can require semantic review for systems that used R4 `code` as a business classifier, but it is not a guaranteed hard validation break because extensible bindings still allow other codes when appropriate. With no code-specific production evidence found and R4 FMM 1, the change looks like a manageable semantic migration rather than a clear revisit.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Group.code` is 0..1 CodeableConcept with example binding and definition `Provides a specific type of resource the group includes`.",
+          "R6 StructureDefinition: `Group.code` is 0..1 CodeableConcept with extensible binding to `ValueSet/group-code` and definition describing the use of the group.",
+          "R6 `group-code` CodeSystem includes use-case codes such as `patient-list`, `family`, `household`, `herd`, `locality`, `organization`, and `collection`.",
+          "The targeted implementation-relevance search found Group use generally but not specific reliance on `Group.code` semantics."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the concern: the same element name changed intent, but absent evidence of broad code-specific deployment, the burden of preserving R4 semantics is lower.",
+        "compatibilityMechanism": "semantic/documentation: the strongest issue is changed meaning and stronger extensible terminology expectations, not universal old-valid/new-invalid rejection.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have kept `Group.code` as member-kind and added a separate optional group-use classifier. That would reduce semantic churn but add another classifier with overlap and slow convergence on a standard R6 vocabulary; under low FMM, the tradeoff seems acceptable.",
+        "comparisonToExisting": "partially agree with the existing potential impact and yes alternative judgment; disagree that the alternative is compelling enough to require Revisit without stronger evidence of code-specific production reliance."
+      }
     },
     {
       "findingId": "Group:FLAGS_AND_MODIFIERS:Group.combinationMethod:92e7c4",
@@ -1276,7 +1350,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken because missing `combinationMethod` defaults to `all-of`. R6-to-R4 conversion is lossy for any non-`all-of` value. Strict R6 processors must include the modifier in semantic evaluation.",
       "migrationGuidanceMd": "Initialize migrated R4 Groups with omitted `combinationMethod` or `all-of`. For R6-to-R4, reject non-`all-of` combinations or preserve them with extensions and clear warnings. Add tests that compare membership evaluation for all-of, any-of, at-least, at-most, and except-subset.",
       "backwardCompatibilityAnalysisMd": "The default preserves R4 behavior, but adding the modifier creates new R6 content that R4 cannot model. A profile/extension approach would be more backward-compatible but less safe for generic processors.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Group:FLAGS_AND_MODIFIERS:Group.combinationMethod:92e7c4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 characteristics were implicitly all-of, while R6 adds an optional modifier `combinationMethod` whose absent meaning is all-of. Existing R4 characteristic logic therefore migrates safely by omission/default, but R6 content using any-of, thresholds, or exception subsets cannot be faithfully understood by R4-era processors. Marking the element as a modifier is appropriate because ignoring it changes cohort membership logic.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Group.characteristic` comment says all identified characteristics must be true.",
+          "R6 StructureDefinition: `Group.combinationMethod` is 0..1 code, isModifier=true, with meaning-when-missing `all-of`.",
+          "R6 value set includes `all-of`, `any-of`, `at-least`, `at-most`, and `except-subset`; `Group.combinationThreshold` supports threshold methods."
+        ],
+        "fmmEffect": "FMM 1 softens compatibility expectations for the old model, and the R6 default deliberately preserves the R4 all-of behavior for migrated data.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 processors and generated models must not ignore the modifier; R6-to-R4 loss occurs for non-`all-of` methods, but there is no old-valid/new-invalid R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "An extension-only approach would be less visible to R4 systems but worse for R6 safety and generic processing. Because the base element is optional and defaults to the R4 behavior, no better less-breaking base design is apparent.",
+        "comparisonToExisting": "agree with the existing view that this is justified and not an R4-to-R6 hard instance break, while treating the high impact mainly as an R6 processing/down-conversion concern."
+      }
     },
     {
       "findingId": "Group:TYPE_DOMAIN:Group.characteristic.value:5d28ab",
@@ -1430,7 +1518,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken. R6-to-R4 validation fails for `valueUri` or `valueExpression` because those element names are not valid R4 choices.",
       "migrationGuidanceMd": "Update generated models and serializers for the two new choices. For R6-to-R4, preserve URI or Expression values in extensions or reject the conversion if semantic fidelity is required. Include choice-type coverage in tests.",
       "backwardCompatibilityAnalysisMd": "Optional choice additions are forward-compatible but not backward-compatible. Extensions would be more backward-compatible but less interoperable for R6 consumers.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Group:TYPE_DOMAIN:Group.characteristic.value:5d28ab",
+        "judgment": "No problem",
+        "narrativeMd": "This is a straightforward choice-type widening. R6 keeps all R4 `value[x]` choices and adds `uri` and `Expression`; the removed example binding was non-constraining. R6-to-R4 conversion of the new choices needs extensions or rejection, but existing R4 values remain valid.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Group.characteristic.value[x]` allows CodeableConcept, boolean, Quantity, Range, and Reference with an example binding.",
+          "R6 StructureDefinition: the same choices remain and `uri` plus `Expression` are added.",
+          "R6 `Group.characteristic.value[x]` cardinality remains 1..1."
+        ],
+        "fmmEffect": "FMM 1/trial-use reinforces that an additive widening should not be elevated absent a direct R4-to-R6 break.",
+        "compatibilityMechanism": "R6-to-R4 loss: `valueUri` and `valueExpression` are not R4 choice names; no old-valid/new-invalid concern exists for R4 choices.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R4-to-R6 base design is needed because no R4 choice was removed or narrowed. Extensions for URI or Expression would improve backward exchange but would make R6 criteria less interoperable.",
+        "comparisonToExisting": "disagree with any medium-impact framing for R4-to-R6 migration; agree only that generated R6 code and down-conversion should account for the new choices."
+      }
     },
     {
       "findingId": "Group:ELEMENT_PRESENCE_OR_IDENTITY:Group.characteristic.qualifiers:ad1f09",
@@ -1564,7 +1666,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 instances remain valid with respect to these additions. R6-to-R4 conversion is lossy whenever any added qualifier is populated. Ignoring `offset` is especially unsafe because it is a modifier.",
       "migrationGuidanceMd": "Update R6 evaluators to process or reject the new qualifiers explicitly. For R6-to-R4, use extensions for each qualifier or fail the conversion. Include tests for offset, formula, relativeTime, duration, instances Range, and method/determiner handling.",
       "backwardCompatibilityAnalysisMd": "The additions could be extension-only for R4 compatibility, but the base R6 model benefits from making the qualifiers visible and machine-processable.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Group:ELEMENT_PRESENCE_OR_IDENTITY:Group.characteristic.qualifiers:ad1f09",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The added characteristic qualifiers are optional, so they do not invalidate R4 characteristics. They do create real R6 processing and down-conversion obligations, especially `offset`, which is a modifier and can change how a value threshold is interpreted. The additions look proportionate because they make clinically and analytically important criteria explicit in the base model rather than hidden in extensions.",
+        "keyEvidence": [
+          "R4 StructureDefinition: local characteristic children are code, value[x], exclude, and period.",
+          "R6 StructureDefinition: added children include description, method, formula, determiner, offset, instances[x], duration[x], and relativeTime.",
+          "R6 `Group.characteristic.offset` is 0..1 CodeableConcept and isModifier=true because it must be included to interpret the characteristic value.",
+          "R6 `Group.characteristic.instances[x]` supports unsignedInt or Range with a positive-range invariant."
+        ],
+        "fmmEffect": "Low R4 FMM softens the stability concern, and the optional additions preserve old data; the modifier nature of `offset` keeps this from being purely cosmetic.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 evaluators must process or reject new qualifiers, especially modifier `offset`; R6-to-R4 loss occurs when any added qualifier is populated.",
+        "lessBreakingAlternativeAssessment": "Using only extensions would be more backward-compatible for R4 exchange but would hide important membership-evaluation semantics from generic R6 processors. Since the qualifiers are optional for migrated R4 data, the base additions are a reasonable tradeoff.",
+        "comparisonToExisting": "agree with the existing assessment that this is not an R4-to-R6 hard break and is justified; the fresh judgment treats it as proportionate rather than a Revisit item."
+      }
     },
     {
       "findingId": "Group:SERIALIZATION_OR_CODEGEN:CanonicalResource:6e391d",
@@ -1678,7 +1795,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken by optional additions. R6-to-R4 conversion loses canonical metadata unless extensions are used. Strict R4 parsers reject the new element names.",
       "migrationGuidanceMd": "Regenerate R6 models and update serializers to include the new fields. For R6-to-R4 exchange, define extensions or external metadata storage for canonical fields. Treat `status` as a modifier as described in the separate active/status finding.",
       "backwardCompatibilityAnalysisMd": "Optional metadata additions are the least disruptive way to make Group canonical in R6, but any use of the new fields is inherently outside R4 core.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Group:SERIALIZATION_OR_CODEGEN:CanonicalResource:6e391d",
+        "judgment": "No problem",
+        "narrativeMd": "R6 makes Group implement CanonicalResource and adds optional canonical metadata. This expands R6 model surface and makes R6-to-R4 metadata preservation lossy, but optional metadata does not break R4 instances moving to R6. The design goal is coherent with definitional/canonical Group use.",
+        "keyEvidence": [
+          "R4 StructureDefinition: no `structuredefinition-implements` CanonicalResource extension is present.",
+          "R6 StructureDefinition: `structuredefinition-implements` points to `http://hl7.org/fhir/StructureDefinition/CanonicalResource`.",
+          "R6 adds optional metadata elements such as url, version, versionAlgorithm[x], title, status, experimental, date, publisher, contact, description, useContext, purpose, copyright, and copyrightLabel."
+        ],
+        "fmmEffect": "FMM 1/trial-use makes optional metadata/codegen growth a weak stability concern, especially with no old element narrowed.",
+        "compatibilityMechanism": "metadata/tooling: generated R6 classes/interfaces and R6-to-R4 metadata handling change, but there is no old-valid/new-invalid instance break from the optional canonical fields.",
+        "lessBreakingAlternativeAssessment": "A separate resource or extension-only metadata would reduce Group surface growth but split canonical definition workflows or make metadata less standard. Because the additions are optional, no less-breaking R4-to-R6 base design is needed.",
+        "comparisonToExisting": "partially agree with the existing medium runtime/down-conversion concern; disagree that it is a material fresh-review problem for R4-to-R6 compatibility."
+      }
     },
     {
       "findingId": "Group:FLAGS_AND_MODIFIERS:Group.characteristic.summary:df03a5",
@@ -1775,7 +1906,21 @@
       "validationAndCompatibilityMd": "No R4 instance becomes invalid and no R6 instance becomes unrepresentable solely because of summary flags. The risk is runtime behavior of summary serialization and query responses.",
       "migrationGuidanceMd": "Review REST `_summary`, `_elements`, caching, and UI summary handling. If characteristic data is sensitive in a deployment, use access-control or projection rules rather than assuming summary mode omits it.",
       "backwardCompatibilityAnalysisMd": "This could have been avoided by leaving flags unchanged, but including characteristic criteria in summaries is consistent with their central role in R6 Group semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Group:FLAGS_AND_MODIFIERS:Group.characteristic.summary:df03a5",
+        "judgment": "No problem",
+        "narrativeMd": "Changing characteristic-related `isSummary` flags can affect `_summary` payloads and projection assumptions, but it does not change instance validity or meaning. R6 characteristics are central to interpreting definitional Groups, so including their core fields in summary views is reasonable. Deployments with privacy or payload-size constraints can manage this at API/projection policy level.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Group.characteristic`, `.code`, `.value[x]`, and `.exclude` have isSummary=false.",
+          "R6 StructureDefinition: those same elements have isSummary=true.",
+          "No cardinality, type, or binding narrowing accompanies this summary-flag change."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens concern for a runtime projection change, and the affected data remains valid and semantically unchanged.",
+        "compatibilityMechanism": "runtime/API/codegen: REST `_summary` responses or generated summary models may include fields that R4-oriented clients did not expect; no old-valid/new-invalid or R6-to-R4 data loss mechanism is present.",
+        "lessBreakingAlternativeAssessment": "Leaving the flags false would preserve R4 summary shape but make R6 summaries less useful for Group definitions. This is an operational behavior choice rather than a less-breaking base instance design.",
+        "comparisonToExisting": "agree with the existing low-impact conclusion; no renewed design attention is needed."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1967,5 +2112,19 @@
       "Required binding value set expansions causing R6-to-R4 incompatibility",
       "New modifier elements that alter cohort or criteria interpretation"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Group.fresh-review.json",
+    "findingDecisionCount": 10,
+    "matchedFindingDecisionCount": 10,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 4,
+      "No problem": 5
+    }
   }
 }

@@ -360,7 +360,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: yes, whenever an R4 instance carries a `performed[x]` value. R6 validators expect the `occurrence[x]` choice name. R6-valid/not-R4-representable also occurs for `occurrenceTiming`, because R4 had no Timing choice for this element.",
       "migrationGuidanceMd": "Map each R4 `performedDateTime`, `performedPeriod`, `performedString`, `performedAge`, and `performedRange` to the corresponding R6 `occurrence*` property. Decide a policy for R6 `occurrenceTiming` when producing R4: extension, narrative/text, derived Period, or rejection. Regression tests should cover every choice type.",
       "backwardCompatibilityAnalysisMd": "The rename likely improves consistency with event patterns, but a deprecated R4 alias would have been backward compatible. Without an alias, all wire-format parsers and generated models must update.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.performed[x]:27c77d",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Procedure.performed[x]` is replaced by R6 `Procedure.occurrence[x]` with the same existing choice types plus `Timing`. A populated R4 `performedDateTime`, `performedPeriod`, or similar property is not just reinterpreted by R6; it must be renamed, and generated APIs, FHIRPath, search extraction, and migration code all see a different path. Procedure timing is central clinical and audit content, so a rename that mostly improves terminology consistency looks disproportionate without a transition path.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `Procedure.performed[x]` 0..1 dateTime|Period|string|Age|Range, summary=true",
+          "R6 Procedure snapshot: `Procedure.occurrence[x]` 0..1 dateTime|Period|string|Age|Range|Timing, summary=true",
+          "R4 maturity map: Procedure FMM 3, standards status trial-use"
+        ],
+        "fmmEffect": "FMM 3/trial-use does not freeze the design, but it raises the burden for a hard break on a central timing element that is likely used in production Procedure exchange.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `performed*` wire properties are absent in R6; there is also runtime/API/codegen churn and R6-to-R4 loss for `occurrenceTiming`.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: retain `performed[x]`, revise its definition to describe occurrence timing, and add `Timing` as an additional choice. The main tradeoff is keeping a less event-pattern-consistent name.",
+        "comparisonToExisting": "agree: the existing High impact and Yes less-breaking alternative are supported by the StructureDefinition evidence."
+      }
     },
     {
       "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.reason:0466fc",
@@ -578,7 +592,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: yes for R4 instances that populate either removed element. R6-valid/not-R4-representable: partial, because a CodeableReference with both concept and reference can only be split into R4 `reasonCode` and `reasonReference`, losing item-level association.",
       "migrationGuidanceMd": "Map each R4 `reasonCode[]` item to `reason[].concept` and each `reasonReference[]` item to `reason[].reference`. Where source systems know a code and reference describe the same reason, pair them in one R6 CodeableReference. For R6→R4, split concept/reference and document that pairing is lost unless preserved in an extension.",
       "backwardCompatibilityAnalysisMd": "The change is understandable as part of the wider CodeableReference adoption, but the removal of old fields was avoidable through deprecated aliases or a transition invariant.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.reason:0466fc",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 separate `reasonCode` and `reasonReference` arrays are merged into one R6 `reason` CodeableReference array. This is a real wire and generated-model break for any populated reason, and R6 can pair a concept and reference in one item in a way R4 cannot preserve exactly. The change is nevertheless a coherent CodeableReference consolidation that improves the model for a single reason represented by both code and resource.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `reasonCode` 0..* CodeableConcept with example procedure-reason binding",
+          "R4 Procedure snapshot: `reasonReference` 0..* Reference(Condition|Observation|Procedure|DiagnosticReport|DocumentReference)",
+          "R6 Procedure snapshot: `reason` 0..* CodeableReference with the same reference targets and procedure-reason example binding"
+        ],
+        "fmmEffect": "FMM 3/trial-use keeps compatibility pressure meaningful for common clinical reason data, but the mature-trial-use status still allows proportionate model cleanup when the old split shape cannot express the R6 pairing semantics cleanly.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `reasonCode` and `reasonReference` properties are removed; R6-to-R4 conversion loses item-level concept/reference pairing.",
+        "lessBreakingAlternativeAssessment": "Only a partial less-breaking design is plausible: keep deprecated `reasonCode` and `reasonReference` beside new `reason`. That would preserve old payloads but creates duplicate reason representations and conflict rules, and the old arrays still cannot express one paired CodeableReference item.",
+        "comparisonToExisting": "agree: the existing High impact and Partial alternative judgment are consistent with the independent path-level assessment."
+      }
     },
     {
       "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.used:41aa41",
@@ -780,7 +808,21 @@
       "migrationGuidanceMd": "Map `usedCode[]` to `used[].concept` and `usedReference[]` to `used[].reference`. Review traceability use cases to decide how to handle R6 BiologicallyDerivedProduct in R4, typically via an extension or explicit rejection.",
       "backwardCompatibilityAnalysisMd": "The CodeableReference design provides a cleaner model, but backward-compatible aliases would have reduced instance and code-generation disruption.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "The binding strength is example, so the value-set change is not a validation break by itself; terminology expansion would improve confidence about migration implications for coded `used` concepts."
+      "reviewerNotesMd": "The binding strength is example, so the value-set change is not a validation break by itself; terminology expansion would improve confidence about migration implications for coded `used` concepts.",
+      "freshReview": {
+        "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.used:41aa41",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `usedCode` and `usedReference` are replaced by R6 `used` CodeableReference, with BiologicallyDerivedProduct added as a reference target. This breaks populated R4 instances and generated models, but the new shape addresses the old parallel code/reference pattern and supports coded plus referenced used items in one repeat.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `usedCode` 0..* CodeableConcept with device-kind example binding",
+          "R4 Procedure snapshot: `usedReference` 0..* Reference(Device|Medication|Substance)",
+          "R6 Procedure snapshot: `used` 0..* CodeableReference(Device|Medication|Substance|BiologicallyDerivedProduct) with device-type example binding"
+        ],
+        "fmmEffect": "FMM 3/trial-use raises concern because used items can matter for traceability, but the element is optional and the CodeableReference goal is strong enough to make the migration burden proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `usedCode` and `usedReference` are absent in R6; R6-to-R4 loss exists for BiologicallyDerivedProduct and paired concept/reference items.",
+        "lessBreakingAlternativeAssessment": "A partial alternative could keep deprecated old fields while adding `used`, and perhaps widen `usedReference`. That preserves legacy instances but leaves duplicate same-resource representations and cannot model a single coded-and-referenced used item in the old fields.",
+        "comparisonToExisting": "agree: the existing High impact and Partial alternative assessment are well supported."
+      }
     },
     {
       "findingId": "Procedure:TYPE_DOMAIN:Procedure.complication:d5a224",
@@ -975,7 +1017,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: yes when R4 carries direct CodeableConcept complications or `complicationDetail`. R6-valid/not-R4-representable: partial when a single R6 item pairs concept and reference. Summary payloads can also differ between versions.",
       "migrationGuidanceMd": "Wrap R4 `complication[]` values as `complication[].concept` and map `complicationDetail[]` references as `complication[].reference`. If both exist and are known to describe the same event, pair them; otherwise keep separate R6 items. Test summary-mode extraction and adverse-event reporting workflows.",
       "backwardCompatibilityAnalysisMd": "The merged design is clinically useful but a compatibility alias for `complicationDetail` would have avoided a hard break for existing references.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Procedure:TYPE_DOMAIN:Procedure.complication:d5a224",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes `complication` from CodeableConcept to CodeableReference(Condition) and removes `complicationDetail`. This is a hard shape change for coded complications and a path removal for referenced complications. Because complications are clinically important adverse-outcome content, migration has to be deliberate, but the unified CodeableReference model is a reasonable way to keep a code and Condition reference together.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `complication` 0..* CodeableConcept, summary=false",
+          "R4 Procedure snapshot: `complicationDetail` 0..* Reference(Condition)",
+          "R6 Procedure snapshot: `complication` 0..* CodeableReference(Condition), summary=true"
+        ],
+        "fmmEffect": "FMM 3/trial-use increases the need for clear migration guidance because complication data is safety-relevant, but it does not make a proportionate CodeableReference consolidation unacceptable.",
+        "compatibilityMechanism": "old-valid/new-invalid: direct R4 CodeableConcept complications are not R6 CodeableReference items, and `complicationDetail` is removed; R6 paired concept/reference items cannot round-trip to R4 without losing the pairing.",
+        "lessBreakingAlternativeAssessment": "The less-breaking option is only partial: retain `complicationDetail` or add a parallel reference field while introducing CodeableReference. That would preserve old instances but create competing carriers for a safety-relevant fact and require precedence rules.",
+        "comparisonToExisting": "agree: the existing High impact and Partial alternative judgment match the evidence, though the safety relevance makes migration guidance especially important."
+      }
     },
     {
       "findingId": "Procedure:TYPE_DOMAIN:Procedure.outcome:9637f9",
@@ -1160,7 +1216,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: yes when `outcome` is present in R4. R6-valid/not-R4-representable: high for multiple outcomes and Observation references. Code generators also change from an optional CodeableConcept property to a list of CodeableReference values.",
       "migrationGuidanceMd": "Convert an R4 `outcome` object to a one-item R6 array with `concept`. For R6→R4, only a single concept-only outcome maps cleanly; multiple outcomes or Observation references require extensions, a linked Observation strategy, or manual selection rules.",
       "backwardCompatibilityAnalysisMd": "The use case for multiple Observation-backed outcomes seems strong, but a separate additive element could have avoided changing the existing property shape. The tradeoff would be more fields and more mapping rules.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Procedure:TYPE_DOMAIN:Procedure.outcome:9637f9",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 changes `outcome` from one CodeableConcept to repeating CodeableReference(Observation), and the definition narrows toward short-term outcomes. Supporting multiple Observation-backed outcomes is a legitimate R6 goal, but changing the existing path invalidates populated R4 outcomes and creates substantial down-conversion loss for multiple or referenced outcomes. Because outcome can affect quality and clinical interpretation, the base design deserves another look for a less disruptive transition.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `outcome` 0..1 CodeableConcept, example procedure-outcome binding",
+          "R6 Procedure snapshot: `outcome` 0..* CodeableReference(Observation), same example binding",
+          "R6 Procedure definition text scopes outcome to short-term outcomes during or soon after the procedure"
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the burden for changing both datatype and multiplicity on clinically meaningful outcome content, even though the content is not normative.",
+        "compatibilityMechanism": "old-valid/new-invalid: populated R4 `outcome` has the wrong R6 datatype and JSON/model shape; R6-to-R4 loss is high for multiple outcomes and Observation references.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design could retain singleton coded `outcome` and add a separate repeating Observation-backed outcome element. The tradeoff is a less elegant primary/additional outcome split and more search/mapping rules, but it would preserve R4-coded outcomes.",
+        "comparisonToExisting": "partially agree: the existing High impact and Partial alternative are right, but I judge the disruption and plausible additive design as strong enough to warrant Revisit rather than treating the change as simply justified."
+      }
     },
     {
       "findingId": "Procedure:TYPE_DOMAIN:Procedure.followUp:4d96ff",
@@ -1327,7 +1397,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: yes for populated R4 followUp arrays. R6-valid/not-R4-representable: yes for ServiceRequest or PlanDefinition references unless represented through extensions or separate resources not connected by the R4 element.",
       "migrationGuidanceMd": "Wrap R4 follow-up codes/text as `followUp[].concept`. For R6 references, decide whether to preserve a reference extension, generate a textual CodeableConcept summary, or maintain the linked request externally.",
       "backwardCompatibilityAnalysisMd": "A separate additive reference element would have been less breaking but would perpetuate parallel elements.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Procedure:TYPE_DOMAIN:Procedure.followUp:4d96ff",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `followUp` CodeableConcept repeats become R6 CodeableReference repeats that can point to ServiceRequest or PlanDefinition. Populated R4 instructions need wrapping under `concept`, and R6 references do not have a direct R4 base home. The R6 goal of connecting follow-up to actionable requests or reusable plans is proportionate, and keeping parallel code and reference fields would add ongoing ambiguity.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `followUp` 0..* CodeableConcept with procedure-followup example binding",
+          "R6 Procedure snapshot: `followUp` 0..* CodeableReference(ServiceRequest|PlanDefinition) with the same example binding",
+          "R6 followUp definition notes that CarePlan can reference the Procedure via CarePlan.addresses"
+        ],
+        "fmmEffect": "FMM 3/trial-use keeps follow-up care continuity compatibility relevant, but the optional element and clear actionable-reference goal make the break proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 CodeableConcept array items are not R6 CodeableReference items; R6-to-R4 loss occurs for ServiceRequest and PlanDefinition references.",
+        "lessBreakingAlternativeAssessment": "A partial alternative could retain CodeableConcept `followUp` and add a new reference element. That preserves legacy instructions but splits follow-up semantics and requires reconciliation when both fields are present.",
+        "comparisonToExisting": "agree: the existing Medium impact and Partial alternative judgment are consistent with the fresh review."
+      }
     },
     {
       "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.instantiatesCanonical:8fff2a",
@@ -1466,7 +1550,21 @@
       "migrationGuidanceMd": "Inventory Procedure instances with either instantiates element. If the information is needed, map it to an approved extension, a related request/PlanDefinition workflow, or Provenance/metadata according to local policy. Test that summary exports do not silently drop it.",
       "backwardCompatibilityAnalysisMd": "This removal appears avoidable from the supplied evidence. A deprecated retained element or explicit replacement would have preserved data while allowing guidance to move elsewhere.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Human review should confirm whether the R6 ballot narrative or change proposals identify a preferred replacement."
+      "reviewerNotesMd": "Human review should confirm whether the R6 ballot narrative or change proposals identify a preferred replacement.",
+      "freshReview": {
+        "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.instantiatesCanonical:8fff2a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `instantiatesCanonical` and `instantiatesUri` are removed from R6 Procedure with no same-purpose base replacement in the R6 StructureDefinition. These optional summary fields carry protocol, guideline, order set, or definition provenance. Removing them makes populated R4 instances invalid and forces extension or workflow-specific remapping without clear computable guidance.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `instantiatesCanonical` 0..* canonical(PlanDefinition|ActivityDefinition|Measure|OperationDefinition|Questionnaire), summary=true",
+          "R4 Procedure snapshot: `instantiatesUri` 0..* uri, summary=true",
+          "R6 Procedure snapshot element list has no `instantiatesCanonical` or `instantiatesUri`"
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the justification burden for removing summary-level provenance links from a mature resource, especially when no replacement is evident.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with either instantiates element use R6-absent properties and may lose protocol/guideline linkage during migration.",
+        "lessBreakingAlternativeAssessment": "A clear less-breaking design exists: retain the elements as deprecated while documenting the preferred R6 pattern. The tradeoff is carrying optional legacy surface area, but it avoids data loss and is low cost.",
+        "comparisonToExisting": "agree: the existing Medium impact and Yes less-breaking alternative are supported; I also agree this deserves design attention."
+      }
     },
     {
       "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.asserter:942536",
@@ -1617,7 +1715,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: yes when `asserter` is present. R6-to-R4 risk is lower for this specific field because R6 lacks the old field, but R6 `reported[x]` may also be hard to back-port without a local R4 extension.",
       "migrationGuidanceMd": "Do not blindly map every `asserter` to `reportedReference`. Classify whether the asserter is the report source, recorder, performer, or provenance agent. Use `reportedReference`, `recorder`, Provenance, or an extension according to that classification.",
       "backwardCompatibilityAnalysisMd": "The removal was avoidable through deprecation. Human review is needed to confirm the intended replacement pattern in ballot narrative or cross-version guidance.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.asserter:942536",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `asserter` is removed, while R6 adds `reported[x]` and `recorded` but not an exact assertion-author replacement. Mapping an asserter to reported source, recorder, or Provenance is policy-dependent and can change audit meaning. Attribution of a historical Procedure statement is important enough that a silent removal without a retained deprecated path is concerning.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `asserter` 0..1 Reference(Patient|RelatedPerson|Practitioner|PractitionerRole), summary=true, definition identifies the individual making the procedure statement",
+          "R6 Procedure element list has no `asserter`",
+          "R6 Procedure snapshot: `reported[x]` can be boolean or Reference(Patient|RelatedPerson|Practitioner|PractitionerRole|Organization), and `recorded` is a dateTime"
+        ],
+        "fmmEffect": "FMM 3/trial-use heightens the concern because mature Procedure exchange may depend on attribution for trust, audit, and medico-legal interpretation.",
+        "compatibilityMechanism": "old-valid/new-invalid: populated R4 `asserter` is absent in R6, and migration can be semantically lossy because nearby R6 provenance fields are not exact replacements.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: keep `asserter` as deprecated and guide new content to `recorder`, `recorded`, `reported[x]`, or Provenance as appropriate. The tradeoff is overlapping provenance shortcuts, but it avoids unsafe automatic remapping.",
+        "comparisonToExisting": "agree: the existing Medium impact and Yes less-breaking alternative are supported by the definitions."
+      }
     },
     {
       "findingId": "Procedure:VALUE_CONSTRAINT:Procedure.performer.onBehalfOf:e9c5b6",
@@ -1795,7 +1907,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: potential, because the invariant depends on reference resolution. R6-to-R4 risk also exists because R6 performer actors can now be CareTeam or HealthcareService, which R4 did not allow.",
       "migrationGuidanceMd": "Search for performer entries with both `actor` and `onBehalfOf`. For Practitioner/PractitionerRole actors, decide whether the organization should be represented through PractitionerRole, Provenance, affiliation data, or an extension. Include validator tests with resolvable references so the invariant is actually exercised.",
       "backwardCompatibilityAnalysisMd": "A warning or best-practice invariant would have been less breaking. The stricter R6 rule may be justified if PractitionerRole is the intended representation for practitioner affiliation, but that rationale is not explicit in the supplied StructureDefinition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Procedure:VALUE_CONSTRAINT:Procedure.performer.onBehalfOf:e9c5b6",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 adds error invariant `prc-1`, rejecting `onBehalfOf` when `performer.actor` resolves to Practitioner or PractitionerRole. R4 explicitly described practitioners and devices acting on behalf of organizations, so this can invalidate real attribution patterns when validators resolve references. The likely goal of avoiding duplicate affiliation data is reasonable, but an immediate error-level base rule is a sharp break for billing, audit, and accountability data.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `performer.onBehalfOf` 0..1 Reference(Organization), definition says the organization the device or practitioner was acting on behalf of",
+          "R6 Procedure constraint: `prc-1` severity=error, expression forbids onBehalfOf when actor resolves as Practitioner or PractitionerRole",
+          "R6 performer.actor target list adds CareTeam and HealthcareService while retaining Practitioner and PractitionerRole"
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the burden for a new error invariant that can invalidate previously allowed attribution data on a mature resource.",
+        "compatibilityMechanism": "old-valid/new-invalid: potential, because rejection depends on reference resolution; when it fires, formerly valid Practitioner or PractitionerRole plus `onBehalfOf` combinations become invalid.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could make the rule warning-level, stage it through profiles, or reject only demonstrably duplicate affiliation cases. The tradeoff is weaker base enforcement of the preferred PractitionerRole/affiliation pattern.",
+        "comparisonToExisting": "agree: the existing Medium/Potential impact and Partial alternative judgment are consistent with the evidence, and the finding merits Revisit."
+      }
     },
     {
       "findingId": "Procedure:SEMANTIC_OR_CONFORMANCE_TEXT:Procedure.subject:37e373",
@@ -1981,7 +2107,21 @@
       "migrationGuidanceMd": "Audit code paths that assume `Procedure.subject.reference` starts with `Patient/` or `Group/`. Add type-aware handling and explicit tests for Device, Practitioner, Organization, and Location subjects. For R6→R4, either reject non-patient procedures, map through profiles/extensions, or preserve them outside R4 Procedure.",
       "backwardCompatibilityAnalysisMd": "The broader model appears intentional and useful. A less disruptive path would have been profiles or separate resources, but that would reduce core consistency for event-like actions on non-patient entities.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Compartment membership and search-parameter behavior were not analyzed here and should be checked separately if Procedure subject broadening affects server behavior."
+      "reviewerNotesMd": "Compartment membership and search-parameter behavior were not analyzed here and should be checked separately if Procedure subject broadening affects server behavior.",
+      "freshReview": {
+        "findingId": "Procedure:SEMANTIC_OR_CONFORMANCE_TEXT:Procedure.subject:37e373",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 widens `subject` beyond Patient and Group and adds modifier `focus` to distinguish the actual target from the record subject. Existing R4 Patient/Group Procedures remain within the R6 target set, so this is not an upward instance break. It is still a real runtime and R6-to-R4 compatibility issue for patient-centric code and for consumers that must not ignore modifier `focus`, but the non-patient Procedure use cases documented in R6 appear intentional and proportionate.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `subject` 1..1 Reference(Patient|Group)",
+          "R6 Procedure snapshot: `subject` 1..1 Reference(Patient|Group|Device|Practitioner|Organization|Location)",
+          "R6 Procedure snapshot: new `focus` 0..1 modifier Reference(Patient|Group|RelatedPerson|Practitioner|Organization|CareTeam|PractitionerRole|Specimen)"
+        ],
+        "fmmEffect": "FMM 3/trial-use means patient-centric assumptions in mature Procedure implementations matter, but because the change is widening and optional rather than invalidating R4 subjects, the stability concern is softened.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 consumers and mixed-version mappers can no longer assume a Patient/Group subject and must process modifier `focus`; R6-to-R4 loss exists for non-Patient/Group subjects and focus.",
+        "lessBreakingAlternativeAssessment": "No R4-preserving alternative is needed for upward compatibility. Profiles or separate resources could isolate non-patient procedures, but that would reduce the base R6 expressiveness goal rather than preserve old R4 instances.",
+        "comparisonToExisting": "partially agree: the existing High runtime/R6-to-R4 concern is reasonable and Not applicable alternative is right, but the key point is that this is not an old-valid/new-invalid break."
+      }
     },
     {
       "findingId": "Procedure:CARDINALITY:Procedure.category:b15bb2",
@@ -2106,7 +2246,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: no. R6-valid/not-R4-representable: yes for multiple categories. Runtime code that expects a singleton category must be updated for R6.",
       "migrationGuidanceMd": "Update generated models and mapping code to treat R6 category as repeating. For R6→R4, define a deterministic primary-category selection or an extension for extra categories.",
       "backwardCompatibilityAnalysisMd": "The widening is relatively safe upward but unavoidable if the base model needs multiple categories. A secondary-category extension would be less disruptive but less uniform.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Procedure:CARDINALITY:Procedure.category:b15bb2",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 widens `category` from singleton to repeating. In the abstract model this is an expressiveness widening, but in JSON and generated APIs it changes a populated category from a single CodeableConcept property to a list, and R6 multiple categories cannot downgrade to base R4 without policy choices. Since category is summary/search/display content and a less disruptive design could preserve the old singleton while adding an extra-category path, this deserves renewed design review.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `category` 0..1 CodeableConcept, summary=true, example procedure-category binding",
+          "R6 Procedure snapshot: `category` 0..* CodeableConcept, summary=true, same example binding",
+          "FHIR JSON representation differs for singleton versus repeating elements, and generated models typically change from optional value to collection"
+        ],
+        "fmmEffect": "FMM 3/trial-use raises concern for changing the shape of a mature summary/search classification element, even though the change is semantically widening rather than narrowing.",
+        "compatibilityMechanism": "runtime/API/codegen: singleton-to-list changes generated APIs and common JSON handling; R6-to-R4 loss occurs when more than one category is present.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep `category` 0..1 and add a repeating `additionalCategory` or similar element. The tradeoff is a split primary/additional model and more complex search/display union rules.",
+        "comparisonToExisting": "partially agree: the existing Medium concern and Yes alternative are supported, but I treat the singleton-to-repeating wire/API shape as more action-worthy than the prior report's no-hard-break framing."
+      }
     },
     {
       "findingId": "Procedure:REFERENCE_TARGET:Procedure.basedOn:242309",
@@ -2282,7 +2436,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: no. R6-valid/not-R4-representable: yes for the added targets. Strict R4 validators reject these references at the element target-profile level.",
       "migrationGuidanceMd": "Update target-type switches and database foreign-key assumptions. For R6→R4, either reject added targets, map to extensions, or represent the relationship through a different R4 resource where clinically appropriate.",
       "backwardCompatibilityAnalysisMd": "The additive target changes are a reasonable non-breaking way to expand R6, but they still need explicit cross-version mapping rules.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Procedure:REFERENCE_TARGET:Procedure.basedOn:242309",
+        "judgment": "No problem",
+        "narrativeMd": "The affected reference target lists are widened: `basedOn` adds MedicationRequest, `report` adds Bundle, and `performer.actor` adds CareTeam and HealthcareService. All R4 target types remain allowed in R6, so there is no meaningful R4-to-R6 instance compatibility problem. Mixed-version consumers need downgrade rules for the new target types, but that is expected for additive R6 expressiveness.",
+        "keyEvidence": [
+          "R4/R6 Procedure snapshots: `basedOn` keeps CarePlan and ServiceRequest and R6 adds MedicationRequest",
+          "R4/R6 Procedure snapshots: `report` keeps DiagnosticReport, DocumentReference, and Composition and R6 adds Bundle",
+          "R4/R6 Procedure snapshots: `performer.actor` keeps all R4 targets and R6 adds CareTeam and HealthcareService"
+        ],
+        "fmmEffect": "FMM 3/trial-use does not materially increase concern because the change is additive and preserves R4-valid references.",
+        "compatibilityMechanism": "R6-to-R4 loss: only new R6 target types lack a base R4 representation; there is no old-valid/new-invalid break for the R4 target set.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R4-preserving alternative is needed. Retaining the old target lists would improve downgrade simplicity but would block the R6 workflow expressiveness goal.",
+        "comparisonToExisting": "partially agree: the existing facts and Not applicable alternative are right, but I would downgrade the compatibility concern from Medium to No problem for the R4-to-R6 review purpose."
+      }
     },
     {
       "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.bodyStructure:260ca1",
@@ -2467,7 +2635,21 @@
       "migrationGuidanceMd": "For R6→R4, define extensions or related-resource mappings for each populated added element. For R4→R6, consider whether existing extensions such as target-body-structure should be promoted to `bodyStructure`, while respecting con-4.",
       "backwardCompatibilityAnalysisMd": "Because the additions are optional, the R6 design is mostly backward compatible for upward migration. The unavoidable issue is down-conversion loss.",
       "requiresHumanReview": true,
-      "reviewerNotesMd": "Review existing R4 extensions, especially body-structure-related extensions, before choosing an automated mapping."
+      "reviewerNotesMd": "Review existing R4 extensions, especially body-structure-related extensions, before choosing an automated mapping.",
+      "freshReview": {
+        "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.bodyStructure:260ca1",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `bodyStructure`, `performer.period`, `recorded`, `reported[x]`, and `supportingInfo`. These do not invalidate any R4 Procedure instance because they are new optional content. They can be lost when converting R6 back to R4, and `bodyStructure` has a new mutual-exclusion rule with `bodySite`, but that only constrains new R6 content.",
+        "keyEvidence": [
+          "R6 Procedure snapshot: optional additions include `bodyStructure`, `performer.period`, `recorded`, `reported[x]`, and `supportingInfo`",
+          "R4 Procedure snapshot has no corresponding base elements for these additions",
+          "R6 Procedure constraint `con-4`: `bodySite.exists() implies bodyStructure.empty()`"
+        ],
+        "fmmEffect": "FMM 3/trial-use does not make optional additive R6 elements problematic for R4-to-R6 compatibility; it mainly signals that downgrade guidance may matter.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated new optional R6 elements need extensions or external resources when downgrading; there is no old-valid/new-invalid mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable for forward compatibility. Keeping these capabilities extension-only would ease R4 round-tripping but reduce discoverability and consistent base validation in R6.",
+        "comparisonToExisting": "partially agree: the existing facts and Not applicable alternative are right, but I disagree with treating optional additions as a meaningful R4-to-R6 breaking issue."
+      }
     },
     {
       "findingId": "Procedure:TERMINOLOGY_BINDING:Procedure.performer.function:e5af1b",
@@ -2589,7 +2771,21 @@
       "migrationGuidanceMd": "Do not change status-code migration rules based only on the versioned ValueSet URL. Refresh terminology helpers and picklists for performer.function and used, and separately evaluate any profiles that strengthened these example bindings.",
       "backwardCompatibilityAnalysisMd": "The status binding version update is necessary for R6 packaging. Example binding updates are backward-compatible at the base validation layer.",
       "requiresHumanReview": false,
-      "reviewerNotesMd": "SNOMED-based example ValueSets were not expanded; a terminology server comparison could identify picklist differences."
+      "reviewerNotesMd": "SNOMED-based example ValueSets were not expanded; a terminology server comparison could identify picklist differences.",
+      "freshReview": {
+        "findingId": "Procedure:TERMINOLOGY_BINDING:Procedure.performer.function:e5af1b",
+        "judgment": "No problem",
+        "narrativeMd": "The changed `performer.function` and used-item bindings are example strength, so they do not create base validation failures. The required `status` binding version changes with the package, but the local event-status code list is unchanged between R4 and R6. This is terminology maintenance and possible tooling or picklist churn, not a meaningful base compatibility break.",
+        "keyEvidence": [
+          "R4 Procedure snapshot: `performer.function` example binding to performer-role; R6 uses participant-role",
+          "R4/R6 Procedure snapshots: `status` required binding changes version from event-status|4.0.1 to event-status|6.0.0-ballot4",
+          "Local CodeSystem-event-status codes compared: completed, entered-in-error, in-progress, not-done, on-hold, preparation, stopped, unknown in both packages"
+        ],
+        "fmmEffect": "FMM 3/trial-use has little effect because no required code appears removed and the other bindings are example-strength guidance.",
+        "compatibilityMechanism": "none: no base old-valid/new-invalid terminology break was found; at most there is metadata/tooling churn for generated picklists or profile-specific validators.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Implementations that need old example picklists can pin local value sets, but that is not a base R6 design issue.",
+        "comparisonToExisting": "agree: the existing Low impact and Not applicable alternative judgment match the fresh review."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2772,5 +2968,19 @@
       "R6 added modifier focus elements",
       "R4 instantiatesCanonical/instantiatesUri removals"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Procedure.fresh-review.json",
+    "findingDecisionCount": 14,
+    "matchedFindingDecisionCount": 14,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 6,
+      "Breaking but probably OK": 5,
+      "No problem": 3
+    }
   }
 }

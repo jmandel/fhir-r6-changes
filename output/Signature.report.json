@@ -292,7 +292,22 @@
       "migrationGuidanceMd": "For R4→R6, preserve existing `type` values. For R6→R4, derive the purpose from local workflow, the cryptographic signature package, the containing resource, or a profile-specific rule; otherwise reject the conversion or carry an explicit data-absent-reason-like extension with the understanding that the base R4 cardinality is still not satisfied. Test missing, single, and multiple purpose codings.",
       "backwardCompatibilityAnalysisMd": "The change is backward compatible for existing R4 instances but not for reverse conversion. The likely goal could have been broader support for signatures where purpose is implicit or external. A base-compatible alternative would have used profiles or extensions for such cases, trading interoperability guarantees for flexibility.",
       "reviewerNotesMd": "Human review should confirm whether R6 intentionally permits purpose-less signatures in the base datatype or expects profiles to re-require this element for accountable workflows.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Signature:CARDINALITY:Signature.type:min-decreased",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 lowers `Signature.type` from required to optional, while leaving the element shape and preferred binding otherwise intact. This does not make any R4-valid `Signature` invalid in R6, because existing purpose codings can still be sent. The meaningful compatibility issue is that R6 data may now omit the explicit purpose and R4-era validators, generated APIs, or accountability rules may have assumed a non-empty purpose list. That is real but proportionate: a base datatype can reasonably allow signatures where the purpose is implicit, profile-defined, or carried by the signature package, while profiles can still require `type` where a workflow depends on it.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Signature.json: `Signature.type` is `1..*` with type `Coding` and a preferred `signature-type` binding.",
+          "R6 StructureDefinition-Signature.json: `Signature.type` is `0..*`; type and binding remain the same.",
+          "Local use-site scan found `Signature` used in audit/signing contexts including `Bundle.signature`, `Contract.signer.signature`, and `Provenance.signature`.",
+          "R4 maturity evidence checked: Signature StructureDefinition/maturity map indicate trial-use status and no numeric FMM value was available in the supplied local map."
+        ],
+        "fmmEffect": "Trial-use/non-normative status lowers the stability burden compared with normative content. Because `type` is accountability-relevant but the change is only a permissive widening for R4-to-R6 instances, FMM/status supports treating this as acceptable with profiling rather than a standards revisit.",
+        "compatibilityMechanism": "runtime/API/codegen and R6-to-R4 loss: newly valid R6 signatures may omit the purpose coding expected by R4 validators or business logic; there is no old-valid/new-invalid R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "No clearly better less-breaking base R6 design is needed for the forward direction because all R4-valid instances remain valid. Keeping `type` mandatory or forcing placeholder codings would preserve reverse assumptions but would block the apparent R6 goal and may encourage low-quality purpose data. Requiring `type` in profiles is an appropriate mitigation, not a less-breaking base design.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the existing report correctly treats this as no hard forward break and no necessary base alternative, but the fresh judgment frames the remaining concern as a proportionate runtime/reverse-direction issue rather than something requiring revisit."
+      }
     },
     {
       "findingId": "Signature:CARDINALITY:Signature.when:min-decreased",
@@ -436,7 +451,23 @@
       "migrationGuidanceMd": "Preserve R4 `when` values during forward migration. For R6→R4 conversion, extract the signing time from the signature payload only if the extraction is trusted and deterministic; otherwise reject or flag the conversion rather than fabricating a timestamp. Add tests for missing `when`, timezone/instant precision, and conflicts between FHIR-level `when` and embedded signature timestamps.",
       "backwardCompatibilityAnalysisMd": "The relaxation may be justified when signature formats carry their own timestamp or when non-electronic signatures lack an exact instant. The backward-compatible alternative was to keep the base field required and represent exceptions using profiles/extensions, but that would reduce the base datatype's ability to model partial signature context.",
       "reviewerNotesMd": "Review whether local policy should re-require `when` even though the R6 base datatype does not.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Signature:CARDINALITY:Signature.when:min-decreased",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 makes the signing instant optional even though the element definition and comment still describe `when` as the time the digital signature was signed and say it should agree with the signature information. This is not an old-valid/new-invalid break, but it creates a materially lossy R6-to-R4 and runtime path: R6 signatures can now be valid with no FHIR-level signing time, while audit, freshness, expiration, and legal-defensibility logic may have relied on the R4 required instant. The base goal of supporting signatures whose timestamp is unknown or only inside the cryptographic payload is plausible, but the audit significance and the availability of less disruptive ways to represent absent or embedded time make this worth renewed design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Signature.json: `Signature.when` is `1..1` with type `instant`.",
+          "R6 StructureDefinition-Signature.json: `Signature.when` is `0..1`; the definition remains `When the digital signature was signed` and the comment remains `This should agree with the information in the signature.`",
+          "R4 data-absent-reason extension exists for `Element`, showing an established extension pattern for absent values in at least the R4 core package.",
+          "Local use-site scan found `Signature` used in `Provenance.signature`, `Bundle.signature`, and `Contract.signer.signature`, where signing time can affect audit and evidentiary workflows.",
+          "R4 maturity evidence checked: Signature is trial-use/non-normative, with no numeric FMM value found in the supplied local maturity map."
+        ],
+        "fmmEffect": "Trial-use status softens the compatibility expectation, so the finding is not a revisit merely because cardinality changed. The judgment remains `Revisit` because signing time is directly audit- and evidence-relevant and missing time creates lossy reverse conversion or expert-dependent timestamp extraction.",
+        "compatibilityMechanism": "runtime/API/codegen and R6-to-R4 loss: R6 can accept a signature with no `when`, while R4 validators, generated models, and audit/freshness logic may require a concrete instant; there is no old-valid/new-invalid R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design appears plausible: keep a required FHIR-level time contract while documenting an absent-reason or explicit embedded/unknown-time representation for cases where a trusted instant is unavailable. That has tradeoffs, because old code may still lack an actual instant value and duplicated cryptographic timestamps need consistency checks, but it preserves the audit signal better than making the element wholly absent.",
+        "comparisonToExisting": "partially agree with the existing impact and disagree with the alternative conclusion: the existing high runtime and R6-to-R4 concern is credible, but treating less-breaking alternatives as not applicable misses a plausible base design that preserves the required audit slot while handling unavailable timestamps."
+      }
     },
     {
       "findingId": "Signature:CARDINALITY:Signature.who:min-decreased",
@@ -594,7 +625,23 @@
       "migrationGuidanceMd": "Preserve existing signer references on forward migration. For R6→R4, map certificate subject, device identity, organization identity, or containing workflow context to one of the allowed target resource types only when that mapping is trustworthy; otherwise reject lossless conversion or use a profile-specific extension while noting that base R4 conformance is not achieved. Test omitted `who`, contained signer references, and each target profile type.",
       "backwardCompatibilityAnalysisMd": "The relaxation may support signatures whose identity is embedded in non-FHIR cryptographic material or cannot be represented as a FHIR `Reference`. A less disruptive design would have added a new optional alternative for external signer identity while preserving `who`, but that would have been more complex and might still not cover every signature technology.",
       "reviewerNotesMd": "Local policies for legal, consent, or clinical-signature workflows should probably profile `Signature.who` back to `1..1` unless the signer identity is guaranteed elsewhere.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Signature:CARDINALITY:Signature.who:min-decreased",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 makes the signer reference optional while leaving the allowed reference targets and the definition of `who` unchanged. Existing R4 signatures still validate in R6, but newly valid R6 signatures can lack any FHIR-level signer identity. That is a significant runtime and reverse-conversion concern for authorization, audit displays, non-repudiation review, and signed clinical or administrative workflows. The likely goal of supporting identities embedded in cryptographic material or not resolvable as FHIR resources is understandable, but R4 `Reference` already supports logical identifiers for non-literal references, so removing the base requirement for a signer identity looks more disruptive than necessary.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Signature.json: `Signature.who` is `1..1` and targets Practitioner, PractitionerRole, RelatedPerson, Patient, Device, and Organization.",
+          "R6 StructureDefinition-Signature.json: `Signature.who` is `0..1`; target profiles and the definition/comment are otherwise unchanged.",
+          "R4 and R6 StructureDefinition-Reference.json: `Reference.identifier` is a logical reference used when a direct resource reference is not known and need not point to an exposed FHIR instance.",
+          "Local use-site scan found `Signature` used in `Provenance.signature`, `Bundle.signature`, and `Contract.signer.signature`, where signer identity is central to accountability.",
+          "R4 maturity evidence checked: Signature is trial-use/non-normative, with no numeric FMM value found in the supplied local maturity map."
+        ],
+        "fmmEffect": "Trial-use status reduces the stability burden compared with normative content, but it does not neutralize signer-identity risk. Because `who` is the direct FHIR-level accountability hook and a plausible less-breaking representation exists, FMM/status does not soften this enough to avoid revisit.",
+        "compatibilityMechanism": "runtime/API/codegen and R6-to-R4 loss: R6 can accept signatures without `who`, while R4 validators, generated code, audit views, authorization checks, and R4 conversion paths may require a signer; there is no old-valid/new-invalid R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design appears available: keep signer identity required and use `Reference.identifier`, broaden the target/identifier representation, or add an explicit signer-identity alternative for certificate or external identities. These options add mapping and consistency work, but they preserve the base accountability contract better than allowing no FHIR-level signer at all.",
+        "comparisonToExisting": "partially agree with the existing impact and disagree with the alternative conclusion: the existing high runtime/R6-to-R4 concern is well founded, but the fresh review finds that a less-breaking base design should be considered rather than treating alternatives as not applicable."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -791,5 +838,18 @@
       "Preferred value sets widened with new code systems",
       "Datatypes moving from direct Element specialization to DataType specialization"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Signature.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 1
+    }
   }
 }

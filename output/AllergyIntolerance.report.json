@@ -306,7 +306,21 @@
       "validationAndCompatibilityMd": "R4 instances that contain `lastOccurrence` become invalid or at least non-conformant under R6 because R6 has no such element. R6 instances with `lastReactionOccurrence` cannot be sent to an R4 endpoint without renaming the element back. The migration is structurally simple and lossless for the value itself.",
       "migrationGuidanceMd": "Rename `AllergyIntolerance.lastOccurrence` to `AllergyIntolerance.lastReactionOccurrence` during R4→R6 conversion and reverse it for R6→R4. Update generated classes, serializers, FHIRPath, search code, database mappings, and tests that reference `lastOccurrence` or the old `last-date` search parameter.",
       "backwardCompatibilityAnalysisMd": "The clearer name could have been introduced less disruptively by retaining `lastOccurrence` and deprecating it, but base FHIR resources generally do not support aliases. Because the semantic value is unchanged, this is probably a clarity-driven rename rather than a clinically necessary representation change.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AllergyIntolerance:ELEMENT_PRESENCE_OR_IDENTITY:AllergyIntolerance.lastOccurrence:6bc377",
+        "judgment": "Revisit",
+        "narrativeMd": "`lastOccurrence` was not broadened or clarified in place; it was replaced by `lastReactionOccurrence` while preserving the same cardinality, datatype, short text, and definition. A generated R4 client, FHIRPath rule, database mapping, or strict validator that still emits `lastOccurrence` will not match the R6 element name, even though the value itself can be migrated losslessly. Because this looks primarily like a naming cleanup on a clinically relevant date, the break is disproportionate unless there is stronger standards rationale than the supplied artifacts show.",
+        "keyEvidence": [
+          "R4 StructureDefinition has `AllergyIntolerance.lastOccurrence` 0..1 `dateTime` with definition 'date and/or time of the last known occurrence of a reaction event'.",
+          "R6 StructureDefinition has `AllergyIntolerance.lastReactionOccurrence` 0..1 `dateTime` with the same short and definition, and no `lastOccurrence` element.",
+          "The current finding examples align with the primary StructureDefinition evidence: the JSON property name changes while the value semantics remain stable."
+        ],
+        "fmmEffect": "R4 AllergyIntolerance is FMM 3/trial-use, so it is not under a normative freeze, but it is mature enough that a wire-name break for an established clinical summary element needs a clear benefit. The FMM context increases concern here because the apparent goal could mostly be met through clearer wording.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance containing `lastOccurrence` uses a property R6 does not define; generated models, FHIRPath, serializers, and reverse R6-to-R4 exchange also need explicit renaming.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept `lastOccurrence` as the base element name and clarified that it means last known reaction occurrence. Adding a parallel alias would create duplicate fields, but simply retaining the old wire name with better definitions would preserve existing instances at low apparent cost.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a high-impact hard shape/name break and identifies a credible less-breaking base design."
+      }
     },
     {
       "findingId": "AllergyIntolerance:TYPE_DOMAIN:AllergyIntolerance.reaction.manifestation:5ab95c",
@@ -514,7 +528,21 @@
       "validationAndCompatibilityMd": "An R4 instance with a normal coded manifestation is not valid R6 unless transformed to `manifestation.concept`. R6 instances that use the new Observation reference capability are valid R6 but cannot be faithfully represented in R4's CodeableConcept-only field without loss or extension. Generated classes and search logic must also distinguish code-based and reference-based manifestations.",
       "migrationGuidanceMd": "For R4→R6, wrap every `reaction.manifestation` CodeableConcept as `{\"concept\": <old CodeableConcept>}`. For R6→R4, map `concept` back to the R4 item shape; if `reference` is present, decide whether to dereference the Observation into a code/text summary, store a cross-version extension, or flag the instance for manual review. Add tests for coded-only, reference-only, and combined CodeableReference cases.",
       "backwardCompatibilityAnalysisMd": "The change supports richer evidence links but was not wire-compatible. A parallel optional reference element would have been easier for R4 clients to ignore, but `CodeableReference` avoids duplicate concepts and follows an R6 modeling pattern used elsewhere.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AllergyIntolerance:TYPE_DOMAIN:AllergyIntolerance.reaction.manifestation:5ab95c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`reaction.manifestation` keeps its path and 1..* cardinality but changes each item from a direct `CodeableConcept` to a `CodeableReference` that can carry either `concept` or an `Observation` reference. Existing coded R4 manifestations therefore require a wrapper transform, and R6 reference-only manifestations cannot be faithfully reduced to R4 without dereferencing, summarizing, or preserving extension/provenance data. The migration is real and clinically important, but the R6 design goal of linking manifestations to Observation evidence is strong and a separate companion reference path would split one clinical fact across two representations.",
+        "keyEvidence": [
+          "R4 `AllergyIntolerance.reaction.manifestation` is 1..* `CodeableConcept` with example binding to clinical findings.",
+          "R6 `AllergyIntolerance.reaction.manifestation` is 1..* `CodeableReference` with targetProfile `Observation`, while the binding, short, and definition remain materially stable.",
+          "R6 `CodeableReference` contains optional `concept` (`CodeableConcept`) and optional `reference` (`Reference`) children."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the burden because reaction manifestations are central clinical content, but it does not preclude a structural change when the new representation solves a real modeling problem. Here the maturity context makes the break worth calling out, not enough to make it disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: a direct R4 manifestation item with `coding`/`text` is not the R6 `CodeableReference` shape unless wrapped under `concept`; additionally, R6 `Observation` references create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained the coded `manifestation` field and added a separate optional Observation reference element, but that would create duplicate/competing representations, precedence questions, and split search/query behavior. The single `CodeableReference` path is more disruptive but more coherent.",
+        "comparisonToExisting": "agree: the existing high-impact assessment and partial less-breaking alternative judgment match the independent path-level assessment."
+      }
     },
     {
       "findingId": "AllergyIntolerance:TYPE_DOMAIN:AllergyIntolerance.type:d86f8f",
@@ -693,7 +721,21 @@
       "validationAndCompatibilityMd": "R4 instances with `type` present become invalid in R6 because the JSON value is the wrong type. R6 instances can represent richer or local mechanism concepts that are valid under a preferred binding but cannot be represented in R4's required two-code primitive field without lossy mapping.",
       "migrationGuidanceMd": "Convert R4 `type` to a R6 CodeableConcept using system `http://hl7.org/fhir/allergy-intolerance-type` and the original code. For R6→R4, prefer an explicit coding in that system with code `allergy` or `intolerance`; otherwise define a ConceptMap or manual-review workflow and preserve the original CodeableConcept in an extension if lossless round-trip matters.",
       "backwardCompatibilityAnalysisMd": "The richer datatype is understandable, but it could have been introduced with a parallel extension or staged deprecation. The chosen base element replacement requires all serializers and generated classes to change even when the business value remains one of the two old codes.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AllergyIntolerance:TYPE_DOMAIN:AllergyIntolerance.type:d86f8f",
+        "judgment": "Revisit",
+        "narrativeMd": "`AllergyIntolerance.type` changes from an optional primitive `code` with a required two-code binding to an optional `CodeableConcept` with only a preferred binding, while the short text, definition, and local code system still center on `allergy` versus `intolerance`. This breaks any R4 instance that carries the legacy primitive string and any generated API that models the element as an enum/string. The supplied artifacts do not show a strong enough base-resource rationale for replacing the legacy wire shape rather than preserving it and adding richer mechanism detail separately.",
+        "keyEvidence": [
+          "R4 `AllergyIntolerance.type` is 0..1 primitive `code` with required binding to `ValueSet/allergy-intolerance-type|4.0.1`.",
+          "R6 `AllergyIntolerance.type` is 0..1 `CodeableConcept` with preferred binding to `ValueSet/allergy-intolerance-type`.",
+          "Both local R4 and R6 `CodeSystem-allergy-intolerance-type` resources contain the same core codes, `allergy` and `intolerance`."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes compatibility meaningful for a legacy field the R4 comment explicitly says many systems have captured. The resource is not normative in the supplied R4 context, but the maturity level pushes this hard serialization break toward renewed review.",
+        "compatibilityMechanism": "old-valid/new-invalid: a present R4 `type` string such as `allergy` is not the R6 `CodeableConcept` object shape; R6 preferred-bound text or non-legacy codings are also lossy or invalid when converted back to R4.",
+        "lessBreakingAlternativeAssessment": "Yes. A less-breaking base design could retain the primitive `type` for the legacy allergy/intolerance distinction and add an optional `CodeableConcept` detail element for richer mechanism coding. That has some consistency/search cost, but it avoids invalidating legacy instances and better separates the binary legacy classification from richer mechanistic assertions.",
+        "comparisonToExisting": "partially agree: agree that this is a high-impact hard shape break, but disagree that the less-breaking alternative is only a weak partial mitigation; preserving the legacy primitive plus adding richer detail appears plausible enough to merit Revisit."
+      }
     },
     {
       "findingId": "AllergyIntolerance:TERMINOLOGY_BINDING:AllergyIntolerance.verificationStatus:0ef842",
@@ -885,7 +927,22 @@
       "migrationGuidanceMd": "Confirm the R6 terminology expansion from terminology.hl7.org. For R6→R4, define a ConceptMap or policy for `presumed`, likely to an extension-preserved original plus a lossy R4 status such as `unconfirmed` if needed. Test enum handling and clinical display for unknown status codes.",
       "backwardCompatibilityAnalysisMd": "Adding a code to a required value set is disruptive for older consumers. An extension would have avoided closed-enum breaks, but it would also make the intermediate certainty state less interoperable in R6.",
       "reviewerNotesMd": "The local R6 package lacked the underlying terminology.hl7.org CodeSystem and expansions; verify against the authoritative terminology package before final publication.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AllergyIntolerance:TERMINOLOGY_BINDING:AllergyIntolerance.verificationStatus:0ef842",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 appears to add `presumed` to the required verification-status value set while preserving the R4 statuses. This is not an old-valid/new-invalid R4-to-R6 break, but it is a real cross-version and closed-enum issue: an R6 allergy marked `presumed` will not satisfy the R4 required value set and may not map cleanly for clinical logic that distinguishes unconfirmed, confirmed, refuted, and entered-in-error. The intermediate certainty state is clinically plausible, and representing it directly in the required value set is more interoperable than hiding it in an extension.",
+        "keyEvidence": [
+          "R4 `verificationStatus` is 0..1 `CodeableConcept` with required binding; R4 short text lists `unconfirmed | confirmed | refuted | entered-in-error`.",
+          "R6 `verificationStatus` remains 0..1 `CodeableConcept` with required binding; R6 short text lists `unconfirmed | presumed | confirmed | refuted | entered-in-error`.",
+          "R6 `ConceptMap-sc-allergyintolerance-verification` includes source code `presumed` mapped to canonical resource status `draft`.",
+          "The local R6 core package includes the ValueSet but not the underlying THO CodeSystem expansion, so the code-membership evidence is strong but not a full local expansion check."
+        ],
+        "fmmEffect": "FMM 3/trial-use increases caution because verification status is modifier-like clinical certainty content. It does not make the additive code suspect by itself, since no R4 code is removed and the clinical need for an intermediate state is understandable.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4 instances remain acceptable in R6, but R6 instances using `presumed` fail R4 required-binding validation and can break R4-era closed enum switches or status mappings.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 preservation. Existing R4 codes are not removed. Using an extension or mapping `presumed` to `unconfirmed` would reduce down-conversion friction but would make the R6 certainty state less computable and less interoperable.",
+        "comparisonToExisting": "partially agree: agree with the reverse-compatibility/runtime risk and the absence of an R4-to-R6 hard break; the impact is best framed as proportionate rather than a design problem needing revisit."
+      }
     },
     {
       "findingId": "AllergyIntolerance:VALUE_CONSTRAINT:AllergyIntolerance.clinicalStatus:203225",
@@ -1029,7 +1086,21 @@
       "migrationGuidanceMd": "For R6→R4, evaluate `verificationStatus`, `clinicalStatus`, and negated allergy codes together. Do not blindly synthesize `clinicalStatus`; where conversion to R4 is required, either add a clinically correct status, use an extension/profile exception, or reject/manual-review cases where the R6 semantics intentionally omit status. Keep regression tests for confirmed-without-clinicalStatus and entered-in-error-with-clinicalStatus cases.",
       "backwardCompatibilityAnalysisMd": "The broad R4 invariant was probably too rigid for negated allergy statements, so relaxing it is understandable. A warning-level invariant or more specific computable rule would have preserved more machine guidance while avoiding hard rejection, but terminology-dependent negation makes that hard to do reliably in the base resource.",
       "reviewerNotesMd": "Reviewers should confirm whether the intended normative behavior is fully captured by prose or by profiles elsewhere in the R6 ballot.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AllergyIntolerance:VALUE_CONSTRAINT:AllergyIntolerance.clinicalStatus:203225",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 enforced two root-level error invariants tying `clinicalStatus` presence to `verificationStatus`; R6 removes those hard constraints and replaces part of the rule with prose saying clinical status should be present unless the assertion is entered-in-error or the code is negated. This does not invalidate existing R4 instances, but it changes validation expectations and permits R6 instances that will fail R4 validation or surprise systems that relied on the base invariant. The relaxation appears proportionate because the old invariant was too broad for negated allergy statements, though implementers may still need profile or business-rule validation for safety-sensitive allergy lists.",
+        "keyEvidence": [
+          "R4 root `AllergyIntolerance` has local error constraints `ait-1` and `ait-2` requiring clinicalStatus unless verificationStatus is entered-in-error and forbidding clinicalStatus for entered-in-error.",
+          "R6 root `AllergyIntolerance` no longer contains `ait-1` or `ait-2`; only inherited DomainResource constraints are present in the extracted root constraints.",
+          "R6 `AllergyIntolerance.clinicalStatus.comment` says clinicalStatus should be present if verificationStatus is not entered-in-error and the AllergyIntolerance.code is not negated."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the burden because clinical status affects active/resolved allergy interpretation, but the change is forward-permissive and the new prose identifies a clinical exception. The maturity context supports careful migration guidance rather than a Revisit judgment.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 can now contain combinations that R4 validators reject; there is also a semantic/documentation shift because base validation no longer enforces the status consistency rule.",
+        "lessBreakingAlternativeAssessment": "Partial. A best-practice warning or a terminology-aware invariant could preserve more computable guidance without restoring the overbroad R4 hard error, but negated allergy detection is terminology-dependent and hard to express safely in the base resource. Profiles remain a better place for stricter local policy.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as not an R4-to-R6 hard break, with meaningful reverse/business-rule risk and no simple fully backward-compatible base alternative."
+      }
     },
     {
       "findingId": "AllergyIntolerance:REFERENCE_TARGET:AllergyIntolerance.recorder:b73a9c",
@@ -1189,7 +1260,21 @@
       "validationAndCompatibilityMd": "R4→R6 validation is safe for existing target types. R6→R4 conversion is not lossless for Organization recorders unless there is a known individual/role proxy or an extension/Provenance strategy. Runtime code that switches on target resource type must handle Organization.",
       "migrationGuidanceMd": "Update R6 clients and server validation to allow `Organization` as `recorder`. For R6→R4, prefer preserving organization attribution in `Provenance` or an agreed extension; only map to PractitionerRole or Practitioner when there is a semantically accurate target. Add target-type tests for all five R6 recorder target profiles.",
       "backwardCompatibilityAnalysisMd": "The added target is clinically plausible and probably justified. It could have been modeled through Provenance alone, but making it a direct target improves base resource usability while requiring R4 adapters to handle a new actor type.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AllergyIntolerance:REFERENCE_TARGET:AllergyIntolerance.recorder:b73a9c",
+        "judgment": "No problem",
+        "narrativeMd": "`recorder` keeps the same path, cardinality, and existing R4 reference targets, and R6 only adds `Organization`. Existing R4 instances remain valid against this aspect of R6. R6-only organization recorders need down-conversion policy for R4, but the practical concern is mostly attribution/audit handling rather than a forward compatibility break in allergy clinical content.",
+        "keyEvidence": [
+          "R4 `AllergyIntolerance.recorder` targets Practitioner, PractitionerRole, Patient, and RelatedPerson.",
+          "R6 `AllergyIntolerance.recorder` retains those targets and adds Organization.",
+          "R6 recorder prose clarifies the recorder as the most recent author responsible for accurate recording."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not turn a target-list widening into a standards concern. The added target affects reverse exchange and audit modeling, but it preserves the mature R4 target set.",
+        "compatibilityMechanism": "R6-to-R4 loss: only R6 instances using an Organization recorder fail the R4 target profile; there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "Not applicable. The R6 base target set is a superset of R4. Provenance or an extension may help R4 down-conversion, but that is migration policy rather than a less-breaking R6 base design.",
+        "comparisonToExisting": "partially agree: agree with the reverse-compatibility observation, but the existing medium-impact framing overstates the R4-to-R6 concern for an additive target widening with likely low practical risk."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1381,5 +1466,19 @@
       "removed conditional invariants",
       "reference target widening to Organization"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/AllergyIntolerance.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 3,
+      "No problem": 1
+    }
   }
 }

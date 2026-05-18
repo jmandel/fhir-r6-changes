@@ -367,7 +367,22 @@
       "migrationGuidanceMd": "Implement an explicit transform. Map R4 `reason` strings to R6 `reason.concept.text` unless a project-specific extension is preferred for preserving free text as distinct from coded text. Map each R4 `reasonCode` to an R6 `reason.concept`; map each R4 `reasonReference` to an R6 `reason.reference`. For reverse conversion, flag R6 items containing both `concept` and `reference` for manual review or preserve grouping in an extension. Test all three R4 source fields independently and in combination.",
       "backwardCompatibilityAnalysisMd": "The model cleanup is understandable because `CodeableReference` avoids parallel concept/reference fields. It was not fully backward compatible: a transitional release could have preserved the R4 elements as deprecated aliases or added a new optional element while leaving old paths valid. That alternative would reduce validation breaks but prolong duplicate representations.",
       "reviewerNotesMd": "This finding intentionally includes the removed `reasonCode` and `reasonReference` elements because they are part of the same local remodel and map to the new `CodeableReference` shape.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Contract:TYPE_DOMAIN:Contract.term.action.reason:6f0b9a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 data can break here: `reason` was a repeating string and `reasonCode`/`reasonReference` were sibling arrays, while R6 puts concept/reference rationale under repeating `CodeableReference` at `reason` and removes the siblings. A Contract mapper or generated SDK must transform the old fields; reverse conversion can lose the pairing when an R6 `CodeableReference` has both `concept` and `reference`. Even so, for FMM 1 trial-use content with no quick evidence of widespread production use, the remodel looks proportionate because `CodeableReference` directly addresses the parallel-array modeling problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Contract.term.action.reason` is 0..* string; `reasonCode` is 0..* CodeableConcept with v3-PurposeOfUse example binding; `reasonReference` is 0..* Reference to Condition, Observation, DiagnosticReport, DocumentReference, Questionnaire, and QuestionnaireResponse.",
+          "R6 StructureDefinition: `Contract.term.action.reason` is 0..* CodeableReference with the same reference target set and v3-PurposeOfUse example binding; `reasonCode` and `reasonReference` are not present.",
+          "R6 `CodeableReference` represents a concept and a reference in one item, which can preserve associations that R4's separate arrays could not.",
+          "Quick web search found no evidence of widespread production use of the FHIR Contract resource in major IGs or vendor/project docs; FHIR IG Registry checked at https://www.fhir.org/guides/registry/."
+        ],
+        "fmmEffect": "Contract is supplied as R4 FMM 1/trial-use, so the hard break does not by itself imply broad installed-base harm. The legal/action-rationale domain is still business and audit relevant, so I treat the migration burden as real but not enough for Revisit without stronger adoption evidence.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `reason` as primitive strings or with `reasonCode`/`reasonReference` siblings are not valid against the R6 element shape without transformation; there is also runtime/API/codegen churn from separate string, CodeableConcept, and Reference arrays to a CodeableReference array.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have kept the three R4 elements as deprecated fields and added a new grouped CodeableReference element, preserving old instances. That would create duplicate rationale representations, conflict or precedence rules, and likely indefinite support for the less coherent model, so it is not an obviously better base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard structural break and a partial less-breaking alternative, but I soften the action judgment because the artifact is FMM 1/trial-use and quick production-use evidence was not found."
+      }
     },
     {
       "findingId": "Contract:REFERENCE_TARGET:Contract.author:1c2d4e",
@@ -507,7 +522,21 @@
       "validationAndCompatibilityMd": "R4 instances remain valid with respect to this target set. R6 instances using `author.reference = RelatedPerson/...` are not valid against the R4 base target profiles and require an extension, profile-specific mapping, or rejection when producing R4 output.",
       "migrationGuidanceMd": "Update R6 validators, generated reference unions, serializers, and authorization/business rules to accept `RelatedPerson` authors. For R6-to-R4 pipelines, add a deterministic policy for `RelatedPerson` authors rather than silently dropping the author.",
       "backwardCompatibilityAnalysisMd": "Because this is a widening, the only strict backward-compatible alternative would be to leave the base R6 target set unchanged and use an extension. That would avoid R6-to-R4 friction but would make a legitimate author type less explicit in the base model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Contract:REFERENCE_TARGET:Contract.author:1c2d4e",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens `Contract.author` by adding `RelatedPerson` while retaining every R4 target. No R4-valid author reference is made invalid. The only compatibility issue is at an R6-to-R4 boundary or in exhaustive type checks generated from the R4 target list when new R6 data actually uses a RelatedPerson author.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Contract.author` targets Patient, Practitioner, PractitionerRole, and Organization.",
+          "R6 StructureDefinition: `Contract.author` targets Patient, Practitioner, PractitionerRole, Organization, and RelatedPerson.",
+          "Cardinality and definition remain 0..1 and otherwise unchanged."
+        ],
+        "fmmEffect": "FMM 1/trial-use further reduces stability pressure, but the main point is simpler: this is an additive target widening for R4-to-R6 compatibility.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 instance that chooses a RelatedPerson author cannot be represented in the base R4 target set without an extension or rejection policy; no R4-to-R6 instance break is present.",
+        "lessBreakingAlternativeAssessment": "Not applicable: a less-breaking R6 base design is not needed because all R4 author targets remain valid. Avoiding RelatedPerson would only reduce reverse-conversion friction while excluding a plausible R6 author type.",
+        "comparisonToExisting": "partially agree: I agree with the existing facts and Not applicable alternative assessment, but disagree with treating this as a Medium compatibility concern for the fresh-review action judgment."
+      }
     },
     {
       "findingId": "Contract:TYPE_DOMAIN:Contract.term.text:2e7a91",
@@ -652,7 +681,21 @@
       "validationAndCompatibilityMd": "A normal R4 string value should still satisfy R6 markdown's primitive value shape. R6 markdown text can be sent as an R4 string, but R4 applications may not interpret markdown formatting. Strict generated schemas may report a type-code change even though the JSON scalar shape is unchanged.",
       "migrationGuidanceMd": "Regenerate models and review renderers for markdown sanitization and escaping. Test plain text, markdown syntax, multiline content, and primitive extension cases. Down-conversion to R4 can preserve the string value, but display behavior should be documented.",
       "backwardCompatibilityAnalysisMd": "The change could have been avoided by keeping `string` and documenting markdown as allowed content, but the R6 type communicates formatting semantics more clearly and does not usually break raw JSON payloads.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Contract:TYPE_DOMAIN:Contract.term.text:2e7a91",
+        "judgment": "No problem",
+        "narrativeMd": "`Contract.term.text` changes its primitive type code from `string` to `markdown`, but the wire value remains a JSON string and the element's cardinality and meaning are unchanged. Implementations with distinct generated markdown classes or renderers may need small updates, especially for sanitization/display, but ordinary R4 text values are not made invalid by this change.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Contract.term.text` is 0..1 string with short `Term Statement`.",
+          "R6 StructureDefinition: `Contract.term.text` is 0..1 markdown with the same short and definition.",
+          "The R6 markdown primitive is derived from string, so the scalar JSON representation remains a string."
+        ],
+        "fmmEffect": "Because Contract is FMM 1/trial-use and no quick evidence of broad production use was found, this low-level codegen/rendering churn does not carry strong stability weight.",
+        "compatibilityMechanism": "runtime/API/codegen: generated models, schemas, or UI renderers may distinguish markdown from plain string; there is no meaningful old-valid/new-invalid instance mechanism for normal string payloads.",
+        "lessBreakingAlternativeAssessment": "Yes in theory: R6 could have kept the type as string and said markdown content is allowed. That would avoid type-code churn but would lose the computable markdown signal for renderers, validators, and sanitizers; given the unchanged wire shape, the alternative is not compelling enough to revisit.",
+        "comparisonToExisting": "partially agree: I agree the practical impact is low and a less-breaking documentation-only route existed, but I judge the compatibility concern as No problem rather than a design issue needing attention."
+      }
     },
     {
       "findingId": "Contract:SEMANTIC_TEXT:Contract.contentDefinition.publicationDate:9aa3c4",
@@ -779,7 +822,21 @@
       "migrationGuidanceMd": "Audit all uses of `contentDefinition.publicationDate`. If the stored value is the original publication date, do not blindly map it to R6 without preserving that meaning, for example via Provenance, `relevantHistory`, or a migration extension. If the value was already maintained as a last-change date, document that policy and add tests around version/status/content updates.",
       "backwardCompatibilityAnalysisMd": "Changing the definition in place is avoidable. A separate last-change element or explicit reliance on Provenance would have preserved backward meaning while adding the new lifecycle concept. The tradeoff is a slightly larger model and possible overlap with history resources.",
       "reviewerNotesMd": "The R4 definition already required the date to change for version, status, or substantive content changes, so some implementations may already treat it as a last-change date. That reduces confidence in real-world impact but does not remove the ambiguity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Contract:SEMANTIC_TEXT:Contract.contentDefinition.publicationDate:9aa3c4",
+        "judgment": "No problem",
+        "narrativeMd": "The element remains optional `dateTime` at the same path; only the leading definition changes from publication time to last significant change time. The R4 definition already required the date to change when business version, status, or substantive content changed, so R6 reads more like a clarification of an already update-like date than a clean reinterpretation of a pure original-publication date. A local migration audit is sensible, but this is not a base instance-compatibility problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Contract.contentDefinition.publicationDate` is 0..1 dateTime and starts with `when the contract was published`, then says it must change for business version, status, and substantive content changes.",
+          "R6 StructureDefinition: the same path remains 0..1 dateTime and starts with `when the contract was last significantly changed`, with the same follow-on change requirements.",
+          "The short label remains `When published`, which confirms the computable element identity did not change and leaves some wording ambiguity."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the stability concern. The legal/audit domain makes the wording worth noticing, but absent evidence of production reliance and given the update-date language already in R4, it does not justify Revisit.",
+        "compatibilityMechanism": "semantic/documentation: validators and serializers see the same optional dateTime; the risk is only that an implementation treated the R4 field as an original publication date despite the R4 update requirements.",
+        "lessBreakingAlternativeAssessment": "A separate lastSignificantChangeDate-style element would preserve a pure publication-date interpretation, but it would overlap with the existing R4 update-date rule and with history/Provenance mechanisms. For this low-FMM semantic clarification, that extra model surface does not look necessary.",
+        "comparisonToExisting": "disagree: the existing report identifies the wording change, but I do not agree with the Medium impact or the implication that a new base element is clearly preferable."
+      }
     },
     {
       "findingId": "Contract:TERMINOLOGY_BINDING:Contract.term.action.performer:5b77df",
@@ -915,7 +972,21 @@
       "migrationGuidanceMd": "Review UI lists and local profile bindings for `performerType` and `performerRole`. If R4 value sets were used operationally, compare them with the R6 recommended value sets using an authoritative terminology server and add ConceptMap or local mapping guidance where needed.",
       "backwardCompatibilityAnalysisMd": "The change could be made easier to consume by publishing explicit terminology mappings or retaining old value sets as additional guidance. Because the base binding is only example, a hard backward-compatible model alternative is less important than migration documentation.",
       "reviewerNotesMd": "Terminology impact is limited by example binding strength, but local profiles may have strengthened these bindings and should be checked separately.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Contract:TERMINOLOGY_BINDING:Contract.term.action.performer:5b77df",
+        "judgment": "No problem",
+        "narrativeMd": "`performerType` and `performerRole` keep the same datatype, cardinality, and example binding strength; only the suggested value set URLs change. Base FHIR validation does not reject non-members for example bindings, so this is a pick-list/documentation/terminology-guidance update rather than an R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `performerType` has example binding to `http://hl7.org/fhir/ValueSet/provenance-agent-type` and `performerRole` has example binding to `http://hl7.org/fhir/ValueSet/provenance-agent-role`.",
+          "R6 StructureDefinition: `performerType` has example binding to `http://hl7.org/fhir/ValueSet/participation-role-type` and `performerRole` has example binding to `http://hl7.org/fhir/ValueSet/security-role-type-example`.",
+          "Both affected elements remain CodeableConcept with unchanged cardinalities."
+        ],
+        "fmmEffect": "FMM 1/trial-use further lowers concern, and example-strength bindings already carry weak conformance pressure in the base resource.",
+        "compatibilityMechanism": "metadata/tooling: UI pick lists, generated terminology helpers, or local profiles might need review, but there is no base old-valid/new-invalid instance break because the bindings remain example strength.",
+        "lessBreakingAlternativeAssessment": "Not applicable for base compatibility: retaining the old value sets as additional guidance or publishing ConceptMaps could help implementers, but example bindings do not require a less-breaking base R6 design to keep R4 instances valid.",
+        "comparisonToExisting": "agree: the existing report's low-impact, Not applicable alternative assessment is consistent with the fresh review; the action judgment is No problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1104,5 +1175,18 @@
       "RelatedPerson added as a reference target",
       "Example binding value set changes from provenance to participation/security terminology"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Contract.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1,
+      "No problem": 4
+    }
   }
 }

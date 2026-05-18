@@ -302,7 +302,22 @@
       "validationAndCompatibilityMd": "R4→R6: removed `kind` codes are old-valid/new-invalid. R6→R4: `CoverageEligibilityRequest` and `RequestOrchestration` are not R4-valid `kind` codes.",
       "migrationGuidanceMd": "Inventory `kind` values. Map removed codes only with workflow-specific review; otherwise preserve the original code in an extension and flag the instance.",
       "backwardCompatibilityAnalysisMd": "The less disruptive alternative was to keep old codes in the value set as deprecated. That preserves validation compatibility but leaves legacy workflow states in the base model.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:kind:6a8f2c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The required binding on `ActivityDefinition.kind` changed from the R4 request-resource-types code system to an R6 value set that removes `AppointmentResponse`, `Contract`, `ImmunizationRecommendation`, and `SupplyRequest` and adds `CoverageEligibilityRequest` and `RequestOrchestration`. An R4 ActivityDefinition using a removed kind will fail R6 required-binding validation, and generated enum or apply logic must review the resource-kind switch. The R6 comment gives a coherent goal: kind is limited to Request resource types, with event creation handled through Task.focus. Because several removed choices are non-request or absent in R6, accepting them indefinitely would weaken that goal, so the break is proportionate rather than a standards issue.",
+        "keyEvidence": [
+          "R4 ActivityDefinition.kind is code with required binding to http://hl7.org/fhir/ValueSet/request-resource-types|4.0.1.",
+          "R4 CodeSystem request-resource-types includes AppointmentResponse, Contract, ImmunizationRecommendation, and SupplyRequest.",
+          "R6 ActivityDefinition.kind is code with required binding to http://hl7.org/fhir/ValueSet/request-resource-types|6.0.0-ballot4; the R6 value set lists CoverageEligibilityRequest and RequestOrchestration and omits those four R4 codes.",
+          "R6 kind comment says the element may only specify Request resource types and suggests Task.focus for event resources."
+        ],
+        "fmmEffect": "R4 ActivityDefinition is FMM 2 and trial-use, so the maturity context is neutral; the hard terminology break matters, but the request-resource rationale carries substantial weight.",
+        "compatibilityMechanism": "old-valid/new-invalid: a previously valid `kind` code removed from the required value set becomes R6-invalid; there is also R6-to-R4 loss for newly added request kinds.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep the removed codes as deprecated legacy values while adding the new R6 codes. That preserves old instances but materially weakens the R6 request-only rule and may validate resources no longer present in R6, so the alternative has real specification tradeoffs.",
+        "comparisonToExisting": "agree with the existing high-impact mechanism and partial alternative assessment; the fresh review treats the break as real but proportionate."
+      }
     },
     {
       "findingId": "ActivityDefinition:TYPE_DOMAIN:timing-x:ce21a9",
@@ -456,7 +471,21 @@
       "validationAndCompatibilityMd": "R4 instances with `timingDateTime` or `timingPeriod` are old-valid/new-invalid. R6 instances with `timingRelativeTime` cannot be represented in R4 without an extension or semantic transform.",
       "migrationGuidanceMd": "Map `timingPeriod` only after deciding whether it is a schedule bound or validity window. Map `timingDateTime` to `Timing.event` only when that preserves meaning. Preserve `RelativeTime` by extension for R4.",
       "backwardCompatibilityAnalysisMd": "Keeping the old choices as deprecated would have preserved old data while still steering authors toward R6 timing semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ActivityDefinition:TYPE_DOMAIN:timing-x:ce21a9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed `timingDateTime` and `timingPeriod`; R6 removes those choice branches, retains `Timing`, `Age`, `Range`, and `Duration`, and adds `RelativeTime`. This is a wire-level choice break for old instances using the removed branches and a reverse-conversion issue for `RelativeTime`. The R6 comments frame timing as an apply-time definitional instruction, which makes the removal of absolute date and period branches understandable because they are ambiguous as schedule, bounds, or validity semantics. The break is real, but the modeling goal is coherent.",
+        "keyEvidence": [
+          "R4 ActivityDefinition.timing[x] types are Timing, dateTime, Age, Period, Range, and Duration.",
+          "R6 ActivityDefinition.timing[x] types are Timing, Age, Range, Duration, and RelativeTime.",
+          "R6 timing comment explains interpretation during apply operations and describes Age, Duration, Range, and Timing semantics."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral here; it does not erase the choice-type break, but it also does not create a high stability burden beyond the path-level mechanism.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `timingDateTime` and `timingPeriod` properties are not R6 choice branches; R6 `timingRelativeTime` has no R4 branch.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained dateTime and Period as deprecated choices while adding RelativeTime. That would preserve old wire forms, but it would keep multiple partially overlapping timing representations and preserve the ambiguity R6 appears to be removing.",
+        "comparisonToExisting": "agree with the existing high-impact mechanism and partial alternative assessment."
+      }
     },
     {
       "findingId": "ActivityDefinition:SERIALIZATION_OR_CODEGEN:location:2df4b0",
@@ -594,7 +623,21 @@
       "validationAndCompatibilityMd": "R4 Reference-shaped `location` is invalid as R6 CodeableReference. R6 `location.reference` can be unwrapped to R4, but R6 `location.concept` has no R4 base field.",
       "migrationGuidanceMd": "Wrap R4 Reference values under `CodeableReference.reference`. Preserve R6 concepts in extensions or require manual mapping to a concrete Location for R4.",
       "backwardCompatibilityAnalysisMd": "A choice or additional element would have avoided invalidating existing Reference-shaped instances, at the cost of a less uniform R6 model.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ActivityDefinition:SERIALIZATION_OR_CODEGEN:location:2df4b0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`ActivityDefinition.location` keeps the same path and cardinality but changes from `Reference(Location)` to `CodeableReference(Location)`. Existing R4 JSON using a bare Reference object is not the R6 CodeableReference shape, and generated models change from a reference property to a concept-or-reference wrapper. The R6 type directly addresses the R4 comment that location may identify either a specific location or a location type. The compatibility cost is significant but proportionate to avoiding parallel location representations.",
+        "keyEvidence": [
+          "R4 ActivityDefinition.location is 0..1 Reference targeting Location.",
+          "R6 ActivityDefinition.location is 0..1 CodeableReference targeting Location.",
+          "Both R4 and R6 comments state that the element may reference a specific clinical location or identify a type of location."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral; the direct wire-shape break counts, but the model-improvement rationale can justify it.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 Reference-shaped `location` is not the R6 CodeableReference wrapper; generated APIs also change.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept `location` as Reference and added a coded location/type sibling. That would preserve old instances but create duplicate places for the same fact and require conflict rules when both are populated.",
+        "comparisonToExisting": "agree with the existing high-impact mechanism and partial alternative assessment."
+      }
     },
     {
       "findingId": "ActivityDefinition:TYPE_DOMAIN:requirements:1cbb30",
@@ -693,7 +736,21 @@
       "validationAndCompatibilityMd": "R4 Reference arrays are old-valid/new-invalid. R6 canonical arrays require constructing R4 References on down-conversion and may not resolve losslessly.",
       "migrationGuidanceMd": "Resolve each R4 Reference to the target resource canonical URL; preserve unresolved references in extensions. For R6→R4, generate References only when a target endpoint or local resource is known.",
       "backwardCompatibilityAnalysisMd": "A choice type or parallel canonical fields would have avoided breaking existing Reference-shaped data while encouraging canonical use.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ActivityDefinition:TYPE_DOMAIN:requirements:1cbb30",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`specimenRequirement`, `observationRequirement`, and `observationResultRequirement` changed from arrays of Reference objects to arrays of canonical primitives. R4 instances that point to contained or external definitional resources by Reference must be transformed, and migration may require resolving a reference to the target resource canonical URL. For definitional dependencies on SpecimenDefinition and ObservationDefinition, canonical URLs are the better R6 base representation, so the break is substantial but justified.",
+        "keyEvidence": [
+          "R4 specimenRequirement is Reference(SpecimenDefinition), and observationRequirement and observationResultRequirement are Reference(ObservationDefinition).",
+          "R6 specimenRequirement is canonical(SpecimenDefinition), and observationRequirement and observationResultRequirement are canonical(ObservationDefinition).",
+          "The element definitions continue to describe reusable specimen and observation requirements for the action."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral; the wire-shape break matters, but the affected paths are definitional dependency links where canonical references are a coherent R6 direction.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 Reference array entries are incompatible with R6 canonical strings, and conversion can require resolving a reference and losing display or identifier details.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained Reference arrays and added canonical siblings or a broader choice shape. That would preserve old instances but duplicate dependency representations and force validators and converters to reconcile references, canonicals, and unresolved targets.",
+        "comparisonToExisting": "agree with the existing high-impact mechanism and partial alternative assessment."
+      }
     },
     {
       "findingId": "ActivityDefinition:REFERENCE_TARGET:product-x:50d1dd",
@@ -791,7 +848,22 @@
       "validationAndCompatibilityMd": "R4 Substance targets are old-valid/new-invalid. New R6 targets are not R4-representable except by extension, CodeableConcept fallback, or manual mapping.",
       "migrationGuidanceMd": "Map Substance only when a reliable SubstanceDefinition/Ingredient equivalent exists; otherwise preserve the original reference.",
       "backwardCompatibilityAnalysisMd": "Retaining Substance as an allowed but deprecated target would have avoided the R4→R6 validation break.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ActivityDefinition:REFERENCE_TARGET:product-x:50d1dd",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `product[x]` allowed `productReference` to Medication or Substance; R6 keeps Medication and CodeableConcept but removes Substance while adding MedicinalProductDefinition, Ingredient, and SubstanceDefinition. A valid R4 ActivityDefinition that points to a Substance product is therefore rejected by the R6 target profile. The R6 product-definition direction is reasonable, but Substance still exists in the R6 package, and retaining it as a legacy target would preserve old instances without introducing a second field or wire-shape conflict. This looks like an avoidable hard target-list break.",
+        "keyEvidence": [
+          "R4 ActivityDefinition.product[x] is Reference(Medication, Substance) or CodeableConcept.",
+          "R6 ActivityDefinition.product[x] is Reference(Medication, MedicinalProductDefinition, Ingredient, SubstanceDefinition) or CodeableConcept.",
+          "R6 package contains StructureDefinition-Substance.json, so the removed R4 target resource still exists.",
+          "R6 package also contains the new MedicinalProductDefinition, Ingredient, and SubstanceDefinition targets."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral, so the decision turns on the path-level break and alternatives; the avoidable target removal is still concerning.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `productReference` to Substance no longer satisfies the R6 target list; R6 references to new product-definition targets are also not R4-representable.",
+        "lessBreakingAlternativeAssessment": "A low-cost less-breaking base design exists: retain Substance as a deprecated or legacy Reference target while adding the newer product-definition targets. The tradeoff is slower migration away from a less precise target, but it avoids a hard break without duplicate fields.",
+        "comparisonToExisting": "agree with the existing high-impact and less-breaking-alternative-available assessment."
+      }
     },
     {
       "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:participant:79f0a1",
@@ -923,7 +995,22 @@
       "validationAndCompatibilityMd": "R4→R6: `participant.type = related-person` is old-valid/new-invalid. R6→R4: participants can omit `type` or use new actor fields, violating R4 cardinality or losing detail.",
       "migrationGuidanceMd": "Map `related-person` to `relatedperson` only after confirming policy or a ConceptMap. For R6 actor fields, infer a safe R4 type where possible and preserve exact actor/function data in extensions.",
       "backwardCompatibilityAnalysisMd": "The new model could have been additive if R6 retained the old code spelling and kept a required coarse type.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:participant:79f0a1",
+        "judgment": "Revisit",
+        "narrativeMd": "The R4 participant model required `participant.type` and its required value set included `related-person`. R6 makes `type` optional, adds typeCanonical, typeReference, and function, and changes the RelatedPerson code spelling to `relatedperson`. The optionality decrease and new actor fields are not R4-to-R6 hard breaks, but a valid R4 participant with type `related-person` becomes invalid under the R6 required binding. Keeping the old spelling as a deprecated alias would avoid the direct break while still allowing the richer R6 actor model.",
+        "keyEvidence": [
+          "R4 ActivityDefinition.participant.type is min 1, code, required binding to action-participant-type|4.0.1.",
+          "R4 action-participant-type codes are device, patient, practitioner, and related-person.",
+          "R6 ActivityDefinition.participant.type is min 0 with required binding to action-participant-type|6.0.0-ballot4.",
+          "R6 action-participant-type replaces related-person with relatedperson and adds careteam, group, healthcareservice, location, organization, and practitionerrole; R6 also adds typeCanonical, typeReference, and function."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral, but the direct required-code spelling break has a modest, plausible base-compatible fix.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `participant.type = related-person` fails the R6 required binding; the new R6 actor fields mainly create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could include both `related-person` and `relatedperson` in the required value set, with deprecation and normalization guidance for the old spelling. The cost is a temporary alias and normalization burden, but that is modest compared with the hard validation break.",
+        "comparisonToExisting": "agree with the existing high-impact and less-breaking-alternative-available assessment, while treating the spelling break as the main R4-to-R6 concern."
+      }
     },
     {
       "findingId": "ActivityDefinition:TYPE_DOMAIN:subject-x:8b2e76",
@@ -1017,7 +1104,22 @@
       "validationAndCompatibilityMd": "R4 subject values remain structurally valid in R6. R6 `subjectCanonical` and new target references are not R4-representable without extension.",
       "migrationGuidanceMd": "Preserve R6 subjectCanonical and pharmaceutical target references with explicit extensions when producing R4.",
       "backwardCompatibilityAnalysisMd": "The additive change is forward-compatible; the main missing compatibility aid is standardized down-conversion guidance.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ActivityDefinition:TYPE_DOMAIN:subject-x:8b2e76",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens `subject[x]` rather than narrowing it. The R4 forms, CodeableConcept and Reference(Group), remain available, and the binding remains extensible. R6 adds product-definition reference targets and canonical(EvidenceVariable), with an explicit comment recommending limited use of the new canonical form for backward compatibility. The practical issue is preserving new R6 subject forms when converting backward to R4, not accepting old R4 content in R6.",
+        "keyEvidence": [
+          "R4 ActivityDefinition.subject[x] types are CodeableConcept and Reference(Group).",
+          "R6 ActivityDefinition.subject[x] retains CodeableConcept and Reference(Group), adds additional product-definition reference targets, and adds canonical(EvidenceVariable).",
+          "R4 subject binding is extensible to subject-type; R6 binding is extensible to participant-resource-types.",
+          "R6 comment says canonical was introduced to support pharmaceutical quality use cases and recommends limited use for backward compatibility."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral, but there is no meaningful R4-to-R6 break to amplify.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 subjectCanonical and new reference targets may need extensions or mapping when downgrading, but R4 subject forms remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base alternative is needed for R4-to-R6 compatibility because the old choices are retained. Backward conversion policy or extensions may still be useful for R6-only forms.",
+        "comparisonToExisting": "partially agree with the existing finding facts and reverse-conversion concern, but downweight it to No problem because the R4-to-R6 base path is additive."
+      }
     },
     {
       "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:intent:37af0b",
@@ -1113,7 +1215,22 @@
       "validationAndCompatibilityMd": "R6 `solicit-offer` and `offer-response` cannot be represented in R4. Existing code definitions also changed in ways that may affect authorization logic.",
       "migrationGuidanceMd": "Update enums and business rules. Preserve new R6 intent codes in extensions or reject R6→R4 conversion when intent is clinically/business critical.",
       "backwardCompatibilityAnalysisMd": "The code additions themselves are forward-compatible; the compatibility need is explicit mapping and semantic documentation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:intent:37af0b",
+        "judgment": "No problem",
+        "narrativeMd": "The `intent` required binding changes versions, but R6 retains the R4 intent codes and adds more specific R6 workflow codes such as order specializations, solicit-offer, and offer-response. Existing R4 instances using proposal, plan, directive, order, or option remain valid. Some business logic and generated enums should review the new values and definition shifts, but that is primarily an R6-to-R4 or new-R6-content concern rather than a break for R4 content moving to R6.",
+        "keyEvidence": [
+          "R4 ActivityDefinition.intent is code with required binding to request-intent|4.0.1.",
+          "R6 ActivityDefinition.intent is code with required binding to request-intent|6.0.0-ballot4.",
+          "R6 request-intent CodeSystem retains proposal, plan, directive, order, and option.",
+          "R6 request-intent adds concepts including original-order, reflex-order, filler-order, instance-order, solicit-offer, and offer-response."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral; because the required binding is additive for existing R4 codes, maturity does not create a standards concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6-only intent codes and some changed definitions may need mapping for older systems, but existing R4 codes are still accepted in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for R4-to-R6 validation because the old codes are retained. ConceptMaps or migration notes can help with R6-to-R4 and business-rule review, but those are not base R6 alternatives.",
+        "comparisonToExisting": "partially agree with the existing reverse-conversion and runtime concern, but classify it as No problem for R4-to-R6 compatibility."
+      }
     },
     {
       "findingId": "ActivityDefinition:SERIALIZATION_OR_CODEGEN:usage:0c266d",
@@ -1193,7 +1310,21 @@
       "validationAndCompatibilityMd": "R4 strings should generally remain acceptable as R6 markdown. R6 markdown can be copied to R4 as a string but formatting semantics may be lost.",
       "migrationGuidanceMd": "Update generated models and UI rendering/sanitization; test primitive extensions on `_usage`.",
       "backwardCompatibilityAnalysisMd": "Keeping string would have avoided codegen churn but would not communicate formatting semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ActivityDefinition:SERIALIZATION_OR_CODEGEN:usage:0c266d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`ActivityDefinition.usage` changes from the FHIR `string` primitive to `markdown`. Plain R4 string values remain JSON-string-shaped and should normally be acceptable as markdown content, so this is not a hard instance-validation break for ordinary data. The real compatibility concern is generated model types, rendering, and sanitization behavior: consumers may now treat the text as markdown instead of plain text. That is a real but low-burden API and UI migration, and the computable markdown signal is a reasonable R6 goal.",
+        "keyEvidence": [
+          "R4 ActivityDefinition.usage is 0..1 string.",
+          "R6 ActivityDefinition.usage is 0..1 markdown.",
+          "The definition text remains a detailed description of how the activity definition is used from a clinical perspective."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral; it supports treating this as a small proportionate codegen and rendering migration rather than a standards issue.",
+        "compatibilityMechanism": "runtime/API/codegen: the JSON primitive remains string-like, but generated primitive classes and UI rendering or sanitization expectations can change.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `usage` as string and used prose to allow markdown. That would reduce generated-type churn but would not provide a computable primitive-type signal for markdown-aware rendering and safety handling.",
+        "comparisonToExisting": "agree with the existing low-impact and partial alternative assessment; the fresh judgment recognizes a real but proportionate codegen and rendering break."
+      }
     },
     {
       "findingId": "ActivityDefinition:ELEMENT_PRESENCE_OR_IDENTITY:asNeeded-x:913a65",
@@ -1283,7 +1414,21 @@
       "validationAndCompatibilityMd": "R4→R6 is safe by absence. R6→R4 requires extension or loss of clinical precondition information.",
       "migrationGuidanceMd": "Preserve asNeededBoolean/asNeededCodeableConcept in a documented extension for R4 and do not silently drop it in order-generation contexts.",
       "backwardCompatibilityAnalysisMd": "The optional base addition is reasonable; the compatibility gap is lack of a built-in R4 element.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ActivityDefinition:ELEMENT_PRESENCE_OR_IDENTITY:asNeeded-x:913a65",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `asNeeded[x]` with boolean and CodeableConcept choices. Because the element did not exist in R4 and is optional in R6, no R4 instance is invalidated when moving forward. The only meaningful concern is that R6 instances using the new precondition cannot be represented directly in base R4, which is a normal reverse-conversion issue for an additive element.",
+        "keyEvidence": [
+          "R4 ActivityDefinition has no ActivityDefinition.asNeeded[x] element.",
+          "R6 ActivityDefinition.asNeeded[x] is 0..1 and allows boolean or CodeableConcept.",
+          "R6 asNeeded[x] binding is example strength to medication-as-needed-reason."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral, and the additive optional design does not create an R4-to-R6 stability concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 as-needed precondition data needs an extension or conversion policy for R4, but old R4 content remains valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base alternative is needed because optional addition is already compatibility-preserving for R4-to-R6. R4 extensions are migration mitigations, not base R6 alternatives.",
+        "comparisonToExisting": "partially agree with the existing reverse-conversion concern, but classify it as No problem because the R4-to-R6 base change is purely additive."
+      }
     },
     {
       "findingId": "ActivityDefinition:VALUE_CONSTRAINT:warnings:cab5ad",
@@ -1382,7 +1527,22 @@
       "validationAndCompatibilityMd": "Instances with single-character names, URLs containing `|` or `#`, or composed-of related artifacts may receive new R6 warnings. They remain valid unless local tooling fails on warnings.",
       "migrationGuidanceMd": "Run R6 validation in warning-reporting mode first; normalize URLs and review relatedArtifact use before making warnings fatal.",
       "backwardCompatibilityAnalysisMd": "Keeping these as warnings is the compatibility-preserving design; the risk comes from downstream enforcement policy.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ActivityDefinition:VALUE_CONSTRAINT:warnings:cab5ad",
+        "judgment": "No problem",
+        "narrativeMd": "The relevant R6 constraints are warning severity: cnl-0 for machine-usable names, cnl-1 for canonical URLs without problematic characters, and adf-2/adf-3 for relatedArtifact quality. Warning-as-error pipelines may need policy updates or content cleanup, but the base R6 StructureDefinition is not making old instances invalid. Using warnings is already the compatibility-preserving way to express these quality expectations.",
+        "keyEvidence": [
+          "R4 root has warning adf-0 for machine-usable ActivityDefinition.name.",
+          "R6 root has warning cnl-0 for ActivityDefinition.name.",
+          "R6 ActivityDefinition.url has warning cnl-1 against |, #, and spaces.",
+          "R6 ActivityDefinition.relatedArtifact has warning constraints adf-2 and adf-3."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral; because the constraints are warning-level only, maturity does not turn them into a base compatibility problem.",
+        "compatibilityMechanism": "warning-level: local tooling that treats warnings as errors can fail, but ordinary base validation does not reject the instances.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base alternative is needed. Suppressing the warnings would weaken quality guidance, while escalating them to errors would be more breaking; warning severity is the compatibility-preserving compromise.",
+        "comparisonToExisting": "agree with the existing low-impact and not-applicable alternative assessment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1582,5 +1742,19 @@
       "required binding code removals",
       "R6 canonical subject additions"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ActivityDefinition.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 5,
+      "No problem": 4
+    }
   }
 }

@@ -253,7 +253,21 @@
       "validationAndCompatibilityMd": "An R4-valid instance without `status` is invalid against the R6 StructureDefinition. R6 instances containing `status` are not natively representable in R4 because R4 has no element at that path, though an extension could preserve it.",
       "migrationGuidanceMd": "Populate `status` during migration using catalog governance metadata where available. Avoid defaulting all records to `active` unless that is clinically and operationally justified; use `unknown` when the lifecycle state is genuinely not known. Add tests for missing status and each allowed status code.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified for a definitional artifact, but it is not wire-compatible. A staged optional-then-required path or profile requirement would have reduced immediate breakage.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ObservationDefinition:CARDINALITY:ObservationDefinition.status:5e4f0c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 introduces `ObservationDefinition.status` as a required modifier code. An R4 instance that only has the required `code` cannot validate as R6 until a lifecycle status is supplied, and generated R6 models/validators will treat the field as non-ignorable. That is a real compatibility break, but the field is a normal governance property for definitional resources and the allowed `unknown` code gives a safe migration value when the actual lifecycle state is not known.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `ObservationDefinition.status` element.",
+          "R6 StructureDefinition defines `ObservationDefinition.status` as 1..1 `code`, `isModifier=true`, required binding to `publication-status`.",
+          "R6 publication-status includes `draft`, `active`, `retired`, and `unknown`."
+        ],
+        "fmmEffect": "Supplied R4 FMM 0 and trial-use status soften the stability concern; I did not treat the hard break alone as enough for Revisit, though lifecycle status is operationally useful for catalogs.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 ObservationDefinition with no status is structurally invalid in R6, with additional runtime/API/codegen impact because the new field is required and a modifier.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have made `status` 0..1 for one release, perhaps with missing interpreted as `unknown` or with a warning. That would preserve old instances but would weaken R6's uniform requirement that publishable definitions expose lifecycle state.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the hard break and a partial less-breaking alternative, but its High/Common framing overstates the concern for an FMM 0 trial-use resource."
+      }
     },
     {
       "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.metadata:1b7a92",
@@ -358,7 +372,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken by optional additions. R6-to-R4 validation is affected whenever these elements are present because they are unknown in R4.",
       "migrationGuidanceMd": "For forward migration, populate metadata where known, especially `url`, `version`, `name`, and review/effective dates. For downgrade, define explicit extensions or a sidecar catalog record for metadata that R4 cannot carry.",
       "backwardCompatibilityAnalysisMd": "Adding optional fields is the least disruptive native R6 mechanism. Cross-version compatibility still requires extensions because R4 cannot be changed retroactively.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.metadata:1b7a92",
+        "judgment": "No problem",
+        "narrativeMd": "The added URL, versioning, publication, contact, jurisdiction, copyright, review, effective period, and derivation fields are optional R6 metadata. They can matter for R6-to-R4 round-tripping, but they do not make existing R4 ObservationDefinition instances invalid and do not force a new R6 behavior on migrated content.",
+        "keyEvidence": [
+          "R4 local elements include only `identifier` among these publication-style metadata fields.",
+          "R6 differential adds optional canonical/resource metadata such as `url`, `version`, `name`, `publisher`, `effectivePeriod`, `derivedFromCanonical`, and `derivedFromUri`.",
+          "All added metadata fields checked are 0..1 or 0..*."
+        ],
+        "fmmEffect": "Low FMM reinforces treating optional metadata expansion as routine model evolution rather than a stability problem.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using the new optional metadata cannot be represented natively in R4, but forward R4-to-R6 validation is not broken.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for the forward direction because the fields are optional. R4 extensions or sidecar metadata can help downgrade exchange, but those are mitigations rather than alternative base R6 designs.",
+        "comparisonToExisting": "partially agree: I agree with the no hard-break and not-applicable alternative assessment, but would classify the finding as no practical R4-to-R6 concern rather than Medium impact."
+      }
     },
     {
       "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.quantitativeDetails:be80d1",
@@ -511,7 +539,21 @@
       "migrationGuidanceMd": "Map simple `quantitativeDetails.unit.coding` and possibly `customaryUnit.coding` to `permittedUnit`. Add `permittedDataType=Quantity` when any `permittedUnit` is present. Preserve conversion factor and decimal precision in extensions, implementation-guide rules, or an external catalog if they are operationally important.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible R6 design could have kept the old backbone as deprecated and introduced `permittedUnit` for the new use case. The current design is simpler but forces migration and can be lossy.",
       "reviewerNotesMd": "Human review is needed for catalogs where decimal precision or conversion factor drives validation or display.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.quantitativeDetails:be80d1",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `quantitativeDetails` is removed rather than simply generalized. R6 `permittedUnit` preserves only a repeatable list of allowed units, while R4 fields for SI unit, customary unit, conversion factor, and decimal precision have no direct base R6 home. That makes existing unit metadata invalid on the old path and can make migration lossy or require local extensions for precision and conversion semantics that affect lab result display and validation.",
+        "keyEvidence": [
+          "R4 defines `ObservationDefinition.quantitativeDetails` 0..1 with `customaryUnit`, `unit`, `conversionFactor`, and `decimalPrecision`.",
+          "R6 defines `ObservationDefinition.permittedUnit` 0..* `Coding` and no `quantitativeDetails` backbone.",
+          "HL7 ObservationDefinition scope says the resource is used for catalogs/IVD tests and to help interpret observations, including unit and decimal precision characteristics."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the general compatibility expectation, but this path is central to the resource's stated lab catalog/IVD role and the migration can lose quantitative semantics, so low maturity does not make it harmless.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `quantitativeDetails` fail R6 structural validation; R6-to-R4 loss also exists because multiple permitted units and dropped precision/conversion fields do not round-trip cleanly.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have retained deprecated `quantitativeDetails` or at least retained native replacement fields for customary unit, conversion factor, and decimal precision while adding `permittedUnit`. The tradeoff is overlapping unit representations and validator precedence rules, but that seems worth renewed review because the current model drops information rather than only renaming it.",
+        "comparisonToExisting": "partially agree: the existing report correctly notes the hard break and partial alternative, but I give more weight to the lossy precision/conversion migration and therefore judge the finding as Revisit rather than probably justified."
+      }
     },
     {
       "findingId": "ObservationDefinition:VALUE_CONSTRAINT:ObservationDefinition.permittedUnit:7a6bd5",
@@ -630,7 +672,21 @@
       "validationAndCompatibilityMd": "This is a potential old-valid/new-invalid pattern for migrated content rather than for untouched R4 wire content. It affects validators and generated test fixtures that create `permittedUnit` but omit `permittedDataType`.",
       "migrationGuidanceMd": "Whenever a migration populates `ObservationDefinition.permittedUnit`, ensure `permittedDataType` contains `Quantity`. If the old record explicitly excluded Quantity, flag it for manual review instead of generating an inconsistent R6 resource.",
       "backwardCompatibilityAnalysisMd": "The invariant is clinically and logically sensible. A softer transition could have used a warning, but the new element gives implementers a clear validation rule.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ObservationDefinition:VALUE_CONSTRAINT:ObservationDefinition.permittedUnit:7a6bd5",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R6 invariant says `permittedUnit` can appear only when `permittedDataType` includes `Quantity`. This is not a break for an untouched R4 wire instance because `permittedUnit` itself is new, but a naive migration from R4 unit metadata could create invalid R6 content if it copies units without also declaring Quantity as an allowed result type. The rule is logically consistent and the required migration step is straightforward.",
+        "keyEvidence": [
+          "R6 root constraint `obd-0` is severity `error` with expression `permittedUnit.exists() implies permittedDataType.exists(value = 'Quantity')`.",
+          "R4 has no corresponding local invariant.",
+          "R6 `permittedUnit` is defined as units allowed for the `valueQuantity` element."
+        ],
+        "fmmEffect": "Low FMM softens concern about this new validation rule; because the rule enforces an obvious consistency condition, it does not warrant Revisit absent evidence of real migrated content failing.",
+        "compatibilityMechanism": "old-valid/new-invalid: potential only after migration, where formerly valid R4 quantitative unit content becomes invalid R6 if transformed to `permittedUnit` without `permittedDataType=Quantity`.",
+        "lessBreakingAlternativeAssessment": "A warning-level or best-practice invariant would be less disruptive for transitional data, but it would allow internally inconsistent base R6 definitions. Adding `Quantity` during migration is a small and semantically correct burden.",
+        "comparisonToExisting": "agree: the existing report's Potential/Medium impact and partial alternative judgment match the path-level mechanism."
+      }
     },
     {
       "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.qualifiedInterval:df3c29",
@@ -788,7 +844,21 @@
       "migrationGuidanceMd": "Rename `qualifiedInterval` to `qualifiedValue`, `category` to `rangeCategory`, and `gender` to `sexParameterForClinicalUse`; carry context, appliesTo, age, gestationalAge, condition, and range across. Review the gender-to-sex-parameter semantic change and add tests for range-only and value-set-bearing qualified values.",
       "backwardCompatibilityAnalysisMd": "The broader R6 model is understandable, but retaining a deprecated `qualifiedInterval` path or adding aliases would have made old instances easier to validate and transform.",
       "reviewerNotesMd": "The R6 field name `sexParameterForClinicalUse` is semantically different from R4 `gender`, but its required binding remains administrative-gender in the supplied StructureDefinition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.qualifiedInterval:df3c29",
+        "judgment": "Revisit",
+        "narrativeMd": "`qualifiedInterval` is replaced by `qualifiedValue`, with otherwise familiar reference-range fields moving to new JSON paths and some names changing, such as `category` to `rangeCategory` and `gender` to `sexParameterForClinicalUse`. Implementations that store or compute reference ranges from ObservationDefinition must update validators, serializers, FHIRPath expressions, and generated model properties. The R6 goal of covering broader qualified values is reasonable, but the wire-path rename appears more disruptive than necessary for preserving R4 interval content.",
+        "keyEvidence": [
+          "R4 defines `ObservationDefinition.qualifiedInterval` 0..* with range, context, appliesTo, gender, age, gestationalAge, condition, and category.",
+          "R6 defines `ObservationDefinition.qualifiedValue` 0..* with corresponding range/context qualifiers plus `rangeCategory` and `sexParameterForClinicalUse`.",
+          "HL7 ObservationDefinition scope connects the resource to interpretation of observations and IVD test characteristics such as ranges and critical values."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens broad adoption assumptions, but reference ranges are central and clinically relevant when the resource is used, and the main break is a path rename with a plausible lower-cost design.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances using `qualifiedInterval` are invalid in R6; runtime/API/codegen breakage follows from renamed backbone and child paths.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `qualifiedInterval` as the base path and broadened its definition or added the new qualitative children there. Keeping both old and new backbones would be duplicative, but broadening the old path would preserve most R4 instances with the main tradeoff of a less perfect name.",
+        "comparisonToExisting": "agree: the existing report's hard-break assessment and Yes alternative are persuasive, with the added FMM caveat that the concern depends on actual use of reference-range content."
+      }
     },
     {
       "findingId": "ObservationDefinition:TYPE_DOMAIN:ObservationDefinition.codedValueSets:ad09c3",
@@ -948,7 +1018,21 @@
       "migrationGuidanceMd": "Convert each R4 ValueSet Reference to a canonical URL where possible and place it in a `qualifiedValue` occurrence. If the R4 reference is relative or points to a contained ValueSet, resolve or mint a canonical URL. Preserve display/identifier information in extensions or local catalog metadata if needed.",
       "backwardCompatibilityAnalysisMd": "The R6 approach is more canonical and context-aware, but a transitional global element would have made the common unqualified case easier to migrate.",
       "reviewerNotesMd": "Manual review is needed when R4 references are not canonical URLs or when multiple R6 qualified values must be downgraded to R4.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ObservationDefinition:TYPE_DOMAIN:ObservationDefinition.codedValueSets:ad09c3",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 top-level coded result ValueSet references move into `qualifiedValue` and change from `Reference(ValueSet)` objects to canonical URLs. That is a real old-path and type break for global valid/normal/abnormal/critical value sets, and a migration may need to resolve a referenced ValueSet's canonical URL. The R6 design, however, supports context-specific value sets and uses the canonical form expected for definitional artifacts, so the disruption appears proportionate.",
+        "keyEvidence": [
+          "R4 defines top-level `validCodedValueSet`, `normalCodedValueSet`, `abnormalCodedValueSet`, and `criticalCodedValueSet` as 0..1 `Reference(ValueSet)`.",
+          "R6 defines the corresponding fields under `ObservationDefinition.qualifiedValue` as 0..1 `canonical(ValueSet)`.",
+          "R6 `qualifiedValue` is repeatable and includes context/range qualifiers, enabling different coded value sets for different qualified contexts."
+        ],
+        "fmmEffect": "FMM 0/trial-use reduces the stability burden. The path has clinical interpretation relevance, but the R6 contextual/canonical design has a clear purpose and the common unqualified case is transformable.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 top-level Reference elements are not valid at those paths in R6; R6-to-R4 loss can occur for multiple context-specific value sets or canonical values without an R4 Reference equivalent.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained deprecated top-level global fields as aliases while adding context-scoped canonical fields. That would help simple R4 instances but would create duplicate places for the same global rule and would not solve the richer context-specific R6 model.",
+        "comparisonToExisting": "partially agree: I agree with the hard break and partial alternative, but the low FMM and real contextual/canonical design goal make this Breaking but probably OK rather than a Revisit-level concern."
+      }
     },
     {
       "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.contextAndComponents:c8416f",
@@ -1107,7 +1191,21 @@
       "migrationGuidanceMd": "For forward migration, populate these fields only when trustworthy source catalog data exists. For downgrade, define a loss policy: drop, extension-map, or split into external catalog records. Include tests for component code being mandatory inside each R6 component and for `obd-1` when component permitted units are present.",
       "backwardCompatibilityAnalysisMd": "Because the fields are optional, R6 did not break old instances to add this expressiveness. Backward compatibility with R4 exchange still depends on extensions because R4 cannot natively carry the model.",
       "reviewerNotesMd": "The local impact is high for systems that need R6-to-R4 downgrade or single code models generated from both versions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.contextAndComponents:c8416f",
+        "judgment": "No problem",
+        "narrativeMd": "The new subject, performer type, body structure, specimen, device, hasMember, and component model is optional. These fields add expressive capacity for observation definitions, panels, devices, specimens, and components, but old R4 instances can simply omit them in R6. The main compatibility issue is downgrade loss when R6 instances use the new content.",
+        "keyEvidence": [
+          "R6 adds `subject`, `performerType`, `bodyStructure`, `specimen`, `device[x]`, `hasMember`, and `component` with minimum cardinality 0.",
+          "R6 `component.code` is required only inside an optional repeating `component` backbone.",
+          "R4 StructureDefinition has no local counterparts for these fields."
+        ],
+        "fmmEffect": "Low FMM supports treating optional additions as acceptable evolution; no specific R4-to-R6 break is introduced.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 content using the new optional fields cannot be represented natively in R4, but existing R4 instances are not invalidated.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for forward compatibility. R4 extensions can mitigate downgrade loss, but they are not an alternative R6 base design.",
+        "comparisonToExisting": "partially agree: I agree with the no hard-break and not-applicable alternative analysis, but would not treat optional additions as a Medium compatibility problem for this review."
+      }
     },
     {
       "findingId": "ObservationDefinition:TERMINOLOGY_BINDING:ObservationDefinition.code:2f0a64",
@@ -1231,7 +1329,21 @@
       "migrationGuidanceMd": "Do not auto-reject existing R4 codes solely because the example value set changed. Use a terminology service to identify LOINC codes outside the R6 example set if local policy wants to align with the new guidance.",
       "backwardCompatibilityAnalysisMd": "Because the binding remains example strength, the change is mostly backward-compatible. A narrative-only recommendation would have had even less tooling impact but less computable guidance.",
       "reviewerNotesMd": "Requires terminology review if an implementation constrains ObservationDefinition.code to the example value set.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ObservationDefinition:TERMINOLOGY_BINDING:ObservationDefinition.code:2f0a64",
+        "judgment": "No problem",
+        "narrativeMd": "`ObservationDefinition.code` remains a required `CodeableConcept` with an example-strength binding. R6 changes the example value set from all LOINC observation codes to the LOINC subset whose ORDER_OBS property is Observation or Both. Because the binding remains example strength, base validation should not reject old codes solely on this change; at most, pick lists or over-strict tooling may change recommendations.",
+        "keyEvidence": [
+          "R4 `ObservationDefinition.code` is 1..1 `CodeableConcept` with example binding to `observation-codes`.",
+          "R6 `ObservationDefinition.code` is still 1..1 `CodeableConcept` with example binding to `observation-codes-observationorboth`.",
+          "R6 ValueSet `observation-codes-observationorboth` includes LOINC filters ORDER_OBS=Observation and ORDER_OBS=Both."
+        ],
+        "fmmEffect": "Low FMM further reduces concern because the computable constraint strength did not increase.",
+        "compatibilityMechanism": "semantic/documentation: the example binding changes guidance and tooling hints but does not create a base structural or required-terminology validation break.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the broader example value set and described the ORDER_OBS preference in text, but no less-breaking base design is necessary because the binding remains non-mandatory.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as low impact with no applicable less-breaking alternative."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1390,5 +1502,19 @@
       "gender to sexParameterForClinicalUse terminology and semantics",
       "new required status on definitional resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ObservationDefinition.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 3,
+      "No problem": 3
+    }
   }
 }

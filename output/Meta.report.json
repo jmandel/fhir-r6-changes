@@ -324,7 +324,21 @@
       "validationAndCompatibilityMd": "An R4-valid instance does not become invalid in R6 because the element remains optional and has the same primitive type. Valid R6 content is also structurally representable in R4. The compatibility issue is runtime/conformance behavior: applications that elevate the R4 comment into a hard invariant may reject or mishandle R6 server responses or update interactions.",
       "migrationGuidanceMd": "Review any logic that treats `meta.lastUpdated` as mandatory after creation, as a complete change detector, or as exactly equivalent to visible-resource modification time. Prefer server-supported history, `_lastUpdated` search semantics, ETags/version ids, subscriptions, or domain-specific reconciliation where exact change detection matters. Test omitted, unchanged, and changed `lastUpdated` scenarios during R6 migration.",
       "backwardCompatibilityAnalysisMd": "The same clarification could have been presented as non-normative implementation guidance while preserving R4's stronger expectation, but that would leave clients with an unreliable guarantee. The R6 wording is more honest for facades, generated resources, and privacy filtering, at the cost of weakening assumptions used by older clients.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Meta:SEMANTIC_OR_CONFORMANCE_TEXT:Meta.lastUpdated:7f6a21",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes the operational expectations for `Meta.lastUpdated`, not the wire shape. The element remains optional `instant`, but an R4-era polling, cache, or synchronization client that treated `lastUpdated` as always populated and reliably synchronized with visible resource changes can behave incorrectly against an R6-conformant server. That is a real runtime compatibility burden on normative infrastructure metadata. It looks proportionate, however, because the R6 text documents facade, mapping-table, generated-resource, and privacy-filtering cases where the R4 wording was too strong, while still warning server implementers that missing updates is worse than over-updating.",
+        "keyEvidence": [
+          "R4 `Meta.lastUpdated` comment says the value is always populated except while the resource is first being created.",
+          "R6 `Meta.lastUpdated` comment says submitted instances generally omit it and that it MAY be out of sync with visible resource changes in either direction.",
+          "R4 and R6 both keep `Meta.lastUpdated` as `0..1` `instant` and summary=true."
+        ],
+        "fmmEffect": "R4 `Meta` is normative, so I gave the relaxed runtime guarantee more weight than I would for trial-use metadata. The absence of any cardinality/type change and the plausible operational rationale kept this below Revisit.",
+        "compatibilityMechanism": "runtime/API/codegen: synchronization and cache logic that uses `meta.lastUpdated` as a reliable visible-content watermark can need review; there is no old-valid/new-invalid instance break.",
+        "lessBreakingAlternativeAssessment": "A stricter R4-compatible base statement, or a new separate timestamp for visible-content changes, would preserve old client expectations better but would not cover the R6 facade/privacy/generated-resource scenarios without creating duplicate timestamp semantics. The less-breaking options have material modeling and implementability tradeoffs.",
+        "comparisonToExisting": "partially agree with the existing Medium runtime impact and no less-breaking-alternative posture; I agree this is not a hard instance break, but the fresh judgment frames it as a proportionate normative runtime compatibility burden rather than something needing redesign."
+      }
     },
     {
       "findingId": "Meta:SEMANTIC_OR_CONFORMANCE_TEXT:Meta.source:2c9d34",
@@ -465,7 +479,21 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid in R6 due to this change, and R6 values are still syntactically representable in R4. Compatibility risk appears when business rules treat the URI namespace or target kind as constrained by the R4 wording.",
       "migrationGuidanceMd": "Audit code that classifies `Meta.source` values, maps them automatically to `Provenance.entity.what[x]`, or assumes they identify only whole systems. For cross-version transforms, preserve the URI but consider adding full `Provenance` when the distinction between entity, agent, or structural portion matters. Test representative server, document, row/segment, and abstract-source URI forms.",
       "backwardCompatibilityAnalysisMd": "The broadening could have been made less surprising by retaining the R4 source-system wording and adding explicit extensions for source portions or agent-like origins. The R6 approach is simpler and more flexible but shifts interpretation burden to consumers.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Meta:SEMANTIC_OR_CONFORMANCE_TEXT:Meta.source:2c9d34",
+        "judgment": "No problem",
+        "narrativeMd": "`Meta.source` keeps the same optional `uri` shape. R6 broadens the description from a source system/provenance entity hint to a more general data-source hint that can identify a server, document, message, database, structural portion, agent, or abstract reference. Existing R4 values remain valid and interpretable in R6. The main risk is that an old consumer may over-interpret an R6 URI as only a source system, but this element was already discretionary minimal provenance rather than the full provenance record.",
+        "keyEvidence": [
+          "R4 `Meta.source` is `0..1` `uri` and describes a source system of the resource.",
+          "R6 `Meta.source` remains `0..1` `uri` and describes a data source, including portions of a structure.",
+          "R4 maps the hint to `Provenance.entity.what[x]`; R6 allows `Provenance.entity.what[x]`, `Provenance.agent.who[x]`, or a more general reference."
+        ],
+        "fmmEffect": "R4 `Meta` is normative, so semantic changes deserve scrutiny. Here the change is a widening/clarification with no structural narrowing, and the path is explicitly left to implementer discretion, so normative status did not turn it into a compatibility concern.",
+        "compatibilityMechanism": "semantic/documentation: the meaning is broadened while cardinality, datatype, and wire name are unchanged.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for R4-to-R6 compatibility because R6 preserves the field and widens its interpretation. A separate element for granular source or agent references would avoid some ambiguity but would duplicate Provenance concepts and increase modeling burden for little compatibility gain.",
+        "comparisonToExisting": "partially agree with the existing Low impact and no alternative judgment; after path-level review I would classify the finding as no meaningful compatibility problem rather than a low break."
+      }
     },
     {
       "findingId": "Meta:TERMINOLOGY_BINDING:Meta.security:5b89e0",
@@ -710,7 +738,22 @@
       "migrationGuidanceMd": "For R6-to-R4 conversion, do not drop unfamiliar security labels. Preserve the original coding where possible and use a site-approved policy map to add an R4 confidentiality classification code only when the mapping is safe. Test security-label validation and access-control behavior with broader v3 Confidentiality codes such as `ETH`, `HIV`, `S`, and `T`. A ConceptMap or local policy table is likely needed for production migration.",
       "backwardCompatibilityAnalysisMd": "The broadening is understandable for an 'all security labels' value set, but changing the compose behind the same canonical URL makes cross-version behavior less predictable. A new broader value set or an explicit R4/R6 ConceptMap would have been easier for backward-compatible migration, though at the cost of more terminology artifacts and less uniform R6 expressiveness.",
       "reviewerNotesMd": "Confirm with an official R6 terminology expansion and current THO package before treating the listed added codes as exhaustive. Security policy owners should review mappings; this is not only a technical code-system issue.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Meta:TERMINOLOGY_BINDING:Meta.security:5b89e0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The `Meta.security` element and binding strength do not change; the referenced `security-labels` value set composition broadens from the R4 confidentiality-classification subset to the full v3 Confidentiality value set. Existing R4 labels such as U, L, M, N, R, and V remain within the R6 intent, so this is not an R4-to-R6 validation break. The practical burden is reverse or mixed-version policy handling: an R6 label drawn from the broader confidentiality set may be unfamiliar to an R4 terminology validator or access-control engine that only expected the old subset. Because security labels can affect privacy and policy decisions, that migration work is real, but the binding is extensible and the base change is a widening rather than a removal.",
+        "keyEvidence": [
+          "R4 and R6 `Meta.security` both bind extensibly to `http://hl7.org/fhir/ValueSet/security-labels`.",
+          "R4 `ValueSet/security-labels` includes `v3-ConfidentialityClassification`, whose local compose lists U, L, M, N, R, and V.",
+          "R6 `ValueSet/security-labels` includes `v3-Confidentiality` instead of the narrower classification value set.",
+          "The R6 package has no local `CodeSystem-v3-Confidentiality.json`, so the review relies on the value-set compose change and the R4 bundled terminology evidence."
+        ],
+        "fmmEffect": "R4 `Meta` is normative and `Meta.security` can drive access-control and privacy behavior, so I did not dismiss this as mere terminology churn. Normative pressure is balanced by the fact that R4-to-R6 is widening and the binding remains extensible.",
+        "compatibilityMechanism": "R6-to-R4 loss: broader R6 confidentiality labels may trigger warning-level/extensible terminology issues or be misunderstood by older policy engines; R4-valid labels are still representable in R6.",
+        "lessBreakingAlternativeAssessment": "Keeping only the old classification subset would preserve older policy assumptions but would block R6's broader confidentiality-label goal. Including both the old subset and full v3 Confidentiality would not materially improve compatibility because the subset is already contained in the broader set. A separate field or profile split would fragment security-label semantics. No low-cost less-breaking base design stands out.",
+        "comparisonToExisting": "agree with the existing assessment that this is not a hard R4-to-R6 break, has medium reverse/policy significance, and lacks a clear less-breaking base alternative."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -900,5 +943,18 @@
       "Profiles or policy engines that constrain `Meta.security` security labels",
       "Cross-version transforms that preserve or map broader v3 Confidentiality codes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Meta.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

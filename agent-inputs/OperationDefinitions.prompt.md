@@ -5,6 +5,12 @@ Behavior report type: infrastructure
 
 Read `/home/jmandel/hobby/r6breaks/agent-inputs/behavior-output-contracts.md` completely before writing the report. The TypeScript interface `FhirOperationBehaviorReport` is the required output schema. Do not use the data-model report schema from `prompt.md` for this task.
 
+Also read `/home/jmandel/hobby/r6breaks/prompt.md` for the calibration rules on judging whether a change was justified and whether the same goal could have been achieved with a less-breaking base R6 design. Apply those concepts in this behavior report using the contract field `freshReview` plus `impact.impactRationaleMd`, `runtimeMechanismMd`, `backwardCompatibilityAnalysisMd`, and `migrationGuidanceMd`; do not invent additional structured fields.
+
+Read `/home/jmandel/hobby/r6breaks/docs/behavior-batch-plan.md` for scope boundaries and duplication rules.
+
+Read `/home/jmandel/hobby/r6breaks/docs/fresh-review-judgment-framework.md` for the FMM-guided fresh-review rubric. Treat FMM and standards status as stability pressure, not as impact by themselves. For this R4→R6 analysis, use the R4 artifact's FMM and standards status as the stability baseline. Do not use R6 FMM/status to increase the burden for R4 compatibility.
+
 Use these local primary inputs:
 
 - R4 core package directory: `/home/jmandel/hobby/r6breaks/fhir-definitions/r4-4.0.1/package`
@@ -17,6 +23,14 @@ Use these local primary inputs:
 - R6 package index: `/home/jmandel/hobby/r6breaks/fhir-definitions/r6-6.0.0-ballot4/package/.index.json`
 - R4/R6 package metadata: each package has `package.json` in the package directory.
 - R4 base artifact list for the batch run: `/home/jmandel/hobby/r6breaks/agent-inputs/r4-base-resources-and-datatypes.tsv`
+- Local R4 rendered spec pages: `/home/jmandel/hobby/r6breaks/fhir-specs/r4-4.0.1/html`
+- Local R6 rendered spec pages: `/home/jmandel/hobby/r6breaks/fhir-specs/r6-6.0.0-ballot4/html`
+- Page download status/provenance: `/home/jmandel/hobby/r6breaks/batch/behavior/source-status.tsv`
+- Operation fanout manifest, if generated: `/home/jmandel/hobby/r6breaks/batch/behavior/operation-fanout.tsv`
+- Operation page candidate manifest, if generated: `/home/jmandel/hobby/r6breaks/batch/behavior/operation-pages.tsv`
+- FMM/standards-status context: `/home/jmandel/hobby/r6breaks/batch/behavior/fmm-context.json`
+
+Prefer local rendered HTML pages when present. Use the published URLs below as provenance and as a fallback only if the local page cache is missing a page.
 
 Review these published HL7 source pages in the appropriate FHIR versions:
 
@@ -67,11 +81,13 @@ Your task:
    - changed requiredness, repeatability, parameter nesting, response shape, or profile constraints;
    - related CapabilityStatement advertisement changes.
 5. Pay special attention to operations that are likely to be directly implemented by clients or servers, including terminology operations, validation/conversion operations, `$everything`, `$match`, `$lastn`, `$stats`, measure operations, subscription operations, purge/delete-like operations, graph/graphql operations, and metadata operations.
-6. Distinguish operation behavior changes from data-model changes. If an operation parameter changed because the referenced resource/datatype changed, report the operation impact here and put the resource/datatype dependency in `followUpDependencies` or `reducerHints`.
-7. For each material finding, explain the concrete runtime mechanism: old `$operation` URL no longer advertised, invocation moved from system/type/instance level, previously optional parameter now required, parameter type changed, output `Parameters` shape changed, side effects changed, or R6 invocation cannot be represented against an R4 server.
-8. Include high-confidence non-breaking additions as `nonBreakingNotableChanges` when they are useful for migration planning.
-9. Include `checkedNoMaterialChange` entries for major areas you checked with no material change.
-10. Include limitations where official diffs, narrative operation pages, terminology expansions, or implementation-specific CapabilityStatements would improve confidence.
+6. Distinguish operation behavior changes from data-model changes. If an operation parameter changed because the referenced resource/datatype changed, report the operation impact here and put the resource/datatype dependency in `followUpDependencies` or `reducerHints`; do not duplicate the underlying StructureDefinition finding.
+7. For each material finding, explain the concrete R4→R6 runtime mechanism: an R4 `$operation` URL is no longer advertised, invocation moved from system/type/instance level, an R4-optional parameter is now required, an R4 parameter type changed, an R4 response `Parameters` shape changed, side effects changed for an R4-supported operation, or the same R4 request is accepted but behaves materially differently.
+8. For each material finding, assess whether the inferred R6 goal is reasonable and whether a less-breaking base R6 operation design was available. Explain concrete alternatives such as preserving an old operation name, accepting both old and new parameter names, adding an optional parameter instead of replacing one, or documenting a preferred replacement while keeping the old operation.
+9. Populate `freshReview` for every finding using the rubric in `docs/fresh-review-judgment-framework.md`: reconstruct the concrete R4→R6 behavior change, give one real-world scenario, identify the R4→R6 compatibility mechanism, apply R4 FMM/standards-status as stability pressure, stress-test less-breaking base R6 designs, and choose `Revisit`, `Unclear`, `Breaking but probably OK`, or `No problem`.
+10. Include high-confidence non-breaking additions as `nonBreakingNotableChanges` when they are useful for migration planning.
+11. Include `checkedNoMaterialChange` entries for major areas you checked with no material change.
+12. Include limitations where official diffs, narrative operation pages, terminology expansions, or implementation-specific CapabilityStatements would improve confidence.
 
 Output requirements:
 

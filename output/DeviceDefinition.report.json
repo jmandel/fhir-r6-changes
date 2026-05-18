@@ -255,7 +255,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation fails when `status` is absent. Strict parsers and generated R6 classes may also require a non-null enum or code. R6-to-R4 conversion loses the lifecycle state unless it is mapped to an extension because R4 has no corresponding element.",
       "migrationGuidanceMd": "Inventory R4 DeviceDefinitions without lifecycle metadata, define a status assignment policy, and test migration with missing, known-active, retired, and uncertain artifacts. Do not blindly mark all historical resources `active` if that would affect publication, catalog, or regulatory behavior.",
       "backwardCompatibilityAnalysisMd": "The mandatory element supports a stronger R6 publication model, but it was not the only possible design. Optional base cardinality plus profile-level requirements would have reduced instance breakage while preserving a path for stricter ecosystems.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:CARDINALITY:DeviceDefinition.status:7b5e21",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 makes `DeviceDefinition.status` mandatory where R4 had no such element, so a minimal or otherwise complete R4 instance fails R6 validation until a lifecycle status is assigned. That is a real old-valid/new-invalid break, but the R6 goal is coherent for a definitional artifact because status supports lifecycle filtering, and the `unknown` code gives a non-false assertion path when migration policy cannot determine the status.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `DeviceDefinition.status`; R6 defines `DeviceDefinition.status` as 1..1 `code` with required `publication-status` binding.",
+          "R6 status requirements say it enables tracking the content lifecycle and filtering appropriate DeviceDefinitions.",
+          "R4 maturity map lists DeviceDefinition as FMM 0, standards-status trial-use."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability concern; without path-specific production evidence for missing status, the hard break alone is not enough for Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid - R4 instances without status become invalid R6 instances, and generated R6 models may require a non-null status.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could add `status` as 0..1 and require it in publication profiles, but that would weaken uniform lifecycle filtering for a canonical-style resource; the required `unknown` option reduces the migration burden.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard break and an optional-status alternative, but its High impact is softened by FMM 0 and by the reasonable lifecycle goal."
+      }
     },
     {
       "findingId": "DeviceDefinition:TYPE_DOMAIN:DeviceDefinition.manufacturer:40b9d4",
@@ -393,7 +407,21 @@
       "validationAndCompatibilityMd": "`manufacturerString` is not an R6 element, and `manufacturerReference` is not the R6 property name. A converted R6 instance must carry a Reference object at `manufacturer`. R6 content is mostly representable in R4 by converting `manufacturer` back to `manufacturerReference`, but text-only R4 content requires a policy decision.",
       "migrationGuidanceMd": "Map R4 `manufacturerReference` to R6 `manufacturer`. For `manufacturerString`, either create or link an Organization, map the string to `manufacturer.display`, or preserve the exact string in an extension if display-only references are not acceptable. Test both choice branches.",
       "backwardCompatibilityAnalysisMd": "The normalization goal could have been achieved less disruptively by retaining the choice and deprecating the string branch. Removing it provides a cleaner R6 shape but creates avoidable migration and codegen churn.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:TYPE_DOMAIN:DeviceDefinition.manufacturer:40b9d4",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed a simple manufacturer string or an Organization reference; R6 only allows `Reference(Organization)`. Manufacturer identity is central to device catalogs and UDI/regulatory contexts, and migrating a plain string may require creating or selecting an Organization resource and deciding whether the value represents a manufacturer, labeler, legal representative, or jurisdictional responsible party.",
+        "keyEvidence": [
+          "R4 `DeviceDefinition.manufacturer[x]` is 0..1 `string` or `Reference(Organization)`; R6 `DeviceDefinition.manufacturer` is 0..1 `Reference(Organization)` only.",
+          "R6 definition broadens the role to manufacturer or legal representative/labeler depending on implementation and jurisdiction.",
+          "HL7 R4 DeviceDefinition scope describes catalog definitions authored by regulatory or local entities; ONC ISP lists the HL7 Cross-Paradigm UDI Pattern Release 2 as Final/Production for UDI representation."
+        ],
+        "fmmEffect": "Although DeviceDefinition is FMM 0/trial-use, the affected path is central to the artifact and plausibly used in production device/UDI catalogs, so low FMM does not fully offset the migration risk.",
+        "compatibilityMechanism": "old-valid/new-invalid - any R4 `manufacturerString` is invalid in R6, and code generators also lose the choice-type accessors.",
+        "lessBreakingAlternativeAssessment": "A practical less-breaking base design would retain `manufacturer[x]` or add a manufacturer display string while recommending Organization references for computable exchange. The tradeoff is weaker referential computability, but it avoids forcing local identity-management decisions during migration.",
+        "comparisonToExisting": "agree: the existing report's hard-break finding and Yes alternative are supported; FMM 0 tempers broad impact but not enough to dismiss this central path."
+      }
     },
     {
       "findingId": "DeviceDefinition:TYPE_DOMAIN:DeviceDefinition.deviceName.type:f82a61",
@@ -606,7 +634,21 @@
       "migrationGuidanceMd": "Convert primitive R4 codes to CodeableConcept codings and define a ConceptMap-like policy for `udi-label-name`, `manufacturer-name`, `model-name`, and `other`. Include tests for each R4 code, unknown local codings, and R6 `registered-name` round trips.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition could have preserved the R4 primitive code or added a new optional richer element. The selected R6 shape is cleaner but makes every populated R4 `deviceName` require transformation.",
       "reviewerNotesMd": "Terminology comparison used local CodeSystem concepts, not a terminology server expansion. Human review is needed for name-type mapping policy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:TYPE_DOMAIN:DeviceDefinition.deviceName.type:f82a61",
+        "judgment": "Revisit",
+        "narrativeMd": "`deviceName.type` changed from a required primitive code to a required CodeableConcept, and the local complete code system dropped several R4 codes such as `udi-label-name`, `manufacturer-name`, `model-name`, and `other`. Old JSON wire format is invalid in R6, and migration may require semantic judgment about whether the old name category maps to `registered-name`, free text, or a non-core coding.",
+        "keyEvidence": [
+          "R4 `DeviceDefinition.deviceName.type` is 1..1 `code` with required `device-nametype|4.0.1` binding; R6 is 1..1 `CodeableConcept` with extensible `device-nametype` binding.",
+          "R4 `CodeSystem-device-nametype` contains `udi-label-name`, `manufacturer-name`, `model-name`, and `other`; R6 contains `registered-name`, `user-friendly-name`, and `patient-reported-name`.",
+          "Device names are part of catalog/UDI identification; ONC ISP lists UDI representation specifications as production maturity."
+        ],
+        "fmmEffect": "FMM 0 lowers the general compatibility expectation, but this is a central identification field and the code removals can make migration lossy or expert-dependent.",
+        "compatibilityMechanism": "old-valid/new-invalid - R4 primitive-code instances fail R6 structure validation, and old codes from the same complete code system may fail terminology validation or require remapping.",
+        "lessBreakingAlternativeAssessment": "R6 could have introduced CodeableConcept while retaining the R4 codes as deprecated concepts or a transitional choice/profile path. That would add terminology clutter, but it would preserve old instances and let migration be mechanical for common name types.",
+        "comparisonToExisting": "partially agree: the current report correctly sees a high-impact break, but the less-breaking alternative appears stronger than merely partial because deprecated-code retention would meet much of the R6 goal."
+      }
     },
     {
       "findingId": "DeviceDefinition:ELEMENT_PRESENCE_OR_IDENTITY:DeviceDefinition.type:5c7d18",
@@ -771,7 +813,21 @@
       "validationAndCompatibilityMd": "R4 `type` is an unknown element in R6. A simple R4 type can map to `classification[0].type`, but the reverse is lossy if more than one classification is present or if `classification.justification` is populated. Terminology guidance also changes from `device-kind` to `device-type`.",
       "migrationGuidanceMd": "Map R4 `type` to one R6 `classification.type`. If local systems distinguish primary type, risk class, and regulatory class, define ordering or extensions. For R6-to-R4, choose a primary classification or preserve extra classifications in extensions.",
       "backwardCompatibilityAnalysisMd": "The R6 model is more expressive, but a deprecated top-level `type` could have preserved old instances. The downside would be ambiguity between `type` and `classification.type`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:ELEMENT_PRESENCE_OR_IDENTITY:DeviceDefinition.type:5c7d18",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4's single top-level `type` moved to repeatable `classification.type` in R6. This is a real path and API break for populated instances, but the migration is usually direct (`type` becomes one `classification.type`) and the R6 structure better supports multiple classifications, risk classes, national product codes, and justifications.",
+        "keyEvidence": [
+          "R4 `DeviceDefinition.type` is 0..1 `CodeableConcept` with example `device-kind` binding.",
+          "R6 `DeviceDefinition.classification` is 0..* and `classification.type` is 1..1 `CodeableConcept` with example `device-type` binding.",
+          "R6 classification comment names multiple classification systems including GMDN, EMDN, SNOMED CT, risk classes, and national product codes."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the path-rename concern; the affected field is important, but the R6 design goal and mostly mechanical migration make the break proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid - R4 instances using top-level `type` are invalid against R6 and generated APIs move the property under `classification`.",
+        "lessBreakingAlternativeAssessment": "Keeping a deprecated top-level `type` alongside `classification` would preserve old instances, but it would create duplicate representations and consistency questions between the old primary type and the new repeatable classifications.",
+        "comparisonToExisting": "partially agree: the report correctly identifies the break and possible legacy field, but High impact is stronger than the path-level evidence warrants under FMM 0."
+      }
     },
     {
       "findingId": "DeviceDefinition:CARDINALITY:DeviceDefinition.version:b2d94c",
@@ -909,7 +965,21 @@
       "validationAndCompatibilityMd": "Multiple R4 `version` values fail R6 max-cardinality validation. Single values can pass structurally but be semantically misplaced. R6 `deviceVersion.type` and `component` cannot be represented directly in R4 `version` strings.",
       "migrationGuidanceMd": "Classify existing R4 `version` values before transforming. Move device/software version lists to `deviceVersion.value`; reserve R6 `version` for the business version of the DeviceDefinition itself. Add regression tests for multiple versions and single ambiguous versions.",
       "backwardCompatibilityAnalysisMd": "The separation is justified but could have been implemented with less reuse of the old path. A profile or deprecation period would have helped consumers distinguish structural compatibility from semantic compatibility.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:CARDINALITY:DeviceDefinition.version:b2d94c",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 reuses `DeviceDefinition.version` for the business version of the DeviceDefinition and narrows it to 0..1, while R4 used repeatable `version` for available device or software versions. Multiple R4 versions become invalid, and even a single R4 value can silently change meaning unless a migrator knows whether it is a device/software version or a definition version.",
+        "keyEvidence": [
+          "R4 `DeviceDefinition.version` is 0..* string defined as available versions of the device, e.g. software versions.",
+          "R6 `DeviceDefinition.version` is 0..1 string defined as the business version of the DeviceDefinition and used with canonical `url|version` references.",
+          "R6 adds repeatable `DeviceDefinition.deviceVersion.value` for device or software version text."
+        ],
+        "fmmEffect": "FMM 0 reduces stability pressure, but version data is central to device/software identification and the same-path semantic repurposing can silently mislead systems, so the concern remains material.",
+        "compatibilityMechanism": "old-valid/new-invalid - R4 instances with more than one `version` fail R6 validation; semantic/API break - single values can validate while being interpreted as a different kind of version.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could keep the repeatable device/software `version` path and add a distinct business-version element, or use a new device-version path without repurposing the old one. The tradeoff is divergence from the common canonical-resource `url`/`version` pattern.",
+        "comparisonToExisting": "partially agree: the existing report catches the hard break and partial alternative, but the key issue is the silent semantic repurposing rather than cardinality alone."
+      }
     },
     {
       "findingId": "DeviceDefinition:SERIALIZATION_OR_CODEGEN:DeviceDefinition.property.value:9aa4ef",
@@ -1114,7 +1184,21 @@
       "validationAndCompatibilityMd": "R4 `property` entries with missing values fail R6 validation. R4 `valueCode` arrays are unknown under R6 because the CodeableConcept choice name is `valueCodeableConcept`, and a R4 array must be converted to one or more single-value R6 property entries. R6 new value types are not R4-representable without extensions.",
       "migrationGuidanceMd": "For each R4 property, decide whether multiple values should become repeated R6 properties, a combined CodeableConcept, or an extension. Reject or quarantine value-less properties unless a value can be derived. Test all old and new choice-type branches.",
       "backwardCompatibilityAnalysisMd": "The change is understandable for semantic clarity, but a transition alias or 0..* choice would have avoided some hard instance breaks. The tradeoff is that legacy aliases would complicate validation and downstream processing.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:SERIALIZATION_OR_CODEGEN:DeviceDefinition.property.value:9aa4ef",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 represented property values as separate repeatable `valueQuantity` and `valueCode` lists, while R6 requires exactly one broader `value[x]` choice per property. Existing instances with zero values or multiple values under one property need restructuring, but the R6 one-property/one-value model is cleaner and supports more value types.",
+        "keyEvidence": [
+          "R4 `DeviceDefinition.property.valueQuantity` and `valueCode` are each 0..*.",
+          "R6 `DeviceDefinition.property.value[x]` is 1..1 with Quantity, CodeableConcept, string, boolean, integer, Range, or Attachment choices.",
+          "R6 property definition frames these as static or essentially fixed characteristics, with dynamic properties handled elsewhere."
+        ],
+        "fmmEffect": "FMM 0 and lack of quick path-specific production evidence for multi-valued properties soften the break; the migration burden is real but appears proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid - R4 property entries with legacy value names, no value, or multiple values do not directly validate as R6; runtime/API/codegen - generated accessors change to a single choice element.",
+        "lessBreakingAlternativeAssessment": "R6 could retain legacy `valueQuantity`/`valueCode` while adding `value[x]`, but that creates duplicate value locations and precedence rules. Splitting multi-valued properties into repeated R6 property entries is a reasonable migration cost.",
+        "comparisonToExisting": "partially agree: the hard serialization break is real, but the existing High impact is softened by FMM 0 and by the improved normalized model."
+      }
     },
     {
       "findingId": "DeviceDefinition:ELEMENT_PRESENCE_OR_IDENTITY:DeviceDefinition.languageCode:0d72ec",
@@ -1245,7 +1329,21 @@
       "validationAndCompatibilityMd": "`languageCode` is unknown in R6, and a CodeableConcept object is not valid where R6 expects primitive `code` repetitions. R6 values can often be represented in R4 as CodeableConcept codings, but that conversion is not native and may require choosing a coding system.",
       "migrationGuidanceMd": "Extract language codes from R4 CodeableConcept codings where possible. For text-only values, map manually to valid all-languages codes or preserve the original text in an extension. Include tests for multiple languages and local/nonstandard codes.",
       "backwardCompatibilityAnalysisMd": "The R6 model is more interoperable for language matching, but keeping a deprecated CodeableConcept path would have reduced breakage for existing catalogs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:ELEMENT_PRESENCE_OR_IDENTITY:DeviceDefinition.languageCode:0d72ec",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `languageCode` and R6 `outputLanguage` describe the same concept, but R6 changes the path from CodeableConcept to primitive code with a required all-languages binding. Populated R4 instances need a wire-format and terminology migration, but standard language tags should map mechanically in most cases and the element is peripheral to the core device catalog.",
+        "keyEvidence": [
+          "R4 `DeviceDefinition.languageCode` is 0..* CodeableConcept with no local binding.",
+          "R6 `DeviceDefinition.outputLanguage` is 0..* code with required `all-languages|6.0.0-ballot4` binding.",
+          "Both R4 and R6 definitions describe language codes for human-readable text strings produced by the device."
+        ],
+        "fmmEffect": "FMM 0/trial-use and no quick path-specific production evidence for this peripheral field reduce the need for standards reconsideration.",
+        "compatibilityMechanism": "old-valid/new-invalid - populated R4 `languageCode` elements are invalid at the R6 path and arbitrary CodeableConcept codings may not satisfy the required language binding.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could retain `languageCode` as CodeableConcept or add `outputLanguage` without deleting the old path. The tradeoff is less uniform language-code validation and extra duplicate fields for a relatively peripheral feature.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a possible Yes alternative, but the practical impact is lower than a Revisit-level concern under FMM 0."
+      }
     },
     {
       "findingId": "DeviceDefinition:ELEMENT_PRESENCE_OR_IDENTITY:DeviceDefinition.specialization-capability:1e6c33",
@@ -1396,7 +1494,21 @@
       "migrationGuidanceMd": "Map clear standard/specification data to `conformsTo.specification` and `conformsTo.version`. Review `capability` values manually or by profile to decide among `conformsTo`, `property`, `guideline`, or extensions. Test with both standards and non-standard capabilities.",
       "backwardCompatibilityAnalysisMd": "The richer conformance model is likely justified, but a formal ConceptMap or deprecated aliases would have improved backward compatibility and confidence.",
       "reviewerNotesMd": "This finding is grouped because R6 appears to split old capability/specialization semantics across more than one area.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:ELEMENT_PRESENCE_OR_IDENTITY:DeviceDefinition.specialization-capability:1e6c33",
+        "judgment": "Revisit",
+        "narrativeMd": "R4's `specialization` and `capability` captured device communication standards, supported capabilities, and related descriptions. R6's `conformsTo` covers standards/specifications more formally, but it is not a one-for-one replacement for all capability descriptions, and migrating strings or local concepts into formal specification CodeableConcepts can require expert judgment.",
+        "keyEvidence": [
+          "R4 `specialization.systemType` is required when specialization is present and describes the standard used to operate and communicate; `specialization.version` records the version.",
+          "R4 `capability.type` and repeatable `capability.description` describe device capabilities.",
+          "R6 `conformsTo.specification` is required when conformsTo is present and identifies a standard, specification, protocol, guidance, regulation, legislation, or certification scheme."
+        ],
+        "fmmEffect": "FMM 0 softens general stability expectations, but this path is close to DeviceDefinition's initial ISO/IEEE 11073 communication-device scope and can affect interoperability/certification meaning.",
+        "compatibilityMechanism": "old-valid/new-invalid - R4 specialization/capability elements are removed; R6-to-R4 loss and semantic loss are possible because capability descriptions are not fully represented by `conformsTo`.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could retain deprecated `specialization` and `capability` while adding `conformsTo`. The tradeoff is overlapping standards/capability representations, but it would avoid lossy expert migration for communication and capability data.",
+        "comparisonToExisting": "partially agree: the report sees a break and partial alternative, but the Medium impact likely understates the lossiness and centrality of communication/capability data."
+      }
     },
     {
       "findingId": "DeviceDefinition:TYPE_DOMAIN:DeviceDefinition.contact-owner:6fcb21",
@@ -1568,7 +1680,21 @@
       "validationAndCompatibilityMd": "R4 `owner` and `onlineInformation` fail R6 validation as unknown elements. R4 `contact` entries fail because ContactPoint is not ContactDetail. R6 publisher/contact metadata cannot be represented cleanly in R4 owner/support fields without semantic assumptions.",
       "migrationGuidanceMd": "Separate owner, support, publisher, and steward concepts before transforming. ContactPoint values can be wrapped into `ContactDetail.telecom`, but only after deciding whether they are truly publisher contacts. Preserve unmatched owner or support URLs using extensions or related resources.",
       "backwardCompatibilityAnalysisMd": "The R6 alignment with canonical metadata is understandable, but retaining explicit device owner/support fields would have avoided semantic loss for device catalogs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:TYPE_DOMAIN:DeviceDefinition.contact-owner:6fcb21",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 distinguished owner/maintenance organization, support contact points, and online information. R6 replaces that surface with publisher/steward metadata and publisher contact details, so old support or maintenance contacts can either be invalid or be migrated into fields with a different accountability meaning.",
+        "keyEvidence": [
+          "R4 `owner` is `Reference(Organization)` for the organization responsible for provision and ongoing maintenance.",
+          "R4 `contact` is ContactPoint for support/responsible contacts and comments mention troubleshooting; R4 `onlineInformation` is a URI for online device information.",
+          "R6 `publisher` is a string steward name and R6 `contact` is ContactDetail for communicating with the publisher."
+        ],
+        "fmmEffect": "Despite FMM 0, support/maintenance contact data is plausibly safety- and business-relevant in device catalog, recall, and troubleshooting workflows, so low maturity does not make the break harmless.",
+        "compatibilityMechanism": "old-valid/new-invalid - `owner` and `onlineInformation` are removed and `contact` changes type; semantic/API break - support contacts can be misread as publisher contacts.",
+        "lessBreakingAlternativeAssessment": "R6 could add publisher metadata while retaining explicit owner, support contact, and online-information paths. The tradeoff is overlapping accountability/contact roles, but the roles are distinct enough that preserving them would be cleaner for migration.",
+        "comparisonToExisting": "partially agree: the existing Yes alternative is well supported; the report's Medium impact may understate the semantic and support-workflow risk."
+      }
     },
     {
       "findingId": "DeviceDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:DeviceDefinition.url:c18a90",
@@ -1707,7 +1833,21 @@
       "validationAndCompatibilityMd": "This is usually not an old-valid/new-invalid error because the URI type and 0..1 cardinality remain. The compatibility risk is runtime behavior, canonical resolution, duplicate detection, and search/indexing. Validators may report the R6 `cnl-1` warning for some old values, but the main issue is semantic.",
       "migrationGuidanceMd": "Classify existing R4 `url` values. If they are device endpoints, move them to an extension, related endpoint inventory, or another implementation-specific location. Populate R6 `url` only with stable canonical identifiers for the DeviceDefinition. Test canonical-reference resolution separately from device connectivity.",
       "backwardCompatibilityAnalysisMd": "A new element would have been less disruptive, but FHIR canonical resources conventionally use `url`. The change is probably justified for consistency, yet it requires explicit migration review because validation alone will not catch all misuse.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:DeviceDefinition.url:c18a90",
+        "judgment": "Revisit",
+        "narrativeMd": "The same `url` element changes from a device network address in R4 to the canonical identifier for the DeviceDefinition in R6. This can be worse than a validation break: an R4 endpoint URI may still validate as a URI in R6 but be used as a stable canonical artifact identifier, changing lookup, reference, caching, and publication behavior.",
+        "keyEvidence": [
+          "R4 `DeviceDefinition.url` is a network address on which the device may be contacted directly; if the device runs a FHIR server, the comment says it should be the base URL.",
+          "R6 `DeviceDefinition.url` is an absolute URI canonical identifier used when referenced in a specification, model, design, or instance and remains the same across servers.",
+          "R6 adds canonical warning constraint `cnl-1` for characters that complicate canonical reference processing."
+        ],
+        "fmmEffect": "FMM 0 reduces general stability expectations, but a same-path semantic flip between endpoint and canonical identity is a high-risk migration trap independent of maturity.",
+        "compatibilityMechanism": "runtime/API/codegen - instances may pass structural validation while systems interpret an endpoint URI as a canonical artifact URL; warning-level - some old endpoint strings can trigger the new canonical URL warning.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could preserve R4 `url` as a device endpoint and add a distinct canonical identifier, or add an endpoint field before deprecating the old use. The tradeoff is inconsistency with FHIR's common canonical-resource `url` pattern, but the current same-name repurposing is especially risky.",
+        "comparisonToExisting": "agree: the existing report's high-risk assessment and partial alternative are supported, even though the break is primarily semantic/runtime rather than old-valid/new-invalid."
+      }
     },
     {
       "findingId": "DeviceDefinition:ELEMENT_PRESENCE_OR_IDENTITY:DeviceDefinition.parent-physical-package:ed3f02",
@@ -1868,7 +2008,21 @@
       "validationAndCompatibilityMd": "R4 `parentDevice`, `quantity`, and `physicalCharacteristics` are unknown R6 elements. R6 `hasPart` and recursive `packaging` content cannot be flattened cleanly into R4. Some R4 quantities may map to integer `packaging.count`, but unit-bearing or non-integer quantities do not.",
       "migrationGuidanceMd": "Treat these fields as manual or rule-driven migrations. For parent relationships, decide whether to invert links onto parent resources, use R6 `hasPart`, or preserve source semantics in an extension. For packaging quantities, map only clear integer package counts to `packaging.count`; preserve units or complex physical traits separately.",
       "backwardCompatibilityAnalysisMd": "The R6 structures are richer, but direct aliases for old fields would have reduced data loss. Without official mapping notes, conservative migration should preserve original R4 values when a clean target is not obvious.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:ELEMENT_PRESENCE_OR_IDENTITY:DeviceDefinition.parent-physical-package:ed3f02",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had direct fields for parent device, packaging quantity, and physical characteristics. R6 uses different structures: child-oriented `hasPart`, recursive `packaging`, and more general `property`. That is not a local rename; parent relationships may require updating a different resource, Quantity packaging data can be narrowed to integer counts, and physical characteristics need coded property modeling.",
+        "keyEvidence": [
+          "R4 `parentDevice` is 0..1 `Reference(DeviceDefinition)`, `quantity` is 0..1 Quantity for package contents, and `physicalCharacteristics` is 0..1 ProdCharacteristic.",
+          "R6 `hasPart.definition[x]` is required when `hasPart` is present, `packaging.count` is integer, and `property` is a general static-characteristic backbone.",
+          "R4 DeviceDefinition scope says the resource supports catalog definitions and hierarchical device configurations."
+        ],
+        "fmmEffect": "FMM 0 softens broad stability concerns, but hierarchy, packaging, and physical characteristics are central to device catalog and regulatory/UDI-style data, and migration can be non-local or lossy.",
+        "compatibilityMechanism": "old-valid/new-invalid - the R4 direct elements are removed; R6-to-R4 loss/semantic loss - the new structures are not one-for-one replacements for parent, Quantity, and ProdCharacteristic data.",
+        "lessBreakingAlternativeAssessment": "R6 could retain deprecated `parentDevice`, `quantity`, and `physicalCharacteristics` while adding richer `hasPart`, `packaging`, and `property` structures. The tradeoff is duplicate hierarchy/packaging representations, but it would avoid non-local inversion and lossy quantity/characteristic mapping.",
+        "comparisonToExisting": "partially agree: the report correctly identifies only a partial alternative, but Medium impact likely understates the non-local and lossy migration burden."
+      }
     },
     {
       "findingId": "DeviceDefinition:CONVERSION_OR_MAPPING:R6-only-extensions:37dd8a",
@@ -2006,7 +2160,21 @@
       "validationAndCompatibilityMd": "R4 validators reject these R6-only fields. Converters that drop them lose regulatory, safety, billing, or use-guidance content. Generated R6 models will also contain many properties absent from R4 models.",
       "migrationGuidanceMd": "For R6-to-R4, define cross-version extensions or companion resources for each populated R6-only area. Do not silently drop corrective-action, regulatory, or charge-item data. For R4-to-R6, leave optional additions absent unless source data or business rules can populate them.",
       "backwardCompatibilityAnalysisMd": "The additions are mostly justified and optional. The backward-compatible concern is less about the R6 design and more about needing official extension and mapping guidance for systems that must round-trip to R4.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceDefinition:CONVERSION_OR_MAPPING:R6-only-extensions:37dd8a",
+        "judgment": "No problem",
+        "narrativeMd": "These are optional R6 additions. They can be important for R6-to-R4 downgrade scenarios, especially regulatory identifiers, corrective actions, and billing links, but they do not make any R4 DeviceDefinition instance invalid in R6. Adding optional structures is normal standards evolution rather than a breaking R4-to-R6 base-design problem.",
+        "keyEvidence": [
+          "R6 adds optional structures including `regulatoryIdentifier`, `deviceVersion`, `link`, `guideline`, `correctiveAction`, and `chargeItem`; required children apply only when an optional parent is present.",
+          "R4 lacks direct base elements for several of these R6 structures.",
+          "ONC ISP lists UDI representation specifications as Final/Production, confirming some new regulatory data can be important, but the change is additive for R4-to-R6."
+        ],
+        "fmmEffect": "FMM 0 further reduces concern because the finding is not a forward compatibility break; regulatory importance affects downgrade planning, not whether R6 should add optional fields.",
+        "compatibilityMechanism": "R6-to-R4 loss - populated R6-only fields may not round-trip to R4 without extensions, but old R4 instances are not rejected by R6 because of these additions.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for optional additive fields. R4 downgrade support belongs in extensions, profiles, or conversion guidance rather than blocking the R6 model from adding structured content.",
+        "comparisonToExisting": "disagree: the existing High impact overstates a reverse-direction representability issue as a breaking compatibility concern."
+      }
     },
     {
       "findingId": "DeviceDefinition:FLAGS_AND_MODIFIERS:summary-flags:aa72c4",
@@ -2106,7 +2274,21 @@
       "validationAndCompatibilityMd": "This is not an R4-valid/R6-invalid change. The risk is runtime behavior: summary responses, code generation metadata, and indexing pipelines may include or omit different local fields.",
       "migrationGuidanceMd": "Review clients and tests that use `_summary=true`, summary element lists, generated model annotations, or summary-based search/index payloads. Update expected fields and payload-size assumptions.",
       "backwardCompatibilityAnalysisMd": "The change is likely justified by the R6 catalog model. Maintaining R4 summary flags would reduce runtime churn but make R6 summaries less useful.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DeviceDefinition:FLAGS_AND_MODIFIERS:summary-flags:aa72c4",
+        "judgment": "No problem",
+        "narrativeMd": "The summary-flag changes affect metadata about what may appear in summary responses or generated model annotations; they do not invalidate R4 content or remove data. Clients may see more fields in R6 summary views, but summary responses are already intentionally partial and version-specific.",
+        "keyEvidence": [
+          "R4 marks only a small set of local/backbone DeviceDefinition elements as summary, including `safety` and `parentDevice` plus inherited/modifierExtension paths.",
+          "R6 marks many metadata, identity, classification, manufacturer, and relationship elements as summary.",
+          "The finding changes `isSummary` metadata only, not cardinality, type, binding, or element presence."
+        ],
+        "fmmEffect": "FMM 0/trial-use and the metadata-only nature of the finding both soften compatibility concern; no path-specific production evidence indicates summary flags are a critical migration blocker.",
+        "compatibilityMechanism": "metadata/tooling - `_summary` behavior and generated metadata may change, but there is no old-valid/new-invalid instance break.",
+        "lessBreakingAlternativeAssessment": "R6 could leave summary flags unchanged, but marking definitional identity/classification fields as summary is a reasonable metadata choice and preserving old flags would not materially improve instance compatibility.",
+        "comparisonToExisting": "disagree: the existing Medium runtime impact is too strong for a metadata-only summary change on a low-FMM resource."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2299,5 +2481,19 @@
       "Same-name semantic repurposing of `url` and `version`",
       "R6 optional expansion fields that are not R4-representable"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DeviceDefinition.fresh-review.json",
+    "findingDecisionCount": 13,
+    "matchedFindingDecisionCount": 13,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 7,
+      "Breaking but probably OK": 4,
+      "No problem": 2
+    }
   }
 }

@@ -337,7 +337,21 @@
       "validationAndCompatibilityMd": "An R4-valid Patient can become R6-invalid if a `Patient.communication.language` CodeableConcept has no coding from the required all-languages value set. R6-coded language data remains representable in R4 because R4 can carry the same CodeableConcept and already identified all-languages as a maximum value set, though R4 validators would treat the common-languages binding differently.",
       "migrationGuidanceMd": "Migration should normalize communication-language values to BCP-47 where possible and preserve the original display/text when mapping is uncertain. Test cases should cover text-only values, local coding systems, common language tags such as `en`, regional tags such as `en-US`, and sign-language tags. Unmappable values need manual review or an extension/profile-specific policy rather than silent defaulting.",
       "backwardCompatibilityAnalysisMd": "The stronger binding improves computability, but the same goal could have been introduced less disruptively through profiles, a best-practice invariant, or an extensible binding plus conformance guidance. Because R4 explicitly allowed for systems that record language as free text, the base binding-strength increase is a real compatibility cost.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Patient:TERMINOLOGY_BINDING:Patient.communication.language:9c3f2d",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Patient.communication.language` was a 1..1 `CodeableConcept` with a preferred binding to common languages; R6 keeps the same path, cardinality, and datatype but makes the binding required to `all-languages` / BCP-47. An R4 instance that records the communication language as text only or with a local code can therefore be R4-valid but fail R6 terminology validation. The computable-language goal is reasonable, but this is a hard base validation break on normative Patient content.",
+        "keyEvidence": [
+          "R4 StructureDefinition `Patient.communication.language`: min 1, max 1, `CodeableConcept`, preferred binding to `http://hl7.org/fhir/ValueSet/languages`; comment says some systems record language as free text.",
+          "R6 StructureDefinition `Patient.communication.language`: same cardinality/type, required binding to `http://hl7.org/fhir/ValueSet/all-languages|6.0.0-ballot4` with common languages retained only as a starter binding.",
+          "R6 `ValueSet-all-languages` includes `urn:ietf:bcp:47`; R4 common-languages value set is a finite starter/common subset."
+        ],
+        "fmmEffect": "Patient is supplied as FMM 5 and normative, so a direct old-valid/new-invalid binding-strength increase needs a strong justification. That stability pressure raises this from ordinary migration work to a Revisit finding.",
+        "compatibilityMechanism": "old-valid/new-invalid: R6 required terminology binding can reject R4 `CodeableConcept` values that have only text or non-BCP-47/local coding; validator and ETL pipelines that previously treated this as a warning may now fail.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: keep a preferred or extensible binding to BCP-47/all-languages, retain common languages as starter guidance, and put strict BCP-47 enforcement in profiles or best-practice rules. The tradeoff is losing a base-level computable-language guarantee, but given normative Patient stability and R4's explicit free-text allowance, the base design should be revisited.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the High hard-break assessment is right and the alternative is only partial, but I give more weight to FMM 5/normative stability than the existing 'probably justified' rationale."
+      }
     },
     {
       "findingId": "Patient:SEMANTIC_OR_CONFORMANCE_TEXT:Patient.contact.relationship:64b8aa",
@@ -565,7 +579,22 @@
       "migrationGuidanceMd": "Create an explicit mapping from R4 contact relationship codes to R6 `relationship` versus `role`. Codes denoting family/friend/personal relationships should remain in `relationship`; emergency contact, employer, billing, interpreter, guardian, next-of-kin, and similar functional roles should move or copy to `role` where a suitable R6 code exists. Because the supplied package has no ConceptMap for this split, high-value contact workflows should be reviewed manually.",
       "backwardCompatibilityAnalysisMd": "The split is model-cleaning rather than a necessary serialization change. A backward-compatible alternative was available: add `role` and keep `relationship` broad until a later version or profile-driven transition. That alternative would reduce migration ambiguity but continue to permit mixed semantics in the base resource.",
       "reviewerNotesMd": "The R6 package index did not include the external `http://terminology.hl7.org/ValueSet/v3-PersonalRelationshipRoleType` value set referenced by `Patient.contact.relationship`; terminology conclusions are based on the canonical reference, the R4 packaged v3 value set, and the R6 relatedperson-relationshiptype value set.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Patient:SEMANTIC_OR_CONFORMANCE_TEXT:Patient.contact.relationship:64b8aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `Patient.contact.relationship` was broad enough to cover the contact person's relationship or role. R6 keeps the element but narrows it to personal relationship and adds `Patient.contact.role` for functional roles. Existing R4 data with emergency-contact, billing, interpreter, or similar role codes is not automatically invalidated because the R6 relationship binding is preferred, but business logic that now reads `role` can miss unmigrated role facts left in `relationship`.",
+        "keyEvidence": [
+          "R4 StructureDefinition `Patient.contact.relationship`: definition is broad, requirements say it helps determine which contact is relevant depending on circumstances, and binding is extensible to `patient-contactrelationship`.",
+          "R6 StructureDefinition `Patient.contact.relationship`: definition and comment narrow it to personal relationships and point functional relationships to `Patient.contact.role`.",
+          "R6 StructureDefinition `Patient.contact.role`: new 0..* `CodeableConcept` with requirements matching functional contact selection.",
+          "R6 `relatedperson-relationshiptype` includes functional/contact role codes such as `ECON`, `NOK`, `GUARD`, `CAREGIVER`, `INTPRTER`, and billing/power-of-attorney variants."
+        ],
+        "fmmEffect": "FMM 5/normative status increases concern for changing the meaning of an existing Patient path. The concern is softened because this is not a structural old-valid/new-invalid break, the new `role` element is additive, and the R6 binding on `relationship` is only preferred.",
+        "compatibilityMechanism": "semantic/documentation: the wire path and type remain, but the expected meaning changes; direct downstream runtime behavior can change if contact-selection logic looks in `role` and ignores functional codes still carried in `relationship`.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could add `Patient.contact.role` while leaving `relationship` broad for a transition period and deprecating functional-role use there. That would ease migration, but it would preserve duplicate representations for the same fact and continue the ambiguity R6 is trying to remove.",
+        "comparisonToExisting": "agree with the existing Medium semantic/runtime impact and Partial alternative judgment; the independent review supports the same tradeoff even though the normative status makes the migration guidance important."
+      }
     },
     {
       "findingId": "Patient:ELEMENT_PRESENCE_OR_IDENTITY:Patient.contact.additionalName:1f7e42",
@@ -725,7 +754,21 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid in R6 because the new element is optional. A valid R6 instance with `additionalName` cannot be represented in base R4 Patient without data loss, extension use, or conversion to another resource pattern such as RelatedPerson.",
       "migrationGuidanceMd": "R6 consumers should treat `name` and `additionalName` as one logical list, as the R6 comment instructs. R6-to-R4 conversions should choose a deterministic primary name for `contact.name` and preserve remaining names in a documented extension or external contact/RelatedPerson model. Tests should include multiple name uses, order preservation, and round-trip back to R6.",
       "backwardCompatibilityAnalysisMd": "The R6 design is explicitly more backward-compatible than widening `Patient.contact.name`, because existing code sees the old field unchanged. The cost is a new field that requires application updates and cannot be natively represented in R4.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Patient:ELEMENT_PRESENCE_OR_IDENTITY:Patient.contact.additionalName:1f7e42",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `Patient.contact.additionalName` while preserving R4's existing `Patient.contact.name` as 0..1. No R4-valid Patient becomes invalid in R6, and the new element is explicitly an overflow field for extra names. The only compatibility issue is reverse conversion: an R6 contact with multiple names cannot be represented losslessly in the base R4 Patient shape.",
+        "keyEvidence": [
+          "R4 StructureDefinition `Patient.contact.name`: 0..1 `HumanName`; no `additionalName` element.",
+          "R6 StructureDefinition `Patient.contact.name`: remains 0..1 and points alternate/additional names to `additionalName`.",
+          "R6 StructureDefinition `Patient.contact.additionalName`: new 0..* `HumanName` with a backward-compatibility comment telling implementers to treat `name` and `additionalName` as one logical list."
+        ],
+        "fmmEffect": "FMM 5/normative status supports preserving the existing `name` element and generated API shape. Because the change is optional and additive, the maturity/status does not create a Revisit-level concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: extra R6 contact names have no native base R4 slot; there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6 compatibility. Making `Patient.contact.name` repeat would be more disruptive to existing generated models; R4 extensions or RelatedPerson-based preservation are down-conversion mitigations, not less-breaking base R6 alternatives.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: it correctly identifies no R4-to-R6 hard break and no applicable less-breaking base alternative, but I would treat this additive, reverse-only concern as No problem rather than a material break."
+      }
     },
     {
       "findingId": "Patient:ELEMENT_PRESENCE_OR_IDENTITY:Patient.contact.additionalAddress:a827de",
@@ -885,7 +928,21 @@
       "validationAndCompatibilityMd": "R4 data remains valid in R6. R6 data using `additionalAddress` is not base-R4 representable without losing all but one contact address or using an extension/external contact resource.",
       "migrationGuidanceMd": "Treat `address` and `additionalAddress` as a single logical address list in R6. For R6-to-R4, select the best primary address for `contact.address`, preserve additional entries through agreed extensions or RelatedPerson, and test address-use prioritization and lossless round-trips where required.",
       "backwardCompatibilityAnalysisMd": "Adding a sibling field is less disruptive than changing `address` cardinality, but it still requires R6-aware clients and explicit down-conversion rules. The design seems justified for backward compatibility with existing generated models.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Patient:ELEMENT_PRESENCE_OR_IDENTITY:Patient.contact.additionalAddress:a827de",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional `Patient.contact.additionalAddress` while preserving R4's existing `Patient.contact.address` as 0..1. This does not invalidate any R4 Patient when moving forward to R6. It does create real reverse-conversion work: an R6 contact with multiple addresses cannot be losslessly represented in the base R4 Patient contact, and choosing which address to keep can affect mail, visit, or legal-notice workflows.",
+        "keyEvidence": [
+          "R4 StructureDefinition `Patient.contact.address`: 0..1 `Address`; no `additionalAddress` element.",
+          "R6 StructureDefinition `Patient.contact.address`: remains 0..1 and points alternate/additional addresses to `additionalAddress`.",
+          "R6 StructureDefinition `Patient.contact.additionalAddress`: new 0..* `Address` with a backward-compatibility comment telling implementers to treat `address` and `additionalAddress` as one logical list."
+        ],
+        "fmmEffect": "FMM 5/normative status favors the chosen additive sibling design because it preserves the existing `address` element and API shape. The same status makes address-loss during reverse conversion worth noting, but not enough to make the R6 design disproportionate.",
+        "compatibilityMechanism": "R6-to-R4 loss: additional R6 contact addresses have no native base R4 slot, so down-conversion must pick a primary address or preserve extras out of band; there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "No clearly less-breaking base R6 design exists. Repeating `Patient.contact.address` would make the logical model cleaner but would disrupt existing 0..1 generated APIs; extensions or RelatedPerson are useful R6-to-R4 mitigation strategies rather than less-breaking base R6 designs.",
+        "comparisonToExisting": "agree with the existing impact and alternative judgment: the finding is not a forward R4-to-R6 break, the R6-to-R4 loss risk is real, and the backward-compatible alternative is not applicable beyond conversion mitigations."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1079,5 +1136,19 @@
       "Sibling overflow elements added instead of widening existing 0..1 elements",
       "Contact/relationship terminology split between personal relationship and functional role"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Patient.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

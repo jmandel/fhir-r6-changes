@@ -351,7 +351,22 @@
       "validationAndCompatibilityMd": "All R4 comparator values remain valid under the R6 terminology, so this is not an old-valid/new-invalid break. The reverse direction is the problem: an R6 Quantity using `ad` is invalid in R4 because R4's required ValueSet does not contain that code. R4-era generated models with closed enums may also fail parsing, fail serialization, or drop/round-trip the unknown code incorrectly.",
       "migrationGuidanceMd": "Update Quantity comparator enums, validators, switch statements, search/index logic, and business rules to recognize `ad`. For R6-to-R4 conversion, do not map `ad` to `<`, `<=`, `>=`, or `>` because that changes semantics. Preserve it in an agreed extension, use an official ConceptMap if one becomes available, or reject/down-scope the conversion with a clear error.",
       "backwardCompatibilityAnalysisMd": "A backwards-compatible design could have used an optional extension to carry `ad` semantics while leaving the base required binding unchanged. That would protect R4 enum consumers but would make a core modifier meaning less discoverable and less consistently validated. Given the distinct comparator semantics, adding a code is probably justified, but it still requires explicit migration handling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Quantity:TERMINOLOGY_BINDING:Quantity.comparator:ad-code",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 and R6 keep `Quantity.comparator` as the same optional `code` element with a required binding and `isModifier=true`; R6 widens the comparator CodeSystem by adding `ad`. Existing R4 instances using `<`, `<=`, `>=`, or `>` remain valid against the R6 binding, so this is not an old-valid/new-invalid R4-to-R6 break. The real compatibility issue is reverse-version and runtime handling: an R6 Quantity with `comparator: ad` cannot be represented in R4's required comparator value set, and R4-era closed enums or switch statements may reject or mishandle a modifier value. Because `ad` has distinct semantics, forcing it into an extension or loosening the binding would reduce core computability and safety. On balance, this is a real migration concern but a proportionate additive terminology evolution.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Quantity.json: `Quantity.comparator` is 0..1 `code`, required binding to `ValueSet/quantity-comparator|4.0.1`, and `isModifier=true`.",
+          "R6 StructureDefinition-Quantity.json: same element shape and modifier flag, required binding to `ValueSet/quantity-comparator|6.0.0-ballot4`.",
+          "R4 CodeSystem-quantity-comparator has `<`, `<=`, `>=`, and `>`; R6 CodeSystem adds `ad` defined as sufficient for the total quantity to equal the given value.",
+          "R4 maturity map and StructureDefinition identify Quantity as normative."
+        ],
+        "fmmEffect": "Quantity is normative in R4, so modifier and terminology changes deserve close scrutiny. That raised the concern above ordinary enum churn, but the change does not invalidate existing R4 comparator values in R6 and the new code carries a distinct semantics.",
+        "compatibilityMechanism": "R6-to-R4 loss plus runtime/API/codegen: R6 `ad` values are outside the R4 required value set and may fail R4 validators or closed generated enums; no old-valid/new-invalid R4-to-R6 instance break was found.",
+        "lessBreakingAlternativeAssessment": "A less-disruptive design could have kept the R4 comparator value set unchanged and represented `ad` in an extension, or weakened the binding. Those alternatives would make a modifier semantics less consistently discoverable, validated, and handled by generic clients. There is no clearly lower-cost base R6 design that both preserves old R4 compatibility for new `ad` content and meets the core goal.",
+        "comparisonToExisting": "Partially agree with the existing report: it correctly identifies no hard R4-to-R6 break and meaningful reverse/runtime risk, but the fresh review treats the additive change as proportionate rather than something needing renewed design attention."
+      }
     },
     {
       "findingId": "Quantity:VALUE_CONSTRAINT:Quantity:qty-4-warning",
@@ -495,7 +510,22 @@
       "migrationGuidanceMd": "Scan Quantity instances for `code` values containing brace annotations, especially where `system` is UCUM. Prefer a valid machine code in `code` and put human-readable annotation in `unit`. If non-UCUM systems intentionally use braces, review whether local profiles or validator configuration should suppress, reinterpret, or document the warning rather than changing data blindly.",
       "backwardCompatibilityAnalysisMd": "R6 chose a warning rather than an error, which is the main backward-compatible mitigation. The least disruptive alternative would be narrative guidance only, but that would be easy to miss in automated validation. A more precise alternative could make the warning conditional on the UCUM system; the current expression is broader, so human review is appropriate for non-UCUM edge cases.",
       "reviewerNotesMd": "The human text says UCUM, but the computable expression is only based on `code` existence and a brace-pattern match. It does not explicitly test `system = http://unitsofmeasure.org`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Quantity:VALUE_CONSTRAINT:Quantity:qty-4-warning",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds `qty-4` as a best-practice warning against brace-delimited annotations in `Quantity.code`; R4 had no comparable local warning. This does not make an R4-valid Quantity invalid in base R6, because the invariant severity is `warning`, not `error`, and the same string remains structurally representable. A warning-as-error validation pipeline could see migration noise, but that is local policy pressure rather than a base compatibility break. The guidance is also aligned with the existing split between machine-processable `code` and human-readable `unit`.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Quantity.json root constraints include `qty-3` but not `qty-4`.",
+          "R6 StructureDefinition-Quantity.json adds root constraint `qty-4` with severity `warning` and human text `Processing UCUM codes with annotations ({..}) can be misleading.`",
+          "R6 `qty-4` is marked best practice and explains that human-readable annotations should be represented in `Quantity.unit`.",
+          "`Quantity.code` is defined in both R4 and R6 as a computer-processable form of the unit; `Quantity.unit` is the human-readable form."
+        ],
+        "fmmEffect": "Normative status meant the warning needed scrutiny, especially because Quantity is widely reused. The effect is softened because R6 chose a warning-level best-practice invariant rather than a required cardinality, type, binding, or error constraint change.",
+        "compatibilityMechanism": "warning-level: R4 data with brace annotations can produce an R6 warning and affect warning-as-error quality gates, but base R6 validation does not reject the instance solely because of `qty-4`.",
+        "lessBreakingAlternativeAssessment": "Narrative-only guidance or a UCUM-system-gated warning would be less noisy. Narrative-only guidance would lose automated feedback, and a system-gated expression could miss misleading UCUM-like annotations when the system is absent or wrong. Since the base rule is only a warning, the chosen design is already a compatibility-preserving mechanism.",
+        "comparisonToExisting": "Partially agree with the existing report: it correctly notes no hard break and a possible warning-as-error operational effect, but the fresh review does not treat that as a material base compatibility problem requiring a less-breaking redesign."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -658,5 +688,18 @@
       "Best-practice warning invariants added to datatypes",
       "Base datatype hierarchy shift from Element to DataType"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Quantity.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

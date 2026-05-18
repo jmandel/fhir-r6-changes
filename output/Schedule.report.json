@@ -344,7 +344,22 @@
       "migrationGuidanceMd": "For R4-to-R6, transform each `Schedule.serviceType[n]` CodeableConcept to `Schedule.serviceType[n].concept`. For R6-to-R4, unwrap `concept` when present. If only `reference` is present, decide whether to resolve the referenced `HealthcareService` into a code, use an extension, preserve the full R6 resource separately, or reject downgrade. Test populated coded values, text-only CodeableConcepts, reference-only CodeableReferences, and entries containing both concept and reference.",
       "backwardCompatibilityAnalysisMd": "The change appears to pursue a useful modeling goal, but it was not strictly wire-compatible. A parallel optional reference element would have allowed exact service references without changing the established `serviceType` JSON shape. The tradeoff is that parallel elements are less elegant and require additional consistency rules.",
       "reviewerNotesMd": "No official ConceptMap or conversion note was available. Human review is recommended for reference-valued R6 service types because resolving `HealthcareService` into a code is domain- and server-dependent.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Schedule:TYPE_DOMAIN:Schedule.serviceType:8f1a3c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Schedule.serviceType` is a real forward break when populated: the R4 array item is a `CodeableConcept`, while R6 expects a `CodeableReference` with the coded value nested under `concept` or an instance under `reference`. A scheduling server or client that emits coded service types must transform the wire shape and generated model use. The R6 goal is coherent because it lets the schedule point to an exact `HealthcareService`, and the obvious more compatible design would create parallel concept/reference fields with long-term consistency rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Schedule.json snapshot element Schedule.serviceType is 0..* CodeableConcept with example service-type binding.",
+          "R6 StructureDefinition-Schedule.json snapshot element Schedule.serviceType is 0..* CodeableReference targeting HealthcareService with the same example service-type binding.",
+          "R6 StructureDefinition-CodeableReference.json defines optional concept: CodeableConcept and reference: Reference children.",
+          "R4 maturity map reports Schedule as FMM 3, standards-status trial-use."
+        ],
+        "fmmEffect": "Schedule is mature trial-use content (FMM 3), so a populated-element wire break matters, especially for appointment booking semantics. It is not normative, and the migration from R4 concepts to R6 concept wrappers is usually mechanical, which keeps the concern proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 serviceType item with coding/text directly under the array item is not the R6 CodeableReference shape; generated APIs also change, and reference-only R6 values create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept serviceType as CodeableConcept and added a separate optional HealthcareService reference. That would preserve R4 wire compatibility, but it would also create two same-resource representations of service identity and require precedence/consistency rules, so it is only a partial alternative.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative assessment; the fresh judgment treats the break as real but likely justified by the CodeableReference modeling goal and the tradeoffs of parallel fields."
+      }
     },
     {
       "findingId": "Schedule:REFERENCE_TARGET:Schedule.actor:0e4d92",
@@ -499,7 +514,22 @@
       "validationAndCompatibilityMd": "This does not make old R4 Schedule instances invalid in R6. The compatibility issue is R6-to-R4: strict R4 validation of `Schedule.actor` rejects CareTeam references, and generated R4 model code may not include CareTeam in typed accessors or switch statements.",
       "migrationGuidanceMd": "For R6-to-R4 conversion, detect `actor` references whose resource type is `CareTeam`. Use a project policy to map them to a representative PractitionerRole, HealthcareService, or Location when clinically appropriate, or preserve the original CareTeam reference in an extension. Include tests for mixed actor lists containing both R4-allowed targets and CareTeam.",
       "backwardCompatibilityAnalysisMd": "Because this is an additive target-domain change, the R4-to-R6 direction is backward-compatible. The R6-to-R4 issue is inherent to allowing a new referenced resource type; a cross-version extension can mitigate but not make the content natively R4-valid.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Schedule:REFERENCE_TARGET:Schedule.actor:0e4d92",
+        "judgment": "No problem",
+        "narrativeMd": "`Schedule.actor` keeps the same cardinality and Reference shape while adding `CareTeam` to the allowed target profiles. That does not make any R4 Schedule actor invalid in R6. The only practical issue is downgrade or strict R4 consumption of new R6 data that uses a CareTeam actor.",
+        "keyEvidence": [
+          "R4 Schedule.actor targetProfile list includes Patient, Practitioner, PractitionerRole, RelatedPerson, Device, HealthcareService, and Location.",
+          "R6 Schedule.actor retains those targets and adds http://hl7.org/fhir/StructureDefinition/CareTeam.",
+          "Cardinality remains 1..* and datatype remains Reference.",
+          "R4 maturity map reports Schedule as FMM 3, standards-status trial-use."
+        ],
+        "fmmEffect": "FMM 3 calls for checking the change carefully, but maturity does not turn a target widening into a forward compatibility break. The reverse-only downgrade issue is expected for new R6 expressivity.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 CareTeam actors are outside the R4 target set, but R4-valid actor references remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for forward compatibility because the old target list was preserved. Representing teams indirectly through PractitionerRole, HealthcareService, Location, or an extension would be a downgrade policy or weaker model, not a better compatibility-preserving base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies this as additive and reverse-direction only, but its Medium impact seems high for a pure target widening with no R4-to-R6 invalidation."
+      }
     },
     {
       "findingId": "Schedule:ELEMENT_PRESENCE_OR_IDENTITY:Schedule.name:2a7b19",
@@ -616,7 +646,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is unaffected because the element is optional. R6-to-R4 validation fails if `name` is retained as a native element, since R4 has no such path. A lossy downgrade can omit it; a lossless downgrade needs an extension or side-channel.",
       "migrationGuidanceMd": "When upgrading, no action is required unless applications want to populate `name`. When downgrading, map `name` to a project-approved extension or drop it with an explicit data-loss flag. Test strict R4 parsers with and without unknown-element rejection.",
       "backwardCompatibilityAnalysisMd": "This is a conventional optional addition. It could have been modeled only as an extension to maximize R4 compatibility, but making it core in R6 improves standard search/display semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Schedule:ELEMENT_PRESENCE_OR_IDENTITY:Schedule.name:2a7b19",
+        "judgment": "No problem",
+        "narrativeMd": "`Schedule.name` is an optional R6 string addition for display/search labeling. Existing R4 instances do not need to add anything to validate as R6. If R6 content is downgraded, the label needs an extension or must be dropped, but that is ordinary reverse-version handling for optional new content.",
+        "keyEvidence": [
+          "R4 Schedule has no Schedule.name element in the supplied StructureDefinition.",
+          "R6 Schedule.name is 0..1 string, isSummary true, with definition about presentation while searching.",
+          "No existing R4 element with matching local identity or required semantics was removed.",
+          "R4 maturity map reports Schedule as FMM 3, standards-status trial-use."
+        ],
+        "fmmEffect": "FMM 3 does not create a stability concern here because the change is optional and additive. It improves R6 usability without invalidating R4 data.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated R6 name has no native R4 path, but there is no R4-to-R6 instance, runtime, or codegen break for existing data.",
+        "lessBreakingAlternativeAssessment": "An extension-only approach would maximize R4 round-tripping, but it would also keep a common display label out of the R6 base model. Since the base addition is optional, no less-breaking base design is required.",
+        "comparisonToExisting": "agree with the existing Low, reverse-direction-only impact and Not applicable alternative judgment."
+      }
     },
     {
       "findingId": "Schedule:TYPE_DOMAIN:Schedule.comment:5dc8b4",
@@ -764,7 +809,22 @@
       "migrationGuidanceMd": "Review generated model changes and serialization tests for `comment`. Upgrade transforms can usually copy the string value unchanged. Downgrade transforms can also copy the value, but user interfaces should decide whether to render markdown before downgrade or leave the markup visible as text.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by keeping `string` and adding narrative guidance that markdown syntax is acceptable. The chosen primitive type is clearer for R6 renderers but less stable for code generators.",
       "reviewerNotesMd": "The hard validation impact is assessed as low because the JSON primitive shape remains a string; confidence is medium rather than high because primitive inheritance and validator behavior vary by implementation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Schedule:TYPE_DOMAIN:Schedule.comment:5dc8b4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Schedule.comment` changes primitive type from `string` to `markdown`, but the JSON value remains a string and ordinary R4 comment text should still validate lexically. The real burden is generated-model and semantic behavior: code may now expose a markdown primitive and UIs may render formatting. For a non-modifier free-text comment, this is a narrow migration issue, and the markdown datatype gives R6 tooling a computable rendering signal.",
+        "keyEvidence": [
+          "R4 Schedule.comment is 0..1 string with unchanged availability-comments definition.",
+          "R6 Schedule.comment is 0..1 markdown with the same local definition and cardinality.",
+          "R6 StructureDefinition-markdown derives from string and defines markdown as a string that may contain GitHub Flavored Markdown syntax; systems are not required to process markdown.",
+          "R4 maturity map reports Schedule as FMM 3, standards-status trial-use."
+        ],
+        "fmmEffect": "FMM 3 gives some weight to generated API stability, but the affected path is optional, non-modifier free text and not a hard instance-shape break. That keeps the change below a revisit threshold.",
+        "compatibilityMechanism": "runtime/API/codegen: the serialized scalar is still a JSON string, but the FHIR primitive type changes from string to markdown, which can alter generated model types, validators, and rendering behavior.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept comment as string and added prose saying markdown syntax is allowed. That would be more compatible for generated APIs but would not provide a computable datatype signal to generic renderers and validators. The alternative is plausible but has enough tradeoff that the base markdown choice is probably acceptable.",
+        "comparisonToExisting": "partially agree: the existing report correctly spots codegen risk and a possible string-plus-guidance alternative, but I would not call the alternative clearly better because it gives up datatype-level markdown signaling."
+      }
     },
     {
       "findingId": "Schedule:TERMINOLOGY_BINDING:Schedule.specialty:7cbb84",
@@ -923,7 +983,22 @@
       "validationAndCompatibilityMd": "R4-valid specialty codings do not become invalid solely because the binding is weakened. R6-to-R4 representability is also not materially affected by the strength change, though an R4 validator may present stronger preferred-binding guidance than an R6 validator.",
       "migrationGuidanceMd": "Do not reject existing C80/SNOMED specialty codes. Review profiles and validation policy if they relied on the base resource's preferred binding; jurisdictions that still require or recommend C80 should express that in profiles.",
       "backwardCompatibilityAnalysisMd": "Weakening a non-required binding is backward-compatible for instances. The less disruptive alternative was to keep the preferred binding, but that would preserve stronger global guidance that R6 apparently no longer wants in the base resource.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Schedule:TERMINOLOGY_BINDING:Schedule.specialty:7cbb84",
+        "judgment": "No problem",
+        "narrativeMd": "`Schedule.specialty` keeps the same datatype, cardinality, and value set canonical while weakening the binding from preferred to example. That is a conformance loosening, not a break for old instances. Implementations that still want C80/SNOMED specialty guidance can continue to require or recommend it in profiles.",
+        "keyEvidence": [
+          "R4 Schedule.specialty is 0..* CodeableConcept with preferred binding to http://hl7.org/fhir/ValueSet/c80-practice-codes.",
+          "R6 Schedule.specialty is 0..* CodeableConcept with example binding to the same value set canonical.",
+          "The existing local terminology comparison reports the same 117 SNOMED CT code identities, with display text changes only.",
+          "R4 maturity map reports Schedule as FMM 3, standards-status trial-use."
+        ],
+        "fmmEffect": "FMM 3 supports noticing terminology-guidance changes, but weakening a non-required binding reduces rather than increases base validation pressure. The maturity context does not create a compatibility problem.",
+        "compatibilityMechanism": "semantic/documentation: validators and documentation may issue different guidance, but no R4-valid specialty coding becomes invalid in R6.",
+        "lessBreakingAlternativeAssessment": "Keeping the preferred binding would preserve stronger shared terminology guidance, but it would not be less breaking because the R6 change is already a loosening. Profiles are the appropriate place to retain stronger specialty-code expectations.",
+        "comparisonToExisting": "agree with the existing Info impact and Not applicable alternative assessment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1081,5 +1156,18 @@
       "Primitive comment/note fields changed from string to markdown",
       "Preferred bindings weakened to example"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Schedule.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 3
+    }
   }
 }

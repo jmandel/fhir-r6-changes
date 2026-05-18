@@ -353,7 +353,22 @@
       "migrationGuidanceMd": "Transform the primitive code into a one-element `CodeableConcept` array. Establish a terminology rule for `biologicalAgent` to `biological-agent`, and decide whether to add `mpho` when source data implies MPHO. Downgrade transforms must choose a preferred category or preserve extras in extensions.",
       "backwardCompatibilityAnalysisMd": "The richer model solves a real expressiveness gap, especially multiple categories, but a transitional retained primitive element or official ConceptMap would have reduced migration risk.",
       "reviewerNotesMd": "Confirm whether `biologicalAgent` to `biological-agent` is an intended direct replacement before applying automatic terminology conversion.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BiologicallyDerivedProduct:TYPE_DOMAIN:productCategory:7f0a1c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `productCategory` is an optional single primitive `code` with a required product-category binding, while R6 keeps the path but changes it to repeating `CodeableConcept` with an example binding and explicit support for multiple classifications such as MPHO plus tissue. That is a real old-valid/new-invalid wire break and R6-to-R4 downgrade can be lossy. At this path, though, the R6 goal is directly tied to a limitation of the R4 shape: one primitive code cannot represent multiple or system-qualified category assertions. Given the artifact's FMM 0 status, this does not by itself justify renewed standards attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `BiologicallyDerivedProduct.productCategory` is `0..1 code` with required `ValueSet/product-category|4.0.1`.",
+          "R6 StructureDefinition: the same path is `0..* CodeableConcept`; definition says products may have multiple categories, e.g. MPHO and tissue.",
+          "R4 category codes include `biologicalAgent`; R6 category codes include `biological-agent` and `mpho`.",
+          "HL7 build BDP module describes MPHO traceability relevance, but the supplied R4 maturity is FMM 0/trial-use."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use substantially softens the stability expectation; the path is central classification data, but the break appears proportionate to a real expressiveness gap.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 primitive string values are not valid against the R6 CodeableConcept array shape; R6-to-R4 loss can occur for multiple categories or categories outside the R4 required set.",
+        "lessBreakingAlternativeAssessment": "A base design could have retained a deprecated primitive category and added a new repeating CodeableConcept element, but that creates duplicate category assertions and precedence rules. That alternative preserves old instances but has enough long-term modeling cost that it is not clearly preferable.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial alternative assessment; I agree the mechanism is hard-breaking, but FMM 0 and the duplicate-field tradeoff make it breaking but probably OK rather than a clear revisit."
+      }
     },
     {
       "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:status-productStatus:2ca8d5",
@@ -535,7 +550,22 @@
       "migrationGuidanceMd": "Map `available` and `unavailable` to R6 `Coding` values using `http://hl7.org/fhir/biologicallyderived-product-status`. Define explicit downgrade rules for `processed`, `applied`, and `discarded`; do not silently map all three to `unavailable` without business review.",
       "backwardCompatibilityAnalysisMd": "The richer lifecycle model is useful, but an official dual-field deprecation period or ConceptMap from R4 `product-status` to R6 `biologicallyderived-product-status` would have made migration safer.",
       "reviewerNotesMd": "The R6 package includes a ConceptMap from biologically derived product status to generic resource status, not an R4-to-R6 element/value migration map.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:status-productStatus:2ca8d5",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `status` is an optional primitive availability code, while R6 replaces it with `productStatus` as a `Coding` on a different code system with lifecycle values such as processed, applied, and discarded. An R4 instance using `status` will fail a strict R6 model and generated code must rename the property and change the value shape. The new model is nevertheless a plausible correction: status is now system-qualified and can represent product lifecycle states that R4 could not express.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `BiologicallyDerivedProduct.status` is `0..1 code`, required-bound to `ValueSet/product-status|4.0.1`.",
+          "R6 StructureDefinition: `BiologicallyDerivedProduct.productStatus` is `0..1 Coding`, example-bound to `ValueSet/biologicallyderived-product-status`.",
+          "R6 status code system includes `available`, `unavailable`, `processed`, `applied`, and `discarded`; R4 product-status includes only `available` and `unavailable`.",
+          "R4 maturity map reports BiologicallyDerivedProduct as FMM 0 and trial-use."
+        ],
+        "fmmEffect": "FMM 0 lowers the burden for incompatible cleanup. Status is operationally important, but the low maturity and added lifecycle expressiveness make the disruption more acceptable.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `status` is an unknown path in R6 and its primitive code shape is not the R6 `Coding`; R6 lifecycle values also lose meaning on downgrade to R4.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept deprecated `status` for the two availability states while adding `productStatus`, but receivers would then need conflict rules for cases like `status=available` with `productStatus=discarded`. Because those conflicts affect use/discard workflows, the compatibility bridge has material safety and interoperability cost.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial alternative judgment; I agree this is a hard path/type break, but the low FMM and conflict risk make the R6 replacement probably acceptable."
+      }
     },
     {
       "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:collection-source:52d9bb",
@@ -699,7 +729,22 @@
       "validationAndCompatibilityMd": "R4 content with `collection.source` is old-valid/new-invalid. R6 content can be downgraded only if at most one of the two split elements is populated or if the extra value is preserved outside the R4 core field.",
       "migrationGuidanceMd": "Inspect the referenced resource type during migration. Map Patient references to `collection.sourcePatient` and Organization references to `collection.sourceOrganization`. For R6-to-R4, define an extension or precedence rule when both are present.",
       "backwardCompatibilityAnalysisMd": "The split is semantically cleaner, but retaining the old field as deprecated would have allowed lossless ingestion of R4 data during a transition period.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:collection-source:52d9bb",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 has one `collection.source` Reference that may point to either Patient or Organization. R6 removes that path and introduces `collection.sourcePatient` and `collection.sourceOrganization`, separating a biological source patient from an organization involved in collection or supply. R4 payloads using `collection.source` are invalid in R6, and code using the old path must be updated. For R4-to-R6, however, the referenced resource type usually gives a deterministic migration path, and the R6 split clarifies privacy and traceability semantics.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `collection.source` is `0..1 Reference(Patient|Organization)`.",
+          "R6 StructureDefinition: `collection.sourcePatient` is Patient-only and comments on access controls for identifiable patient sources.",
+          "R6 StructureDefinition: `collection.sourceOrganization` is Organization-only and describes the organization facilitating collection.",
+          "HL7 CI build notes collection-source changes as a specific ballot topic; local R4 maturity remains FMM 0/trial-use."
+        ],
+        "fmmEffect": "Low FMM softens the impact of a path split. The source field is traceability/privacy relevant, but the R6 semantics are more precise and migration from R4 is usually type-directed.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `collection.source` is removed; there is also R6-to-R4 loss when R6 carries both patient and organization because R4 has only one source slot.",
+        "lessBreakingAlternativeAssessment": "Keeping deprecated `collection.source` alongside the split fields would preserve old instances, but it reintroduces the ambiguity the split is trying to remove and creates conflicts when old and new fields disagree. The alternative is plausible but not clearly lower-risk.",
+        "comparisonToExisting": "partially agree with the existing medium impact and partial alternative assessment; I agree on the break and tradeoff, but the path-level migration is often straightforward enough for breaking but probably OK."
+      }
     },
     {
       "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:quantity:0e44f2",
@@ -805,7 +850,22 @@
       "migrationGuidanceMd": "Inventory systems should identify all uses of `quantity`, decide whether the value is encoded in `productCode`, a package/labeling artifact, an R6 `property`, or an extension, and test that downstream fulfillment logic still receives the count.",
       "backwardCompatibilityAnalysisMd": "Removal appears avoidable from a wire-compatibility perspective because the element was optional and could have been deprecated without blocking the R6 model.",
       "reviewerNotesMd": "Human review is needed to choose a sanctioned target because a generic property without a stable code may be hard for receivers to process.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:quantity:0e44f2",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `quantity` is a simple optional integer count of discrete units. R6 has no same-path element and no obvious fixed-path replacement; generic `property`, product coding, packaging, or local extensions might carry the information, but each requires implementation policy. This is a direct old-valid/new-invalid break with potentially lossy migration for inventory or fulfillment logic, and the old field was cheap to retain because it was optional and scalar.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `BiologicallyDerivedProduct.quantity` is `0..1 integer`, defined as the number of discrete units within the product.",
+          "R6 StructureDefinition snapshot/differential contain no `BiologicallyDerivedProduct.quantity` element.",
+          "R6 has generic `property` with required `type` and `value[x]`, but no inspected dedicated discrete-unit-count code.",
+          "R4 maturity map reports FMM 0/trial-use."
+        ],
+        "fmmEffect": "FMM 0 softens the general compatibility concern, but removal of a simple count with no direct R6 destination leaves business/inventory mappings expert-dependent enough to warrant revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `quantity` are invalid in R6; migration may also be lossy because R6 has no stable core destination for the count.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: keep `quantity` as optional deprecated `0..1 integer` while adding guidance for when product codes, packaging, or typed properties supersede it. The tradeoff is carrying a coarse legacy count, but that seems modest compared with deleting the only fixed count field.",
+        "comparisonToExisting": "agree with the existing medium impact and Yes alternative judgment; the fresh assessment also finds this probably avoidable despite low maturity."
+      }
     },
     {
       "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:processing-manipulation:bb1936",
@@ -966,7 +1026,22 @@
       "migrationGuidanceMd": "Inventory existing uses of processing and manipulation. Prefer official product codes when a code fully encodes processing conditions. Preserve residual descriptions, additives, and times in extensions or well-governed `property` codings if receivers can process them. Include tests for multiple processing entries and manipulation timing.",
       "backwardCompatibilityAnalysisMd": "This removal was likely avoidable by retaining optional legacy backbones. If the R6 goal was standard product coding, deprecation plus guidance would have reduced data-loss risk.",
       "reviewerNotesMd": "Clinical SMEs should review mappings because additives and manipulation can affect product suitability.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:processing-manipulation:bb1936",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 can carry repeatable processing details and a manipulation backbone, including descriptions, procedure/additive information, and times. R6 removes those backbones and appears to move some characterization into `productCode`, `collection.procedure`, or generic `property`. That can be a valid modeling direction, but it is not an identity-preserving migration: additive references, free text, repeat structure, and timing may be lost or require clinical judgment to recode.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `processing` is `0..*` with description, procedure, additive Reference, and time[x].",
+          "R4 StructureDefinition: `manipulation` is `0..1` with description and time[x].",
+          "R6 StructureDefinition has no `processing` or `manipulation` paths; R6 `productCode` definition includes processing conditions, additives, volumes, and handling conditions.",
+          "HL7 BDP module lists blood, cellular therapy, organs, tissues, CAR T-cells, and similar products where processing/manipulation can be clinically material."
+        ],
+        "fmmEffect": "Although FMM 0 weakens stability expectations, the removed details are safety- and suitability-relevant and migration can require SME judgment, so low maturity does not make the break harmless.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 processing/manipulation backbones are unknown in R6; R6-to-R4 and R4-to-R6 transforms can be lossy when product codes or properties cannot reconstruct event details.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained these optional backbones as deprecated while encouraging standardized product codes and typed properties. The tradeoff is duplicate clinically significant facts and precedence rules, but complete removal without a direct replacement leaves too much detailed source data at risk.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial alternative judgment; I agree the alternative has conflict costs, but the safety-relevant data loss makes this a stronger revisit candidate."
+      }
     },
     {
       "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:storage:6ab0e7",
@@ -1123,7 +1198,22 @@
       "migrationGuidanceMd": "Convert simple Celsius/Fahrenheit/Kelvin temperatures into `Range` quantities using UCUM units where possible. Preserve storage descriptions, durations, multiple storage conditions, and uncertain scale conversions in extensions or product-code-derived rules. Validate clinically important thresholds after conversion.",
       "backwardCompatibilityAnalysisMd": "The `Range` datatype improves the temperature model, but retaining the old backbone during transition would have avoided rejection of existing storage data and allowed gradual normalization.",
       "reviewerNotesMd": "The R4 code `farenheit` is misspelled in the local CodeSystem; handle this carefully if converting to UCUM Fahrenheit.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BiologicallyDerivedProduct:ELEMENT_PRESENCE_OR_IDENTITY:storage:6ab0e7",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `storage` is a repeatable backbone with description, temperature, scale, and duration. R6 replaces only part of that with a single `storageTempRequirements` Range and notes that the value may be extracted from `productCode`. The Range is a better temperature model, but it does not preserve storage descriptions, durations, multiple conditions, or the exact old representation. Because storage requirements can affect product viability and safe use, this deletion deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `storage` is `0..* BackboneElement` with description, decimal temperature, required-bound scale, and duration Period.",
+          "R4 storage scale code system includes `farenheit`, `celsius`, and `kelvin`.",
+          "R6 StructureDefinition: `storageTempRequirements` is `0..1 Range`; its comment says it may be extracted from `productCode`.",
+          "HL7 BDP module states biologically derived products have long-term traceability and safety requirements; examples include blood, tissues, organs, and cellular therapy products."
+        ],
+        "fmmEffect": "FMM 0 reduces the stability burden, but storage conditions are safety-significant and the migration from repeatable instructions to one temperature range is not purely mechanical.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `storage` content is invalid in R6; migration is lossy for duration, description, multiple storage entries, and possibly temperature-unit semantics.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have added `storageTempRequirements` while retaining deprecated `storage`, or provided structured R6 destinations for duration and descriptive handling instructions. Duplicate temperature facts would need conflict rules, but that tradeoff seems preferable to silent loss of safety-relevant storage details.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial alternative judgment; I disagree that the replacement is probably justified at this path without more explicit preservation or migration design."
+      }
     },
     {
       "findingId": "BiologicallyDerivedProduct:CONVERSION_OR_MAPPING:r6-only-traceability-property:91e620",
@@ -1273,7 +1363,22 @@
       "migrationGuidanceMd": "For systems that must emit R4, create explicit cross-version extensions or companion records for each R6-only field. Test downgrade/upgrade round-trips for traceability identifiers, expiration, property choice values, and collection procedure references.",
       "backwardCompatibilityAnalysisMd": "The additions are backward-compatible in the forward direction, but the lack of official R4 extension guidance makes bidirectional compatibility weak.",
       "reviewerNotesMd": "The business importance of `biologicalSourceEvent` should be reviewed by traceability and privacy stakeholders.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BiologicallyDerivedProduct:CONVERSION_OR_MAPPING:r6-only-traceability-property:91e620",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The listed R6 fields are optional additions, so they do not invalidate R4 instances moving forward. They do create real downgrade and round-trip burden: R6 can now carry therapy identifiers, biological source events, processing facility, division, expiration, collection procedure, temperature requirements, and typed properties that R4 core has no fixed destinations for. In the base R6 design, however, these additions look proportionate because they support traceability and labeling rather than replacing existing R4 wire content.",
+        "keyEvidence": [
+          "R6 StructureDefinition adds optional `therapyIdentifier`, `biologicalSourceEvent`, `processingFacility`, `division`, `expirationDate`, `collection.procedure`, `storageTempRequirements`, and repeatable `property`.",
+          "R6 `biologicalSourceEvent` comment says it is necessary for mandatory donor/source-to-recipient traceability while satisfying donor anonymity.",
+          "R6 mappings identify ISBT 128 Donation Identification Number, Chain of Identity Identifier, Processing Facility Identification Number, Division Identifier, and Expiration Date/Time.",
+          "HL7 BDP module states MPHO bi-directional traceability is essential; quick web/source checks found official traceability relevance but no strong evidence of broad routine production use."
+        ],
+        "fmmEffect": "FMM 0 softens expectations about bidirectional compatibility, but traceability and labeling relevance justify treating downgrade loss as real. The low maturity does not make the optional additions problematic.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using the new optional fields cannot be represented in R4 core without extensions, companion records, or data loss; there is no R4-to-R6 old-valid/new-invalid break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for optional additions. R4 extensions, ConceptMaps, or companion records would help downgrade workflows, but those are migration mechanisms rather than a different R6 base design.",
+        "comparisonToExisting": "agree with the existing no-hard-forward-break and not-applicable alternative assessment; I also agree downgrade risk is meaningful, but it is proportionate to the traceability goal."
+      }
     },
     {
       "findingId": "BiologicallyDerivedProduct:SEMANTIC_OR_CONFORMANCE_TEXT:productCode:af3391",
@@ -1416,7 +1521,22 @@
       "migrationGuidanceMd": "Preserve existing codings when adding R6 product-description codes. Update terminology services, matching logic, and display rules to recognize `http://hl7.org/fhir/biologicallyderived-productcodes`. Test product-code-driven derivation of storage and processing expectations.",
       "backwardCompatibilityAnalysisMd": "Because `CodeableConcept` can carry multiple codings, compatibility can be achieved by retaining old codings and adding new ones, but only if implementation guidance states which coding systems are authoritative.",
       "reviewerNotesMd": "Confidence is medium for semantic impact because official narrative guidance was not reviewed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BiologicallyDerivedProduct:SEMANTIC_OR_CONFORMANCE_TEXT:productCode:af3391",
+        "judgment": "No problem",
+        "narrativeMd": "`productCode` remains `0..1 CodeableConcept` with an example binding. R6 changes the example value set and description toward MPHO/ISBT-style product description codes that may encode processing, additives, volumes, and handling conditions. That can require application guidance, but base validation and wire shape are preserved, and `CodeableConcept` can carry both old and new codings when a system needs a transition.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `productCode` is `0..1 CodeableConcept` with example binding and SNOMED-oriented definition text.",
+          "R6 StructureDefinition: `productCode` remains `0..1 CodeableConcept` with example binding to `ValueSet/biologicallyderived-productcodes`.",
+          "R6 `productCode` mapping references ISBT 128 Product Description Code; local R6 product codes include blood/HPC/tissue examples with processing and storage descriptors.",
+          "R4 maturity map reports FMM 0/trial-use."
+        ],
+        "fmmEffect": "FMM 0 further lowers concern for a semantic/example-binding evolution. Because the datatype and cardinality are unchanged, low maturity reinforces treating this as guidance churn rather than a break needing standards redesign.",
+        "compatibilityMechanism": "semantic/documentation: terminology guidance and interpretation changed, but the element's path, datatype, cardinality, and permissive binding strength remain compatible.",
+        "lessBreakingAlternativeAssessment": "No base-model alternative is necessary. Implementers can preserve previous codings and add R6 product-description codings in the same CodeableConcept, with local rules for preferred display or matching.",
+        "comparisonToExisting": "partially agree with the existing semantic-risk analysis but disagree with treating it as medium compatibility impact; at the base StructureDefinition level this is no problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1582,5 +1702,19 @@
       "Resources adding `biologicalSourceEvent` for traceability",
       "Resources replacing detailed event backbones with product code or generic property models"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/BiologicallyDerivedProduct.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 4,
+      "No problem": 1
+    }
   }
 }

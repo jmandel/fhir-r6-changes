@@ -261,7 +261,22 @@
       "migrationGuidanceMd": "Inventory all uses of `SubstanceSourceMaterial` first: persisted resources, API routes, search parameters, generated classes, validation profiles, examples, and transformations. For data migration, evaluate whether each instance belongs inside a `SubstanceDefinition` as `sourceMaterial` plus other R6 elements/extensions. Keep the original R4 resource or an audit copy when traceability is regulatory or safety-relevant, because the candidate R6 component is not a lossless replacement.",
       "backwardCompatibilityAnalysisMd": "The removal was probably motivated by consolidation of immature medication-definition substance resources into `SubstanceDefinition`. A backward-compatible path was available in principle: keep the resource as deprecated and define transforms. That alternative would have reduced breakage but required the R6 specification to maintain an older draft shape.",
       "reviewerNotesMd": "Confirm against official R6 ballot narrative or change logs whether `SubstanceDefinition.sourceMaterial` is the intended successor and whether any official conversion map exists outside the local package.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSourceMaterial:ARTIFACT_IDENTITY:root:a6f2d1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "This is a real hard break at resource identity level: an R4 instance with `resourceType: \"SubstanceSourceMaterial\"` has no same R6 StructureDefinition, and generated R6 APIs/endpoints will not expose the old resource class unless they carry a custom legacy definition. I would not elevate the removal to `Revisit` on this finding alone because the R4 artifact was draft/trial-use FMM 0, the domain is specialized, quick public checks did not show clear mainstream production profiling, and R6 keeps a source-material concept inside `SubstanceDefinition`. The migration burden is real, but consolidating a low-maturity standalone resource into a broader substance-definition model appears proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition-SubstanceSourceMaterial.json defines a concrete resource with id/type `SubstanceSourceMaterial`, kind `resource`, abstract false, standards-status trial-use, and FMM 0.",
+          "The R6 assigned StructureDefinition file is absent; the R6 package index/glob check found `StructureDefinition-Substance.json` and `StructureDefinition-SubstanceDefinition.json` but no `SubstanceSourceMaterial` resource.",
+          "R6 `SubstanceDefinition.sourceMaterial` exists as optional 0..1 BackboneElement for material or taxonomic/anatomical source.",
+          "Targeted web searches for public IG/project production use found no clear mainstream SubstanceSourceMaterial profiles or production deployment evidence; HL7 Europe Base was checked as a broad foundation rather than a specific production profile."
+        ],
+        "fmmEffect": "FMM 0 and trial-use status substantially soften the stability concern. I treated the resource removal as breaking, but not automatically disproportionate without stronger evidence of deployed production use.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: the old resourceType has no R6 validation target, and parsers, validators, servers, searches, serializers, and generated model classes must migrate or carry legacy support.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained `SubstanceSourceMaterial` as a deprecated R6 resource while introducing `SubstanceDefinition.sourceMaterial`. That would preserve old instances and generated APIs, but it would also preserve a second low-maturity resource identity for the same domain and increase validator, search, documentation, and conversion burden. The alternative exists, but its tradeoffs make the R6 removal/consolidation defensible.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative judgment: the compatibility mechanism is real, but the prior report gives more weight to broad runtime impact than I would for FMM 0 content with no quick evidence of mainstream production use."
+      }
     },
     {
       "findingId": "SubstanceSourceMaterial:ELEMENT_PRESENCE_OR_IDENTITY:sourceMaterial:bf37c9",
@@ -489,7 +504,23 @@
       "migrationGuidanceMd": "Define an explicit migration policy per old field. Map `sourceMaterialType`, `organism.genus`, `organism.species`, `partDescription.part`, and `countryOfOrigin` to `SubstanceDefinition.sourceMaterial` where appropriate. Decide whether sourceMaterialClass/state, organismId/name, parent substance data, geographical location, development stage, fraction data, organism family/intraspecific/author/hybrid/general taxonomy, and partLocation should map to other `SubstanceDefinition` elements, standard/custom extensions, annotations, or retained legacy resources. Test migration with records containing multiple fractions, multiple parts, hybrid organisms, and non-ISO country codes.",
       "backwardCompatibilityAnalysisMd": "A one-to-one backward-compatible field preservation strategy was available but would have carried a broad, low-maturity R4 model into R6. The chosen model appears cleaner but sacrifices lossless migration unless a standard extension or official map fills the gap.",
       "reviewerNotesMd": "The exact intended destinations for unmapped fields should be checked against official substance-definition guidance or work-group change notes.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSourceMaterial:ELEMENT_PRESENCE_OR_IDENTITY:sourceMaterial:bf37c9",
+        "judgment": "Revisit",
+        "narrativeMd": "At the content-model level, `SubstanceDefinition.sourceMaterial` is not a lossless successor for the R4 resource. R4 had optional but highly specific source-material fields for class/state, organism identity and name, parent substances, geography, development stage, fractions, detailed taxonomy, hybrid organisms, and part location. The R6 candidate keeps only type, genus, species, part, and country of origin under the sourceMaterial component. A mapper for plasma, vaccine, herbal, or biologically derived substance records would need expert rules to decide which facts can move to generic `SubstanceDefinition` areas, extensions, notes, or retained legacy records. Even with FMM 0, that lossy/expert-dependent migration in a regulatory provenance domain deserves renewed standards attention, at least to confirm intended destinations or add a narrower lossless base path for high-value details.",
+        "keyEvidence": [
+          "R4 local elements include `sourceMaterialClass`, `sourceMaterialState`, `organismId`, `organismName`, repeated `parentSubstanceId/name`, repeated `geographicalLocation`, `developmentStage`, repeated `fractionDescription`, detailed organism taxonomy/author/hybrid/general subtrees, and repeated `partDescription.partLocation`.",
+          "R6 `SubstanceDefinition.sourceMaterial` children are only `type`, `genus`, `species`, `part`, and repeated `countryOfOrigin`; it is 0..1 as a component.",
+          "A search of R6 `SubstanceDefinition` shows generic destinations such as classification, relationship, name, note, and sourceMaterial, but not specific base children for the R4 fraction, hybrid, author, full taxonomy, state, geography, or part-location details.",
+          "No local R4/R6 ConceptMap or StructureMap mentioning `SubstanceSourceMaterial` was found in the package ConceptMap/StructureMap files.",
+          "R4 definitions explicitly mention regulatory/source-provenance contexts including vaccines, herbal preparations, plasma-derived substances, and the Plasma Master File."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the expected compatibility obligation and the web search did not establish broad production use. It does not erase the concern because this specific change can be lossy, expert-dependent, and tied to regulatory provenance semantics described in the R4 definitions.",
+        "compatibilityMechanism": "R6-to-R4 loss and runtime/API/codegen: after choosing the inferred R6 target, many old fields have no direct R6 base child, so migration can drop information or require non-core extensions/generic fields; generated R4 nested classes also have no corresponding R6 API surface.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design could preserve selected detailed optional children under `SubstanceDefinition.sourceMaterial`, or retain a deprecated detailed source-material backbone/resource for one transition. The tradeoff is carrying a broad low-maturity model forward and potentially duplicating generic `SubstanceDefinition` mechanisms such as classification or relationship. Still, a narrower optional detail path or explicit computable base mapping looks plausible enough that the design should be revisited.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative judgment: I agree the migration can be lossy and a partial base alternative exists, but the fresh rationale is more about missing official mapping and expert-dependent regulatory data loss than generic runtime breakage."
+      }
     },
     {
       "findingId": "SubstanceSourceMaterial:TERMINOLOGY_BINDING:countryOfOrigin:c91a20",
@@ -650,7 +681,22 @@
       "migrationGuidanceMd": "Create a country-code normalization step before R6 validation. Include tests for ISO alpha-2, alpha-3, local-code-only, text-only, historical country, and multi-country examples. If local codes must be retained, keep them as additional codings only when an in-ValueSet coding is also present, or preserve them in an extension/profile-approved coding strategy.",
       "backwardCompatibilityAnalysisMd": "This could have been less disruptive with extensible binding, but required binding is a common and defensible choice for countries. The practical compatibility gap should be addressed with a published mapping table rather than weakening all R6 conformance.",
       "reviewerNotesMd": "Confirm the exact validator behavior for CodeableConcept required bindings in the target implementation, especially text-only CodeableConcepts and multiple codings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SubstanceSourceMaterial:TERMINOLOGY_BINDING:countryOfOrigin:c91a20",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "For the inferred mapped path, the datatype and multiplicity remain compatible, but R6 adds a required country ValueSet binding. R4 instances that used local country code systems, text-only country names, historical labels, or non-country jurisdiction concepts may need normalization before strict R6 validation. That is a real terminology migration task, especially because country of origin can matter for plasma and biological material traceability. Still, the field is specifically country/jurisdiction data, the R6 binding uses the common country ValueSet, and weakening it would reduce computable comparability. This looks proportionate rather than a design issue.",
+        "keyEvidence": [
+          "R4 `SubstanceSourceMaterial.countryOfOrigin` is 0..* CodeableConcept with no local binding in the StructureDefinition.",
+          "R6 `SubstanceDefinition.sourceMaterial.countryOfOrigin` is 0..* CodeableConcept with required binding to `http://hl7.org/fhir/ValueSet/country|6.0.0-ballot4`.",
+          "The local R6 `ValueSet-country.json` compose includes `urn:iso:std:iso:3166`; no local expansion was present.",
+          "R4 countryOfOrigin definition mentions countries where plant material is harvested and countries where plasma is sourced for plasma-derived substances."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability expectation and keeps this from becoming `Revisit` based only on stricter validation. The regulatory traceability domain keeps it from being `No problem`, but the standardization goal is strong.",
+        "compatibilityMechanism": "old-valid/new-invalid: after migration to the inferred R6 path, CodeableConcept values outside the required country ValueSet can fail strict terminology validation even though cardinality and datatype are unchanged.",
+        "lessBreakingAlternativeAssessment": "An extensible binding would be less-breaking because it could accept more legacy local or text-coded country values while encouraging ISO countries. The tradeoff is that it would not guarantee comparable country coding for a field whose semantics are explicitly country of origin. A normalization map is a useful migration aid, but not a less-breaking base design.",
+        "comparisonToExisting": "agree with the existing medium-impact and partial-alternative judgment: the break is real but narrower than the resource removal/remodel, and the extensible-binding alternative has a clear conformance tradeoff."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -804,5 +850,18 @@
       "R4 resources removed entirely from R6 core package",
       "Required country bindings introduced on moved or remodeled CodeableConcept elements"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SubstanceSourceMaterial.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 2
+    }
   }
 }

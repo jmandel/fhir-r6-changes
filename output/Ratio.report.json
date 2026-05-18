@@ -385,7 +385,24 @@
       "migrationGuidanceMd": "Scan all Ratio-valued data for `denominator.comparator`. If none are present, no transform is needed for this finding. If present, do not simply drop the comparator unless a domain owner confirms it is safe: removal can change the meaning. Potential migration strategies include correcting erroneous source data, moving the original comparator to a documented extension for audit, mapping to a different model that can express a range or threshold, or routing the record for manual review. Regression tests should include Ratio instances with no comparator, comparator on numerator only, comparator on denominator, and denominator omitted/present combinations for `rat-1`.",
       "backwardCompatibilityAnalysisMd": "The change could have been made less disruptive by retaining `Quantity` on the base `Ratio.denominator` and requiring `SimpleQuantity` only in profiles or through a best-practice warning. That alternative would keep existing R4 data valid but would leave base R6 Ratio with weaker mathematical semantics. The chosen design favors a stronger base guarantee at the cost of rejecting old denominator-comparator instances.",
       "reviewerNotesMd": "The structural delta is unambiguous. Human review is recommended for affected instances because the correct remediation depends on why a comparator was used on the denominator.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Ratio:TYPE_DOMAIN:Ratio.denominator:7681c8",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed `Ratio.denominator` to be a general `Quantity`; R6 keeps the same path but constrains it to `SimpleQuantity`. That is a real old-valid/new-invalid break for any R4 ratio whose denominator carried `comparator`. A concrete affected case is ratio-valued clinical or medication data where the denominator was recorded as a threshold or approximate quantity; simply dropping the comparator can change the ratio's meaning, so affected records need domain review. The R6 design goal is understandable because a ratio denominator is normally a fixed divisor, and local package examples did not show this pattern as common. However, this is a hard validation break in a normative R4 datatype, and no local rationale explains why base R6 had to reject the old wire form rather than first using a warning/profile approach. That combination makes the specific path worth renewed standards review.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Ratio snapshot: `Ratio.denominator` type is `Quantity` with no profile.",
+          "R6 StructureDefinition-Ratio snapshot: `Ratio.denominator` type is `Quantity` profiled by `http://hl7.org/fhir/StructureDefinition/SimpleQuantity`.",
+          "R4 StructureDefinition-Quantity: `Quantity.comparator` is `0..1`, is a modifier, and is required-bound to quantity-comparator.",
+          "R6 StructureDefinition-SimpleQuantity: `Quantity.comparator` has max `0` and invariant `sqty-1` has severity `error` with expression `comparator.empty()`.",
+          "R4 Ratio metadata and maturity map identify Ratio as normative since 4.0.0.",
+          "Targeted local package search found no example `denominator` object containing `comparator`, which tempers prevalence but does not remove the hard-break mechanism."
+        ],
+        "fmmEffect": "R4 Ratio is normative, so the stability expectation is high. That raises the justification burden for changing a valid R4 denominator shape into an R6 validation error, especially because comparator is modifier data whose removal can be semantic.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `Ratio.denominator` can legally include `Quantity.comparator`; in R6 the same denominator is validated as `SimpleQuantity`, where comparator is prohibited by max `0` and an error invariant.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design would keep `Ratio.denominator` as `Quantity`, add normative text plus a warning or best-practice invariant discouraging `denominator.comparator`, and publish/use a stricter SimpleQuantity-profiled Ratio where an exact denominator must be enforced. This would preserve old R4 instances but would not provide a universal base R6 guarantee that denominators are exact, so it has real interoperability tradeoffs. Still, for a normative hard break with potentially lossy migration, that tradeoff is credible enough to revisit.",
+        "comparisonToExisting": "partially agree with the existing report: the structural hard break and high impact are well supported, and the alternative is only partial because it weakens base enforcement. I am less accepting of the reported 'probably justified' conclusion because the normative status, modifier semantics, and absence of local rationale make this path deserving of renewed review."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -571,5 +588,17 @@
       "R4 instances with Quantity.comparator under Ratio.denominator",
       "Datatype baseDefinition shifts from Element to DataType"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Ratio.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1
+    }
   }
 }

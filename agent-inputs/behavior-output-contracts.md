@@ -13,6 +13,28 @@ fields may contain GitHub-flavored Markdown strings.
 export type ImpactLevel = "Critical" | "High" | "Medium" | "Low" | "Info";
 export type ConfidenceLevel = "High" | "Medium" | "Low" | "Unknown";
 
+export type BehaviorReviewJudgment =
+  | "Revisit"
+  | "Unclear"
+  | "Breaking but probably OK"
+  | "No problem";
+
+export type BehaviorCompatibilityMechanism =
+  | "old-valid-new-invalid"
+  | "runtime-api-codegen"
+  | "warning-level-conformance"
+  | "semantic-or-documentation"
+  | "metadata-tooling"
+  | "none"
+  | "unknown";
+
+export type BehaviorAlternativeJudgment =
+  | "Yes"
+  | "Partial"
+  | "No"
+  | "Not applicable"
+  | "Unknown";
+
 export interface PublishedPageRef {
   label: string;
   r4Url: string;
@@ -85,11 +107,64 @@ export interface BehaviorEvidence {
 export interface BehaviorImpact {
   runtimeBreakingRisk: ImpactLevel;
   conformanceRisk: ImpactLevel;
+  /**
+   * Deprecated for this R4→R6 behavior round. Always set to
+   * "Not applicable"; do not use reverse R6→R4 loss to justify a finding.
+   */
   r6ToR4RepresentabilityRisk: ImpactLevel | "Not applicable";
-  affectedDirection: "R4-to-R6" | "R6-to-R4" | "Both" | "Runtime only" | "Unknown";
+  affectedDirection: "R4-to-R6" | "Runtime only" | "Unknown";
   expectedPrevalence: "Common" | "Occasional" | "Rare" | "Unknown" | "Not applicable";
   confidence: ConfidenceLevel;
   impactRationaleMd: string;
+}
+
+export interface BehaviorFreshReview {
+  /**
+   * Final action judgment for this specific behavior finding.
+   *
+   * This is intentionally not a restatement of overallImpact. For R4→R6
+   * analysis, FMM and standards status mean the R4 baseline artifact being
+   * changed or removed. R6 maturity may be mentioned in prose as future-version
+   * context, but it must not raise the compatibility burden for R4 consumers.
+   */
+  judgment: BehaviorReviewJudgment;
+
+  compatibilityMechanism: BehaviorCompatibilityMechanism;
+
+  fmmContext: {
+    /**
+     * R4 baseline FMM/status for the artifact whose R4 behavior is changed.
+     * If there is no R4 predecessor, omit these values and explain that there
+     * is no R4 maturity baseline for compatibility pressure.
+     */
+    fmm?: number;
+    standardsStatus?: string;
+    source: string;
+    effect:
+      | "Raises burden of justification"
+      | "Neutral"
+      | "Softens stability concern"
+      | "Unknown";
+    rationaleMd: string;
+  };
+
+  /**
+   * One concrete implementation or exchange scenario that would encounter
+   * this behavior change. Keep it short and specific.
+   */
+  realWorldScenarioMd: string;
+
+  lessBreakingAlternative: {
+    judgment: BehaviorAlternativeJudgment;
+    candidateDesignMd?: string;
+    tradeoffsOrReasonMd?: string;
+  };
+
+  /**
+   * Concise rationale for the final judgment after considering actual
+   * behavior, FMM/status, prevalence, and alternative designs.
+   */
+  rationaleMd: string;
 }
 
 export interface BehaviorLimitation {
@@ -179,6 +254,7 @@ export interface SearchBehaviorFinding {
   changedFields: SearchFieldDelta[];
   matchRationaleMd: string;
   impact: BehaviorImpact;
+  freshReview: BehaviorFreshReview;
   evidence: BehaviorEvidence[];
   runtimeMechanismMd: string;
   migrationGuidanceMd: string;
@@ -265,6 +341,7 @@ export interface OperationBehaviorFinding {
   parameterDeltas: OperationParameterDelta[];
   matchRationaleMd: string;
   impact: BehaviorImpact;
+  freshReview: BehaviorFreshReview;
   evidence: BehaviorEvidence[];
   runtimeMechanismMd: string;
   migrationGuidanceMd: string;
@@ -369,6 +446,7 @@ export interface HttpRestBehaviorFinding {
   affectedResources: string[];
   changedFields: HttpRestFieldDelta[];
   impact: BehaviorImpact;
+  freshReview: BehaviorFreshReview;
   evidence: BehaviorEvidence[];
   runtimeMechanismMd: string;
   migrationGuidanceMd: string;

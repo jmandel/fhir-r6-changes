@@ -257,7 +257,22 @@
       "migrationGuidanceMd": "Inventory `DiagnosticReport.basedOn` references by resource type. For ImmunizationRecommendation references, determine whether an R6 request resource should replace the reference, whether the relationship should be carried in an extension, or whether the report must remain versioned as R4.",
       "backwardCompatibilityAnalysisMd": "The narrowing appears avoidable from a DiagnosticReport compatibility perspective because the old target could have remained while being deprecated. The supplied inputs do not show whether the target resource was intentionally removed elsewhere in R6.",
       "reviewerNotesMd": "Needs coordination with the separate ImmunizationRecommendation artifact analysis.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DiagnosticReport:REFERENCE_TARGET:DiagnosticReport.basedOn:7a4c2b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed `DiagnosticReport.basedOn` to point to `ImmunizationRecommendation`, while R6 no longer allows that target and the R6 package does not include the resource. That is a real validator break for the uncommon case where a report traces to an immunization recommendation, but the path is peripheral to the usual order-to-report workflow and preserving it would require carrying a legacy resource or target in R6.",
+        "keyEvidence": [
+          "R4 snapshot `DiagnosticReport.basedOn` targets CarePlan, ImmunizationRecommendation, MedicationRequest, NutritionOrder, and ServiceRequest.",
+          "R6 snapshot `DiagnosticReport.basedOn` targets CarePlan, MedicationRequest, NutritionOrder, and ServiceRequest.",
+          "R6 package checked: no `StructureDefinition-ImmunizationRecommendation.json` is present.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises stability expectations for direct hard breaks, but this removed target appears rare and non-central for DiagnosticReport exchange, so the FMM context does not by itself make the local target removal disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 report with `basedOn.reference` to `ImmunizationRecommendation/...` fails R6 target-profile validation.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design would keep `ImmunizationRecommendation` in the target list, but because the resource is absent from R6 that is not a cheap local DiagnosticReport change. It would require retaining or emulating a legacy resource and validation surface.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative judgment; the break is real, but the alternative is weaker than a normal target-list widening because it depends on a removed resource."
+      }
     },
     {
       "findingId": "DiagnosticReport:ELEMENT_PRESENCE_OR_IDENTITY:DiagnosticReport.imagingStudy-study:2f19d0",
@@ -399,7 +414,21 @@
       "validationAndCompatibilityMd": "R4 instances using `imagingStudy` are invalid against the R6 core StructureDefinition because the element no longer exists. Conversely, R6 instances using `study` are not R4-representable without renaming the property back.",
       "migrationGuidanceMd": "Map `DiagnosticReport.imagingStudy[]` to `DiagnosticReport.study[]` during R4-to-R6 conversion and reverse it for R6-to-R4 when all references are ImagingStudy. Update FHIRPath, search extraction, serializers, and generated model properties.",
       "backwardCompatibilityAnalysisMd": "The old name could have been retained as deprecated while the new generalized name was introduced. That would have reduced validation breaks but required duplicate-element reconciliation rules.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DiagnosticReport:ELEMENT_PRESENCE_OR_IDENTITY:DiagnosticReport.imagingStudy-study:2f19d0",
+        "judgment": "Revisit",
+        "narrativeMd": "`DiagnosticReport.imagingStudy` was replaced by `DiagnosticReport.study` even though the observed R6 element still has cardinality `0..*` and still targets only `ImagingStudy`. Existing R4 instances and generated code break on the wire-name change, while the apparent R6 benefit is mostly a broader label and definition. For a mature trial-use diagnostic workflow, that looks like an avoidable compatibility break.",
+        "keyEvidence": [
+          "R4 snapshot defines `DiagnosticReport.imagingStudy` as `0..* Reference(ImagingStudy)`.",
+          "R6 snapshot has no `DiagnosticReport.imagingStudy` element and defines `DiagnosticReport.study` as `0..* Reference(ImagingStudy)`.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use increases the burden to justify a wire-format rename on a clinically meaningful element, especially where the type and target did not materially change.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 JSON/XML containing `imagingStudy` has an unknown element in R6; runtime/API/codegen also breaks for model properties, FHIRPath, indexing, and transforms keyed to the old path.",
+        "lessBreakingAlternativeAssessment": "A low-cost base design appears available: keep the `imagingStudy` wire name and broaden its prose to cover the intended study concept. If future non-imaging targets are needed, they could be added explicitly without renaming the existing element.",
+        "comparisonToExisting": "agree with the existing High impact and Yes alternative judgment; this remains the clearest avoidable break in the report."
+      }
     },
     {
       "findingId": "DiagnosticReport:REFERENCE_TARGET:DiagnosticReport.media.link:41e9b8",
@@ -558,7 +587,22 @@
       "migrationGuidanceMd": "Convert referenced `Media` resources to suitable `DocumentReference` resources or preserve the relationship with an extension if conversion is not lossless. Update validators, generated reference types, and summary response expectations. Test reports with multiple media entries and comments.",
       "backwardCompatibilityAnalysisMd": "The change is probably tied to a broader resource-model consolidation, but it is not backward-compatible for DiagnosticReport. A compatibility period with both targets would have reduced breaks if the R6 model retained Media.",
       "reviewerNotesMd": "Coordinate with the separate Media and DocumentReference analyses; the safe transform depends on the content of the referenced resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DiagnosticReport:REFERENCE_TARGET:DiagnosticReport.media.link:41e9b8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`DiagnosticReport.media.link` moved from `Reference(Media)` to `Reference(DocumentReference)`. That is a hard local break for R4 reports with key image/media links and a reverse break for R6 reports with document references. The clinical data can be important, but R6 also removes the `Media` resource, so keeping the old target locally would require carrying a broader legacy model rather than just tweaking this element.",
+        "keyEvidence": [
+          "R4 snapshot `DiagnosticReport.media.link` targets `Media` and is required inside each `media` repetition.",
+          "R6 snapshot `DiagnosticReport.media.link` targets `DocumentReference` and is required inside each `media` repetition.",
+          "R6 package checked: no `StructureDefinition-Media.json` is present.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use keeps the clinical media-link break significant, but the missing R6 `Media` resource makes the local change look tied to a broader model replacement rather than a gratuitous DiagnosticReport-only narrowing.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `media.link` references to `Media/...` fail R6 target-profile validation; R6-to-R4 loss also exists for `DocumentReference/...` links.",
+        "lessBreakingAlternativeAssessment": "Allowing both `Media` and `DocumentReference` would preserve more old instances only if R6 retained `Media`. That transitional design has material costs: duplicate media representations, extra resource support, and more complex validation/mapping.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the break is high-impact, but the less-breaking alternative is not a low-cost local base design."
+      }
     },
     {
       "findingId": "DiagnosticReport:TYPE_DOMAIN:DiagnosticReport.conclusionCode:8c73aa",
@@ -732,7 +776,21 @@
       "migrationGuidanceMd": "Wrap existing R4 CodeableConcept values in `CodeableReference.concept`. For R6-to-R4, map `concept` back directly, but handle `reference` values with manual policy: derive a code from the target resource only if safe, otherwise preserve via extension or reject lossless backport.",
       "backwardCompatibilityAnalysisMd": "The semantic goal is strong, but changing an existing element's datatype is more disruptive than adding a new reference-bearing element. A backward-compatible alternative was available at the cost of additional model surface.",
       "reviewerNotesMd": "The clinical meaning of references to Observation versus Condition should be reviewed in migration rules.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DiagnosticReport:TYPE_DOMAIN:DiagnosticReport.conclusionCode:8c73aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`conclusionCode` changed from a direct `CodeableConcept` array to `CodeableReference`, so old coded conclusions must be wrapped under `concept` before they validate in R6. The change also enables R6 conclusions to point at `Observation` or `Condition`, which cannot be represented by the old R4 code-only shape. This is clinically meaningful, but the R6 design directly supports a reasonable code-or-reference goal and old coded values have a straightforward mechanical migration.",
+        "keyEvidence": [
+          "R4 snapshot `DiagnosticReport.conclusionCode` is `0..* CodeableConcept` with an example clinical-findings binding.",
+          "R6 snapshot `DiagnosticReport.conclusionCode` is `0..* CodeableReference` targeting Observation and Condition, with the same example value set.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes the hard datatype break important, but the element is optional and the core R4 coded case migrates deterministically into `CodeableReference.concept`.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `CodeableConcept` object with `coding` directly under `conclusionCode[]` is not the R6 `CodeableReference` shape; R6-to-R4 loss occurs for reference-only conclusions.",
+        "lessBreakingAlternativeAssessment": "A partial alternative exists: keep `conclusionCode` as `CodeableConcept` and add a separate reference-capable conclusion element. That would preserve old wire shape but creates two places for the same clinical conclusion and requires precedence/reconciliation rules.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment; the fresh judgment treats the break as proportionate given the R6 goal and migration path."
+      }
     },
     {
       "findingId": "DiagnosticReport:TYPE_DOMAIN:DiagnosticReport.issued:6d50f1",
@@ -834,7 +892,21 @@
       "validationAndCompatibilityMd": "R4 valid instants should remain valid in R6. R6 dateTime values that omit time, seconds, or timezone cannot be losslessly converted to R4 instant without inventing precision.",
       "migrationGuidanceMd": "Preserve R4 instants as-is. For R6-to-R4, reject reduced precision or carry it in an extension rather than fabricating a timestamp unless a project-specific policy explicitly allows imputation.",
       "backwardCompatibilityAnalysisMd": "The change is a reasonable widening but changes the contract of the element. A less disruptive alternative would have used an extension for lower precision values.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DiagnosticReport:TYPE_DOMAIN:DiagnosticReport.issued:6d50f1",
+        "judgment": "No problem",
+        "narrativeMd": "`issued` widened from `instant` to `dateTime`. Existing R4 instants remain acceptable as R6 dateTimes, so this does not invalidate old reports. The main concern is reverse exchange or code that assumes every R6 issued value has instant-level precision.",
+        "keyEvidence": [
+          "R4 snapshot `DiagnosticReport.issued` type is `instant`.",
+          "R6 snapshot `DiagnosticReport.issued` type is `dateTime`.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not add much concern because the change is widening for R4-to-R6 validation rather than a direct break.",
+        "compatibilityMechanism": "R6-to-R4 loss: a new R6 low-precision `dateTime` may not be representable as an R4 `instant`; there is no R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for R4-to-R6 compatibility. Retaining `instant` would avoid reverse precision issues but would also block the intended R6 widening.",
+        "comparisonToExisting": "partially agree with the existing reverse-risk rationale and Not applicable alternative judgment, but disagree with treating this as a Medium R4-to-R6 compatibility concern."
+      }
     },
     {
       "findingId": "DiagnosticReport:TERMINOLOGY_BINDING:DiagnosticReport.status:935fed",
@@ -965,7 +1037,22 @@
       "validationAndCompatibilityMd": "`status=modified` is valid in R6 and invalid in R4. R4-to-R6 validation is not broken because no R4 status code appears to have been removed.",
       "migrationGuidanceMd": "Update enum handling and status-transition logic. For R6-to-R4, decide whether `modified` maps to `partial`, is preserved in an extension, or blocks backporting.",
       "backwardCompatibilityAnalysisMd": "The new code addresses a real lifecycle distinction. It could have been modeled as `partial` plus extension, but that would reduce interoperability of the distinction.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DiagnosticReport:TERMINOLOGY_BINDING:DiagnosticReport.status:935fed",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds the `modified` status under the required DiagnosticReport status code system without removing any R4 status code. R4 reports keep validating in R6. R4-oriented enum switches may need updates when they consume R6 data, but that is normal additive version evolution and the new code has a clear workflow meaning.",
+        "keyEvidence": [
+          "R4 `diagnostic-report-status` code system has partial/preliminary but no `modified` code.",
+          "R6 `diagnostic-report-status` code system adds `partial.modified` for a modified non-final report.",
+          "R4 and R6 snapshots both bind `DiagnosticReport.status` with required strength to their versioned status value set.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not weigh strongly against an additive code because no R4 code is removed and the new status improves expressiveness.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `modified` is not a valid R4 status and can surprise R4 enum logic; there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking alternative is needed. Avoiding the code or representing it only out-of-band would reduce computability of a meaningful pre-final modification state.",
+        "comparisonToExisting": "partially agree with the existing justification and Not applicable alternative judgment, but the Medium impact overstates the forward-compatibility concern."
+      }
     },
     {
       "findingId": "DiagnosticReport:REFERENCE_TARGET:reference-widening:0e4a64",
@@ -1078,7 +1165,22 @@
       "migrationGuidanceMd": "Audit reference-type switches and generated client models. For R6-to-R4, either reject unsupported targets, carry them in extensions, or map to a supported related entity only with explicit business approval.",
       "backwardCompatibilityAnalysisMd": "The widened targets are a reasonable expressivity improvement. Extensions or profiles would be more backward-compatible but less interoperable in generic R6.",
       "reviewerNotesMd": "Clinical and operational policy should decide whether subject types like Medication or Substance are acceptable in local workflows.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DiagnosticReport:REFERENCE_TARGET:reference-widening:0e4a64",
+        "judgment": "No problem",
+        "narrativeMd": "R6 broadens the allowed targets for `subject`, `performer`, and `resultsInterpreter`. Existing R4 references remain valid in R6; only R6-authored uses of the new target types create reverse-version or exhaustive-switch work. This is expansion, not a compatibility problem for R4 reports moving to R6.",
+        "keyEvidence": [
+          "R4 `subject` targets Patient, Group, Device, and Location; R6 adds Organization, Practitioner, Medication, Substance, and BiologicallyDerivedProduct.",
+          "R4 `performer` targets Practitioner, PractitionerRole, Organization, and CareTeam; R6 adds HealthcareService, Device, Patient, and RelatedPerson.",
+          "R4 `resultsInterpreter` targets Practitioner, PractitionerRole, Organization, and CareTeam; R6 adds Patient and RelatedPerson.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not create a stability issue because the target domains were widened rather than narrowed.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 target types may not pass R4 target-profile validation or R4 generated unions; R4-to-R6 instances are preserved.",
+        "lessBreakingAlternativeAssessment": "No less-breaking alternative is needed. Keeping the R4 target lists would avoid reverse surprises but would defeat the R6 goal of supporting additional legitimate subjects and actors.",
+        "comparisonToExisting": "partially agree with the existing evidence and Not applicable alternative judgment, but disagree with a Medium overall concern for a target widening."
+      }
     },
     {
       "findingId": "DiagnosticReport:ELEMENT_PRESENCE_OR_IDENTITY:r6-new-content:b2d91e",
@@ -1190,7 +1292,21 @@
       "migrationGuidanceMd": "Define a backport policy for each new field. Prefer official cross-version extensions if available; otherwise create governed local extensions, preserve linked resources in a Bundle, or declare the conversion lossy. Include safety tests for recommendations and communications.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the least disruptive way to add new R6 capability, but they cannot be made natively representable in R4 without prior extension definitions.",
       "reviewerNotesMd": "The clinical importance of `recommendation`, `communication`, and `comparison` makes silent data loss especially undesirable.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DiagnosticReport:ELEMENT_PRESENCE_OR_IDENTITY:r6-new-content:b2d91e",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 elements are optional additions. They let R6 reports carry relationships, procedures, notes, supporting information, composition, recommendations, communications, and comparisons that base R4 did not model directly. R4 reports do not become invalid or harder to read in R6 because these fields exist; the concern is only that R6-authored content may be lost when forced back into R4.",
+        "keyEvidence": [
+          "R6 snapshot includes `relatesTo`, `procedure`, `note`, `supportingInfo`, `composition`, `recommendation`, `communication`, and `comparison` under DiagnosticReport.",
+          "R4 snapshot has no corresponding base elements for those paths.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not argue against optional additive content because it preserves R4-to-R6 validity and expands expressiveness.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6-only optional fields may be dropped or need extensions in R4; there is no R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed. Not adding the elements would avoid reverse-version loss only by preventing R6 from representing useful information in the base model.",
+        "comparisonToExisting": "partially agree with the existing reverse-loss observation and Not applicable alternative judgment, but disagree that optional additions should carry a Medium compatibility concern."
+      }
     },
     {
       "findingId": "DiagnosticReport:VALUE_CONSTRAINT:DiagnosticReport.composition:dgr1",
@@ -1278,7 +1394,22 @@
       "migrationGuidanceMd": "When creating R6 structured reports, populate `DiagnosticReport.result` or `Observation.hasMember` consistently with Composition section entries. Add validation fixtures where Composition contains observations both correctly and incorrectly mirrored.",
       "backwardCompatibilityAnalysisMd": "The rule could have been a warning, but an error is defensible because otherwise a structured report could be internally inconsistent.",
       "reviewerNotesMd": "The FHIRPath expression depends on reference resolution; implementation behavior may vary when referenced resources are unavailable to the validator.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DiagnosticReport:VALUE_CONSTRAINT:DiagnosticReport.composition:dgr1",
+        "judgment": "No problem",
+        "narrativeMd": "The `dgr-1` invariant only applies when an R6 report uses the new `DiagnosticReport.composition` element. There was no R4 composition path for this rule to invalidate. The constraint requires Observation entries in the referenced Composition to also be reachable through `result` or `Observation.hasMember`, which is a consistency rule for new R6 structured reports rather than a migration break.",
+        "keyEvidence": [
+          "R6 root constraint `dgr-1` has severity `error` and references `DiagnosticReport.composition`.",
+          "R6 snapshot defines `DiagnosticReport.composition` as `0..1 Reference(Composition)`.",
+          "R4 snapshot has no `DiagnosticReport.composition` element and no corresponding local `dgr-1` constraint.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not materially heighten concern because the invariant governs new optional R6 content, not established R4 content.",
+        "compatibilityMechanism": "none: no R4-to-R6 instance becomes invalid because of this R6-only composition constraint; it is a validation rule for a new optional path.",
+        "lessBreakingAlternativeAssessment": "A warning-level invariant would be less restrictive for R6 authors, but it would weaken the result/composition consistency objective and is not needed to preserve R4 compatibility.",
+        "comparisonToExisting": "partially agree with the existing Not applicable alternative judgment, but disagree with the Medium impact assigned to an R6-only invariant on a new optional element."
+      }
     },
     {
       "findingId": "DiagnosticReport:TYPE_DOMAIN:DiagnosticReport.conclusion:4ab120",
@@ -1385,7 +1516,21 @@
       "validationAndCompatibilityMd": "R4 conclusion strings should generally remain valid R6 markdown values, but generated classes and validators will expose a different primitive type. R6 markdown can be copied to R4 string syntactically, but formatting semantics may be lost or displayed differently.",
       "migrationGuidanceMd": "Update generated model bindings, UI rendering, escaping, and security review for markdown display. Include tests for plain text, markdown syntax, and characters that could be mis-rendered.",
       "backwardCompatibilityAnalysisMd": "A new formatted-conclusion field would have been less disruptive to type signatures but would create duplication. The chosen design centralizes conclusion text.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DiagnosticReport:TYPE_DOMAIN:DiagnosticReport.conclusion:4ab120",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`conclusion` changed from `string` to `markdown`. Ordinary R4 text remains a JSON string and should normally carry forward, so this is not a hard instance break. The real change is in generated primitive types and display expectations: R6 clients may render or sanitize the conclusion differently. Because conclusions are clinically visible, implementations should notice the change, but marking formatted conclusion text as markdown is a reasonable R6 design.",
+        "keyEvidence": [
+          "R4 snapshot `DiagnosticReport.conclusion` type is `string` and `isSummary` is false.",
+          "R6 snapshot `DiagnosticReport.conclusion` type is `markdown` and `isSummary` is true.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes changes to a common clinical text field worth noting, but the wire representation remains string-like and the change supports clearer rendering semantics.",
+        "compatibilityMechanism": "runtime/API/codegen: generated primitive types and renderer/sanitizer assumptions can change; ordinary R4 string values do not become invalid R6 JSON.",
+        "lessBreakingAlternativeAssessment": "Keeping `conclusion` as `string` and adding a separate formatted conclusion would preserve old API types, but it creates duplicate conclusion fields. Relying only on prose guidance would also be less computable than the markdown datatype.",
+        "comparisonToExisting": "partially agree with the existing Medium runtime concern and Partial alternative judgment; the concern is real but mostly API/rendering-level rather than an instance break."
+      }
     },
     {
       "findingId": "DiagnosticReport:FLAGS_AND_MODIFIERS:summary-flags:5cf002",
@@ -1482,7 +1627,21 @@
       "validationAndCompatibilityMd": "This does not make any old instance invalid. It can make runtime behavior differ if systems depend on FHIR summary flags to shape REST responses or generated lightweight DTOs.",
       "migrationGuidanceMd": "Review `_summary` handling, generated summary models, cache population, and UI cards. Do not assume R6 summary responses include media links.",
       "backwardCompatibilityAnalysisMd": "Summary flag changes are inherently behavioral. Backward compatibility could be approximated by server configuration or profiles, but the base flags have changed.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DiagnosticReport:FLAGS_AND_MODIFIERS:summary-flags:5cf002",
+        "judgment": "No problem",
+        "narrativeMd": "The changed `isSummary` flags can alter REST `_summary` results and generated lightweight views: media links are no longer summary, while conclusion-oriented fields and recommendation become summary. That is a visible metadata/API shift, but it does not affect instance validity and is the kind of summary-surface change clients should treat as versioned behavior rather than a stable clinical contract.",
+        "keyEvidence": [
+          "R4 snapshot marks `DiagnosticReport.media` and `DiagnosticReport.media.link` as summary and leaves `conclusion` and `conclusionCode` non-summary.",
+          "R6 snapshot marks `media` and `media.link` non-summary, and marks `conclusion`, `conclusionCode`, and `recommendation` as summary.",
+          "R4 maturity map checked: DiagnosticReport is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes summary behavior relevant for implementations, but this remains metadata/API behavior rather than a wire-format or semantic data loss break.",
+        "compatibilityMechanism": "runtime/API/codegen: `_summary` payloads and generated summary views may include or omit different fields; there is no old-valid/new-invalid instance effect.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept media links in summary while adding the new summary fields, but that may conflict with the apparent move away from returning media/document links in compact responses. The compatibility benefit is modest and does not justify a Revisit judgment.",
+        "comparisonToExisting": "partially agree with the existing Low impact and Partial alternative judgment; the runtime behavior change is real, but I judge it as no meaningful compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1630,5 +1789,19 @@
       "Media to DocumentReference migrations",
       "R6 optional content additions not representable in R4"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DiagnosticReport.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 4,
+      "No problem": 6
+    }
   }
 }

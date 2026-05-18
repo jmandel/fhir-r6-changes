@@ -372,7 +372,21 @@
       "migrationGuidanceMd": "Remove `xpath` and `xpathUsage` for R6 output. Confirm each SearchParameter has an equivalent FHIRPath `expression`; if not, create an implementation-specific extension or retire the parameter. For migrated parameters that used `normal`, `phonetic`, or `other`, map to `processingMode`; for `nearby` or `distance`, require manual review because the R6 processing-mode binding has no equivalent.",
       "backwardCompatibilityAnalysisMd": "The same modernization goal could have been achieved with optional deprecated XPath fields or a standard extension. That would have allowed old SearchParameter registries to validate while tooling migrated to FHIRPath. The cost would be keeping legacy XPath semantics visible in the core resource longer.",
       "reviewerNotesMd": "The local R4 core package shows this is a common break for core SearchParameter instances, not just an obscure extension point.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SearchParameter:ELEMENT_PRESENCE_OR_IDENTITY:SearchParameter.xpath:0a7c4e",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 SearchParameter definitions commonly carry `xpath` and `xpathUsage`, while R6 removes both elements and expects the FHIRPath-oriented `processingMode` model instead. A registry, validator, or generated model that accepts many R4 core SearchParameter resources would reject or drop those fields in R6. This is conformance metadata rather than patient data, but it directly affects search indexing definitions and publication of server capabilities.",
+        "keyEvidence": [
+          "R4 StructureDefinition has `SearchParameter.xpath` 0..1 string and `SearchParameter.xpathUsage` 0..1 code; R6 StructureDefinition has neither element and adds `SearchParameter.processingMode`.",
+          "Local R4 core package count: 1340 SearchParameter resources with `xpath` and 1399 with `xpathUsage`.",
+          "R4 `search-xpath-usage` includes `nearby` and `distance`; R6 `search-processingmode` has only `normal`, `phonetic`, and `other`."
+        ],
+        "fmmEffect": "SearchParameter is FMM 3 trial-use, so broad breakage in mature search conformance metadata carries meaningful stability pressure, though not a normative freeze.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `xpath` or `xpathUsage` use element names absent from the R6 base resource; generated models and validators may reject them, and R6-to-R4 conversion cannot recover an XPath from `processingMode` alone.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking R6 base design would retain `xpath` and `xpathUsage` as deprecated optional elements while preferring `expression` and `processingMode`. The tradeoff is keeping obsolete XML/XPath extraction metadata and duplicate ways to describe processing.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the fresh review gives the deprecated-field alternative enough weight to warrant Revisit."
+      }
     },
     {
       "findingId": "SearchParameter:VALUE_CONSTRAINT:SearchParameter.expression:6d42b1",
@@ -531,7 +545,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: any R4 SearchParameter with `expression` and no `processingMode` violates R6 `spd-1`. This does not create a major R6-to-R4 wire-format problem beyond the fact that R4 does not know `processingMode`; the validation break is primarily R4-to-R6.",
       "migrationGuidanceMd": "Add `processingMode` for every R6 SearchParameter with `expression`. Use `normal` only when the expression directly yields indexed values. Use `phonetic` or `other` where the old definition or implementation behavior indicates special processing. Add tests that validate migrated resources against `spd-1`.",
       "backwardCompatibilityAnalysisMd": "A default of `normal` would have made old instances continue to validate, but the R6 design favors explicit declaration. The safer migration stance is not to assume all legacy expressions are normal without checking old `xpathUsage`, parameter type, and implementation notes.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SearchParameter:VALUE_CONSTRAINT:SearchParameter.expression:6d42b1",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 turns `processingMode` into a required companion whenever `expression` is present. Most R4 core SearchParameter resources have an `expression` but no `processingMode`, so a straightforward R4 registry import becomes invalid even when the intended processing is ordinary FHIRPath extraction. The goal of making processing semantics explicit is reasonable, but the hard error appears avoidable.",
+        "keyEvidence": [
+          "R4 invariant `spd-1` is `xpath.empty() or xpathUsage.exists()`.",
+          "R6 invariant `spd-1` is `expression.empty() or processingMode.exists()`.",
+          "Local R4 core package count: 1384 SearchParameter resources have `expression` and no `processingMode`."
+        ],
+        "fmmEffect": "FMM 3 trial-use raises the burden for invalidating almost the whole R4 core SearchParameter catalog for a new explicitness requirement.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 SearchParameter with `expression` and no `processingMode` passes R4 but violates an R6 error invariant.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could make absent `processingMode` mean `normal` and add a warning or best-practice rule encouraging explicit values. The tradeoff is that unusual legacy behavior might remain under-specified until reviewed, but that is less disruptive than a mass validation failure.",
+        "comparisonToExisting": "agree with the existing High impact and Yes alternative judgment."
+      }
     },
     {
       "findingId": "SearchParameter:VALUE_CONSTRAINT:SearchParameter.comparator:2f91aa",
@@ -707,7 +735,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: a R4 SearchParameter with `type: \"token\"` and `comparator: [\"eq\"]` is rejected by R6 `spd-3`. R6-to-R4 is not a problem because R4 can syntactically carry the same comparator list.",
       "migrationGuidanceMd": "Audit all SearchParameter definitions with `comparator`. Keep comparator only when `type` is `number`, `date`, `quantity`, or `special`; otherwise remove it and update conformance/capability tests to verify clients do not infer comparator support.",
       "backwardCompatibilityAnalysisMd": "The least-breaking alternative would have been a warning invariant, but a hard invariant better protects clients from relying on nonsensical comparator declarations.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SearchParameter:VALUE_CONSTRAINT:SearchParameter.comparator:2f91aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an error invariant limiting `comparator` to numeric, date, quantity, and special search parameters. That can invalidate an R4 definition that advertised a comparator for a token or other non-ordered type, but the pattern appears rare in the core package and the rule prevents misleading capability metadata that could cause clients to send unsupported queries.",
+        "keyEvidence": [
+          "R6 StructureDefinition constraint `spd-3`: `comparator.empty() or (type in ('number' | 'date' | 'quantity' | 'special'))`.",
+          "R4 has `SearchParameter.comparator` with the same required comparator code set but no equivalent type restriction.",
+          "Local R4 core package count found one disallowed pattern: SearchParameter `example`, type `token`, comparator `eq`."
+        ],
+        "fmmEffect": "FMM 3 makes the validation break worth noticing, but the narrow prevalence and conformance-quality rationale make the break proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: a previously valid SearchParameter can fail R6 validation if it lists comparators on an unsupported `type`.",
+        "lessBreakingAlternativeAssessment": "R6 could have introduced this as a warning-level invariant for one release. That would preserve rare legacy instances, but it would also keep misleading comparator declarations formally valid in base conformance metadata.",
+        "comparisonToExisting": "agree with the existing Medium impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "SearchParameter:VALUE_CONSTRAINT:SearchParameter.code:b8a31f",
@@ -859,7 +901,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: `code: \"example.code\"` is invalid in R6 because it fails `spd-4`. R6-to-R4 is syntactically safe for valid R6 codes because R4 accepts the narrower code shape.",
       "migrationGuidanceMd": "Rename invalid codes to lowercase ASCII plus hyphens or another separator-free convention. Publish aliases in `aliasCode` where appropriate, update CapabilityStatement search parameter names, and test URL parsing for chained and modified search parameters.",
       "backwardCompatibilityAnalysisMd": "Keeping old codes and adding a URL-safe alias would have minimized validation breakage, but it would leave ambiguous parameter names in the primary code field. The R6 design chooses safer parsing over preserving unusual code names.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SearchParameter:VALUE_CONSTRAINT:SearchParameter.code:b8a31f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 makes separator-safe SearchParameter codes a hard rule by forbidding `.`, `$`, `|`, and whitespace. This is a real validation break for custom R4 definitions that used dotted, namespaced, or otherwise unsafe codes, but no such core R4 SearchParameter codes were found locally and the prohibited characters have direct meaning in FHIR search URL syntax.",
+        "keyEvidence": [
+          "R4 `SearchParameter.code` comment only recommends lowercase ASCII for compatibility.",
+          "R6 constraint `spd-4` requires `code.matches('^[^.\\\\$\\\\|\\\\s]+$')`.",
+          "Local R4 core package count found no SearchParameter `code` values containing the newly prohibited characters."
+        ],
+        "fmmEffect": "FMM 3 supports caring about custom registry migration, but the low observed prevalence and URL-syntax rationale reduce the need for standards rework.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 SearchParameter with a separator or whitespace in `code` can become invalid in R6.",
+        "lessBreakingAlternativeAssessment": "A warning-only rule or a separate URL-safe-name element would preserve unusual legacy codes. The tradeoff is splitting the parameter identity or allowing ambiguous URL names to remain base-valid, which undermines the R6 parsing goal.",
+        "comparisonToExisting": "agree with the existing Medium impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "SearchParameter:TERMINOLOGY_BINDING:SearchParameter.modifier:5e0bcd",
@@ -1078,7 +1134,21 @@
       "migrationGuidanceMd": "Map `ofType` to `of-type` during R4-to-R6 migration. For R6-to-R4, preserve R6-only modifier declarations in an extension or reject/down-convert with documented loss. Update enum definitions, query-builder tests, and conformance comparison logic to accept the new spelling and added codes.",
       "backwardCompatibilityAnalysisMd": "The rename was probably avoidable as a hard break by keeping `ofType` in the R6 ValueSet as deprecated. The added codes are naturally R6-only, but the old spelling could have been retained without changing semantics.",
       "reviewerNotesMd": "A formal ConceptMap would improve confidence for the `ofType` to `of-type` migration, although the local CodeSystem definitions strongly indicate a rename.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SearchParameter:TERMINOLOGY_BINDING:SearchParameter.modifier:5e0bcd",
+        "judgment": "Revisit",
+        "narrativeMd": "The required modifier binding changes the `ofType` code to `of-type` while also adding new modifier codes. The additive codes are not a backward break, but removing the R4 spelling means R4 conformance metadata or search behavior that advertises `:ofType` no longer validates against the R6 required value set. Because modifier names are part of the public search API surface, this looks like a spelling cleanup with a direct compatibility cost.",
+        "keyEvidence": [
+          "R4 `SearchParameter.modifier` is required-bound to `search-modifier-code|4.0.1`; R6 binds to `search-modifier-all-codes|6.0.0-ballot4`.",
+          "R4 modifier CodeSystem includes `ofType`; R6 modifier CodeSystem includes `of-type`, `code-text`, `text-advanced`, and `iterate`.",
+          "Local R4 core SearchParameter resources did not list `ofType`, but the code remains part of the R4 required modifier domain and search URL convention."
+        ],
+        "fmmEffect": "FMM 3 trial-use and the centrality of SearchParameter modifier codes to search interoperability increase the burden for a required-code rename.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 metadata listing `ofType` fails the R6 required binding, and clients or servers comparing generated modifier enums or URL modifiers must handle a renamed code.",
+        "lessBreakingAlternativeAssessment": "R6 could include both `ofType` and `of-type` in the required value set, mark `ofType` deprecated, and publish canonicalization guidance. The tradeoff is dual spellings for one modifier, but that is a familiar transitional burden and seems lower cost than rejecting the old spelling outright.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment; the fresh review treats the alias alternative as strong enough to justify Revisit."
+      }
     },
     {
       "findingId": "SearchParameter:TERMINOLOGY_BINDING:SearchParameter.type:1ca63f",
@@ -1246,7 +1316,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: old values remain valid. R6-to-R4: `type: \"resource\"` fails the R4 required binding and cannot be represented without loss or extension.",
       "migrationGuidanceMd": "Update generated enum/code lists for SearchParameter.type. For R6-to-R4 export, either reject resource-type SearchParameters, map them to an extension plus a conventional fallback, or document a lossy mapping to `special` if the receiving system can tolerate it.",
       "backwardCompatibilityAnalysisMd": "Adding an optional extension rather than a base code would have been more backward-compatible but would make the new semantics less discoverable and less interoperable for R6 search tooling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SearchParameter:TERMINOLOGY_BINDING:SearchParameter.type:1ca63f",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens `SearchParameter.type` by adding `resource`. No R4 type code is removed, so this does not make R4 SearchParameter instances invalid in R6. R4-era generated enums and R6-to-R4 conversion need to handle the new code, but that is a forward-feature/downgrade issue rather than a problematic R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 `search-param-type` codes are `number,date,string,token,reference,composite,quantity,uri,special`.",
+          "R6 `search-param-type` adds `resource` and removes no R4 type codes.",
+          "Local R6 core package has two `type=resource` SearchParameters: `Bundle-composition` and `Bundle-message`."
+        ],
+        "fmmEffect": "FMM 3 does not turn an additive value-set widening into a stability concern for R4-to-R6 migration.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `type=resource` cannot be represented in the R4 required value set, but old R4 instances remain valid with respect to this change.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6 compatibility. Mapping `resource` to `special` or using an extension would only be a downgrade mitigation and would lose R6 semantics.",
+        "comparisonToExisting": "disagree with the existing Medium impact framing; agree that no backwards-compatible alternative is applicable."
+      }
     },
     {
       "findingId": "SearchParameter:TERMINOLOGY_BINDING:SearchParameter.base-target:7d91fe",
@@ -1586,7 +1670,22 @@
       "migrationGuidanceMd": "Validate SearchParameter.base and target values against the R6 ValueSet before migration. For missing R4 resource codes, consult the corresponding resource removal/rename report and map, retire, or extension-carry the parameter. For R6-to-R4 export, reject or extension-carry SearchParameters that name R6-only resource types. Add terminology tests using the actual value set expansion used by your validator.",
       "backwardCompatibilityAnalysisMd": "A truly version-independent value set containing all R4 codes, with inactive markers and ConceptMaps, would reduce hard breaks. The tradeoff is that validators would accept obsolete codes unless profiles or business rules enforced current-version applicability.",
       "reviewerNotesMd": "Confidence is medium for exact terminology impact because no external terminology expansion service was used. The local package files are clear enough to flag a material risk.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SearchParameter:TERMINOLOGY_BINDING:SearchParameter.base-target:7d91fe",
+        "judgment": "Revisit",
+        "narrativeMd": "`base` and `target` remain required-bound code elements, but R6 binds them to the version-independent all-resource-types value set rather than the R4 resource-types value set. Local expansion from the supplied package shows this is not a simple superset: several R4 resource codes used by R4 core SearchParameters are absent, so otherwise valid R4 definitions can fail R6 terminology validation. For a value set named version-independent, omissions of R4 resource names deserve standards attention unless explicitly justified.",
+        "keyEvidence": [
+          "R4 `SearchParameter.base` and `SearchParameter.target` are required-bound to `resource-types|4.0.1`.",
+          "R6 `SearchParameter.base` and `SearchParameter.target` are required-bound to `version-independent-all-resource-types|6.0.0-ballot4`.",
+          "Local compose-based comparison found 19 R4 resource-type codes absent from the R6 version-independent set and 43 R6 version-independent codes absent from R4.",
+          "Local R4 SearchParameter resources contain 1668 base/target occurrences using the 19 absent R4 codes."
+        ],
+        "fmmEffect": "FMM 3 trial-use raises stability expectations for broad breaks in search conformance catalogs, especially when the R6 binding appears intended to be cross-version.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 SearchParameters whose `base` or `target` names an absent R4 resource code can fail R6 required-binding validation, affecting capability discovery and generated enums.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design would include all R4 resource-type codes in the version-independent set, marked inactive or deprecated where appropriate with lifecycle mappings. The tradeoff is that base validation would accept obsolete targets unless profiles or lifecycle metadata restrict current-version applicability.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the remaining uncertainty is official terminology expansion/rationale, but the local evidence is sufficient for Revisit."
+      }
     },
     {
       "findingId": "SearchParameter:ELEMENT_PRESENCE_OR_IDENTITY:SearchParameter.constraint:4c2b80",
@@ -1698,7 +1797,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: no break. R6-to-R4: the `constraint` element is not representable in the R4 base resource. A strict R4 parser rejects it; a lenient parser that drops it changes behavior.",
       "migrationGuidanceMd": "For R6-to-R4, preserve `constraint` in an extension or avoid publishing the SearchParameter through R4 unless the applicability rule can be enforced elsewhere. Add tests that exercise resources satisfying and not satisfying the constraint.",
       "backwardCompatibilityAnalysisMd": "An R4 extension would have been the only backward-compatible vehicle. Adding the element to R6 is appropriate for base interoperability, but it necessarily requires downgrade policy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SearchParameter:ELEMENT_PRESENCE_OR_IDENTITY:SearchParameter.constraint:4c2b80",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds an optional `constraint` string to describe conditional applicability of a SearchParameter. Because the element is optional and absent from R4, it does not invalidate R4 instances in R6. An R4 consumer downgrading R6 metadata may ignore or lose the condition, but that is a reverse-direction capability loss, not a design problem for R4-to-R6 compatibility.",
+        "keyEvidence": [
+          "R6 StructureDefinition defines `SearchParameter.constraint` as 0..1 string.",
+          "R4 StructureDefinition has no `SearchParameter.constraint` element.",
+          "Local R6 core package count found one SearchParameter using `constraint`: `example-constraint`."
+        ],
+        "fmmEffect": "FMM 3 does not make an optional additive element concerning absent a direct old-valid/new-invalid break or strong evidence of production reliance.",
+        "compatibilityMechanism": "R6-to-R4 loss: older consumers may lose conditional applicability metadata, but R4 instances remain valid when moving to R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed. Publishing this only as an extension would help downgrades but would make the R6 condition less discoverable and less computable.",
+        "comparisonToExisting": "disagree with the existing Medium impact framing; agree that no backwards-compatible alternative is applicable."
+      }
     },
     {
       "findingId": "SearchParameter:ELEMENT_PRESENCE_OR_IDENTITY:SearchParameter.canonical-metadata:9aa114",
@@ -1857,7 +1970,21 @@
       "validationAndCompatibilityMd": "R4-to-R6: no hard break. R6-to-R4: each added field is outside the R4 StructureDefinition. Dropping `aliasCode` can lose backward-compatible renamed-parameter hints; dropping `versionAlgorithm[x]` can make version ordering ambiguous.",
       "migrationGuidanceMd": "For R6-to-R4, define extensions for each added metadata field that must be preserved, especially `aliasCode` and `versionAlgorithm[x]`. Update generated R6 classes and summary serializers to include summary-marked new fields.",
       "backwardCompatibilityAnalysisMd": "The compatible alternative was extension-only publication. Base-element addition is cleaner for R6 but requires explicit downgrade mapping.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SearchParameter:ELEMENT_PRESENCE_OR_IDENTITY:SearchParameter.canonical-metadata:9aa114",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional canonical-resource metadata such as `identifier`, `versionAlgorithm[x]`, `title`, copyright fields, and `aliasCode`. These additions do not reject any R4 SearchParameter instance. R6-to-R4 conversion may need extensions or may drop metadata, especially aliases, but this is ordinary additive metadata evolution rather than a problematic base break.",
+        "keyEvidence": [
+          "R6 StructureDefinition defines optional `identifier`, `versionAlgorithm[x]`, `title`, `copyright`, `copyrightLabel`, and `aliasCode` elements.",
+          "R4 StructureDefinition has no matching local elements.",
+          "Local R6 core package has limited use: `aliasCode` on 2 SearchParameters and `title` on 5; no `versionAlgorithm[x]` use was found."
+        ],
+        "fmmEffect": "FMM 3 warrants noting downgrade loss, but additive optional metadata does not create enough compatibility pressure for Revisit.",
+        "compatibilityMechanism": "metadata/tooling and R6-to-R4 loss: R6 metadata may not round-trip to R4, but old R4 instances remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is required. Keeping these concepts extension-only would be more compatible for R4 consumers but less interoperable and discoverable for R6 tooling.",
+        "comparisonToExisting": "disagree with the existing Medium impact framing; agree that no backwards-compatible alternative is applicable."
+      }
     },
     {
       "findingId": "SearchParameter:SEMANTIC_OR_CONFORMANCE_TEXT:SearchParameter.chain:eb32d7",
@@ -1988,7 +2115,21 @@
       "validationAndCompatibilityMd": "No hard validation break: the field is still `0..* string`. R6-to-R4 semantic compatibility is the issue. R4 clients may treat `*` or `practitioner.` as literal parameter names or reject them by policy.",
       "migrationGuidanceMd": "When downgrading to R4, either omit special chain declarations, translate them to explicit enumerated chain names when possible, or preserve them in an extension with clear documentation. Add client tests for wildcard and recursive chain declarations.",
       "backwardCompatibilityAnalysisMd": "The R6 design could have used separate structured metadata for wildcard and recursive behavior. That would avoid overloading string values but would add more elements and still require R4 extensions for downgrade.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SearchParameter:SEMANTIC_OR_CONFORMANCE_TEXT:SearchParameter.chain:eb32d7",
+        "judgment": "No problem",
+        "narrativeMd": "`SearchParameter.chain` remains a repeatable string, and R6 adds documented meanings for `*`, trailing `.`, and dotted chain paths. Existing R4 chain values remain structurally valid. An R4-era client could misread an R6 declaration using the new conventions, but the local R6 core package does not use those special syntaxes, and the issue is primarily new semantic expressiveness in the reverse direction.",
+        "keyEvidence": [
+          "R4 `SearchParameter.chain` is 0..* string with prose saying systems need not list all chain names.",
+          "R6 `SearchParameter.chain` is still 0..* string and its comment defines wildcard, unlimited chaining, and dotted path forms.",
+          "Local R6 core package count found no SearchParameter using `*`, trailing `.`, or dotted chain syntax."
+        ],
+        "fmmEffect": "FMM 3 supports documenting the semantic change, but the unchanged wire shape and lack of observed core usage keep this below a standards-revisit threshold.",
+        "compatibilityMechanism": "semantic/documentation: R6 gives special meanings to some string values, creating possible R6-to-R4 interpretation loss but no old-valid/new-invalid break.",
+        "lessBreakingAlternativeAssessment": "Separate fields for wildcard or recursive chaining could make R6 semantics clearer, but that would be a modeling alternative for new functionality, not a less-breaking design needed to preserve R4 instances.",
+        "comparisonToExisting": "partially agree with the existing no-hard-break and Not applicable alternative assessment; disagree with treating the practical runtime/R6-to-R4 risk as Medium."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2200,5 +2341,19 @@
       "Search modifier code rename ofType to of-type across CapabilityStatement and search documentation",
       "Version-independent resource type binding behavior across conformance resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SearchParameter.fresh-review.json",
+    "findingDecisionCount": 10,
+    "matchedFindingDecisionCount": 10,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 2,
+      "No problem": 4
+    }
   }
 }

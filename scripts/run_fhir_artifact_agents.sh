@@ -6,6 +6,7 @@ SOURCE_MANIFEST=${SOURCE_MANIFEST:-"$ROOT/agent-inputs/r4-base-resources-and-dat
 BATCH_DIR=${BATCH_DIR:-"$ROOT/batch"}
 MANIFEST=${MANIFEST:-"$BATCH_DIR/r4-artifacts.tsv"}
 OUTPUT_DIR=${OUTPUT_DIR:-"$ROOT/output"}
+MATURITY_FILE=${MATURITY_FILE:-"$ROOT/viewer/r4-maturity.json"}
 CONCURRENCY=${CONCURRENCY:-8}
 JOB_TIMEOUT=${JOB_TIMEOUT:-20m}
 MODEL=${MODEL:-gpt-5.5}
@@ -132,9 +133,16 @@ Use these local primary inputs:
 - R4 package index: \`$ROOT/fhir-definitions/r4-4.0.1/package/.index.json\`
 - R6 package index: \`$ROOT/fhir-definitions/r6-6.0.0-ballot4/package/.index.json\`
 - R4/R6 package metadata: each package has \`package.json\` in the package directory.
+- R4 FMM/standards-status map: \`$MATURITY_FILE\`
 - Full batch manifest: \`$MANIFEST\`
 
 You may inspect related local R4/R6 StructureDefinitions, ValueSets, CodeSystems, ConceptMaps, examples, package indexes, and spec artifacts inside those two package directories when needed. Keep this report scoped to \`$artifact\`.
+
+FMM/standards-status rule:
+
+- Use the R4 artifact's FMM and standards status from \`$MATURITY_FILE\` or the R4 StructureDefinition as the stability baseline.
+- Do not use R6 FMM or R6 standards status to increase the burden for R4 compatibility.
+- FMM/status is not an impact score by itself; it only changes the expected strength of the justification for a concrete R4->R6 compatibility break.
 
 Inherited/base-artifact scope rule:
 
@@ -147,7 +155,7 @@ Inherited/base-artifact scope rule:
 Your task:
 
 1. Compare R4 \`$artifact\` to R6 \`$artifact\` in depth. If the R6 StructureDefinition path above is absent, search the R6 package for a likely renamed, split, merged, or removed counterpart and report the identity issue clearly.
-2. Identify hard instance-breaking changes, likely breaking changes, runtime/codegen risks, R6-to-R4 representability risks, semantic/conformance risks, and notable non-breaking changes.
+2. Identify hard instance-breaking changes, likely breaking changes, runtime/codegen risks, semantic/conformance risks, and notable non-breaking changes. Keep the analysis scoped to R4->R6 compatibility: reverse conversion, downgrade, or round-trip-only concerns can be migration notes but should not become material findings unless there is also a concrete R4->R6 break.
 3. Distinguish local \`$artifact\` changes from inherited/base-artifact changes and exclude inherited-only changes from \`findings[]\`.
 4. Consider element additions/removals/renames/moves, cardinality changes, choice type additions/removals, reference target changes, terminology binding strength and value set changes, invariant/constraint changes, modifier and summary flag changes, serialization/code generation impacts, and narrative/definition/comment changes that affect semantics.
 5. For each material finding, explain the validation mechanism and migration impact, not just that a field changed.

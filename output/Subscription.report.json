@@ -388,7 +388,21 @@
       "migrationGuidanceMd": "Inventory R4 criteria strings, classify them by intended event/topic, and map each to an R6 `SubscriptionTopic` canonical plus zero or more `filterBy` rows. Do not assume this is lossless: criteria using unsupported parameters, chained/reverse-chained search, custom search parameters, or server-specific semantics require manual review or topic-specific extensions. Keep the original R4 criteria in an audit extension during migration if reversibility matters.",
       "backwardCompatibilityAnalysisMd": "The design goal appears to require a stronger shared topic model, which is difficult to achieve while preserving arbitrary inline criteria as first-class R6 semantics. A deprecated compatibility element or official cross-version extension would have reduced instance breakage but would also perpetuate the ambiguity R6 is trying to remove.",
       "reviewerNotesMd": "Human review is needed for every production migration because the computable definitions identify the structural replacement but not the business mapping between local R4 criteria and available R6 SubscriptionTopics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:criteria-topic:7f3a1d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `Subscription.criteria` is a required inline search string, while R6 removes that element and requires a `Subscription.topic` canonical with optional topic-scoped filters. That is a real old-valid/new-invalid break for any R4 Subscription instance, and migration needs business knowledge about the intended event stream and available SubscriptionTopic definitions. However, the R6 target model is a coherent replacement for ad hoc inline criteria; keeping arbitrary criteria as a base alternative would force servers and validators to support two trigger models and would weaken the computable topic/filter design.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Subscription.criteria` is `1..1 string` with short `Rule for server push`.",
+          "R6 StructureDefinition: `Subscription.topic` is `1..1 canonical(SubscriptionTopic)` and `Subscription.filterBy` is `0..*`.",
+          "Local map search found no Subscription-specific StructureMap/ConceptMap for criteria-to-topic conversion."
+        ],
+        "fmmEffect": "R4 Subscription is FMM 3 and trial-use, so compatibility matters for a mature workflow, but it is not a normative/FMM 5 stability promise. The centrality of criteria raises the migration burden, while trial-use status makes a coherent redesign more acceptable.",
+        "compatibilityMechanism": "old-valid/new-invalid: a valid R4 instance has `criteria` and no `topic`, while a base R6 instance requires `topic` and has no `criteria`; generated APIs and criteria readers also need redesign.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could allow a deprecated `criteria` alternative to `topic`, but that is only partial and has major tradeoffs: it preserves old wire shape while retaining arbitrary search-trigger semantics beside the new SubscriptionTopic model, creating duplicate behavior and unclear server obligations.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial-alternative assessment; the break is real and central, but the alternative has enough design cost that the finding is not a clear Revisit."
+      }
     },
     {
       "findingId": "Subscription:SERIALIZATION_OR_CODEGEN:channel-channelType:8b2c6e",
@@ -560,7 +574,21 @@
       "migrationGuidanceMd": "Flatten `channel.type` to `channelType`, `channel.endpoint` to `endpoint`, and review channel-specific URL rules. Use the R6 channel-type code system expected by the value set. Add tests for each channel code used in production and for channels carrying display/system extensions. Preserve the original R4 channel object in an extension only if round-trip auditing is required.",
       "backwardCompatibilityAnalysisMd": "The new shape is probably justified by the broader R6 subscription redesign, but it could have been less disruptive with a deprecated R4-compatible backbone or an official conversion map. The tradeoff is that keeping both forms would require conflict resolution when both channel representations are present.",
       "reviewerNotesMd": "The R6 package did not include the external `CodeSystem-subscription-channel-type` resource, so code-system-level comparison is based on the R6 ValueSet compose and R4 local CodeSystem only.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Subscription:SERIALIZATION_OR_CODEGEN:channel-channelType:8b2c6e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 requires a `Subscription.channel` backbone containing a primitive `channel.type`; R6 removes the backbone and requires a top-level `channelType` `Coding`, with endpoint also promoted to a top-level field. This breaks wire shape and generated models for essentially every R4 Subscription, but the direct migration for channel type and endpoint is relatively mechanical. The R6 design also avoids a nested delivery configuration and gives channel type a terminology system, so preserving the old backbone in base R6 would create duplicate channel representations and conflict rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Subscription.channel` is `1..1 BackboneElement`; `Subscription.channel.type` is `1..1 code` with required subscription-channel-type binding.",
+          "R6 StructureDefinition: `Subscription.channelType` is `1..1 Coding` with extensible subscription-channel-type binding; `Subscription.endpoint` is top-level `0..1 url`.",
+          "R6 ValueSet `subscription-channel-type` includes `http://terminology.hl7.org/CodeSystem/subscription-channel-type`; R4 local CodeSystem used `http://hl7.org/fhir/subscription-channel-type` codes."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises concern because channel configuration is part of the ordinary Subscription workflow, but the maturity level still leaves room for a structural cleanup when the replacement is explicit and proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: the required R4 `channel` object is not an R6 Subscription element and R4 instances lack required `channelType`; codegen changes from a nested primitive code to a top-level Coding.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `channel` as deprecated while adding `channelType` and `endpoint`, but that would duplicate transport settings and require precedence rules when old and new fields disagree. The tradeoff is significant enough that this is not an obvious low-cost base alternative.",
+        "comparisonToExisting": "agree with the existing assessment that impact is high and the less-breaking alternative is only partial, though the fresh review emphasizes that much of the forward conversion is mechanical."
+      }
     },
     {
       "findingId": "Subscription:CONVERSION_OR_MAPPING:payload-content:3c9d44",
@@ -735,7 +763,21 @@
       "validationAndCompatibilityMd": "R4→R6: R4 `channel.payload` is nested under a removed backbone and therefore requires transformation. R6 validation will accept `contentType` and `content`, not `channel.payload`. R6→R4: `content=id-only` and any distinction between explicit `empty` and omitted content cannot be represented cleanly in native R4. Generated models and notification code that assume payload presence is equivalent to MIME-type presence need review.",
       "migrationGuidanceMd": "Map `channel.payload` to `contentType` and set `content` by local policy, commonly `full-resource` for prior payload-bearing rest-hook subscriptions and `empty` for prior no-payload subscriptions. Test notification generation and security controls for no-payload, id-only, and full-resource modes. Preserve the original R4 payload setting if a lossless audit trail is needed.",
       "backwardCompatibilityAnalysisMd": "A split is semantically cleaner, but the lack of a retained shorthand makes old instances invalid and makes policy assumptions explicit during migration. A deprecated alias plus conversion defaults would have been less disruptive but might hide important privacy choices.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Subscription:CONVERSION_OR_MAPPING:payload-content:3c9d44",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 places the MIME payload choice in `channel.payload`, where the element's presence also signals that a payload should be sent. R6 moves the MIME type to top-level `contentType` and adds optional `content` codes for empty, id-only, and full-resource payloads. This requires migration work for populated R4 payloads and may need local policy when choosing an R6 content level, especially because payload content affects PHI disclosure. Still, separating format from content amount is a legitimate R6 goal, and carrying forward the old shorthand in base R6 would hide or duplicate that policy decision.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Subscription.channel.payload` is `0..1 code`, required binding to mimetypes, short `MIME type to send, or omit for no payload`.",
+          "R6 StructureDefinition: `Subscription.contentType` is `0..1 code` bound to mimetypes and `Subscription.content` is `0..1 code` bound to subscription-payload-content.",
+          "R6 CodeSystem `subscription-payload-content` defines `empty`, `id-only`, and `full-resource`."
+        ],
+        "fmmEffect": "FMM 3/trial-use means payload compatibility should not be dismissed, particularly because payloads can carry sensitive data. The same status also supports a careful redesign of ambiguous trial-use behavior.",
+        "compatibilityMechanism": "runtime/API/codegen: populated R4 `channel.payload` must move to `contentType` and may need a content-level policy; R6 `content=id-only` also creates R6-to-R4 loss because R4 has no native id-only payload mode.",
+        "lessBreakingAlternativeAssessment": "A deprecated `channel.payload` alias or shorthand default could preserve many R4 payload settings, but it would duplicate a security-sensitive control and require assumptions such as mapping a MIME type to `full-resource`. Those assumptions may be wrong for some channels or deployments.",
+        "comparisonToExisting": "partially agree with the existing high-risk assessment; the privacy-sensitive mapping burden is real, but because `content` is optional and `contentType` preserves the MIME-type aspect, the forward break is narrower than the old impact text suggests."
+      }
     },
     {
       "findingId": "Subscription:SERIALIZATION_OR_CODEGEN:header-parameter:5aa91b",
@@ -896,7 +938,21 @@
       "validationAndCompatibilityMd": "R4→R6: instances with `channel.header` are invalid unless transformed; each R6 parameter row must have both `name` and `value`. R6→R4: name/value pairs can be serialized back to strings for simple HTTP headers, but channel-specific parameters may not have a canonical R4 string format. Code that queries `_summary=true` may observe a changed result shape.",
       "migrationGuidanceMd": "Parse only well-understood header formats, validate names against channel-specific rules, and handle credentials as secrets during migration. For non-header channel parameters, define local mapping rules or preserve values in extensions. Add tests for duplicate names because R6 notes that names are not required to be unique unless channel definitions impose restrictions.",
       "backwardCompatibilityAnalysisMd": "A structured parameter model is justified for validation and non-HTTP channels, but the absence of a retained string form makes old data require custom parsing. A dual model would reduce migration risk but could also preserve insecure or ambiguous header strings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Subscription:SERIALIZATION_OR_CODEGEN:header-parameter:5aa91b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 free-form `channel.header` strings become R6 structured `parameter` rows with mandatory `name` and `value`. Instances that used headers need parsing and rewriting, and mistakes can break authentication or routing. The R6 structure is nevertheless a reasonable improvement because it makes channel parameters explicit and supports non-HTTP channel conventions better than an untyped string list.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Subscription.channel.header` is `0..* string` and summary=true.",
+          "R6 StructureDefinition: `Subscription.parameter` is `0..* BackboneElement`; `parameter.name` and `parameter.value` are both `1..1 string`.",
+          "R6 `Subscription.parameter` definition cites channel-dependent information such as HTTP headers."
+        ],
+        "fmmEffect": "FMM 3/trial-use keeps compatibility relevant because headers can be operationally important, but it does not require preserving a weak free-form representation when a structured replacement has clear value.",
+        "compatibilityMechanism": "runtime/API/codegen: R4 string headers must be parsed into name/value components and R6 generated models require a backbone component; this is only an old-valid/new-invalid issue for instances that actually populate headers.",
+        "lessBreakingAlternativeAssessment": "Keeping deprecated header strings would preserve simple HTTP header values, but it would leave credentials or routing data in two possible locations and require conflict handling. That duplicate sensitive-data surface is a meaningful tradeoff.",
+        "comparisonToExisting": "agree with the existing conclusion that this is a real migration and runtime risk with only a partial less-breaking alternative."
+      }
     },
     {
       "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:error-status-resource:1f4e80",
@@ -1027,7 +1083,21 @@
       "migrationGuidanceMd": "Before converting, decide whether historical last-error text should be discarded, preserved in an extension, or emitted as a `SubscriptionStatus` event/resource. If converting to `CodeableConcept`, define terminology mapping rules and keep original text. Update monitoring jobs and dashboards that read `Subscription.error`.",
       "backwardCompatibilityAnalysisMd": "Moving error state out of Subscription is consistent with a more explicit status model, but a standard cross-version extension or a deprecated last-error field would have eased migration for operational tooling.",
       "reviewerNotesMd": "The exact lifecycle and operation behavior of `SubscriptionStatus` was not fully analyzed because that resource is a related artifact, not the assigned artifact.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:error-status-resource:1f4e80",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 stores a latest error note directly on `Subscription.error`; R6 has no same-resource `Subscription.error` and instead includes `SubscriptionStatus.error` as repeatable `CodeableConcept` on a separate status resource. This breaks systems that persist or poll error state on Subscription, but separating mutable delivery status from the subscription request is a defensible model. The optional R4 field is also less central than criteria or channel configuration.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Subscription.error` is `0..1 string` with short `Latest error note`.",
+          "R6 Subscription StructureDefinition contains no `Subscription.error` element.",
+          "R6 StructureDefinition `SubscriptionStatus.error` is `0..* CodeableConcept` with definition about errors when processing a notification."
+        ],
+        "fmmEffect": "FMM 3/trial-use means operational tooling compatibility matters, but the affected field is optional server state and the R6 split has a plausible lifecycle rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 Subscription carrying `error` is not valid as an R6 Subscription without transformation; R6-to-R4 conversion of repeatable coded errors to one string is lossy.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept a deprecated `Subscription.error` last-error string, but that would risk stale or conflicting operational truth between Subscription and SubscriptionStatus and would not represent repeatable coded errors.",
+        "comparisonToExisting": "agree with the existing medium-impact and partial-alternative assessment; the move appears justified but implementers need an explicit operational migration policy."
+      }
     },
     {
       "findingId": "Subscription:TERMINOLOGY_BINDING:status-entered-in-error:ab42d0",
@@ -1196,7 +1266,21 @@
       "validationAndCompatibilityMd": "R4→R6: old status codes are still in the R6 CodeSystem. R6→R4: `entered-in-error` cannot be placed in native R4 `Subscription.status` under the required binding. Runtime: generated enums, switch statements, and validation tables built for R4 must be updated and must treat `entered-in-error` as a non-actionable/error state.",
       "migrationGuidanceMd": "Add `entered-in-error` to R6 status enums and lifecycle logic. When down-converting to R4, use an extension or reject the conversion rather than mapping silently to `off` or `error`, unless an implementation guide explicitly defines that behavior. Include tests asserting that `entered-in-error` subscriptions do not trigger notifications.",
       "backwardCompatibilityAnalysisMd": "The code addition is justified by the modifier semantics. A backward-compatible R4 representation is only partially possible with extensions because the native R4 required value set cannot carry the new code.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Subscription:TERMINOLOGY_BINDING:status-entered-in-error:ab42d0",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds `entered-in-error` to the required `Subscription.status` value set while retaining all R4 status codes. This does not make any R4-valid status invalid in R6. R6 clients and down-converters must handle the new modifier status, but that is normal forward-version enum work rather than a base R4-to-R6 compatibility problem.",
+        "keyEvidence": [
+          "R4 CodeSystem `subscription-status` contains `requested`, `active`, `error`, and `off`.",
+          "R6 CodeSystem `subscription-status` retains those codes and adds `entered-in-error`.",
+          "R4 and R6 StructureDefinitions both keep `Subscription.status` as `1..1 code`, required binding, modifier=true."
+        ],
+        "fmmEffect": "FMM 3/trial-use calls for careful handling of modifier status codes, but because the code domain is widened rather than narrowed, it does not raise a forward compatibility concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 `entered-in-error` status has no native R4 code; there is no old-valid/new-invalid break for R4 status values.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for the R4-to-R6 direction because old codes are preserved. Down-conversion can use extensions or rejection policies, but those are migration mitigations rather than base-design alternatives.",
+        "comparisonToExisting": "partially agree with the existing evidence and reverse-direction warning, but disagree with treating the additive code as high-impact for R4-to-R6 compatibility."
+      }
     },
     {
       "findingId": "Subscription:CARDINALITY:reason-min-decreased:e32b57",
@@ -1302,7 +1386,21 @@
       "validationAndCompatibilityMd": "R4→R6: no old instance becomes invalid because of this cardinality change. R6→R4: missing `reason` violates R4's 1..1 cardinality. Synthesizing text such as 'unspecified' changes meaning and should be a conscious policy choice.",
       "migrationGuidanceMd": "For R4→R6, carry the existing reason forward. For R6→R4, either require `reason` in an interoperability profile, reject instances without it, or populate a clearly marked implementation-specific value and preserve that defaulting decision in audit metadata.",
       "backwardCompatibilityAnalysisMd": "Because the change weakens an R4 requirement, it is not an R4-to-R6 breaking change. The only compatibility issue is reverse direction, where profiles can restore the R4 requirement if needed.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Subscription:CARDINALITY:reason-min-decreased:e32b57",
+        "judgment": "No problem",
+        "narrativeMd": "`Subscription.reason` changes from required in R4 to optional in R6. That relaxes the base rule, so every R4-valid instance already satisfies the R6 cardinality for this path. The only concern is reverse conversion of an R6 instance that omits reason, which is not a reason to revisit the R6 base design.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Subscription.reason` is `1..1 string`.",
+          "R6 StructureDefinition: `Subscription.reason` is `0..1 string`.",
+          "The element name and datatype remain `Subscription.reason` / `string`."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not increase concern for a cardinality relaxation that preserves R4-valid instances.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 can omit `reason`, which native R4 requires; there is no R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 compatibility. R6 profiles can require reason for round-trip use cases, but the base relaxation is already less restrictive than R4.",
+        "comparisonToExisting": "partially agree with the existing reverse-conversion risk, but disagree that this should be considered a material R4-to-R6 impact."
+      }
     },
     {
       "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:new-r6-only-fields:64c0ad",
@@ -1464,7 +1562,21 @@
       "validationAndCompatibilityMd": "R4→R6: no issue when these fields are absent. R6→R4: each field is non-native and would be rejected by strict R4 validators unless represented by extensions or dropped. Dropping delivery controls can change runtime notification behavior even if the resulting R4 resource validates.",
       "migrationGuidanceMd": "If R4 round-trip is required, define extensions for each R6-only field or constrain R6 senders not to populate them. Treat `managingEntity` as authorization-relevant and delivery controls as operationally significant; do not silently discard them in production migrations.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the least disruptive way to add capability for R4-to-R6. The remaining incompatibility is inherent to down-conversion unless cross-version extensions are standardized and adopted.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:new-r6-only-fields:64c0ad",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional fields such as identifier, name, managingEntity, heartbeatPeriod, timeout, and maxCount. Optional additions do not invalidate R4 Subscriptions and are the compatibility-preserving way to add capability. They matter for R6-to-R4 round-tripping, but that is a data-loss mitigation issue rather than a base R4-to-R6 break.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `Subscription.identifier` is `0..* Identifier` and `Subscription.name` is `0..1 string`.",
+          "R6 StructureDefinition: `Subscription.managingEntity` is `0..1 Reference` to a bounded set of actor resources.",
+          "R6 StructureDefinition: `heartbeatPeriod`, `timeout`, and `maxCount` are optional numeric delivery-control fields."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not make optional additive content a forward compatibility concern. It only reminds implementers not to silently discard populated R6 fields when bridging back to R4.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated R6-only fields have no native R4 locations; there is no old-valid/new-invalid break because R4 instances simply omit them.",
+        "lessBreakingAlternativeAssessment": "Not applicable as a less-breaking R6 base design, because optional additions already preserve R4-valid instances. Extensions can support R4 round-trip, but that is an implementation mitigation.",
+        "comparisonToExisting": "partially agree with the existing reverse-direction data-loss note, but disagree with elevating optional additions to a medium R4-to-R6 compatibility impact."
+      }
     },
     {
       "findingId": "Subscription:VALUE_CONSTRAINT:filterBy-scr1:91e7ac",
@@ -1588,7 +1700,21 @@
       "validationAndCompatibilityMd": "R4→R6: migrated filters can become invalid if required child fields are missing, comparator/modifier codes are outside the required value sets, or both comparator and modifier are populated. R6→R4: structured filters can often be serialized into a search string, but topic-defined events and resource scoping may not round-trip cleanly.",
       "migrationGuidanceMd": "Use a real FHIR search parser rather than string splitting. Validate each candidate filter against the target SubscriptionTopic's `canFilterBy` rules and against `scr-1`. Keep fixtures for simple token filters, comparators, modifiers, multiple filters with AND semantics, and event filters with OR semantics.",
       "backwardCompatibilityAnalysisMd": "The constraint is a reasonable local validation rule in R6. The avoidable part is the lack of a native compatibility lane for old criteria strings, not the existence of the constraint itself.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Subscription:VALUE_CONSTRAINT:filterBy-scr1:91e7ac",
+        "judgment": "No problem",
+        "narrativeMd": "R6 `filterBy` is new optional content with mandatory child fields and an error invariant forbidding both comparator and modifier in the same row. Since R4 has no `filterBy`, this constraint does not itself reject an R4-valid Subscription. It is important for converters that map R4 criteria into R6 filters, but the base compatibility break is the criteria-to-topic redesign covered separately.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `Subscription.filterBy` is `0..* BackboneElement`.",
+          "R6 StructureDefinition: `filterBy.filterParameter` and `filterBy.value` are both `1..1 string`.",
+          "R6 invariant `scr-1` is error-level: `Subscription filters may only contain a modifier or a comparator`."
+        ],
+        "fmmEffect": "FMM 3/trial-use warrants attention to criteria migration, but for this specific optional R6-only constraint it does not create a forward compatibility problem.",
+        "compatibilityMechanism": "none: the invariant applies only when R6 `filterBy` is populated; invalid migrated filters are a conversion-tooling problem tied to the separate criteria replacement.",
+        "lessBreakingAlternativeAssessment": "Not applicable for this specific finding. Downgrading the invariant to a warning would make ambiguous R6 filters easier to create and would not preserve any R4-valid instance, because no R4 instance had `filterBy`.",
+        "comparisonToExisting": "disagree with the existing potential-hard-break framing for this isolated finding; it is useful migration guidance but not a separate base compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1758,5 +1884,18 @@
       "Operational status fields split into separate status resources",
       "Optional R6 delivery-control fields with no native R4 counterpart"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Subscription.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 5,
+      "No problem": 4
+    }
   }
 }

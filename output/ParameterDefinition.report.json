@@ -777,7 +777,24 @@
       "migrationGuidanceMd": "Inventory every `ParameterDefinition.type` value before migration. Codes present in both vocabularies can usually be copied unchanged. Codes removed from R6 need manual or table-driven mapping to an R6 replacement where one exists; for example, some resource renames may have plausible successors, but the local inputs do not provide an authoritative map. Codes with no safe target should be rejected, profiled with an extension that preserves the legacy value, or handled by a documented compatibility policy. R6-to-R4 export must similarly reject or extension-preserve R6-only codes. Test validators and generated enum code with removed, unchanged, and added type codes.",
       "backwardCompatibilityAnalysisMd": "The change is probably part of R6's broader type-system cleanup and resource evolution, so strict R6 conformance has a reasonable goal. A backward-compatible alternative would have been to publish a compatibility value set or ConceptMap, or to keep retired R4 type codes as deprecated aliases accepted only for migration. That would reduce validation failures for historical artifacts but could blur the normative R6 model by allowing obsolete type names.",
       "reviewerNotesMd": "The R6 package contains `CodeSystem/fhir-old-types`, which includes some retired type names, but `ValueSet/fhir-types` does not include that code system. Human review should decide whether any removed code has an official replacement and whether compatibility profiles should allow old codes during transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ParameterDefinition:TERMINOLOGY_BINDING:ParameterDefinition.type:5b8d2c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`ParameterDefinition.type` remains a mandatory `code`, but its required value set changes from the R4 list of all R4 data/resource/abstract type codes to the R6 list of FHIR type codes. That can invalidate an R4 Library or other definitional artifact whose parameter type names an R4-only type such as `RequestGroup`, `MedicinalProduct`, `SimpleQuantity`, or `Any`, and R6-only type codes cannot be represented in R4 without mapping. The break is real, but it mostly follows the underlying R6 type-system/resource changes: allowing obsolete R4 type names in base R6 would make parameter definitions less computable because those types are not valid R6 targets. This is migration work for validators, code generators, and library/module metadata, but it looks proportionate rather than a path-level design issue that should be revisited.",
+        "keyEvidence": [
+          "R4 `ParameterDefinition.type` is 1..1 with required binding to `http://hl7.org/fhir/ValueSet/all-types|4.0.1`.",
+          "R6 `ParameterDefinition.type` is still 1..1 but has required binding to `http://hl7.org/fhir/ValueSet/fhir-types|6.0.0-ballot4`.",
+          "R4 `all-types` composes R4 `data-types`, `resource-types`, and `abstract-types`; R6 `fhir-types` composes the unified R6 `CodeSystem/fhir-types`.",
+          "Local complete-code-system comparison found 47 R4-only concept codes and 37 R6-only concept codes.",
+          "`Library.parameter` uses `ParameterDefinition` in both R4 and R6, so the affected path is definitional metadata used to describe library/module parameters.",
+          "R4 local StructureDefinition metadata shows standards status `trial-use` and no numeric FMM extension; R6 marks the datatype normative, which does not increase the R4 compatibility expectation."
+        ],
+        "fmmEffect": "The R4 baseline is trial-use with no numeric FMM found locally, so stability pressure is lower than for normative/FMM 5 content. That softens the concern from the hard binding break, while still leaving real migration work because the element is mandatory and used in library parameter metadata.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: required terminology validation can reject R4-valid `ParameterDefinition.type` codes that are not in R6 `fhir-types`, and R6-only codes have no valid R4 representation without a mapping or rejection. There is also runtime/API/codegen churn for generated enums and validators.",
+        "lessBreakingAlternativeAssessment": "A superficially less-breaking R6 design could widen the binding to include deprecated R4 codes, perhaps by including `fhir-old-types`, but that would permit R6 parameter definitions to name types that are not part of the R6 type system and would weaken validation and generated-model behavior. Migration maps or tool support are useful mitigations, but they are not less-breaking base R6 designs. I do not see a low-cost base design that preserves most old instances while keeping `type` computably tied to valid R6 types.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard required-binding break and no clear less-breaking base alternative, but its High runtime/business impact is somewhat overstated for a trial-use metadata datatype whose break is mostly inherited from broader FHIR type-system changes."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -956,5 +973,17 @@
       "Primitive code elements whose required value set changes because the FHIR type vocabulary changed",
       "R6 artifacts using CodeSystem/fhir-old-types for compatibility but not in base required bindings"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ParameterDefinition.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1
+    }
   }
 }

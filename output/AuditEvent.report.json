@@ -221,7 +221,20 @@
       "validationAndCompatibilityMd": "R4 `period` is not a valid R6 element. R6 `occurredPeriod` can map back by renaming, but `occurredDateTime` is not exactly R4-representable without synthesizing a Period or using an extension.",
       "migrationGuidanceMd": "Rename `period` to `occurredPeriod`. For R6-to-R4, define whether dateTime becomes a zero-duration Period or an extension.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.period:0b2c7a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 Period-valued event timing moves from `period` to the R6 choice `occurred[x]`. Existing instances and generated properties need a rename transform, and R6 dateTime occurrences need a downgrade convention. The R6 design is still proportionate because a single occurrence choice aligns the instant-or-interval semantics better than keeping parallel time fields.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot.element[id=AuditEvent.period]: 0..1 Period.",
+          "R6 StructureDefinition snapshot.element[id=AuditEvent.occurred[x]]: 0..1 choice of Period or dateTime."
+        ],
+        "fmmEffect": "R4 AuditEvent is FMM 3/trial-use, so compatibility matters for event timing, but the content is not normative/FMM 5; the clearer occurrence choice can justify a focused transform.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `period` property is not an R6 AuditEvent element; R6 `occurredDateTime` also creates limited R6-to-R4 loss unless converted to a Period or extension.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained `period` for intervals and added a separate instant/dateTime field. That would preserve R4 instances but leaves two same-purpose timing representations and requires conflict rules, so the alternative has material modeling cost.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a real hard break with only a partial less-breaking alternative; I view the alternative tradeoff as large enough that the break is probably OK."
+      }
     },
     {
       "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.outcome:91e4d0",
@@ -328,7 +341,21 @@
       "validationAndCompatibilityMd": "R4 `\"outcome\":\"0\"` is invalid in R6. R6 details and multiple/alternate outcome codings cannot be represented losslessly in R4, which had one code plus one text description.",
       "migrationGuidanceMd": "Map primitive outcome into `outcome.code`; map `outcomeDesc` to `outcome.detail.text`. Use an explicit ConceptMap or local policy for R4 codes 0/4/8/12.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.outcome:91e4d0",
+        "judgment": "Revisit",
+        "narrativeMd": "Outcome is a central audit result field, and R6 changes both the wire shape and the terminology model: a primitive R4 code plus optional description becomes a backbone with mandatory Coding and repeatable detail. Migration is not just syntactic because R4 codes 0/4/8/12 come from the audit-event-outcome code system while R6 points the outcome value set at issue-severity. That makes lossless, consistently reviewed mapping important.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot.element[id=AuditEvent.outcome]: 0..1 code with required audit-event-outcome binding; AuditEvent.outcomeDesc is 0..1 string.",
+          "R6 StructureDefinition snapshot.element[id=AuditEvent.outcome]: BackboneElement with outcome.code 1..1 Coding and outcome.detail 0..* CodeableConcept.",
+          "Local terminology: R4 ValueSet-audit-event-outcome includes http://hl7.org/fhir/audit-event-outcome codes 0, 4, 8, 12; R6 ValueSet-audit-event-outcome includes http://hl7.org/fhir/issue-severity."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the burden for a high-value audit/security path even though it is not normative. The result of an audited event is common enough and accountable enough that the break needs strong rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `outcome` as a primitive code and `outcomeDesc` are rejected by the R6 shape; R6 structured detail and issue-severity coding are lossy or judgment-dependent when downgraded to R4.",
+        "lessBreakingAlternativeAssessment": "A staged base design could have kept the R4 primitive `outcome` and `outcomeDesc` as deprecated elements while adding structured outcome coding/detail under new names. That duplicates outcome representations and needs precedence rules, but for a central result field the tradeoff may be preferable to an immediate shape and code-system break.",
+        "comparisonToExisting": "partially agree: I agree with the existing high impact and partial alternative assessment, but I weigh the terminology remap and central audit semantics more heavily, so this deserves Revisit rather than being treated as probably justified."
+      }
     },
     {
       "findingId": "AuditEvent:CARDINALITY:AuditEvent.agent.who:44a87c",
@@ -438,7 +465,21 @@
       "validationAndCompatibilityMd": "R4 agents without `who` become R6-invalid. R6 agents without `requestor` or with new target types are not valid R4 without defaults, target reduction, or extensions.",
       "migrationGuidanceMd": "Populate `agent.who` from reliable identifiers/display values. Do not invent identities silently. For downgrade, add `requestor:false` when absent and preserve unsupported targets with extensions.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AuditEvent:CARDINALITY:AuditEvent.agent.who:44a87c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 requires every agent to carry `who`, while R4 allowed an agent identified only by requestor, name, alternate id, or network details. This can invalidate sparse historical audit records and affects generated validators. The R6 accountability goal is strong, though: an audit event whose active participant cannot be tied to a resource, identifier, or display is weak evidence.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot.element[id=AuditEvent.agent.who]: min 0, target profiles PractitionerRole, Practitioner, Organization, Device, Patient, RelatedPerson.",
+          "R6 StructureDefinition snapshot.element[id=AuditEvent.agent.who]: min 1, expanded targets including CareTeam, DeviceDefinition, Group, HealthcareService.",
+          "R4 AuditEvent.agent.requestor min 1; R6 AuditEvent.agent.requestor min 0 with meaningWhenMissing false."
+        ],
+        "fmmEffect": "FMM 3/trial-use means existing audit log producers deserve compatibility consideration, but the security/accountability purpose of AuditEvent supports a higher base requirement for agent identity.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 agent without `who` fails R6 validation; R6 agents without explicit `requestor` or using newly allowed target types require defaults, reduction, or extensions for R4.",
+        "lessBreakingAlternativeAssessment": "R6 could have left `agent.who` optional and used profiles, best-practice warnings, or IG requirements to demand identity. That would preserve anonymous R4 agents, but it would not give base R6 consumers a computable identity guarantee, which is a material safety/security tradeoff.",
+        "comparisonToExisting": "agree: the existing report correctly identifies high impact and only a partial less-breaking alternative; the accountability rationale is strong enough that the break is probably OK."
+      }
     },
     {
       "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.agent.rework:2c8691",
@@ -559,7 +600,21 @@
       "validationAndCompatibilityMd": "R4 instances using removed agent fields are R6-invalid. R6 Endpoint references cannot be fully represented in R4 network.address/type.",
       "migrationGuidanceMd": "Move altId/name to `who.identifier`/`who.display`; map network addresses to networkString/networkUri; preserve media and network.type in extensions or entity modeling when needed.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.agent.rework:2c8691",
+        "judgment": "Revisit",
+        "narrativeMd": "Several optional agent details disappear or move into more general R6 representations. Alternate id and name can usually move into `who.identifier` and `who.display`, and a network address can move into `networkString` or `networkUri`; however media and the old network type do not have an equivalent same-path replacement. Because these are audit attribution details, silent loss would be material.",
+        "keyEvidence": [
+          "R4 StructureDefinition contains AuditEvent.agent.altId, agent.name, agent.media, and agent.network.address/type.",
+          "R6 StructureDefinition contains mandatory AuditEvent.agent.who and AuditEvent.agent.network[x] Reference(Endpoint)|uri|string; the R4 altId/name/media/network backbone paths are absent.",
+          "R6 AuditEvent.entity.agent maps to DICOM ActiveParticipant.MediaType, indicating media semantics moved rather than remaining as a direct agent field."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not forbid redesign, but it raises concern when mature audit/security data fields are removed without exact replacements.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances populated with removed agent fields fail R6 validation; some values can be transformed, but media and network type require local preservation policy.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept the old optional fields as deprecated while preferring `who` and `network[x]`. That creates overlapping identity/network representations, but the old fields are optional and the tradeoff seems modest compared with losing audit attribution details.",
+        "comparisonToExisting": "agree: the existing report's medium impact and partial less-breaking alternative are directionally right; I classify the design as Revisit because deprecating optional legacy fields looks plausible."
+      }
     },
     {
       "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.authorization:6aa7df",
@@ -663,7 +718,21 @@
       "validationAndCompatibilityMd": "Old purpose fields are invalid in R6. R6 authorization values outside PurposeOfUse are not cleanly R4-representable.",
       "migrationGuidanceMd": "Move purpose values to authorization fields. Review non-purpose authorization/security tags during downgrade and preserve them with extensions if needed.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.authorization:6aa7df",
+        "judgment": "Revisit",
+        "narrativeMd": "The R4 purpose-of-use fields are renamed to authorization fields while retaining the same CodeableConcept cardinality pattern and the same global-vs-agent split. R6 broadens the meaning and weakens the binding, but the old field names could have carried that broader definition during a transition. This is a direct wire-name break in privacy/security context data.",
+        "keyEvidence": [
+          "R4 StructureDefinition: AuditEvent.purposeOfEvent 0..* CodeableConcept and AuditEvent.agent.purposeOfUse 0..* CodeableConcept with extensible PurposeOfUse binding.",
+          "R6 StructureDefinition: AuditEvent.authorization 0..* CodeableConcept and AuditEvent.agent.authorization 0..* CodeableConcept with example PurposeOfUse binding and broader security-context requirements.",
+          "R6 authorization elements list aliases PurposeOfEvent and PurposeOfUse."
+        ],
+        "fmmEffect": "For FMM 3/trial-use security/audit content, a same-shape rename affecting purpose and authorization semantics needs a stronger justification than a low-maturity cleanup would.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `purposeOfEvent` and `agent.purposeOfUse` are not R6 element names; R6 authorization values outside purpose-of-use are not cleanly representable in R4.",
+        "lessBreakingAlternativeAssessment": "A low-cost less-breaking design exists: keep the R4 names, broaden their definitions and bindings, and optionally add authorization aliases or companion elements later. The tradeoff is living with less precise names, but that is a small cost relative to invalidating same-type data.",
+        "comparisonToExisting": "agree: the existing report correctly flags a medium-impact break with an available less-breaking base design."
+      }
     },
     {
       "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.coded-classifiers:37c9b5",
@@ -774,7 +843,21 @@
       "validationAndCompatibilityMd": "Old Coding JSON with `system`/`code` directly on the element is invalid in R6 CodeableConcept paths. R6 multiple codings/text are lossy when downgraded to R4 Coding fields.",
       "migrationGuidanceMd": "Wrap old Coding values in CodeableConcept.coding. For downgrade, choose a primary coding deterministically and preserve additional codings/text. Re-profile R6 if stronger bindings remain required.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.coded-classifiers:37c9b5",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 converts several classifier fields from single Coding values to CodeableConcepts and relaxes some bindings. R4 JSON with `system` and `code` directly under the element will not validate in R6, and R6 values with multiple codings or text need a primary-coding policy for downgrade. Still, the R6 model better supports alternate terminology, local codings, and descriptive text for classifier data.",
+        "keyEvidence": [
+          "R4 StructureDefinition: AuditEvent.type, subtype, source.type, entity.role, and entity.securityLabel are Coding-valued classifier paths.",
+          "R6 StructureDefinition: those classifier paths are CodeableConcept-valued, with several bindings changed to example or preferred.",
+          "R4 AuditEvent.agent.type is CodeableConcept with extensible binding; R6 keeps CodeableConcept but changes the binding to preferred."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the compatibility bar because these classifier paths are useful for filtering, access control, and audit analysis, but the maturity level still allows model cleanup when the alternative would duplicate classifications.",
+        "compatibilityMechanism": "old-valid/new-invalid: direct R4 Coding JSON is invalid for R6 CodeableConcept paths; R6 multiple codings/text cause R6-to-R4 loss unless one coding is selected and the rest preserved elsewhere.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the Coding fields and added parallel CodeableConcept fields only where richer representation was needed. That would preserve R4 instances but creates duplicate classifier sources and ambiguous search/filter semantics, so the less-breaking option has substantial long-term cost.",
+        "comparisonToExisting": "agree: the existing high impact and partial alternative assessment matches the fresh review; the break is real but proportionate."
+      }
     },
     {
       "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.source.site:12b6c8",
@@ -872,7 +955,21 @@
       "validationAndCompatibilityMd": "R4 site strings fail R6 validation. R6 Location references and CareTeam observers cannot be represented in R4 without reduction or extension.",
       "migrationGuidanceMd": "Map old strings to `source.site.display` or create Location references. Define downgrade handling for Location and CareTeam references.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.source.site:12b6c8",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 source site was a simple logical site label; R6 requires a Location reference object. A display-only reference can carry the old text, but historical strings no longer validate as-is and resolvable Location identity cannot always be manufactured during migration. The source observer target widening is additive, but the site type replacement is a direct break.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot.element[id=AuditEvent.source.site]: 0..1 string.",
+          "R6 StructureDefinition snapshot.element[id=AuditEvent.source.site]: 0..1 Reference(Location).",
+          "R6 StructureDefinition snapshot.element[id=AuditEvent.source.observer] adds CareTeam as a target profile."
+        ],
+        "fmmEffect": "FMM 3/trial-use means a source-identification path in a security/audit resource deserves preservation unless the replacement's benefit clearly requires breaking old values.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 `source.site` string is not the R6 Reference shape; R6 Location references and CareTeam observers need reduction or extension when downgraded to R4.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have kept the string site label and added a separate optional Location reference. That creates possible disagreement between text and reference, but it is a modest, localized tradeoff and would preserve common legacy site labels.",
+        "comparisonToExisting": "partially agree: I agree with the medium impact, but I give more weight to the practical string-plus-reference base alternative, so the finding merits Revisit."
+      }
     },
     {
       "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.entity.removals:f4a911",
@@ -990,7 +1087,21 @@
       "validationAndCompatibilityMd": "Removed entity fields fail R6 validation. R6 cannot reconstruct them unless preserved in detail, extensions, or related resources.",
       "migrationGuidanceMd": "Move entity.name to entity.what.display/identifier. Define explicit policy for entity.type and lifecycle, commonly profile-specific detail codings or extensions.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.entity.removals:f4a911",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 removes optional entity descriptors that can be important for audit analysis. `entity.name` has a partial path through `entity.what.display`, but `entity.type` and especially `entity.lifecycle` have no exact replacement. Migration therefore risks either invalid R6 instances or local conventions that are not interoperable.",
+        "keyEvidence": [
+          "R4 StructureDefinition includes AuditEvent.entity.type 0..1 Coding, entity.lifecycle 0..1 Coding, and entity.name 0..1 string.",
+          "R6 StructureDefinition keeps entity.what, entity.role, securityLabel, description, query, detail, and entity.agent, but does not define entity.type, entity.lifecycle, or entity.name.",
+          "R6 entity.what comment says to use what.display when only a string such as ParticipantObjectName is available."
+        ],
+        "fmmEffect": "FMM 3/trial-use softens the expectation compared with normative content, but audit entity classification and lifecycle are mature accountability data, so deletion carries a real stability burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 entity.type, entity.lifecycle, and entity.name are rejected by R6; lifecycle/type information can be lost unless profiles, extensions, or detail conventions are defined.",
+        "lessBreakingAlternativeAssessment": "A practical less-breaking base design could have retained these optional elements as deprecated while recommending `what`, `role`, `securityLabel`, or detail-based conventions. The cost is some redundant descriptors, but it preserves legacy audit semantics that otherwise need local extensions.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as high impact with an available less-breaking base design."
+      }
     },
     {
       "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.entity.detail:bc01e3",
@@ -1113,7 +1224,21 @@
       "validationAndCompatibilityMd": "R4 detail.type strings fail R6 validation. R6 Quantity/Period/boolean/etc. detail values fail R4 validation.",
       "migrationGuidanceMd": "Convert string tags to CodeableConcept text/display or coding. Define downgrade rules for every new value type used, preserving units and precision.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.entity.detail:bc01e3",
+        "judgment": "Revisit",
+        "narrativeMd": "The R6 value[x] expansion is mostly additive for forward migration, but changing mandatory `entity.detail.type` from string to CodeableConcept invalidates every R4 detail repetition that uses the R4 tag string. The R6 comment gives a migration convention by putting a simple tag into CodeableConcept.display, which confirms the old use case remains valid but now requires a transform.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot.element[id=AuditEvent.entity.detail.type]: 1..1 string.",
+          "R6 StructureDefinition snapshot.element[id=AuditEvent.entity.detail.type]: 1..1 CodeableConcept; definition says simple string tag names should use CodeableConcept.display.",
+          "R6 StructureDefinition snapshot.element[id=AuditEvent.entity.detail.value[x]] adds Quantity, CodeableConcept, boolean, integer, Range, Ratio, time, dateTime, and Period while retaining string and base64Binary."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes this a moderate stability concern: detail is optional and implementation-defined, but when present the mandatory tag field is central to interpreting the detail value.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 detail.type strings fail the R6 CodeableConcept shape; new R6 typed values cannot be represented in R4 without stringifying or extensions.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the string `detail.type` and added an optional coded tag element while still broadening value[x]. That duplicates tag semantics, but the duplication is localized and less disruptive than changing a mandatory child used by every detail entry.",
+        "comparisonToExisting": "agree: the existing report's high impact and partial less-breaking alternative are supported; I classify it as Revisit because the alternative is practical and localized."
+      }
     },
     {
       "findingId": "AuditEvent:CONVERSION_OR_MAPPING:AuditEvent.r6-additions:a7fd29",
@@ -1207,7 +1332,21 @@
       "validationAndCompatibilityMd": "R4 cannot carry these elements directly. Dropping them loses severity, workflow, patient/encounter context, or entity attribution.",
       "migrationGuidanceMd": "Define downgrade extensions or conventions for each new field; test disagreement between explicit patient/encounter and inferred entity context.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "AuditEvent:CONVERSION_OR_MAPPING:AuditEvent.r6-additions:a7fd29",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 fields are optional additions. They can matter for downgrade policy, especially patient, encounter, severity, and entity-specific agent attribution, but they do not make any R4-valid AuditEvent invalid in R6. This is migration awareness for bidirectional bridges, not a design break in the R4-to-R6 direction.",
+        "keyEvidence": [
+          "R6 StructureDefinition adds AuditEvent.severity 0..1 code, basedOn 0..* Reference(Resource), patient 0..1 Reference(Patient), encounter 0..1 Reference(Encounter), and entity.agent 0..* contentReference.",
+          "R4 StructureDefinition has no same-path elements for those added R6 fields.",
+          "All listed R6 additions have minimum cardinality 0."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not turn optional additions into R4-to-R6 breaks. The audit/security domain means downgrade loss should be documented, but it does not require revisiting the base R6 additions.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated R6 additions have no direct R4 slots, so a downgrade must drop, extension-preserve, or map them by local convention.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for optional additions that preserve all R4 instances. Avoiding the new fields would reduce R6 expressiveness, and R4 backports or extensions are downgrade mitigations rather than less-breaking R6 base designs.",
+        "comparisonToExisting": "partially agree: I agree that downgrade gaps exist, but the existing medium impact overstates the R4-to-R6 compatibility concern for optional additions."
+      }
     },
     {
       "findingId": "AuditEvent:FLAGS_AND_MODIFIERS:AuditEvent.summary-flags:8be7d2",
@@ -1305,7 +1444,21 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid. Runtime summary views may include broader and differently shaped content.",
       "migrationGuidanceMd": "Review server summary serialization and clients parsing summary AuditEvents; add tests for agent/source/entity and new summary children.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition was possible for many of these changes through aliases, choice types, or profiles, but would have left duplicate or less precise modeling in the base resource.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "AuditEvent:FLAGS_AND_MODIFIERS:AuditEvent.summary-flags:8be7d2",
+        "judgment": "No problem",
+        "narrativeMd": "The summary metadata changes can alter `_summary` payloads, generated summary views, and cache shapes, but they do not invalidate R4 instances. This should be a server/client regression-test item rather than a standards redesign concern, especially because the changed summaries sit alongside other intentional R6 structural changes.",
+        "keyEvidence": [
+          "R4 StructureDefinition: AuditEvent.agent, source, and entity are not marked isSummary.",
+          "R6 StructureDefinition: AuditEvent.agent, source, and entity are marked isSummary, and several R6 children such as severity, authorization, patient, outcome.code, and outcome.detail are summary elements.",
+          "No local AuditEvent isModifier change was identified for this finding."
+        ],
+        "fmmEffect": "FMM 3/trial-use warrants checking runtime summary behavior, but summary flags are metadata/tooling behavior rather than an instance-validity break.",
+        "compatibilityMechanism": "metadata/tooling: `_summary` serialization, generated DTOs, or summary-index expectations may change; base instance validation is unaffected.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the old summary flags to reduce runtime surprises, but that is not a less-breaking instance-preservation design. Once R6 wants richer AuditEvent summaries, local client testing is the right mitigation.",
+        "comparisonToExisting": "partially agree: the existing report correctly says there is no hard instance break, but I view the medium impact as too high for a metadata/tooling-only concern."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1469,5 +1622,19 @@
       "summary flag expansion",
       "event resource identity requiredness"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/AuditEvent.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 6,
+      "Breaking but probably OK": 3,
+      "No problem": 2
+    }
   }
 }

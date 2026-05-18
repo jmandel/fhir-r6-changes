@@ -316,7 +316,21 @@
       "migrationGuidanceMd": "Introduce an explicit resource-level transform from `MedicinalProduct` to `MedicinalProductDefinition`, then apply the element-level mappings in this report. Update reference targets, REST routes, generated model names, search definitions, and any persistence discriminators keyed by resource type. Keep regression fixtures for resourceType-only rejection, successful migrated root identity, and references from related product-definition resources.",
       "backwardCompatibilityAnalysisMd": "The rename could have been less disruptive with a deprecated alias or compatibility profile, but FHIR core resource identity is intentionally explicit. The practical mitigation is a documented cross-version mapping and possibly cross-version extensions for data that no longer has a direct R6 element.",
       "reviewerNotesMd": "The successor mapping is high-confidence but inferred from local package contents rather than an official R4-to-R6 diff page.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProduct:ARTIFACT_IDENTITY:root:3d7f2a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `MedicinalProduct` is not present as an R6 resource; the apparent successor is `MedicinalProductDefinition`. This is more than an element migration: instances, REST/resource-type discriminators, generated model classes, profile canonicals, references, and FHIRPath/search logic keyed by the resource name all need a rename. Even with low FMM, the resource was already described in R4 as a detailed regulatory product definition, so the semantic need for a new base resource identity is not obvious. Keeping the `MedicinalProduct` identity while clarifying its product-definition role looks like a plausible lower-cost base design, so the identity change deserves renewed attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition-MedicinalProduct has id/type/url `MedicinalProduct`; R6 package index has `StructureDefinition-MedicinalProductDefinition` and no same-named MedicinalProduct StructureDefinition.",
+          "R4 root definition: detailed medicinal product definition, typically for regulatory use; R6 MedicinalProductDefinition definition covers the same regulatory/product-definition role.",
+          "EMA SPOR/PMS public page says HL7 FHIR replaces XEVPRM for ISO IDMP medicinal product data submission; HL7 ePI Type 2 guide uses MedicinalProductDefinition as the product resource chain anchor."
+        ],
+        "fmmEffect": "R4 FMM 0 and trial-use status substantially soften the stability expectation, and the quick search did not prove broad installed R4 `MedicinalProduct` deployment. They do not eliminate concern because this is a top-level resource identity break for regulatory medicinal product data, a domain with documented FHIR/IDMP implementation relevance.",
+        "compatibilityMechanism": "runtime/API/codegen: the resource type, canonical URL, generated class, REST endpoint, references, and discriminators change; old `resourceType: MedicinalProduct` instances are also new-invalid without a transform.",
+        "lessBreakingAlternativeAssessment": "Yes. A base R6 design could have retained `MedicinalProduct` as the resource identity and updated the definition/content model to match the product-definition family. The tradeoff is less tidy naming beside other `*Definition` resources, but that is modest compared with a resource identity break.",
+        "comparisonToExisting": "Agree with the existing Critical impact and Yes alternative judgment, but the fresh rationale relies less on presumed prevalence and more on the avoidability of the resource identity rename despite low FMM."
+      }
     },
     {
       "findingId": "MedicinalProduct:ELEMENT_PRESENCE_OR_IDENTITY:pharmaceuticalProduct:91c4e0",
@@ -471,7 +485,21 @@
       "migrationGuidanceMd": "Resolve each referenced `MedicinalProductPharmaceutical` before migration. Create or link `AdministrableProductDefinition` for administrable dose form and route, `ManufacturedItemDefinition` for manufactured items, `Ingredient` for detailed ingredients, and `DeviceDefinition` where applicable. Test multi-component and device-combination products explicitly.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible path could have retained the old reference as deprecated while adding normalized R6 links. That would be easier for R4 data but would allow two competing ways to say the same thing, so a clean split is understandable but disruptive.",
       "reviewerNotesMd": "Exact mapping requires analysis of the referenced R4 target resources, which is outside this single-artifact report.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProduct:ELEMENT_PRESENCE_OR_IDENTITY:pharmaceuticalProduct:91c4e0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `MedicinalProduct.pharmaceuticalProduct` was a repeating reference to `MedicinalProductPharmaceutical`; R6 has no same local element and the related information is distributed across `MedicinalProductDefinition.comprisedOf`, `AdministrableProductDefinition.formOf`, `Ingredient.for`, and related definition resources. Existing instances using the element need a graph-level migration, not a simple path rename. That is a real break for validators and SDKs, but the R6 split gives more precise administrable, manufactured, ingredient, and device modeling. Preserving the old local reference in base R6 would only be partial unless the removed target resource or a precise legacy target mapping were also retained.",
+        "keyEvidence": [
+          "R4 element `MedicinalProduct.pharmaceuticalProduct` is 0..* Reference(MedicinalProductPharmaceutical).",
+          "R6 MedicinalProductDefinition has `comprisedOf` Reference(ManufacturedItemDefinition|DeviceDefinition), while AdministrableProductDefinition.formOf and Ingredient.for point back to MedicinalProductDefinition.",
+          "R6 package uses separate AdministrableProductDefinition, ManufacturedItemDefinition, Ingredient, and DeviceDefinition resources for concepts formerly associated with pharmaceutical-product detail."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the expectation that the old element shape must be preserved. The domain is regulatory and implementation-relevant, but the evidence checked was broad medicinal-product use rather than specific production use of the R4 `pharmaceuticalProduct` path.",
+        "compatibilityMechanism": "old-valid/new-invalid: after the resource rename, an R4 instance containing `pharmaceuticalProduct` still has an element that R6 MedicinalProductDefinition does not allow; migration can require new related resources and inverse links.",
+        "lessBreakingAlternativeAssessment": "Partial. A deprecated `pharmaceuticalProduct` element could reduce immediate breakage, but it would need a legacy target resource or target mapping and would duplicate facts across old pharmaceutical-product references and the normalized R6 resource graph.",
+        "comparisonToExisting": "Agree with the existing High impact and Partial alternative judgment, with FMM 0 tempering the prevalence assumptions."
+      }
     },
     {
       "findingId": "MedicinalProduct:TYPE_DOMAIN:packagedMedicinalProduct:8e12ab",
@@ -620,7 +648,21 @@
       "validationAndCompatibilityMd": "An R4 `Reference` object in `packagedMedicinalProduct` is invalid in R6. An R6 package-type code can be represented only awkwardly in R4 unless a separate `MedicinalProductPackaged` resource is created or an extension is used.",
       "migrationGuidanceMd": "For each old package reference, migrate the referenced package resource to `PackagedProductDefinition` and set `packageFor` to the migrated product. Populate `MedicinalProductDefinition.packagedMedicinalProduct` only when a package-type classification is known. Test that old package references are not accidentally serialized as CodeableConcepts.",
       "backwardCompatibilityAnalysisMd": "A non-breaking alternative would have been an added `packageType` element and a deprecated retained package reference. R6 instead reused the old element name for a different type, which is more disruptive for generated code and JSON transforms.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProduct:TYPE_DOMAIN:packagedMedicinalProduct:8e12ab",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The path name `packagedMedicinalProduct` survives, but its value changes from a Reference to a package resource in R4 to a CodeableConcept package type in R6. Detailed package records are instead represented by `PackagedProductDefinition` resources that point back with `packageFor`. This is a hard JSON shape and generated-API break for old instances that used package references. The R6 distinction between a package type summary and separate package-definition resources is understandable, and keeping both the old direct reference model and the new inverse package graph in base R6 would create duplicate package relationships and consistency rules.",
+        "keyEvidence": [
+          "R4 `MedicinalProduct.packagedMedicinalProduct` is 0..* Reference(MedicinalProductPackaged).",
+          "R6 `MedicinalProductDefinition.packagedMedicinalProduct` is 0..* CodeableConcept with package-type binding.",
+          "R6 `PackagedProductDefinition.packageFor` is 0..* Reference(MedicinalProductDefinition)."
+        ],
+        "fmmEffect": "Low FMM softens the break, particularly because no path-specific production evidence was found. Packaging data is still regulatory and supply-chain relevant, so the break is real but not enough by itself to override the R6 normalization goal.",
+        "compatibilityMechanism": "old-valid/new-invalid: old Reference array items are not valid CodeableConcept array items, and package detail moves to a related resource graph.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept a package-reference element and added a distinct package-type element, but that would leave direct and inverse package relationships that can diverge and would complicate validation and migration.",
+        "comparisonToExisting": "Agree with the existing High impact and Partial alternative judgment, though the fresh review treats the break as proportionate for FMM 0 content."
+      }
     },
     {
       "findingId": "MedicinalProduct:TYPE_DOMAIN:contact:4c9f66",
@@ -770,7 +812,21 @@
       "validationAndCompatibilityMd": "Old direct references are old-valid/new-invalid. R6 contact backbones can be projected back to R4 by dropping `contact.type` and moving `contact.contact` up, but that loses the R6 contact classification.",
       "migrationGuidanceMd": "Wrap each old `contact` Reference as `{ \"contact\": <old Reference> }`. Update generated models, FHIRPath, search extraction, and tests to account for the new backbone. Decide whether any local contact-role data should populate `contact.type`.",
       "backwardCompatibilityAnalysisMd": "Adding `contact.type` as an extension on the old repeating Reference would have been backward-compatible but less discoverable. The backbone is a reasonable design choice with a straightforward migration.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProduct:TYPE_DOMAIN:contact:4c9f66",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `contact` was a direct Reference list; R6 wraps each contact in a backbone with optional `type` and required `contact`. Old JSON reference objects are not valid R6 backbone entries, and generated accessors/FHIRPath paths move from `contact` to `contact.contact`. The transform is usually deterministic, and the new structure has a clear goal: per-contact role/type metadata. For a low-FMM trial-use resource, this wrapper break appears proportionate.",
+        "keyEvidence": [
+          "R4 `MedicinalProduct.contact` is 0..* Reference(Organization|PractitionerRole).",
+          "R6 `MedicinalProductDefinition.contact` is 0..* BackboneElement with `contact.contact` 1..1 Reference(Organization|PractitionerRole).",
+          "R6 adds `contact.type` CodeableConcept for product contact classification."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability concern. Contacts can matter for regulatory communication, but the path-level migration is low-loss and no quick evidence showed heavy R4-path-specific production use.",
+        "compatibilityMechanism": "old-valid/new-invalid: old Reference items must be wrapped as backbone entries; runtime/API/codegen paths also change.",
+        "lessBreakingAlternativeAssessment": "Partial. Keeping direct references plus adding type metadata via extensions or a parallel typed-contact element would preserve old instances but either hides important metadata or creates two contact representations.",
+        "comparisonToExisting": "Agree with the existing Medium impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "MedicinalProduct:TYPE_DOMAIN:crossReference:0e6bd1",
@@ -921,7 +977,21 @@
       "validationAndCompatibilityMd": "R4 identifier array items become invalid in R6. R6 backbones can be partially represented in R4 only by dropping relationship `type` and reducing `product` to an identifier, which may lose target-reference and relationship semantics.",
       "migrationGuidanceMd": "Attempt to resolve each old identifier to a migrated `MedicinalProductDefinition`; if resolution is not possible, carry it as `product.reference.identifier` and flag for review. Populate `crossReference.type` only where the old business context makes the relationship clear.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative would have added `crossReference.product` and `crossReference.type` while retaining bare identifiers. R6 chose a more coherent backbone, but existing data needs an explicit mapping policy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProduct:TYPE_DOMAIN:crossReference:0e6bd1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `crossReference` was a bare Identifier; R6 makes `crossReference` a backbone with mandatory `product` CodeableReference and optional relationship `type`. Existing identifier-only entries are invalid without wrapping and semantic interpretation. The new design resolves a real ambiguity by making the related product and relationship type explicit. Because the old Identifier did not say whether it identified a product, relationship, or local business key, preserving it in base R6 would keep the ambiguity and duplicate the clearer relationship model.",
+        "keyEvidence": [
+          "R4 `MedicinalProduct.crossReference` is 0..* Identifier.",
+          "R6 `MedicinalProductDefinition.crossReference.product` is 1..1 CodeableReference(MedicinalProductDefinition).",
+          "R6 `crossReference.type` definition covers branded/generic, virtual/actual, investigational, and parallel import relationships."
+        ],
+        "fmmEffect": "Low FMM makes this less concerning than a mature resource break. The affected concept is business/regulatory relevant, but the old shape was ambiguous and no quick path-specific production evidence was found.",
+        "compatibilityMechanism": "old-valid/new-invalid: an Identifier object is not a valid R6 crossReference backbone, and migration may require choosing product reference versus coded concept semantics.",
+        "lessBreakingAlternativeAssessment": "Partial. A legacy identifier field could be retained alongside the typed relationship, but it would preserve ambiguity and allow conflicting old/new related-product representations.",
+        "comparisonToExisting": "Agree with the existing Medium impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "MedicinalProduct:ELEMENT_PRESENCE_OR_IDENTITY:manufacturingBusinessOperation:6a24d9",
@@ -1116,7 +1186,21 @@
       "validationAndCompatibilityMd": "R4 operation backbones are invalid in R6 under their old path. Some old values can be represented in R6 (`operationType` as `type.concept`, `manufacturer` as `organization`), but authorization number and regulator are not preserved by a local element-only transform.",
       "migrationGuidanceMd": "Map `manufacturingBusinessOperation` to `operation`; convert `operationType` to `operation.type.concept` unless a PlanDefinition or ActivityDefinition is available; convert a dateTime to an appropriate Period policy; map manufacturers to `organization`; migrate authorization reference and regulator data to `RegulatedAuthorization` or a governed extension. Include tests for date-only, dateTime, multiple manufacturers, and regulator-present cases.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias could have avoided immediate JSON breakage, but R6 seems to have intentionally separated operational process from regulatory authorization. That model is more expressive but requires graph-level migration.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProduct:ELEMENT_PRESENCE_OR_IDENTITY:manufacturingBusinessOperation:6a24d9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `manufacturingBusinessOperation` becomes R6 `operation`, with child changes: operation type moves from CodeableConcept to CodeableReference(ActivityDefinition|PlanDefinition), effective date changes from dateTime to Period, manufacturer is generalized to organization, and local authorization/regulator details move toward `RegulatedAuthorization`. Old instances are not valid after a simple rename and some data needs model-aware migration. The R6 goal is nevertheless coherent: separate the process/activity from regulatory authorization records and allow reusable activity/plan definitions. Keeping the full R4 backbone as an alias would duplicate operation and authorization facts.",
+        "keyEvidence": [
+          "R4 `manufacturingBusinessOperation` has operationType, authorisationReferenceNumber, effectiveDate dateTime, confidentialityIndicator, manufacturer, and regulator.",
+          "R6 `MedicinalProductDefinition.operation` has type CodeableReference(ActivityDefinition|PlanDefinition), effectiveDate Period, organization, and confidentialityIndicator.",
+          "R6 `RegulatedAuthorization` contains subject, identifier, type, status, validityPeriod, holder, regulator, and case elements for authorization/procedure details."
+        ],
+        "fmmEffect": "FMM 0/trial-use reduces the standards-stability burden. Manufacturing and authorization data are compliance-relevant, but the checked evidence supports medicinal-product regulatory relevance generally rather than established use of this exact R4 backbone.",
+        "compatibilityMechanism": "old-valid/new-invalid: old backbone names and child value shapes are rejected or need conversion; runtime/API/codegen paths also change.",
+        "lessBreakingAlternativeAssessment": "Partial. A deprecated `manufacturingBusinessOperation` could preserve old JSON temporarily, but it would overlap with `operation` and `RegulatedAuthorization` and require precedence rules for duplicated authorization and process facts.",
+        "comparisonToExisting": "Agree with the existing High impact and Partial alternative judgment, while judging the break proportionate under the fresh FMM-informed review."
+      }
     },
     {
       "findingId": "MedicinalProduct:ELEMENT_PRESENCE_OR_IDENTITY:specialDesignation:b76df8",
@@ -1288,7 +1372,21 @@
       "migrationGuidanceMd": "Create `RegulatedAuthorization` records for special designations, link them to the migrated product in `subject`, map designation type/status/date/intendedUse where possible, and represent structured indications with `ClinicalUseDefinition` when needed. Flag species and ambiguous indication references for review.",
       "backwardCompatibilityAnalysisMd": "The old backbone could have been retained as deprecated, but that would duplicate the generalized authorization model. The R6 design likely improves consistency across product, package, substance, and device authorizations but imposes graph-level migration.",
       "reviewerNotesMd": "The R6 destination is inferred from related StructureDefinitions; an official ConceptMap would materially improve confidence.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProduct:ELEMENT_PRESENCE_OR_IDENTITY:specialDesignation:b76df8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 had an inline `specialDesignation` backbone for orphan/minor-use designations, indications, status, dates, and species. R6 removes that local backbone; the closest destination is a separate `RegulatedAuthorization` for designation/authorization concepts with possible `ClinicalUseDefinition` indications. This is a meaningful migration burden and may need domain judgment for fields such as species. Still, modeling designations as regulated authorizations is a reasonable base-design goal, and retaining a parallel inline designation structure would create competing places for the same authorization facts.",
+        "keyEvidence": [
+          "R4 `MedicinalProduct.specialDesignation` contains identifier, type, intendedUse, indication[x], status, date, and species.",
+          "R6 MedicinalProductDefinition has no `specialDesignation` element.",
+          "R6 `RegulatedAuthorization.type` definition explicitly includes orphan drug designation and has subject, indication, intendedUse, status, validityPeriod, holder, and regulator fields."
+        ],
+        "fmmEffect": "Low FMM softens the compatibility expectation, but this path is regulatory/public-health relevant. The judgment stays below Revisit because the R6 regulated-authorization model provides a plausible destination and a less-breaking inline alternative has substantial duplication risk.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with inline `specialDesignation` are invalid in R6 and require creation or linking of separate authorization/use resources.",
+        "lessBreakingAlternativeAssessment": "Partial. Keeping a deprecated inline `specialDesignation` would preserve old instances, but it would duplicate designation type, status, indication, dates, and regulator/authorization semantics across product and RegulatedAuthorization resources.",
+        "comparisonToExisting": "Partially agree with the existing High impact and Partial alternative judgment; the impact is real, but FMM 0 and the explicit RegulatedAuthorization destination make the break probably acceptable."
+      }
     },
     {
       "findingId": "MedicinalProduct:ELEMENT_PRESENCE_OR_IDENTITY:local-renames:2f0ad4",
@@ -1476,7 +1574,21 @@
       "validationAndCompatibilityMd": "R4 instances containing the old element names remain invalid in R6 after a root resource rename. R6 instances can usually be downgraded by reversing the path mapping, except where R6-only child data or binding/type changes are present.",
       "migrationGuidanceMd": "Apply deterministic path rewrites for these fields before validation. Update generated models, FHIRPath, database mappings, search extraction, and UI bindings. Add tests specifically for the British-to-US spelling change and the nested name paths.",
       "backwardCompatibilityAnalysisMd": "Aliases would have avoided wire-level breaks but are uncommon in core FHIR resource definitions and would complicate element identity. A migration map is the practical compatibility mechanism.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProduct:ELEMENT_PRESENCE_OR_IDENTITY:local-renames:2f0ad4",
+        "judgment": "Revisit",
+        "narrativeMd": "Several recognizable concepts were renamed: `productClassification` to `classification`, `paediatricUseIndicator` to `pediatricUseIndicator`, `name.namePart` to `name.part`, and `name.countryLanguage` to `name.usage`. These are hard wire-path and generated-property changes, but the underlying concepts and cardinalities largely remain. Unlike the larger graph remodels, the less-breaking base design is straightforward: keep the R4 element names and improve definitions, aliases, and examples. The low FMM reduces stability pressure, but renaming central product-name/classification fields mostly for tidiness or spelling consistency looks avoidable.",
+        "keyEvidence": [
+          "R4 and R6 definitions for classification, pediatric use, name part, and name usage/country-language are closely matched in meaning and cardinality.",
+          "R4 `name.namePart.part` and R6 `name.part.part` both retain 1..1 string; R4 `name.countryLanguage` and R6 `name.usage` retain country, jurisdiction, and language children.",
+          "The report's delta and local SD inspection show these are path renames rather than removals of the concepts."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the compatibility concern, but it does not justify avoidable wire-name churn for central name and classification data when the old names could have carried the R6 semantics.",
+        "compatibilityMechanism": "old-valid/new-invalid: old element names are rejected by R6 and generated APIs/FHIRPath/database extraction keyed to the old names break.",
+        "lessBreakingAlternativeAssessment": "Yes. Retaining the R4 wire names while updating definitions would preserve compatibility without creating duplicate data locations. The tradeoff is carrying less tidy names, including British spelling, which seems modest.",
+        "comparisonToExisting": "Agree with the existing Medium impact and Yes alternative judgment; if anything, the avoidability is clearer than the raw impact score."
+      }
     },
     {
       "findingId": "MedicinalProduct:TYPE_DOMAIN:coded-shape-changes:5d3bc7",
@@ -1667,7 +1779,21 @@
       "validationAndCompatibilityMd": "Old Coding and string shapes are invalid in R6. R6 CodeableConcept values can be downgraded to R4 Coding only by choosing one coding and discarding text/additional codings; R6 `specialMeasures` codes can be downgraded to strings only with lossy text extraction.",
       "migrationGuidanceMd": "Wrap old `Coding` values as `CodeableConcept.coding`. For `specialMeasures`, define a controlled mapping from known strings to codes where possible and otherwise populate `text`. Test multiple codings, text-only values, and unknown legacy strings.",
       "backwardCompatibilityAnalysisMd": "R6 could have used choice elements such as `specialMeasures[x]`, but that would preserve multiple representations indefinitely. Standardizing on CodeableConcept is cleaner but not wire-compatible.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProduct:TYPE_DOMAIN:coded-shape-changes:5d3bc7",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`domain` and `name.namePart.type` move from Coding to CodeableConcept, while `specialMeasures` moves from string to CodeableConcept. Old JSON shapes are invalid at the corresponding R6 paths, although Coding values can usually be wrapped losslessly and string values can often become CodeableConcept.text. Normalizing these elements to CodeableConcept gives room for text, multiple codings, and terminology bindings. Supporting both legacy primitive/Coding shapes and CodeableConcept in base R6 would create awkward duplicate or choice-like representations on existing non-choice elements.",
+        "keyEvidence": [
+          "R4 `domain` and `name.namePart.type` are Coding; R6 `domain` and `name.part.type` are CodeableConcept with example bindings.",
+          "R4 `specialMeasures` is string; R6 `specialMeasures` is CodeableConcept with an example special-measures value set.",
+          "The element definitions preserve the same business concepts while changing the wire type."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the concern, and the most common Coding-to-CodeableConcept migration is mechanical. Regulatory interpretation of domain and special measures still makes the path nontrivial, especially for free text.",
+        "compatibilityMechanism": "old-valid/new-invalid: Coding objects and strings are not valid CodeableConcept values at the R6 paths.",
+        "lessBreakingAlternativeAssessment": "Partial. Transitional legacy fields or a choice-style design could preserve more old values, but they would add duplicate coded representations and conflict/precedence rules when both forms are populated.",
+        "comparisonToExisting": "Agree with the existing Medium impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "MedicinalProduct:TERMINOLOGY_BINDING:name-usage-language:aa41d2",
@@ -1841,7 +1967,21 @@
       "migrationGuidanceMd": "Normalize legacy language concepts to BCP 47 tags before R6 validation. Maintain a mapping table for known local language systems and flag unmapped values for terminology review. Include tests for `en`, regional tags such as `en-US`, text-only concepts, and local code-system values.",
       "backwardCompatibilityAnalysisMd": "An extensible binding would have been more tolerant of legacy codes, but a required BCP 47 binding is a reasonable interoperability constraint for language. Cross-version transforms should do the compatibility work.",
       "reviewerNotesMd": "No terminology expansion service was run; the value set compose was inspected locally.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProduct:TERMINOLOGY_BINDING:name-usage-language:aa41d2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The language child remains a 1..1 CodeableConcept under the renamed name-usage backbone, but R6 adds a required binding to `all-languages`. R4 instances that used local, non-BCP-47 language codes may become invalid after path migration; instances already using standard language tags should migrate cleanly. A required common language binding is a reasonable interoperability goal for display, indexing, and localization, and weakening it would reduce the assurance that consumers can interpret product-name language.",
+        "keyEvidence": [
+          "R4 `MedicinalProduct.name.countryLanguage.language` is 1..1 CodeableConcept with no local binding in the StructureDefinition.",
+          "R6 `MedicinalProductDefinition.name.usage.language` is 1..1 CodeableConcept with required binding to `http://hl7.org/fhir/ValueSet/all-languages|6.0.0-ballot4`.",
+          "R6 country and jurisdiction siblings keep example/common jurisdiction bindings, confirming the language change is a binding-strength change on the renamed backbone."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the effect, and no quick evidence showed legacy local language code prevalence. The field still affects regulated product-name display, so a data-dependent compatibility break remains plausible.",
+        "compatibilityMechanism": "old-valid/new-invalid: after path migration, CodeableConcepts without a coding in the required all-languages value set can fail validation.",
+        "lessBreakingAlternativeAssessment": "Partial. An extensible or preferred binding would preserve more local R4 codings, but would weaken reliable language processing and cross-system display semantics.",
+        "comparisonToExisting": "Agree with the existing Potential hard break and Partial alternative judgment, though the fresh review treats the practical impact as data-dependent."
+      }
     },
     {
       "findingId": "MedicinalProduct:FLAGS_AND_MODIFIERS:status-and-r6-additions:df18c0",
@@ -1996,7 +2136,21 @@
       "validationAndCompatibilityMd": "This is not an R4-to-R6 validation break for old instances because the fields are optional. It is a runtime and round-trip break for R6-to-R4: R4 lacks direct fields for these additions, and ignoring `status` can change business meaning.",
       "migrationGuidanceMd": "When converting R6 to R4, preserve `status` and other R6-only content in governed extensions or sidecar records if round-trip fidelity matters. R6 consumers should add tests that retired/draft/unknown status values are surfaced to business logic.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the usual backward-compatible approach, but a modifier addition still creates processing obligations for R6 consumers. The alternative of a non-modifier status would be less disruptive but less safe.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProduct:FLAGS_AND_MODIFIERS:status-and-r6-additions:df18c0",
+        "judgment": "No problem",
+        "narrativeMd": "This finding is mainly about optional R6 additions: lifecycle `status` as a modifier plus version, statusDate, description, route, indication, code, ingredient, impurity, comprisedOf, characteristic, and related content. Optional additions do not make R4 instances invalid in the R4-to-R6 direction. The modifier status is important for R6 consumers and R6-to-R4 downgrades can lose information, but that is a forward-use and reverse-conversion concern rather than a break in existing R4 content.",
+        "keyEvidence": [
+          "R4 MedicinalProduct has no local product-record `status` modifier element.",
+          "R6 `MedicinalProductDefinition.status` is 0..1 CodeableConcept with `isModifier=true` because status can indicate the record should not be treated as valid.",
+          "The other listed R6 fields are optional additions on MedicinalProductDefinition."
+        ],
+        "fmmEffect": "FMM 0/trial-use further reduces concern. Since these are optional additions, low maturity and trial-use status do not create a reason to revisit the base design for R4-to-R6 compatibility.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6-only fields, especially modifier `status`, require handling when downgrading or consuming R6, but there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Optional R6 additions already preserve old R4 instances. Making `status` non-modifier would be less burdensome but could make unsafe lifecycle states easier to ignore.",
+        "comparisonToExisting": "Disagree with the existing Medium/High runtime framing as an R4-to-R6 break; agree that no less-breaking alternative is needed for old-instance compatibility."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2195,5 +2349,19 @@
       "British-to-US spelling changes such as paediatric/pediatric",
       "R6 modifier status additions on definitional resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicinalProduct.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 8,
+      "No problem": 1
+    }
   }
 }

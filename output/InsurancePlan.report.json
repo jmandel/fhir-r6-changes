@@ -327,7 +327,22 @@
       "migrationGuidanceMd": "Treat migration as a split/normalize operation. Create or match an `InsuranceProduct` for product-level metadata and coverage benefits; create one R6 `InsurancePlan` per plan offering; set `InsurancePlan.product` to the product; move R4 `plan.*` data to the R6 plan root; and test multi-plan R4 resources, missing product identifiers, and references from other resources.",
       "backwardCompatibilityAnalysisMd": "The normalized model is probably justified by the need to distinguish products from plan offerings, but the compatible alternative would have been a transitional period where inline product fields remained legal and were marked deprecated. That would have preserved old instances but weakened the clarity of the new model.",
       "reviewerNotesMd": "This finding intentionally summarizes the resource-level redesign. The following findings call out the specific element-level mechanisms that cause validation or conversion breaks.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "InsurancePlan:ARTIFACT_IDENTITY:root:5d1b71",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `InsurancePlan` was a combined product/plan container, while R6 keeps the canonical but narrows `InsurancePlan` to the plan side and puts product facts in `InsuranceProduct`. That is a real migration break for same-resource copying, generated models, and down-conversion, but the normalization goal is coherent. A base design that kept the full R4 combined shape would preserve old instances at the cost of parallel product/plan representations and unclear precedence, so the top-level split itself looks proportionate; the more avoidable path-level hazards are judged separately.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `InsurancePlan` is `Details of a Health Insurance product/plan provided by an organization` and is supplied as FMM 0/trial-use.",
+          "R6 StructureDefinition: `InsurancePlan` describes plan costs and says benefits are described in referenced `InsuranceProduct`.",
+          "R6 `InsuranceProduct` contains former product-side concepts such as identifier, status, name, ownership, contact, endpoint, and coverage.",
+          "Quick web search found official/industry R4 InsurancePlan use in Da Vinci Plan-Net, Microsoft Azure Health Data Services Plan-Net docs, MuleSoft Plan-Net InsurancePlan assets, and CMS Da Vinci IG materials."
+        ],
+        "fmmEffect": "The supplied R4 FMM 0/trial-use status softens the stability expectation for a model redesign, but public Plan-Net implementation evidence means the split should still be treated as operationally material.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with product fields or `plan[]` are not valid as R6 `InsurancePlan`; runtime/API/codegen migration also has to create or resolve `InsuranceProduct`, and R6-to-R4 requires merge/dereference decisions.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have retained the old inline product fields and repeated `plan` backbone as deprecated transitional content while adding `InsuranceProduct`, but that would leave duplicate sources of truth and conflict rules in the base resource.",
+        "comparisonToExisting": "partially agree: I agree the split is high-impact and that the less-breaking alternative is only partial; I judge the top-level redesign as probably OK because FMM is low and the compatible base design has substantial modeling tradeoffs."
+      }
     },
     {
       "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.status:b74bb0",
@@ -475,7 +490,22 @@
       "validationAndCompatibilityMd": "R4-valid instances containing `status` become R6-invalid at the same resource path. R6 instances can preserve lifecycle status only if the `InsuranceProduct` is available; a standalone R6 `InsurancePlan` without its product is not enough to reconstruct the R4 status field.",
       "migrationGuidanceMd": "Move `InsurancePlan.status` to `InsuranceProduct.status` during the split. Audit consumers that filtered or hid retired/draft plans, because they must now follow `InsurancePlan.product` and evaluate the product status. Include tests for each publication-status code, especially `retired` and `unknown`.",
       "backwardCompatibilityAnalysisMd": "The change follows the product split, but because modifier elements have special safety semantics, a compatibility alias or explicit conversion guidance would have reduced risk. The tradeoff is duplication if a plan-specific status ever needs to diverge from product status.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.status:b74bb0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `InsurancePlan.status` was an optional modifier element for product lifecycle state. R6 removes it from `InsurancePlan` and represents the comparable lifecycle state on `InsuranceProduct.status`. Existing R4 instances with `status` fail at the old path, and dropping a retired/draft status would be business-significant, but the relocation follows the product/plan split. Keeping a duplicate modifier status on the plan resource would reduce validation breaks but risks conflicting lifecycle signals.",
+        "keyEvidence": [
+          "R4 `InsurancePlan.status`: 0..1 `code`, required publication-status binding, `isModifier=true`, definition `The current state of the health insurance product`.",
+          "R6 `InsurancePlan` differential has no `InsurancePlan.status` element.",
+          "R6 `InsuranceProduct.status`: 0..1 `code`, required publication-status binding, `isModifier=true`, same product lifecycle definition.",
+          "Plan-Net/payer-directory implementation evidence makes product lifecycle status operationally relevant despite R4 FMM 0."
+        ],
+        "fmmEffect": "Low FMM softens the expectation that the old modifier path must remain, but modifier status is central enough that migration cannot ignore it.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 `InsurancePlan.status` element is illegal on R6 `InsurancePlan`; runtime/API/codegen consumers must now follow the product reference to inspect status.",
+        "lessBreakingAlternativeAssessment": "Partial: keeping `InsurancePlan.status` as a deprecated alias would preserve old instances, but duplicate modifier elements on plan and product would need conflict and precedence rules.",
+        "comparisonToExisting": "partially agree: I agree with the hard break and high business risk, and with a partial alternative; I weigh the alternative's duplicate-modifier risk enough to call the change probably OK rather than automatically requiring redesign."
+      }
     },
     {
       "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.product-fields:cba827",
@@ -659,7 +689,23 @@
       "validationAndCompatibilityMd": "R4-valid instances with any of the removed product fields are R6-invalid on `InsurancePlan`. R6-to-R4 conversion cannot be performed from an `InsurancePlan` alone; it requires the referenced `InsuranceProduct`, and even then must decide whether to inline the product data or preserve the separate resource with extensions/references.",
       "migrationGuidanceMd": "During migration, split product-level fields to `InsuranceProduct` and update references/search/indexing that previously targeted `InsurancePlan` product attributes. Review `contact` carefully: the R4 local backbone has similar child concepts, but R6 uses `ExtendedContactDetail` and permits additional organization/period detail.",
       "backwardCompatibilityAnalysisMd": "The move is understandable because these elements describe a product, not a plan-cost variant. However, retaining deprecated fields or providing a formal cross-version extension would have avoided immediate validation failures and made incremental migration easier.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.product-fields:cba827",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The named R4 product fields were removed from `InsurancePlan` and are represented on R6 `InsuranceProduct`. This is a hard old-valid/new-invalid break for instances carrying product names, ownership, contact, endpoints, or benefit coverage. The affected data is important in payer directory use, but the fields mostly describe the reusable product rather than one plan-cost offering, so moving them is a proportionate consequence of the split.",
+        "keyEvidence": [
+          "R4 `InsurancePlan.name` is the official health insurance product name; R4 `InsurancePlan.coverage` is coverage offered by the insurance product.",
+          "R4 `InsurancePlan.contact` is a local BackboneElement for product contact details.",
+          "R6 `InsurancePlan` omits name, alias, period, ownedBy, administeredBy, contact, endpoint, and coverage.",
+          "R6 `InsuranceProduct` defines corresponding name, alias, period, ownedBy, administeredBy, contact, endpoint, and coverage elements; contact uses `ExtendedContactDetail`.",
+          "Da Vinci Plan-Net and vendor documentation show R4 InsurancePlan has implementation relevance."
+        ],
+        "fmmEffect": "FMM 0/trial-use reduces the stability burden for moving low-maturity base content, but public payer-directory use and business relevance keep the break meaningful.",
+        "compatibilityMechanism": "old-valid/new-invalid: old product-side properties are not accepted on R6 `InsurancePlan`; runtime/API/codegen migration must instantiate `InsuranceProduct` and update references/search/indexing around product facts.",
+        "lessBreakingAlternativeAssessment": "Partial: deprecated product fields could have remained on `InsurancePlan`, but that would create two base-model locations for product identity, contacts, endpoints, and benefits, with divergence and precedence problems.",
+        "comparisonToExisting": "agree: the existing report's high impact and partial less-breaking alternative match the path-level evidence, with the low FMM noted as a reason the redesign can still be acceptable."
+      }
     },
     {
       "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.plan:62296d",
@@ -883,7 +929,22 @@
       "validationAndCompatibilityMd": "An R4 instance with a `plan` property is R6-invalid. R6 instances can usually be represented in R4 by creating one `plan` repetition under an R4 InsurancePlan, but merging multiple R6 plan resources back to one R4 resource requires grouping by product and may lose resource-level identity and references.",
       "migrationGuidanceMd": "Explode each R4 `plan` repetition into a separate R6 `InsurancePlan`. Move `plan.identifier` to root `identifier`, `plan.type` to root `type`, `plan.coverageArea` to root `coverageArea`, `plan.network` to root `network`, `plan.generalCost` to root `generalCost`, and `plan.specificCost` to root `specificCost`. Rename `qualifiers` to `qualifier` at the cost leaf.",
       "backwardCompatibilityAnalysisMd": "Making plan offerings addressable resources is a strong design rationale, but a transition profile or deprecated `plan` backbone could have supported old data. The downside would be a more complex resource allowing both nested and root plan data.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.plan:62296d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed repeated `InsurancePlan.plan` backbones; R6 removes that container and places one plan offering's fields at the resource root. Old instances with `plan[]` are invalid in R6, and multi-plan resources require a split into multiple R6 `InsurancePlan` resources. That is real migration work, but it is aligned with making each plan an addressable resource under a product.",
+        "keyEvidence": [
+          "R4 `InsurancePlan.plan`: 0..* BackboneElement with plan identifier, type, coverageArea, network, generalCost, and specificCost children.",
+          "R6 `InsurancePlan` has root `identifier`, `type`, `coverageArea`, `network`, `generalCost`, and `specificCost` instead of a `plan` backbone.",
+          "R6 root definition says `InsurancePlan` describes plan costs and references `InsuranceProduct` for covered benefits.",
+          "R6 cost qualifier leaf is singular `InsurancePlan.specificCost.benefit.cost.qualifier`, while R4 used `plan.specificCost.benefit.cost.qualifiers`."
+        ],
+        "fmmEffect": "Low FMM makes this structural reshaping more tolerable, but Plan-Net and payer directory use mean implementers may have real data-splitting work.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 `plan` element is illegal on R6 `InsurancePlan`; runtime/API/codegen migration must explode multi-plan arrays and preserve resource identities/references.",
+        "lessBreakingAlternativeAssessment": "Partial: retaining a deprecated `plan[]` backbone would preserve R4 instances, but it would undermine the one-resource-per-plan model and make root-vs-nested plan facts ambiguous.",
+        "comparisonToExisting": "agree: the existing high impact and partial alternative are supported, but FMM 0 and the coherent one-plan-per-resource goal make the break probably acceptable."
+      }
     },
     {
       "findingId": "InsurancePlan:CARDINALITY:InsurancePlan.type:fc5acb",
@@ -1056,7 +1117,23 @@
       "validationAndCompatibilityMd": "R4 instances with multiple root `type` values are old-valid/new-invalid. Instances with one root `type` may validate in R6 but carry the wrong meaning. R6-to-R4 can represent a single plan classification as `plan.type`, but product type must come from `InsuranceProduct.type`.",
       "migrationGuidanceMd": "Do not blindly copy R4 root `type` to R6 `InsurancePlan.type`. Move R4 root `type` to `InsuranceProduct.type`; move R4 `plan.type` to R6 `InsurancePlan.type`; and test both single-type and multi-type product examples.",
       "backwardCompatibilityAnalysisMd": "The narrower R6 field is coherent with one-plan-per-resource, but path reuse makes this likely to break automated mappers. A renamed field or preserved alias would have been easier to migrate.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "InsurancePlan:CARDINALITY:InsurancePlan.type:fc5acb",
+        "judgment": "Revisit",
+        "narrativeMd": "This path is more concerning than the general split because the same element name survives with a narrower cardinality and a different business meaning. R4 root `InsurancePlan.type` was repeatable product type; R6 root `InsurancePlan.type` is a single plan classification, while product type moved to `InsuranceProduct.type`. Multiple R4 values become structurally invalid, and a single copied value can validate while meaning the wrong thing. That hidden semantic break deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 `InsurancePlan.type`: 0..* CodeableConcept, short `Kind of product`, example binding to `insuranceplan-type`, summary true.",
+          "R4 `InsurancePlan.plan.type`: 0..1 CodeableConcept for plan type.",
+          "R6 `InsurancePlan.type`: 0..1 CodeableConcept, short `Classification of Plan`, no local binding in the differential.",
+          "R6 `InsuranceProduct.type`: 0..* product type with example binding to `insuranceproduct-type`.",
+          "Da Vinci Plan-Net implementation relevance makes product/plan classification paths worth treating carefully despite low FMM."
+        ],
+        "fmmEffect": "FMM 0 softens stability expectations, but a surviving path that can silently carry the wrong kind of type is a central migration hazard in implemented payer-directory workflows.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with more than one root `type` exceed R6 max 1; semantic/documentation: a single R4 product type copied to R6 `InsurancePlan.type` can be valid but wrong.",
+        "lessBreakingAlternativeAssessment": "Yes: R6 could have avoided reusing and narrowing `InsurancePlan.type` by keeping the old repeatable product-type path as deprecated/transitional or by naming the new plan classification distinctly. The tradeoff is legacy surface and possible duplication with `InsuranceProduct.type`, but that is modest compared with a stable path changing meaning.",
+        "comparisonToExisting": "agree: the existing high impact and `Yes` less-breaking alternative are well supported; this is the strongest candidate for Revisit among the element-level findings."
+      }
     },
     {
       "findingId": "InsurancePlan:SEMANTIC_OR_CONFORMANCE_TEXT:InsurancePlan.identifier:2bb116",
@@ -1241,7 +1318,23 @@
       "validationAndCompatibilityMd": "R4 instances with root identifiers remain structurally valid if copied to R6, but the resulting R6 instance may identify the product as though it were a plan. R6-to-R4 conversion must know whether each identifier belongs to the plan or to the product; otherwise it can place plan/group IDs at the old product identifier path.",
       "migrationGuidanceMd": "Build identifier mapping rules based on source path and identifier type/system, not only on element name. Move R4 root `identifier` to `InsuranceProduct.identifier`; move R4 `plan.identifier` to R6 `InsurancePlan.identifier`; and add tests for product ID, plan ID, and group ID combinations.",
       "backwardCompatibilityAnalysisMd": "The change is mostly unavoidable once `InsurancePlan` becomes the plan resource, but the migration hazard could have been reduced with clearer renaming or normative conversion rules.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "InsurancePlan:SEMANTIC_OR_CONFORMANCE_TEXT:InsurancePlan.identifier:2bb116",
+        "judgment": "Revisit",
+        "narrativeMd": "`InsurancePlan.identifier` kept its path, type, and cardinality but changed from product identifier semantics to plan/group identifier semantics. That means validators and SDKs may accept a mechanically copied R4 product identifier as a syntactically valid R6 plan identifier. Because identifiers drive matching, deduplication, search, and references, this hidden semantic break requires expert mapping and deserves standards attention even though it is not a direct schema failure.",
+        "keyEvidence": [
+          "R4 root `InsurancePlan.identifier`: 0..* Identifier, short `Business Identifier for Product`, product identifier definition.",
+          "R4 `InsurancePlan.plan.identifier` separately carried health insurance plan identifiers.",
+          "R6 root `InsurancePlan.identifier`: 0..* Identifier, short `Business Identifier for Plan`, with plan ID/group ID examples.",
+          "R6 `InsuranceProduct.identifier` carries product identifiers.",
+          "R4 InsurancePlan is used in Plan-Net-style payer directory contexts where identifiers are central to lookup and reconciliation."
+        ],
+        "fmmEffect": "Low FMM reduces the expectation that every old semantic nuance is preserved, but public implementation relevance and the centrality of identifiers overcome much of that softening for this path.",
+        "compatibilityMechanism": "semantic/documentation: no old-valid/new-invalid instance break is guaranteed, but path-based migration can produce valid R6 resources whose identifiers refer to the wrong business object; runtime/API/search behavior can then match the wrong plan or product.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have introduced a distinct plan identifier element or required clearer identifier role typing while preserving root product identifiers as legacy content. That would reduce silent mis-mapping but conflicts with the convention that root `identifier` identifies the resource and can duplicate `InsuranceProduct.identifier`.",
+        "comparisonToExisting": "partially agree: I agree with the high runtime risk and partial alternative, while emphasizing that the concern is a hidden semantic/runtime break rather than hard instance invalidity."
+      }
     },
     {
       "findingId": "InsurancePlan:VALUE_CONSTRAINT:InsurancePlan.ipn-1:58a463",
@@ -1357,7 +1450,22 @@
       "validationAndCompatibilityMd": "No old-valid/new-invalid case is created by removing the invariant. The compatibility problem is R6-valid/not-R4-representable content: an R6 plan with no identifier cannot become a valid R4 InsurancePlan unless the converter also has product name/identifier data or invents an identifier.",
       "migrationGuidanceMd": "When producing R6, preserve plan identifiers whenever available even though the base resource does not require them. When converting back to R4, merge product identity or apply a documented synthetic identifier policy rather than emitting invalid R4 resources.",
       "backwardCompatibilityAnalysisMd": "The old expression could not survive because `name` was removed from `InsurancePlan`. A replacement plan-identifier invariant would have been backward-compatible for high-quality data but might reject legitimate sparse R6 plans.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "InsurancePlan:VALUE_CONSTRAINT:InsurancePlan.ipn-1:58a463",
+        "judgment": "No problem",
+        "narrativeMd": "Removing the R4 `ipn-1` invariant from `InsurancePlan` is a constraint weakening for R4-to-R6 migration, not an old-valid/new-invalid break. The comparable identifier-or-name rule moved to `InsuranceProduct`, where product name and identifier still exist. A sparse R6 plan without its product may be awkward to down-convert, but that is a reverse-conversion and data-quality issue rather than a base compatibility problem for existing R4 content.",
+        "keyEvidence": [
+          "R4 root invariant `ipn-1`: error constraint `(identifier.count() + name.count()) > 0`.",
+          "R6 `InsurancePlan` root differential has no local `ipn-1` constraint and no `name` element.",
+          "R6 `InsuranceProduct` root carries `ipn-1` over product identifier/name.",
+          "The change weakens validation on R6 `InsurancePlan`; it does not reject any R4-valid instance."
+        ],
+        "fmmEffect": "FMM 0/trial-use further softens concern because the specific change is not a hard R4-to-R6 break.",
+        "compatibilityMechanism": "R6-to-R4 loss: a new sparse R6 plan with no identifier may need product data or a synthetic identifier to satisfy R4, but old R4 instances are not made invalid by removing the invariant.",
+        "lessBreakingAlternativeAssessment": "Not applicable: no less-breaking base design is needed for R4-to-R6 compatibility. R6 could add a best-practice warning for plan identifiers, but that would be a new quality constraint rather than preservation of old-valid content.",
+        "comparisonToExisting": "partially agree: I agree with the facts and the Not applicable alternative judgment, but downgrade the finding because the practical concern is reverse-only and the constraint removal is not a breaking R4-to-R6 change."
+      }
     },
     {
       "findingId": "InsurancePlan:REFERENCE_TARGET:InsurancePlan.product:02afeb",
@@ -1490,7 +1598,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken by the optional addition. R6-to-R4 round-tripping is high risk because R4 cannot represent a product link natively, and a strict R4 parser will reject an unknown `product` element.",
       "migrationGuidanceMd": "When generating R6, include `InsuranceProduct` resources in the same transaction/bundle or make their references resolvable. When down-converting, decide whether to dereference and inline product fields, use extensions for the link, or reject incomplete input.",
       "backwardCompatibilityAnalysisMd": "The reference is necessary for the normalized R6 design. Backward compatibility would require keeping the old inline product elements or defining an official cross-version extension for product linkage.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "InsurancePlan:REFERENCE_TARGET:InsurancePlan.product:02afeb",
+        "judgment": "No problem",
+        "narrativeMd": "The new `InsurancePlan.product` reference is optional and additive. It can create R6-to-R4 representability work because R4 has no native product-reference slot, but it does not make existing R4 `InsurancePlan` instances invalid in R6. The compatibility risk is better attributed to the product-field removals and overall split; the optional reference itself is the expected connective tissue for the normalized model.",
+        "keyEvidence": [
+          "R4 `InsurancePlan` has no `product` reference element because product facts were inline.",
+          "R6 `InsurancePlan.product`: 0..1 Reference(`InsuranceProduct`), summary true, `The product that this plan is available under`.",
+          "R6 `InsuranceProduct` is present in the core package and carries product details.",
+          "The element is optional, so R4-to-R6 migration is not blocked by failing to populate it."
+        ],
+        "fmmEffect": "FMM 0/trial-use and the additive optional nature of the element both reduce the case for revisiting this specific finding.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 product reference has no native R4 field and must be inlined, dereferenced, extended, or dropped; there is no old-valid/new-invalid R4-to-R6 mechanism for this optional addition.",
+        "lessBreakingAlternativeAssessment": "Not applicable: because the element is optional and additive, less-breaking base alternatives are mainly migration mitigations such as inlining product data or using extensions, not better R6 base designs for preserving R4-valid instances.",
+        "comparisonToExisting": "disagree: I agree with the R6-to-R4 representability concern and Not applicable alternative, but not with treating this optional additive element as high-impact for the specific R4-to-R6 review."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1664,5 +1787,19 @@
       "Stable path with changed business meaning",
       "Repeatable backbone converted to one resource per repetition"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/InsurancePlan.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 4,
+      "No problem": 2
+    }
   }
 }

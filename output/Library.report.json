@@ -284,7 +284,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken because the element is optional. R6-to-R4 conversion is lossy unless the algorithm is represented in an extension or out-of-band metadata. Strict R4 JSON parsers will reject `versionAlgorithmString` or `versionAlgorithmCoding` as unknown properties.",
       "migrationGuidanceMd": "For R4-to-R6, leave the element absent unless a reliable version comparison policy is known. For R6-to-R4, preserve the value in a cross-version extension where possible and add tests for canonical resolution cases that depend on semantic version ordering.",
       "backwardCompatibilityAnalysisMd": "The change was made in the least disruptive base-shape form because it is optional. A pure extension would have been more backward-compatible for R4 but less useful to R6 tooling that needs a standard version-ordering element.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Library:ELEMENT_PRESENCE_OR_IDENTITY:Library.versionAlgorithm[x]:1d7a80",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `Library.versionAlgorithm[x]` as `string` or `Coding`; R4 has no corresponding element. Existing R4 Library instances remain valid when interpreted as R6. The only real issue is reverse conversion: an R6 Library that uses the new version-ordering signal cannot express it as a native R4 element without an extension or data loss. That is a limited round-trip concern, not a reason to question the base R6 addition.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Library has no `Library.versionAlgorithm[x]` element.",
+          "R6 StructureDefinition-Library defines `Library.versionAlgorithm[x]` as 0..1 with `string` and `Coding` types and an extensible `version-algorithm` binding.",
+          "Assigned maturity context: FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral here. Because the change is optional and additive for R4-to-R6 migration, the maturity level does not create extra stability pressure.",
+        "compatibilityMechanism": "r6-to-r4-loss: R6-only version comparison metadata cannot be represented in a native R4 Library element, but old R4 instances are not made invalid.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6 compatibility. Modeling this only as an extension would improve R6-to-R4 round-tripping but would make the comparison mechanism less discoverable and less consistently supported by native R6 tooling.",
+        "comparisonToExisting": "partially agree with the existing assessment: the reverse loss is real, but I would treat the overall compatibility concern as lower than the existing Medium impact; I agree that no R4-to-R6 base alternative is needed."
+      }
     },
     {
       "findingId": "Library:ELEMENT_PRESENCE_OR_IDENTITY:Library.copyrightLabel:8b3d22",
@@ -398,7 +412,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is unaffected. R6-to-R4 strict validation rejects the unknown `copyrightLabel` property. If dropped, rendered pages may lose the concise copyright holder/year statement even if the longer `copyright` element remains.",
       "migrationGuidanceMd": "When producing R6, populate `copyrightLabel` only when a concise display label is known. When exporting to R4, preserve it in an extension or incorporate it into `copyright` with a clear delimiter so it can be reconstructed if needed.",
       "backwardCompatibilityAnalysisMd": "The optional addition is mostly backward-compatible. A non-breaking alternative would have been a standard extension; that would reduce parser churn but would not give R6 renderers a uniform native location.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Library:ELEMENT_PRESENCE_OR_IDENTITY:Library.copyrightLabel:8b3d22",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `Library.copyrightLabel` for a concise rendered copyright notice. This does not invalidate or reinterpret R4 Library content. An R6-to-R4 export may need to copy the label into `copyright`, preserve it as an extension, or drop it, but that is a limited reverse-direction metadata loss.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Library has no `Library.copyrightLabel` element.",
+          "R6 StructureDefinition-Library defines `Library.copyrightLabel` as optional 0..1 `string` with footer-label semantics.",
+          "R6 definition says full licensing details remain in the broader `copyright` element."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral. The additive optional element and low-risk metadata scope dominate the judgment.",
+        "compatibilityMechanism": "r6-to-r4-loss: the new short label has no native R4 slot, but R4-to-R6 instances remain structurally valid.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is required. A standard extension or copying into `copyright` helps backporting but would not be a better R6 base model for a common rendered label.",
+        "comparisonToExisting": "agree with the existing low-impact, not-applicable alternative assessment."
+      }
     },
     {
       "findingId": "Library:TYPE_DOMAIN:Library.usage:2a6e43",
@@ -517,7 +545,21 @@
       "validationAndCompatibilityMd": "An R4 instance with a normal non-empty `usage` string should remain valid in R6 because markdown is also represented as a string. R6 markdown content can usually be represented in R4 as a string, but systems may lose the typed signal that markdown rendering is intended. Strict code generators may expose different primitive wrapper types.",
       "migrationGuidanceMd": "Regenerate models and review any code that treats `usage` as plain text. Rendering paths should apply markdown-safe rendering/sanitization in R6. Cross-version transforms can usually copy the scalar value directly, while preserving primitive extensions on `_usage` as usual.",
       "backwardCompatibilityAnalysisMd": "A fully backward-compatible design could have added a new markdown-specific element and left `usage` as `string`, but that would duplicate content and complicate consumers. The chosen change is semantically cleaner but has codegen impact.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Library:TYPE_DOMAIN:Library.usage:2a6e43",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Library.usage` changes from primitive `string` in R4 to primitive `markdown` in R6. Both serialize as JSON strings, and `markdown` is derived from `string`, so ordinary R4 values are not a direct wire-format validation break. The real migration burden is in generated models, schema metadata, and renderers or sanitizers that now treat the field as formatted markdown rather than plain text. For a descriptive usage field, that burden appears proportionate to the R6 goal of making formatted usage guidance computable.",
+        "keyEvidence": [
+          "R4 `Library.usage` type is `string`.",
+          "R6 `Library.usage` type is `markdown`.",
+          "Primitive definitions show markdown is based on string and still serializes as a string value."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral. It neither excuses the API/rendering churn nor raises the bar enough to reject a reasonable typed-markdown cleanup.",
+        "compatibilityMechanism": "runtime/API/codegen: generated primitive types and rendering or sanitization behavior can change even though the JSON value shape remains a string.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have kept `usage` as `string` with prose allowing markdown, or added a second markdown-specific element. The first weakens computable rendering expectations; the second creates duplicate places for the same guidance and divergence risk.",
+        "comparisonToExisting": "agree with the existing Medium/Partial assessment in substance: there is real tooling churn, but the alternatives have meaningful tradeoffs."
+      }
     },
     {
       "findingId": "Library:TERMINOLOGY_BINDING:Library.subject[x]:57f6ad",
@@ -728,7 +770,22 @@
       "migrationGuidanceMd": "Map old `http://hl7.org/fhir/resource-types` subject codings to equivalent `http://hl7.org/fhir/fhir-types` codings where possible. Add local rules for new R6 participant types when exporting to R4, such as preserving both codings or accepting R4 extensible-binding warnings.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by including both value sets or providing a normative ConceptMap. The broader participant set is useful, but without a ConceptMap implementers must infer code-system migration rules.",
       "reviewerNotesMd": "A terminology server expansion and official ConceptMap would improve confidence in whether any R4 codes are intended to be treated as equivalent to R6 fhir-types codes.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Library:TERMINOLOGY_BINDING:Library.subject[x]:57f6ad",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Library.subject[x]` keeps the same cardinality and CodeableConcept-or-GroupReference shape, but the extensible binding changes from R4 `subject-type` to R6 `participant-resource-types`. R4 subject codings using `http://hl7.org/fhir/resource-types` may no longer satisfy terminology-aware expectations in R6, while R6 also adds participant concepts such as CareTeam, HealthcareService, PractitionerRole, RelatedPerson, and Group. Because the binding remains extensible, this is warning-level terminology pressure rather than an old-valid/new-invalid break.",
+        "keyEvidence": [
+          "R4 binding is extensible to `http://hl7.org/fhir/ValueSet/subject-type`.",
+          "R4 `ValueSet-subject-type` includes Patient, Practitioner, Organization, Location, and Device from `http://hl7.org/fhir/resource-types`.",
+          "R6 binding is extensible to `http://hl7.org/fhir/ValueSet/participant-resource-types`.",
+          "R6 participant value set uses `http://hl7.org/fhir/fhir-types` and includes ten participant resource codes."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral. The decision rests mainly on the extensible binding and the low-to-moderate migration burden for terminology normalization.",
+        "compatibilityMechanism": "warning-level: old R4 codings may trigger terminology warnings or search-normalization differences, but the base element shape and extensible binding avoid a hard invalidation.",
+        "lessBreakingAlternativeAssessment": "R6 could include both the old resource-types codings and the new fhir-types participant codings. That would reduce warnings but would leave duplicate systems for the same concepts and make terminology equivalence and search normalization harder.",
+        "comparisonToExisting": "agree with the existing Medium/Partial assessment: the change is not a hard break, and the obvious less-breaking value set design has real long-term costs."
+      }
     },
     {
       "findingId": "Library:TERMINOLOGY_BINDING:Library.type:3f0f8c",
@@ -858,7 +915,22 @@
       "migrationGuidanceMd": "Update terminology caches and generated binding metadata to resolve `http://terminology.hl7.org/ValueSet/library-type`. Keep existing library-type CodeSystem codings where valid, but test validators with both R4 and R6 terminology packages.",
       "backwardCompatibilityAnalysisMd": "The binding could have been migrated more compatibly by publishing an explicit alias or ConceptMap and including the old value set in the new one. Without those inputs, implementers should not assume exact expansion equivalence.",
       "reviewerNotesMd": "Requires review with an external terminology package or expansion service because the R6 value set was not in the supplied core package.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Library:TERMINOLOGY_BINDING:Library.type:3f0f8c",
+        "judgment": "Revisit",
+        "narrativeMd": "`Library.type` is required in both versions and remains a CodeableConcept with an extensible binding, but the binding canonical changes from `http://hl7.org/fhir/ValueSet/library-type` to `http://terminology.hl7.org/ValueSet/library-type`. Instance codings may be unchanged, so this is not a structural data break. The concern is terminology and generated-metadata churn on a mandatory element: validators, enum helpers, package caches, or binding-aware applications that recognize the R4 canonical need special handling for R6. The supplied local R6 core package also does not include a matching `ValueSet-library-type` file, making package resolution assumptions more visible.",
+        "keyEvidence": [
+          "R4 `Library.type` is 1..1 CodeableConcept with extensible binding to `http://hl7.org/fhir/ValueSet/library-type`.",
+          "R4 local `ValueSet-library-type` composes from `http://terminology.hl7.org/CodeSystem/library-type`.",
+          "R6 `Library.type` is 1..1 CodeableConcept with extensible binding to `http://terminology.hl7.org/ValueSet/library-type`.",
+          "No R6 core package `ValueSet-library-type` file was found in the supplied local package."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral, so the mandatory path and avoidable tooling churn carry the judgment rather than a heightened normative stability rule.",
+        "compatibilityMechanism": "metadata/tooling: the wire-format CodeableConcept is unchanged, but binding canonical resolution, generated helpers, and validator package configuration can break or warn.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep the old value set canonical while moving stewardship and publication to terminology.hl7.org, or at least define an explicit alias transition. That appears to meet the stewardship goal with lower migration cost, at the tradeoff of less uniform THO URL naming and some alias-management burden.",
+        "comparisonToExisting": "agree with the existing Medium impact and Yes alternative judgment; the independent review still sees this as avoidable churn on a required path."
+      }
     },
     {
       "findingId": "Library:SEMANTIC_OR_CONFORMANCE_TEXT:Library.jurisdiction:0f71bd",
@@ -1020,7 +1092,22 @@
       "migrationGuidanceMd": "Classify each existing `jurisdiction` value as maintainer jurisdiction, intended-use jurisdiction, or both. For intended-use values, add a `useContext` entry with usage-context-type `jurisdiction`. Do not blindly duplicate values without confirming business meaning.",
       "backwardCompatibilityAnalysisMd": "The change could have been less ambiguous with a new element or a transition period where both meanings were explicit. Given the R6 deprecation note, migration guidance should be profile- or governance-specific.",
       "reviewerNotesMd": "The R6 terminology.hl7.org jurisdiction value set was not available locally, so binding-content equivalence was not verified.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Library:SEMANTIC_OR_CONFORMANCE_TEXT:Library.jurisdiction:0f71bd",
+        "judgment": "Revisit",
+        "narrativeMd": "`Library.jurisdiction` keeps the same type and cardinality, but its meaning changes from the jurisdiction where the library is intended to be used to the jurisdiction where the maintaining authority operates. This is a silent semantic break: an R4 Library targeted for use in a country could be copied into R6 and then interpreted as saying the maintainer operates there. That can affect artifact discovery, regulatory filtering, and applicability decisions without any validator error.",
+        "keyEvidence": [
+          "R4 definition: `A legal or geographic region in which the library is intended to be used.`",
+          "R6 definition: `A legal or geographic region in which the authority that maintains the resource is operating.`",
+          "R6 comment directs jurisdiction-of-use migration toward `useContext` with the jurisdiction usage-context code.",
+          "Both versions keep `Library.jurisdiction` as 0..* CodeableConcept."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral. It does not by itself demand preservation, but it also does not soften a silent semantic inversion on a business and regulatory metadata path.",
+        "compatibilityMechanism": "semantic/documentation: structurally valid R4 data can carry the wrong meaning in R6 after a naive migration.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could preserve the R4 intended-use meaning for `jurisdiction` and add a separate maintainer-jurisdiction element or useContext pattern for the new concept. The tradeoff is another metadata surface and possible duplication, but it avoids silent reinterpretation of existing values.",
+        "comparisonToExisting": "agree with the existing Medium impact and Yes alternative judgment; this is one of the clearer cases for renewed design attention."
+      }
     },
     {
       "findingId": "Library:VALUE_CONSTRAINT:Library.url:9ce42d",
@@ -1145,7 +1232,21 @@
       "validationAndCompatibilityMd": "An R4 Library with a URL containing `#`, `|`, or a space can become R6 warning-producing. It is not a hard base validation break unless a server or CI policy escalates warnings to errors.",
       "migrationGuidanceMd": "Scan Library canonical URLs for forbidden characters before R6 publication. If a URL contains a fragment or version separator, mint a clean canonical URL and handle old aliases through redirects, ConceptMaps, package metadata, or migration documentation.",
       "backwardCompatibilityAnalysisMd": "The warning-level approach is reasonably backward-compatible. Making this an error would have been a hard break; keeping it only in prose would be less effective for tooling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Library:VALUE_CONSTRAINT:Library.url:9ce42d",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds warning constraint `cnl-1` saying `Library.url` should not contain pipe, hash, or space. The element type and cardinality are unchanged, and the invariant is warning severity rather than error. A warning-as-error pipeline may need adjustment, but the constrained characters are problematic for canonical reference processing and should be rare in well-formed Library canonicals.",
+        "keyEvidence": [
+          "R4 `Library.url` is 0..1 `uri` with no local `cnl-1` constraint.",
+          "R6 `Library.url` adds warning `cnl-1` with expression excluding `|`, `#`, and space.",
+          "R6 warning text says these characters make canonical reference processing problematic."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral. Warning severity and the interoperability rationale are more important than maturity pressure.",
+        "compatibilityMechanism": "warning-level: strict warning-as-error validation may fail, but base validity is not removed.",
+        "lessBreakingAlternativeAssessment": "The less-disruptive option would be narrative guidance only, but that would forfeit a standard computable signal for ambiguous canonical URLs. Using warning severity is already the compatibility-conscious compromise.",
+        "comparisonToExisting": "agree with the existing Low/Partial assessment, with the final judgment downgraded to no meaningful problem because the change is only a justified warning."
+      }
     },
     {
       "findingId": "Library:VALUE_CONSTRAINT:Library.relatedArtifact:87f4ab",
@@ -1278,7 +1379,22 @@
       "migrationGuidanceMd": "Audit `relatedArtifact` entries with type `depends-on`, `composed-of`, or `part-of`. Where possible, populate a canonical or Reference target to the referenced Library, ValueSet, CodeSystem, PlanDefinition, or other resource. Treat purely narrative dependencies as requiring manual review.",
       "backwardCompatibilityAnalysisMd": "Warning severity is a reasonable backward-compatible compromise. The stricter expectation could have been profile-only, but Library dependency resolution is important enough that base-level warning guidance is useful.",
       "reviewerNotesMd": "Do not conflate this local Library warning with the broader RelatedArtifact datatype child-model changes, which should be assessed in the RelatedArtifact report.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Library:VALUE_CONSTRAINT:Library.relatedArtifact:87f4ab",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds warning constraint `lib-2` requiring dependency, composed-of, and part-of related artifacts to reference a resource. R4 allowed descriptive related artifacts without this Library-specific warning. Older Libraries that used dependency-like relatedArtifact entries as text, documents, or unresolved URLs may now receive warnings, especially in packaging or dependency-resolution workflows. Because computable Library dependencies are important for CQL evaluation, data requirements, and package assembly, a warning-level base expectation is proportionate.",
+        "keyEvidence": [
+          "R4 `Library.relatedArtifact` has no Library-specific `lib-2` constraint.",
+          "R6 `Library.relatedArtifact` adds warning `lib-2`: dependencies and components of a Library should reference a resource.",
+          "R6 expression applies to `depends-on`, `composed-of`, and `part-of` relatedArtifact types.",
+          "R6 comment also states that dependencies and components should reference a resource."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral. The practical importance of computable dependency resolution supports accepting a warning-level migration burden.",
+        "compatibilityMechanism": "warning-level: older descriptive dependency/component relatedArtifacts can newly warn, but they are not made structurally invalid by the base resource.",
+        "lessBreakingAlternativeAssessment": "R6 could leave this in prose, profiles, or implementation guides. That would be less noisy for old content but would weaken a broadly useful signal for executable Library dependency resolution.",
+        "comparisonToExisting": "agree with the existing Medium/Partial assessment: there is real migration pressure, but warning severity and the dependency-resolution goal make it probably acceptable."
+      }
     },
     {
       "findingId": "Library:VALUE_CONSTRAINT:Library.name:4d6c19",
@@ -1395,7 +1511,21 @@
       "validationAndCompatibilityMd": "No hard base validation break was identified. R4 Libraries with unusual or one-character names may receive different R6 warnings. Systems that suppress or assert specific invariant keys need to update from `lib-0` to `cnl-0`.",
       "migrationGuidanceMd": "Normalize Library names to start with uppercase ASCII and contain only letters, digits, and underscores, with at least two characters if following the R6 warning exactly. Update warning suppression lists and tests to use `cnl-0`.",
       "backwardCompatibilityAnalysisMd": "Keeping this as warning-level is the main compatibility mitigation. A separate deprecation period for the old `lib-0` key would help warning-suppression tooling but would duplicate invariants.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Library:VALUE_CONSTRAINT:Library.name:4d6c19",
+        "judgment": "No problem",
+        "narrativeMd": "The machine-friendly-name invariant moves from R4 root warning `lib-0` to R6 root warning `cnl-0` and becomes more explicit and slightly tighter. The main practical differences are warning-key churn, anchoring/absent-name handling, and warnings for one-character uppercase names that previously satisfied the R4 pattern. This is not a hard validation break, and the affected valid-name edge case is likely rare.",
+        "keyEvidence": [
+          "R4 root warning `lib-0` uses expression `name.matches('[A-Z]([A-Za-z0-9_]){0,254}')`.",
+          "R6 root warning `cnl-0` uses `name.exists() implies name.matches('^[A-Z]([A-Za-z0-9_]){1,254}$')`.",
+          "`Library.name` remains optional 0..1 `string` in both versions."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral. Warning-only severity and a narrow edge case keep the stability concern low.",
+        "compatibilityMechanism": "warning-level: warning suppressions and one-character names can be affected, but base instance validity is not removed.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could keep the old `{0,254}` length rule while adopting the shared `cnl-0` key, or temporarily retain `lib-0` as an alias. Those are plausible but would mainly reduce warning churn for a narrow case and could complicate invariant harmonization.",
+        "comparisonToExisting": "partially agree with the existing Low impact and Yes alternative assessment: the old-compatible rule is plausible, but the warning-only edge case does not rise to a meaningful compatibility problem."
+      }
     },
     {
       "findingId": "Library:SEMANTIC_OR_CONFORMANCE_TEXT:Library.experimental:aa9e31",
@@ -1504,7 +1634,22 @@
       "migrationGuidanceMd": "Review version histories where a Library moved from experimental to production. In R6, consider minting a new canonical URL for production-ready artifacts if previous versions were truly experimental, or document local governance if retaining the same canonical.",
       "backwardCompatibilityAnalysisMd": "This could have been introduced as narrative best-practice guidance rather than a stronger definition. Because there is no invariant, the practical break depends on governance and tooling policy.",
       "reviewerNotesMd": "This is a semantic/conformance finding, not a validator-enforced shape change.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Library:SEMANTIC_OR_CONFORMANCE_TEXT:Library.experimental:aa9e31",
+        "judgment": "Revisit",
+        "narrativeMd": "`Library.experimental` keeps the same boolean shape, but R6 strengthens the meaning from not intended for genuine usage to no version of the resource will ever be intended for genuine usage, with a comment saying the flag should remain true across all versions if true for any version. An R4 publisher may have used `experimental=true` for pre-release Library versions and later published a production version under the same canonical. Under the R6 wording, that history can be interpreted as misuse or as permanently non-production, which can affect registry publication and production-use gating.",
+        "keyEvidence": [
+          "R4 definition says the Library is authored for testing or similar purposes and is not intended for genuine usage.",
+          "R4 comment only notes filtering of Libraries appropriate for use versus not.",
+          "R6 definition says no version of the resource will ever be intended for genuine usage.",
+          "R6 comment says if experimental is true for any version, it should be true for all versions."
+        ],
+        "fmmEffect": "FMM 2 trial-use is neutral. It permits evolution, but the field directly affects production filtering, so a silent lifecycle semantic change still warrants attention.",
+        "compatibilityMechanism": "semantic/documentation: the boolean is structurally unchanged, but migrated data and publication workflows can acquire a stronger lifecycle meaning than they had in R4.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could preserve the R4 current-artifact meaning and add a distinct lifecycle/governance signal, extension, or best-practice warning for resources that should never become production. That adds complexity and possible conflicting indicators, but it avoids reinterpreting existing `experimental=true` histories.",
+        "comparisonToExisting": "partially agree with the existing Medium/Partial assessment; I put more weight on the production-gating semantics and judge the change worthy of revisit despite the non-structural shape."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1706,5 +1851,19 @@
       "jurisdiction/topic migration from direct canonical metadata elements to useContext",
       "experimental lifecycle semantics across canonical resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Library.fresh-review.json",
+    "findingDecisionCount": 10,
+    "matchedFindingDecisionCount": 10,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 3,
+      "No problem": 4
+    }
   }
 }

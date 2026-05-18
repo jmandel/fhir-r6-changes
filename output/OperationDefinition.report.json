@@ -282,7 +282,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid occurs when `parameter.type` contains a removed R4 code such as `SimpleQuantity` or `TestScript`. R6-to-R4 fails for new codes such as `CodeableReference` or `integer64`.",
       "migrationGuidanceMd": "Inventory every `parameter.type`; map removed R4 codes to R6 successors with a ConceptMap or manual review, and preserve R6-only codes through extensions or reject downgrade.",
       "backwardCompatibilityAnalysisMd": "Legacy aliases or a version-independent type value set would have reduced breaks, but would keep obsolete names in R6 base validation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OperationDefinition:TERMINOLOGY_BINDING:parameter.type:2a9f4c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`OperationDefinition.parameter.type` still has a required binding, but the bound universe moved from R4 `all-types` to R6 `fhir-types`. That means an R4 OperationDefinition using a retired or renamed type code such as `SimpleQuantity`, `TestScript`, or `ChargeItem` can fail R6 validation, and R6-only type codes cannot be represented cleanly in R4. The break is real for validators and generated operation signatures, but the element is meant to describe implementable parameter types in the current FHIR version; keeping obsolete type names base-valid would make R6 operation contracts less computable.",
+        "keyEvidence": [
+          "R4 OperationDefinition.parameter.type binding is required to http://hl7.org/fhir/ValueSet/all-types|4.0.1.",
+          "R6 OperationDefinition.parameter.type binding is required to http://hl7.org/fhir/ValueSet/fhir-types|6.0.0-ballot4.",
+          "Local code comparison found 47 R4 all-types codes absent from R6 fhir-types and 37 R6 fhir-types codes absent from R4 all-types."
+        ],
+        "fmmEffect": "OperationDefinition is R4 FMM 5 and normative, so a required-binding break needs strong justification. That raised the concern, but the current-version type-system goal is strong enough that the break looks proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-valid parameter type codes outside R6 fhir-types become invalid; there is also R6-to-R4 loss for new R6 type codes.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have used a version-independent type value set or deprecated aliases. That would preserve more R4 definitions, but it would also require R6 validators and code generators to accept type names that are not native R6 parameter types.",
+        "comparisonToExisting": "partially agree: I agree this is a hard required-binding break with downgrade risk, but I would not treat the less-breaking alternative as clearly available because accepting old type names weakens R6 computability."
+      }
     },
     {
       "findingId": "OperationDefinition:TERMINOLOGY_BINDING:resource:6e44b1",
@@ -414,7 +428,21 @@
       "validationAndCompatibilityMd": "R4 instances with `resource: [\"ChargeItem\"]` or another omitted code can be invalid in R6. R6 values such as `ActorDefinition` are not R4 resource-type codes.",
       "migrationGuidanceMd": "Map removed resource scopes to R6 successor resources or retired-operation policy. Do not silently drop scopes because that changes where an operation appears callable.",
       "backwardCompatibilityAnalysisMd": "Including retired R4 resource names in the R6 value set would have been more compatible but would complicate the R6 resource taxonomy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OperationDefinition:TERMINOLOGY_BINDING:resource:6e44b1",
+        "judgment": "Revisit",
+        "narrativeMd": "`OperationDefinition.resource` remains required-bound, but R6 changes the value set to a version-independent resource-type set that still omits 19 R4 resource codes. An operation scoped to an R4 resource such as `GraphDefinition`, `MedicationKnowledge`, or `TestScript` can therefore be structurally invalid in R6 even though the R6 value set already has an old-types mechanism. Because this path controls where an operation is exposed, silently dropping or remapping scopes can change runtime behavior.",
+        "keyEvidence": [
+          "R4 OperationDefinition.resource binding is required to resource-types|4.0.1.",
+          "R6 OperationDefinition.resource binding is required to version-independent-all-resource-types|6.0.0-ballot4.",
+          "Local resolution of R6 all-resource-types plus fhir-old-types still excludes 19 R4 resource codes including ChargeItem, ClinicalImpression, GraphDefinition, MedicationKnowledge, MolecularSequence, TestScript, and VerificationResult."
+        ],
+        "fmmEffect": "FMM 5/normative status strongly raises the compatibility burden because this is a hard validation break on a central operation-discovery path.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-valid resource scope codes missing from the R6 required value set become invalid; R6-to-R4 loss also exists for R6-only resource/interface codes.",
+        "lessBreakingAlternativeAssessment": "A plausible low-cost base design exists: include all R4 resource codes in the version-independent set as retired or old types. That adds lifecycle clutter, but it matches the apparent goal of version-independent resource naming and avoids invalidating old operation scopes.",
+        "comparisonToExisting": "agree: the current report correctly identified a hard break and a credible less-breaking base design."
+      }
     },
     {
       "findingId": "OperationDefinition:VALUE_CONSTRAINT:root-query-constraints:7c1a0d",
@@ -518,7 +546,20 @@
       "validationAndCompatibilityMd": "This is an old-valid/new-invalid validator break driven by new error constraints on the root element.",
       "migrationGuidanceMd": "For every `kind=query`, set `instance=false`, add `searchType` to all input parameters, and model output as exactly one `result` parameter of type `Bundle`.",
       "backwardCompatibilityAnalysisMd": "Warning-first constraints or a named-query profile would have been less disruptive but would not guarantee base R6 query interoperability.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OperationDefinition:VALUE_CONSTRAINT:root-query-constraints:7c1a0d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds error-level named-query invariants: queries cannot be instance-level, input parameters need `searchType`, and output must be a single `result` Bundle parameter. These can reject query OperationDefinitions that were structurally allowed in R4. The affected cases are unusual or under-specified query shapes, and the R6 constraints make named queries predictable for generic clients.",
+        "keyEvidence": [
+          "R4 root OperationDefinition constraints do not include opd-5, opd-6, or opd-7.",
+          "R6 root OperationDefinition constraints include opd-5 `(kind = 'query') implies (instance = false)`, opd-6 requiring input searchType for queries, and opd-7 requiring one output `result` Bundle."
+        ],
+        "fmmEffect": "FMM 5/normative status raises the burden for adding error constraints, but named-query shape is core conformance behavior and the constraints align with query interoperability.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 query definitions with instance-level use, missing input searchType, or non-standard outputs fail R6 validation.",
+        "lessBreakingAlternativeAssessment": "Warnings or a named-query profile would preserve more R4 definitions, but base R6 clients could not rely on a uniform query contract. The less-breaking option only partially meets the R6 goal.",
+        "comparisonToExisting": "agree: the current report's hard-break assessment and partial alternative assessment are directionally sound."
+      }
     },
     {
       "findingId": "OperationDefinition:VALUE_CONSTRAINT:parameter-cardinality-values:4fb87e",
@@ -611,7 +652,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid is limited to definitions whose cardinality declaration was syntactically allowed in R4 but semantically impossible or malformed.",
       "migrationGuidanceMd": "Scan and fix negative `min`, non-numeric `max` other than `*`, and min/max inconsistencies manually.",
       "backwardCompatibilityAnalysisMd": "The stricter rules are justified for implementable operation contracts; warnings would preserve bad legacy data but reduce correctness.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OperationDefinition:VALUE_CONSTRAINT:parameter-cardinality-values:4fb87e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 makes parameter cardinality declarations computably sane: `min` is now `unsignedInt`, `max` must be numeric or `*`, and `min` cannot exceed `max`. This rejects some R4-valid lexical forms, but those forms describe negative or impossible cardinalities rather than a meaningful operation contract.",
+        "keyEvidence": [
+          "R4 OperationDefinition.parameter.min type is integer.",
+          "R6 OperationDefinition.parameter.min type is unsignedInt.",
+          "R6 adds parameter constraint opd-8 for min <= max and max constraint opd-9 requiring a number or `*`."
+        ],
+        "fmmEffect": "Normative/FMM 5 status requires caution, but the rejected data patterns are malformed operation signatures, so stability concerns are softened by the correctness gain.",
+        "compatibilityMechanism": "old-valid/new-invalid: negative `min`, non-numeric `max`, or `min > max` can pass R4 structure validation but fail R6.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the R4 lexical domains and made the checks warnings, but that would leave base-valid operation definitions with nonsensical cardinality. The tradeoff is not attractive for executable metadata.",
+        "comparisonToExisting": "agree: the current report properly treats this as a real but proportionate tightening."
+      }
     },
     {
       "findingId": "OperationDefinition:VALUE_CONSTRAINT:parameter.searchType:9d0b2c",
@@ -692,7 +747,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 break is from the new error constraint. R6-to-R4 break is from the new required-binding code.",
       "migrationGuidanceMd": "Remove `searchType` from output parameters or move the explanation into documentation; preserve R6 `resource` searchType with an extension or reject downgrade.",
       "backwardCompatibilityAnalysisMd": "Deprecating output searchType before making it an error would have been less disruptive but less precise.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OperationDefinition:VALUE_CONSTRAINT:parameter.searchType:9d0b2c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 forbids `searchType` on output parameters and adds the `resource` search-param-type code. The forward break is limited to output parameters carrying search semantics, which were already conceptually tied to input/search behavior. The added `resource` code is mainly a downgrade/enumeration issue.",
+        "keyEvidence": [
+          "R4 OperationDefinition.parameter has no input-only searchType constraint.",
+          "R6 OperationDefinition.parameter includes error constraint opd-4 `(use = 'out') implies searchType.empty()`.",
+          "Local search-param-type comparison shows R6 adds `resource` and removes no R4 codes."
+        ],
+        "fmmEffect": "FMM 5/normative status raises the bar for an error-level constraint, but the constraint removes an ambiguous output-parameter use rather than changing ordinary input search parameters.",
+        "compatibilityMechanism": "old-valid/new-invalid: output parameters with searchType become invalid; R6-to-R4 loss exists for `searchType=resource`.",
+        "lessBreakingAlternativeAssessment": "A warning-only transition would preserve odd R4 output declarations, but R6 consumers would still need to decide whether such output search metadata is meaningful. The stricter base rule is defensible.",
+        "comparisonToExisting": "agree: the reported mechanism is real, though the practical forward break is narrow."
+      }
     },
     {
       "findingId": "OperationDefinition:TERMINOLOGY_BINDING:parameter.binding.strength:1a72df",
@@ -769,7 +838,21 @@
       "validationAndCompatibilityMd": "No old-valid/new-invalid break was found; this is an R6-valid/not-R4-representable code addition.",
       "migrationGuidanceMd": "On downgrade, preserve `descriptive` in an extension or reject conversion; do not silently map it to `example` or `preferred`.",
       "backwardCompatibilityAnalysisMd": "An extension-only design would preserve R4 enums but make R6 binding semantics less discoverable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OperationDefinition:TERMINOLOGY_BINDING:parameter.binding.strength:1a72df",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds the `descriptive` binding-strength code without removing any R4 codes. Existing R4 OperationDefinitions using `required`, `extensible`, `preferred`, or `example` remain valid on this path. The only issue is reverse conversion or old generated enums encountering an R6-only value.",
+        "keyEvidence": [
+          "R4 binding-strength codes are required, extensible, preferred, and example.",
+          "R6 binding-strength keeps all R4 codes and adds descriptive.",
+          "OperationDefinition.parameter.binding.strength remains required-bound in both versions."
+        ],
+        "fmmEffect": "Normative/FMM 5 status does not turn a pure code-set widening into a forward compatibility problem.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `descriptive` is not an R4 binding-strength code, but no R4-valid code is invalidated.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6 compatibility. Using only an extension for `descriptive` would optimize downgrade at the cost of weaker R6 terminology semantics.",
+        "comparisonToExisting": "disagree: the existing report treated the downgrade enum issue as medium impact, but for a fresh R4-to-R6 review this is a widening change with no old-valid/new-invalid break."
+      }
     },
     {
       "findingId": "OperationDefinition:ELEMENT_PRESENCE_OR_IDENTITY:synchronicity:39b0e2",
@@ -852,7 +935,21 @@
       "validationAndCompatibilityMd": "No R4 instance becomes invalid because the field is optional. R6 instances using it are not native R4 and strict R4 parsers reject the element.",
       "migrationGuidanceMd": "Populate it from existing operation policy when upgrading. On downgrade, preserve it in an extension or external registry and test client invocation flows.",
       "backwardCompatibilityAnalysisMd": "Core support is justified by runtime importance; an R4 extension would be more round-trip compatible but less discoverable.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OperationDefinition:ELEMENT_PRESENCE_OR_IDENTITY:synchronicity:39b0e2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional `synchronicity` to say whether an operation is synchronous, asynchronous, or supports either. Existing R4 instances are not invalidated, but an R6 OperationDefinition using this element carries invocation semantics that R4 cannot natively represent. Losing it during downgrade can make clients choose the wrong call pattern.",
+        "keyEvidence": [
+          "R4 OperationDefinition has no synchronicity element.",
+          "R6 OperationDefinition.synchronicity is 0..1 code with required binding to synchronicity-control.",
+          "R6 synchronicity-control codes are synchronous, asynchronous, and either."
+        ],
+        "fmmEffect": "FMM 5/normative status increases attention to runtime invocation semantics, but the R6 change is additive and addresses a real operation-discovery gap.",
+        "compatibilityMechanism": "R6-to-R4 loss: strict R4 models have no native field for sync/async requirements; runtime/API behavior may be wrong if the information is dropped.",
+        "lessBreakingAlternativeAssessment": "Keeping this as an extension only would be more round-trip friendly, but it would make important invocation behavior less visible to base R6 clients. There is no less-breaking forward design because the addition is optional.",
+        "comparisonToExisting": "partially agree: I agree with the runtime importance and downgrade loss, but not with treating it as a high forward-breaking concern."
+      }
     },
     {
       "findingId": "OperationDefinition:ELEMENT_PRESENCE_OR_IDENTITY:parameter.scope:55f6ac",
@@ -928,7 +1025,21 @@
       "validationAndCompatibilityMd": "Forward validation is not broken. R6-to-R4 conversion is lossy unless an extension is used.",
       "migrationGuidanceMd": "Use `parameter.scope` in generated method signatures and preserve it with a cross-version extension when downgrading.",
       "backwardCompatibilityAnalysisMd": "A pure extension approach would be more compatible, but core support is justified for computable operation contracts.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OperationDefinition:ELEMENT_PRESENCE_OR_IDENTITY:parameter.scope:55f6ac",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional repeating `parameter.scope` to indicate whether a parameter applies at system, type, or instance invocation level. This does not invalidate R4 OperationDefinitions, but R6 signatures using it can lose behavior when downgraded to R4, causing generated clients or UIs to expose parameters in the wrong context.",
+        "keyEvidence": [
+          "R4 OperationDefinition.parameter has no scope child.",
+          "R6 OperationDefinition.parameter.scope is 0..* code with required binding to operation-parameter-scope.",
+          "R6 operation-parameter-scope codes are system, type, and instance."
+        ],
+        "fmmEffect": "Normative/FMM 5 status matters because invocation-level applicability affects operation use, but the change is an optional additive clarification of the contract.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4 has no native parameter-level invocation scope; runtime/API and codegen behavior can lose context.",
+        "lessBreakingAlternativeAssessment": "An extension-only design would preserve round-trip compatibility, but it would keep operation-signature semantics outside the core R6 model. The additive core element is proportionate.",
+        "comparisonToExisting": "partially agree: the downgrade/runtime risk is real, but the finding should not be read as an R4-to-R6 hard break."
+      }
     },
     {
       "findingId": "OperationDefinition:CONVERSION_OR_MAPPING:parameter.allowedType:77c6e5",
@@ -1012,7 +1123,21 @@
       "validationAndCompatibilityMd": "This is not a base R4 validation break. It is a conversion and codegen risk with possible semantic loss.",
       "migrationGuidanceMd": "Upgrade converters should translate the R4 extension to `allowedType`; downgrade converters should emit the extension and normalize codes/canonicals carefully.",
       "backwardCompatibilityAnalysisMd": "Allowing both extension and core field during a transition would be more compatible but would require precedence rules.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OperationDefinition:CONVERSION_OR_MAPPING:parameter.allowedType:77c6e5",
+        "judgment": "No problem",
+        "narrativeMd": "R6 promotes the prior `operationdefinition-allowed-type` extension into the optional core `parameter.allowedType` element. R4 content using the extension can still be carried as an extension, and R6 explicitly documents the previous extension. Converters should promote or demote the value deliberately, but this is a manageable mapping issue rather than a base compatibility problem.",
+        "keyEvidence": [
+          "R4 operationdefinition-allowed-type extension context is OperationDefinition.parameter and its value[x] type is uri.",
+          "R6 OperationDefinition.parameter.allowedType is 0..* code bound to fhir-types.",
+          "R6 allowedType comment points to the previous extension URL."
+        ],
+        "fmmEffect": "FMM 5/normative status encourages careful conversion, but optional promotion of a known extension is a compatibility-preserving way to make the concept core.",
+        "compatibilityMechanism": "runtime/API/codegen: converters and generated models need extension-to-core mapping, but R4 instances are not made invalid by the addition.",
+        "lessBreakingAlternativeAssessment": "Leaving the concept extension-only would reduce mapping work but would not improve core R6 computability. Allowing both representations is already possible through extensions, though consumers need precedence policy if both are present.",
+        "comparisonToExisting": "disagree: I agree converters need attention, but the existing medium-impact framing overstates a documented extension promotion with no forward validation break."
+      }
     },
     {
       "findingId": "OperationDefinition:ELEMENT_PRESENCE_OR_IDENTITY:canonical-metadata:ac1d8a",
@@ -1085,7 +1210,20 @@
       "validationAndCompatibilityMd": "R6-only fields are not native R4 elements and strict R4 parsers reject them if sent directly.",
       "migrationGuidanceMd": "Use R4 extensions or registry sidecar metadata for lossless downgrade, especially for `versionAlgorithm[x]`.",
       "backwardCompatibilityAnalysisMd": "Optional core additions are forward-compatible but require extension strategy for round-trip.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OperationDefinition:ELEMENT_PRESENCE_OR_IDENTITY:canonical-metadata:ac1d8a",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional canonical-resource metadata fields: `identifier`, `versionAlgorithm[x]`, `copyright`, and `copyrightLabel`. Existing R4 OperationDefinitions remain valid without them. Downgrade can lose useful governance metadata, especially version ordering, but that is expected for optional R6 additions and can be handled with extensions or registry metadata.",
+        "keyEvidence": [
+          "R4 OperationDefinition snapshot has no identifier, versionAlgorithm[x], copyright, or copyrightLabel elements.",
+          "R6 OperationDefinition adds identifier 0..*, versionAlgorithm[x] 0..1, copyright 0..1, and copyrightLabel 0..1."
+        ],
+        "fmmEffect": "Normative/FMM 5 status does not make optional metadata additions problematic when they do not invalidate R4 content.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4 has no native slots for these R6 metadata fields, but there is no R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking forward design is needed. Extension-only representation would help round-trip conversion but would reduce consistency with R6 canonical metadata patterns.",
+        "comparisonToExisting": "disagree: the existing report's medium impact is too high for optional metadata additions with no forward break."
+      }
     },
     {
       "findingId": "OperationDefinition:SERIALIZATION_OR_CODEGEN:parameter.documentation:b245a9",
@@ -1163,7 +1301,21 @@
       "validationAndCompatibilityMd": "Typical R4 strings remain valid markdown; R6 markdown content is JSON-compatible with R4 string but may not render or sanitize the same way.",
       "migrationGuidanceMd": "Regenerate SDK models and review any rendering or validation code for `parameter.documentation`.",
       "backwardCompatibilityAnalysisMd": "Keeping `string` would avoid codegen churn but would not signal markdown rendering semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "OperationDefinition:SERIALIZATION_OR_CODEGEN:parameter.documentation:b245a9",
+        "judgment": "No problem",
+        "narrativeMd": "`parameter.documentation` changes primitive type from `string` to `markdown`, but the JSON value remains a string and ordinary R4 text is valid markdown content. Some generated models or renderers may need a different primitive wrapper or sanitization path, yet this is codegen/tooling churn rather than a meaningful interoperability break.",
+        "keyEvidence": [
+          "R4 OperationDefinition.parameter.documentation type is string.",
+          "R6 OperationDefinition.parameter.documentation type is markdown.",
+          "Cardinality and path are unchanged."
+        ],
+        "fmmEffect": "FMM 5/normative status made the primitive type change worth checking, but the unchanged wire representation and low semantic risk keep it from being a standards concern.",
+        "compatibilityMechanism": "runtime/API/codegen: generated primitive wrappers and rendering rules may change, but base JSON serialization remains string-shaped.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `string` and added prose saying markdown may be used. That is less disruptive for codegen, but it loses computable markdown typing; given the low wire-format impact, the current design is acceptable.",
+        "comparisonToExisting": "disagree: the existing report identified a possible less-breaking design, but the practical break is too small to warrant revisit."
+      }
     },
     {
       "findingId": "OperationDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:code:114cbd",
@@ -1241,7 +1393,21 @@
       "validationAndCompatibilityMd": "No instance becomes invalid; this is runtime/conformance drift in how operation names are resolved.",
       "migrationGuidanceMd": "Resolve concrete invocation names from CapabilityStatement when available and treat `OperationDefinition.code` as a canonical/recommended label.",
       "backwardCompatibilityAnalysisMd": "A separate alias/invocation-name element would have made the semantic split clearer but added structure.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OperationDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:code:114cbd",
+        "judgment": "No problem",
+        "narrativeMd": "R6 rephrases `OperationDefinition.code` as the recommended URL label and points to `CapabilityStatement.operation.name` for the concrete server name when disambiguation is needed. This is not a new wire-format break, and R4 CapabilityStatement already said the operation name should match the definition unless there is a name clash. The R6 text is better aligned with the discovery model rather than a new incompatible rule.",
+        "keyEvidence": [
+          "R4 OperationDefinition.code definition says it is the name used to invoke the operation.",
+          "R6 OperationDefinition.code definition says it is the recommended URL label and CapabilityStatement operation.name can differ.",
+          "R4 CapabilityStatement.rest.resource.operation.name already said the name SHOULD match the definition unless there is a name clash and cannot be used."
+        ],
+        "fmmEffect": "Normative/FMM 5 status raises scrutiny for semantic changes, but direct downstream R4 CapabilityStatement evidence shows the exception already existed.",
+        "compatibilityMechanism": "semantic/documentation: clients should resolve concrete invocation names from CapabilityStatement, but the R6 wording mostly clarifies an existing discovery nuance.",
+        "lessBreakingAlternativeAssessment": "A separate alias/default-invocation element would be more explicit, but it would add another naming surface. Since CapabilityStatement already carries the concrete name, no base R6 redesign is needed.",
+        "comparisonToExisting": "disagree: the existing report treated this as high runtime risk; after checking CapabilityStatement, it looks like clarification rather than a material new break."
+      }
     },
     {
       "findingId": "OperationDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:affectsState:908e22",
@@ -1319,7 +1485,21 @@
       "validationAndCompatibilityMd": "This is not structural validation; it affects HTTP method support tests and generated clients.",
       "migrationGuidanceMd": "Review `affectsState=false` operations with optional complex parameters and update GET-support conformance tests to R6 wording.",
       "backwardCompatibilityAnalysisMd": "The change is probably a clarification; a transition note would reduce surprise.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OperationDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:affectsState:908e22",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes the GET-support rule for non-state-changing operations to focus on required primitive parameters. A server with a safe operation whose required parameters are primitive but optional parameters are complex may face a stronger R6 expectation to support GET than it had under the R4 wording. This is a runtime conformance change, not an instance-shape break, and it improves predictable client invocation for safe operations.",
+        "keyEvidence": [
+          "R4 affectsState comment says servers SHALL support GET if all parameters are primitive or there are no parameters and affectsState=false.",
+          "R6 affectsState comment says servers SHALL support GET when affectsState=false and all required parameters are primitive.",
+          "The affectsState element type and cardinality remain boolean 0..1."
+        ],
+        "fmmEffect": "FMM 5/normative status raises the burden because this is a SHALL-level runtime expectation, but the change appears aimed at interoperable safe-operation invocation.",
+        "compatibilityMechanism": "runtime/API/codegen: HTTP method support and conformance tests can change even though OperationDefinition instances remain structurally valid.",
+        "lessBreakingAlternativeAssessment": "R6 could have introduced the required-primitive rule as SHOULD or guidance first. That would be less disruptive for servers, but clients could not rely on GET support for the newly covered safe-operation cases.",
+        "comparisonToExisting": "agree: the existing report's medium runtime concern and partial less-breaking alternative are reasonable."
+      }
     },
     {
       "findingId": "OperationDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:jurisdiction:6ad317",
@@ -1402,7 +1582,21 @@
       "validationAndCompatibilityMd": "No hard validation break was found because binding strength remains extensible. The risk is semantic misclassification.",
       "migrationGuidanceMd": "Review every `jurisdiction`; if it represents intended use, add an R6 `useContext` jurisdiction and decide whether the original value also represents maintaining authority.",
       "backwardCompatibilityAnalysisMd": "Adding a new maintaining-jurisdiction element would avoid semantic drift but add metadata complexity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "OperationDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:jurisdiction:6ad317",
+        "judgment": "Revisit",
+        "narrativeMd": "`OperationDefinition.jurisdiction` keeps the same structural shape but changes meaning from intended-use region to the region of the maintaining authority, with intended-use jurisdiction moving toward `useContext`. Existing R4 values can remain valid while being interpreted as a different fact. That kind of silent semantic drift is risky for registries, publication workflows, and filters that use jurisdiction metadata.",
+        "keyEvidence": [
+          "R4 jurisdiction definition is the legal or geographic region in which the operation definition is intended to be used.",
+          "R6 jurisdiction definition is the region in which the authority that maintains the resource is operating.",
+          "R6 jurisdiction comment encourages migration to a jurisdiction code in useContext for jurisdiction of use."
+        ],
+        "fmmEffect": "FMM 5/normative status substantially raises the burden because the same path and values can silently change meaning without validation failure.",
+        "compatibilityMechanism": "semantic/documentation: structurally valid R4 jurisdiction metadata can be misinterpreted under R6 semantics.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept `jurisdiction` as intended-use jurisdiction and added a separate maintaining-authority element or explicit useContext convention for the new fact. That adds metadata surface area but avoids changing the meaning of existing data.",
+        "comparisonToExisting": "agree: the current report correctly identified a semantic compatibility problem and a plausible less-breaking design."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1573,5 +1767,19 @@
       "binding-strength descriptive code",
       "FHIR type/resource value set changes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/OperationDefinition.fresh-review.json",
+    "findingDecisionCount": 14,
+    "matchedFindingDecisionCount": 14,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 7,
+      "No problem": 5
+    }
   }
 }

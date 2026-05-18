@@ -241,7 +241,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid: an R4 `confidentiality` property is not allowed by R6 Composition. The finding is local to Composition, not an inherited Resource security-label change.",
       "migrationGuidanceMd": "Inventory populated values and map them to a governed target such as `meta.security` or an extension. Do not drop the value without security review.",
       "backwardCompatibilityAnalysisMd": "Removal might be justified if confidentiality belongs at Resource/security-label level, but a deprecated transition path or explicit ConceptMap would have been less disruptive.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.confidentiality:5c1995",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a direct R4-to-R6 content-model break on a privacy-sensitive field. An R4 Composition carrying `confidentiality` needs an explicit migration target before it can be treated as R6, and silent loss would be risky because the R4 definition ties the element to confidentiality handling. Moving the information to general security labeling may be a good goal, but the base model gives no local transition path.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot.element Composition.confidentiality: 0..1 code with required v3-ConfidentialityClassification binding.",
+          "R4 prose defines it as the level of confidentiality and warns that highly confidential documents must not be treated as if they are not.",
+          "R6 StructureDefinition snapshot has no Composition.confidentiality element."
+        ],
+        "fmmEffect": "R4 Composition is FMM 2 and trial-use, so stability pressure is neutral rather than normative. The privacy/security semantics still make the path important enough that the removal should not be dismissed as routine trial-use churn.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with a populated confidentiality element are not valid R6 Composition instances, and a migration can lose access-control meaning.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design plausibly existed: keep the optional element for a transition period, mark it deprecated, and define its relationship to meta.security. The tradeoff is real because two security-label locations can conflict, but that governance burden appears more acceptable than removing the field without a computable replacement.",
+        "comparisonToExisting": "Partially agree: the existing report was right that this is high-impact and that security-label duplication is a tradeoff, but I would treat the available deprecation path as strong enough to warrant renewed review rather than simply a probably justified partial alternative."
+      }
     },
     {
       "findingId": "Composition:TYPE_DOMAIN:Composition.attester.mode:13257a",
@@ -383,7 +397,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid for any R4 attester with primitive mode. R6-to-R4 is lossy for text-only, multi-coding, or non-preferred concepts.",
       "migrationGuidanceMd": "Map R4 codes to CodeableConcept codings with system `http://hl7.org/fhir/composition-attestation-mode`; define reverse-selection policy.",
       "backwardCompatibilityAnalysisMd": "CodeableConcept is more extensible, but retaining the primitive or adding a transition choice would have reduced serializer breakage.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Composition:TYPE_DOMAIN:Composition.attester.mode:13257a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The attester mode value changes from a primitive code string to a CodeableConcept object. That breaks existing JSON and generated model properties when an attester is present, but the value set concepts are stable and the migration from an R4 code into a coding is mostly mechanical. The R6 goal of allowing richer attestation coding is coherent.",
+        "keyEvidence": [
+          "R4 Composition.attester.mode: 1..1 code with required composition-attestation-mode binding.",
+          "R6 Composition.attester.mode: 1..1 CodeableConcept with preferred composition-attestation-mode binding.",
+          "Local R4 and R6 attestation mode CodeSystems both contain personal, professional, legal, and official."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It does not excuse the wire-format break, but it also does not create a high preservation burden where the migration is narrow and the modeling goal is reasonable.",
+        "compatibilityMechanism": "old-valid/new-invalid: the JSON value changes from a code string such as legal to a CodeableConcept object; R6-to-R4 also needs policy for text-only, multi-coding, or local-code concepts.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would keep the primitive code and add a separate CodeableConcept element. That would preserve old payloads but creates duplicate representations for the same attestation fact and conflict rules when both are populated.",
+        "comparisonToExisting": "Agree: the existing report correctly treated this as a high wire-format/codegen break with only a partial less-breaking alternative."
+      }
     },
     {
       "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.relatesTo:76de2d",
@@ -571,7 +599,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid for `relatesTo.code` and `targetIdentifier`. R6-to-R4 is lossy for non-Composition references and non-reference target choices.",
       "migrationGuidanceMd": "Map old codes into `relatesTo.type` after terminology review. Map targetIdentifier to targetReference.identifier. Reject or extension-preserve R6 uri/Attachment/canonical/markdown targets when converting to R4.",
       "backwardCompatibilityAnalysisMd": "Generalization is useful, but deprecated aliases or a standard mapping would have made the change less breaking.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.relatesTo:76de2d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`relatesTo` was remodeled rather than merely renamed: the classifier moved from a required primitive `code` to required CodeableConcept `type`, and target choices broadened from document-oriented Identifier/Composition reference to general artifact targets. R4 payloads using `code` or `targetIdentifier` need transforms, and reverse conversion of new R6 targets is often lossy. The broader artifact-relationship model is a plausible R6 goal, though it creates meaningful migration work.",
+        "keyEvidence": [
+          "R4 Composition.relatesTo.code: 1..1 code with required document-relationship-type binding.",
+          "R4 Composition.relatesTo.target[x]: Identifier or Reference(Composition).",
+          "R6 Composition.relatesTo.type: 1..1 CodeableConcept with extensible artifact-relationship-type binding.",
+          "R6 Composition.relatesTo.target[x]: uri, Attachment, canonical(Resource), Reference(Resource), or markdown."
+        ],
+        "fmmEffect": "FMM 2/trial-use makes this a mechanism-driven judgment. The break is real, but the maturity level does not by itself make a broad redesign disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `relatesTo.code` and `targetIdentifier` are not R6 element names/shapes; R6-to-R4 loss occurs for non-Composition and non-reference artifact targets.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could retain `targetIdentifier` and deprecated classifier aliases while adding the R6 model. That would preserve more R4 instances, but it would also create duplicate relationship classifiers and target representations requiring precedence and consistency rules.",
+        "comparisonToExisting": "Agree: the existing report's high impact and partial-alternative assessment match the path-level evidence."
+      }
     },
     {
       "findingId": "Composition:TYPE_DOMAIN:Composition.event:9ad30b",
@@ -722,7 +765,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid for `event.code` and for bare Reference objects at `event.detail`. R6-to-R4 may be lossy when a CodeableReference has both concept and reference.",
       "migrationGuidanceMd": "Transform R4 codes to `detail.concept` and R4 references to `detail.reference`. Decide whether code/reference values should be paired or separate.",
       "backwardCompatibilityAnalysisMd": "The R6 model is cleaner, but a dual-path transition would have reduced migration ambiguity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Composition:TYPE_DOMAIN:Composition.event:9ad30b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 represented event concepts and event references in separate arrays; R6 uses CodeableReference entries under `event.detail`. R4 `event.code` disappears and R4 reference objects at `event.detail` must be wrapped. This is a real serializer and mapper break, but CodeableReference is a reasonable way to express code, reference, or both, and it addresses the old model's pairing ambiguity.",
+        "keyEvidence": [
+          "R4 Composition.event.code: 0..* CodeableConcept with example v3-ActCode binding.",
+          "R4 Composition.event.detail: 0..* Reference(Resource).",
+          "R6 Composition.event.detail: 0..* CodeableReference(Resource) with example v3-ActCode binding.",
+          "R6 event.detail prose says events may be included as a code or as a reference; no R6 Composition.event.code element exists."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The standard has room to improve the model, but central clinical-event content still requires explicit transforms.",
+        "compatibilityMechanism": "old-valid/new-invalid: `event.code` is removed and bare Reference objects at `event.detail` are not the R6 CodeableReference shape; R6-to-R4 can be lossy when one CodeableReference carries both concept and reference.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would keep R4 `event.code` and Reference-valued `event.detail` while adding a new CodeableReference field. That preserves old instances but duplicates event facts and forces rules about which representation is authoritative.",
+        "comparisonToExisting": "Agree: high impact is appropriate, and the less-breaking alternative has material duplicate-representation costs."
+      }
     },
     {
       "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.section.mode:5fd07d",
@@ -836,7 +894,22 @@
       "validationAndCompatibilityMd": "Any R4 section with `mode` is old-valid/new-invalid. R6 has no direct local replacement path.",
       "migrationGuidanceMd": "Preserve populated values in a governed extension, section note, or profile-specific rule; do not silently drop `changes` semantics.",
       "backwardCompatibilityAnalysisMd": "A deprecation period or extension would have been less disruptive, especially because R4 text identifies interpretation risk.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.section.mode:5fd07d",
+        "judgment": "Revisit",
+        "narrativeMd": "Removing `section.mode` drops the only base Composition field that states whether section entries are a working list, snapshot, or changes-only list. That is not just a cosmetic field: the R4 prose warns that a change list must not be mistaken for a complete list. Because R6 has no direct replacement on Composition.section, old data either fails validation or loses interpretation semantics.",
+        "keyEvidence": [
+          "R4 Composition.section.mode: 0..1 code with required list-mode binding to working, snapshot, and changes.",
+          "R4 definition explains that the element tells how the entry list was prepared.",
+          "R4 comment warns that a change list must not be misunderstood as a complete list.",
+          "R6 StructureDefinition snapshot has no Composition.section.mode element."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but this path has direct safety/clinical interpretation relevance. The low-to-mid maturity does not remove the concern because the break can change how a medication or problem section is understood.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 sections with mode are not valid R6 sections, and the value has no direct R6 base destination.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained the optional element as deprecated or discouraged while clarifying safe use. Since there is no competing R6 field for the same fact, this would have preserved R4 instances with relatively low duplication cost.",
+        "comparisonToExisting": "Agree: the existing report's high impact and yes less-breaking-alternative judgment are supported by the direct evidence."
+      }
     },
     {
       "findingId": "Composition:TERMINOLOGY_BINDING:Composition.status:a7785f",
@@ -1002,7 +1075,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is not hard-breaking for known R4 codes. R6-to-R4 is high risk because new statuses are invalid R4 and may break exhaustive enum switches.",
       "migrationGuidanceMd": "Update enums and workflow logic. Define explicit down-maps such as corrected/appended to amended and partial to preliminary only if clinically acceptable.",
       "backwardCompatibilityAnalysisMd": "Finer states are useful, but adding required-binding codes is not compatible with closed R4 clients without a ConceptMap.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Composition:TERMINOLOGY_BINDING:Composition.status:a7785f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R6 required status value set keeps the R4 codes and adds more lifecycle states. That is not an R4-to-R6 instance validation break, but it is a real compatibility issue for closed enums, workflow switches, and R6-to-R4 conversion because status is required and modifier. The added granularity appears reasonable and cannot be achieved without teaching consumers the new states.",
+        "keyEvidence": [
+          "R4 Composition.status short/binding list: preliminary, final, amended, entered-in-error.",
+          "R6 Composition.status short/binding list: registered, partial, preliminary, final, amended, corrected, appended, cancelled, entered-in-error, deprecated, unknown.",
+          "Local R6 composition-status CodeSystem includes the added lifecycle states while retaining the R4 status codes."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because status is a required modifier element, the runtime and reverse-conversion burden matters, but the maturity level does not make additive lifecycle granularity suspect by itself.",
+        "compatibilityMechanism": "runtime/API/codegen: closed status enums and exhaustive workflow logic must handle new required-binding codes; R6-to-R4 loss occurs for statuses with no R4 code.",
+        "lessBreakingAlternativeAssessment": "Not applicable for preserving R4-valid instances, because R4 status codes remain valid in R6. ConceptMaps or down-conversion rules are useful mitigations, but not less-breaking base R6 designs for this additive code-set change.",
+        "comparisonToExisting": "Partially agree: the existing report correctly emphasized high reverse/runtime risk and no base less-breaking alternative, but the concern is not an old-valid/new-invalid R4-to-R6 break."
+      }
     },
     {
       "findingId": "Composition:CARDINALITY:Composition.cardinality-relaxations:748e3e",
@@ -1149,7 +1236,21 @@
       "validationAndCompatibilityMd": "No R4 instance becomes invalid because a min decreased or max increased. R6 instances without author/title or with repeated identifier/subject do not validate as R4.",
       "migrationGuidanceMd": "Treat author/title as optional and identifier/subject as arrays in R6 models. For R6-to-R4, require policy for synthesizing, choosing, rejecting, or extension-preserving values.",
       "backwardCompatibilityAnalysisMd": "Profiles could have relaxed these constraints less disruptively, but base relaxation may reflect broader intended use.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Composition:CARDINALITY:Composition.cardinality-relaxations:748e3e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The min decreases for author and title are forward-compatible for existing R4 instances, but the max increases for `identifier` and `subject` are not purely reverse-only in FHIR JSON. R4 serializes those max-1 elements as objects; R6 makes them repeating elements, which are arrays. Populated R4 identifiers or subjects therefore need a wire-shape transform, while new R6 data can omit author/title or carry multiple identifiers/subjects that R4 cannot represent directly.",
+        "keyEvidence": [
+          "R4 cardinalities: author 1..*, title 1..1, identifier 0..1, subject 0..1.",
+          "R6 cardinalities: author 0..*, title 0..1, identifier 0..*, subject 0..*.",
+          "FHIR JSON serialization uses an object for max-1 elements and arrays for repeating elements, so identifier and subject change JSON shape when populated."
+        ],
+        "fmmEffect": "FMM 2/trial-use keeps the stability burden neutral. The subject/identifier shape change is still significant because those paths are common Composition metadata, but the R6 goal of allowing multiple values is plausible.",
+        "compatibilityMechanism": "old-valid/new-invalid: populated R4 `identifier` and `subject` are single JSON objects, while R6 expects arrays for repeatable elements; R6-to-R4 also needs policy for missing author/title or multiple identifier/subject values.",
+        "lessBreakingAlternativeAssessment": "Only partial. Preserving singleton JSON while supporting multiple values would require separate sibling fields, aliases, or nonstandard parser leniency, all of which add lasting complexity or duplicate semantics. Keeping the R4 cardinalities would avoid the break but would fail the R6 broadening goal.",
+        "comparisonToExisting": "Disagree: the existing report treated this as no hard R4-to-R6 break, but identifier and subject becoming repeatable changes the JSON wire shape. I agree that a clean less-breaking base alternative is not available."
+      }
     },
     {
       "findingId": "Composition:REFERENCE_TARGET:Composition.reference-target-expansions:735ac2",
@@ -1265,7 +1366,21 @@
       "validationAndCompatibilityMd": "R6 references to CareTeam, Group, or Patient custodians do not validate in R4 for these fields.",
       "migrationGuidanceMd": "Update validators and authorization logic. Reverse conversion needs proxy mapping, extension preservation, or rejection.",
       "backwardCompatibilityAnalysisMd": "Widening targetProfiles is standard, but extensions would have been more R4-compatible.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Composition:REFERENCE_TARGET:Composition.reference-target-expansions:735ac2",
+        "judgment": "No problem",
+        "narrativeMd": "These are target-domain widenings. Existing R4 references remain within the R6 target sets, so R4 instances do not become invalid. Implementers need awareness for reverse conversion and target-type switches, but the base R6 change is additive and does not warrant renewed design attention.",
+        "keyEvidence": [
+          "R4 author and section.author targets exclude CareTeam; R6 includes CareTeam while retaining the R4 targets.",
+          "R4 attester.party excludes Group; R6 adds Group while retaining R4 targets.",
+          "R4 custodian is Reference(Organization); R6 allows Organization, Patient, or Group."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because the change is additive for R4-to-R6 validation, maturity does not raise it to a material compatibility concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 target types may not fit R4, but R4 target types remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "Not applicable. The base change is already backward-compatible for existing R4 instances; R4 extensions or conversion policy are reverse-compatibility mitigations, not less-breaking R6 base designs.",
+        "comparisonToExisting": "Partially agree: the existing report correctly identified reverse-conversion and runtime awareness, but I would not treat an additive target widening as a medium-impact design problem."
+      }
     },
     {
       "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.optional-additions:c4e3ee",
@@ -1407,7 +1522,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe when these are absent. R6-to-R4 requires extensions or data loss for populated new elements.",
       "migrationGuidanceMd": "Define R4 extension mappings, especially for consent, basedOn, participant, and notes. Test strict R4 clients against R6 payloads.",
       "backwardCompatibilityAnalysisMd": "Optional base elements are a reasonable evolution path; extensions would be more R4-compatible but less native to R6.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.optional-additions:c4e3ee",
+        "judgment": "No problem",
+        "narrativeMd": "The added R6 fields are optional and absent from R4 payloads, so they do not create an R4-to-R6 validation or codegen break for existing instances. Populated R6-only values need an R4 extension or loss policy when converting backward, but that is normal for optional additive evolution.",
+        "keyEvidence": [
+          "R6 adds url, version, useContext, consent, basedOn, participant, name, note, and section.note with min 0.",
+          "R4 has no base elements at those paths.",
+          "R6 participant has required children only when the optional participant backbone is present."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Since the change is optional and additive, maturity does not create a preservation concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated R6-only optional elements have no R4 base slot, but absent fields preserve all R4 instances.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Optional additions are already the less-breaking base pattern for expanding the model; R4 backport extensions are mitigation rather than a different R6 design.",
+        "comparisonToExisting": "Partially agree: the existing report's reverse-conversion warning is useful, but I would classify this as no problem for R4-to-R6 compatibility rather than medium impact."
+      }
     },
     {
       "findingId": "Composition:TERMINOLOGY_BINDING:Composition.category:bc2556",
@@ -1521,7 +1650,21 @@
       "validationAndCompatibilityMd": "Base validation should not fail because the binding is example strength. The risk is semantic/profile/tooling drift.",
       "migrationGuidanceMd": "Do not rewrite category codings solely due to this base example binding. Compare profile bindings and expansions before changing picklists.",
       "backwardCompatibilityAnalysisMd": "This is low-disruption but could have preserved the old example binding for continuity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Composition:TERMINOLOGY_BINDING:Composition.category:bc2556",
+        "judgment": "No problem",
+        "narrativeMd": "`Composition.category` keeps the same cardinality, type, and example binding strength. Changing the example ValueSet and removing the XDS/MHD comment may affect documentation, picklists, or profile authors, but conformant base instances are not invalidated by an example-binding change.",
+        "keyEvidence": [
+          "R4 Composition.category: 0..* CodeableConcept with example binding to document-classcodes.",
+          "R6 Composition.category: 0..* CodeableConcept with example binding to referenced-item-category.",
+          "R4 comment references XDS/MHD metadata; R6 comment is empty."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The actual mechanism is example-level terminology guidance, so maturity does not convert it into a material break.",
+        "compatibilityMechanism": "metadata/tooling: terminology guidance and generated picklists may change, but base validation should still accept existing category codings.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Keeping the old example binding might reduce tooling churn, but no R4-valid instance shape or required code membership needs preservation.",
+        "comparisonToExisting": "Agree: the existing report's low-impact, not-applicable alternative assessment is consistent with the evidence."
+      }
     },
     {
       "findingId": "Composition:VALUE_CONSTRAINT:Composition.cmp-3:785ac2",
@@ -1616,7 +1759,21 @@
       "validationAndCompatibilityMd": "This is not hard old-valid/new-invalid because severity is warning, but warning-as-error validation pipelines can be disrupted.",
       "migrationGuidanceMd": "Check validator policy. Add text/sections to attested Compositions or document why warnings are acceptable.",
       "backwardCompatibilityAnalysisMd": "A warning is already a less-breaking alternative to an error invariant.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Composition:VALUE_CONSTRAINT:Composition.cmp-3:785ac2",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds a computable warning that an attested Composition should have text or section content. This can affect local pipelines that fail on warnings, but base R6 validation does not make old instances invalid. A warning is already the compatibility-preserving form of this conformance expectation.",
+        "keyEvidence": [
+          "R4 Composition.section constraints include cmp-1 and cmp-2 but no cmp-3.",
+          "R6 Composition.section adds cmp-3 with severity warning.",
+          "R6 cmp-3 expression: %resource.attester.exists() implies(text.exists() or section.exists())."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The warning-level severity keeps the change low-breaking regardless of maturity.",
+        "compatibilityMechanism": "warning-level: warning-as-error validators may need policy changes, but base instances remain valid.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Prose-only guidance would be softer, but warning severity is already the less-breaking alternative to an error invariant or cardinality increase.",
+        "comparisonToExisting": "Agree: the existing report correctly classified this as low impact with no less-breaking base alternative needed."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1783,5 +1940,19 @@
       "required binding code additions",
       "optional canonical metadata additions"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Composition.fresh-review.json",
+    "findingDecisionCount": 11,
+    "matchedFindingDecisionCount": 11,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 5,
+      "No problem": 4
+    }
   }
 }

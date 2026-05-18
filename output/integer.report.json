@@ -329,7 +329,22 @@
       "migrationGuidanceMd": "Add a primitive integer normalization step in cross-version pipelines: convert signed zero to `0`, and remove leading `+` signs when producing R4. Test validators and generated schemas with `-0`, `0`, `+1`, `1`, min/max boundary values, and out-of-range values to ensure regex and numeric range checks are applied in the intended order.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by accepting both old and new lexical spellings while documenting canonical output. That alternative would keep all R4 lexical values valid but would also keep signed zero in the base grammar. Given the low expected prevalence and easy lossless normalization, the narrower R6 zero spelling is probably justifiable.",
       "reviewerNotesMd": "If an official ballot note says the regex was only intended as a canonicalization hint rather than a validation rule, this finding's hard-breaking classification should be revisited. Based on the StructureDefinition regex extension and OpenAPI pattern, strict validation impact is plausible.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "integer:VALUE_CONSTRAINT:integer.value:b7d2c1",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 and R6 keep `integer.value` at the same path with the same cardinality, FHIRPath integer type, and 32-bit numeric bounds, but the regex narrows one R4-valid lexical form: `-0` no longer matches in R6. A concrete failure is a strict XML or raw-JSON validator accepting an R4 primitive integer value of `-0` and then rejecting the same preserved lexeme as R6, even though the numeric meaning is just zero. The practical blast radius is small because signed zero is uncommon and can be normalized losslessly, but this is a normative primitive datatype and the base-spec reason for rejecting old signed-zero input is not evident from the local evidence. Because R6 could plausibly keep accepting that historical spelling while defining canonical serializers to emit `0`, the break is minor but still worth standards/design reconsideration.",
+        "keyEvidence": [
+          "R4 StructureDefinition-integer.json: `integer.value` regex is `-?([0]|([1-9][0-9]*))`, which matches `-0`.",
+          "R6 StructureDefinition-integer.json: `integer.value` regex is `[0]|[-+]?[1-9][0-9]*`, which does not match `-0` and newly permits signed non-zero positives such as `+1`.",
+          "Both versions keep `integer.value` as 0..1 `http://hl7.org/fhirpath/System.Integer` with min/max -2147483648..2147483647.",
+          "R4 StructureDefinition and local maturity map identify `integer` as normative with normative version 4.0.0."
+        ],
+        "fmmEffect": "Normative status raises the compatibility burden for even small old-valid/new-invalid lexical breaks. The rare, semantics-preserving nature of `-0` keeps the impact low, but it does not by itself justify changing the accepted lexical space of a normative primitive.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 lexical integer `-0` can be rejected by R6 validators or schemas that enforce the regex before canonicalizing numeric values; there is also a low-risk R6-to-R4 lexical issue for `+1`, which normalizes losslessly to `1`.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have used a wider validation regex that accepts the R4 `-0` spelling plus the new explicit-plus non-zero forms, while separately saying canonical output for zero is `0`. That preserves old instances and still supports canonical serialization, with the tradeoff that validators must continue tolerating a non-canonical signed-zero spelling indefinitely.",
+        "comparisonToExisting": "agree with the existing low-impact characterization and the existing Yes less-breaking-alternative judgment. The independent review confirms the break is narrow and easy to normalize, but normative status plus a plausible low-cost base-design alternative make it worth revisiting rather than dismissing."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -480,5 +495,17 @@
       "Primitive datatype regex changes involving signed zero and explicit plus signs.",
       "R6 primitive datatype baseDefinition changes through PrimitiveType should be centralized in base-artifact reports."
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/integer.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1
+    }
   }
 }

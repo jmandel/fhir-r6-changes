@@ -5,6 +5,12 @@ Behavior report type: infrastructure
 
 Read `/home/jmandel/hobby/r6breaks/agent-inputs/behavior-output-contracts.md` completely before writing the report. The TypeScript interface `FhirSearchBehaviorReport` is the required output schema. Do not use the data-model report schema from `prompt.md` for this task.
 
+Also read `/home/jmandel/hobby/r6breaks/prompt.md` for the calibration rules on judging whether a change was justified and whether the same goal could have been achieved with a less-breaking base R6 design. Apply those concepts in this behavior report using the contract field `freshReview` plus `impact.impactRationaleMd`, `runtimeMechanismMd`, `backwardCompatibilityAnalysisMd`, and `migrationGuidanceMd`; do not invent additional structured fields.
+
+Read `/home/jmandel/hobby/r6breaks/docs/behavior-batch-plan.md` for scope boundaries and duplication rules.
+
+Read `/home/jmandel/hobby/r6breaks/docs/fresh-review-judgment-framework.md` for the FMM-guided fresh-review rubric. Treat FMM and standards status as stability pressure, not as impact by themselves. For this R4→R6 analysis, use the R4 artifact's FMM and standards status as the stability baseline. Do not use R6 FMM/status to increase the burden for R4 compatibility.
+
 Use these local primary inputs:
 
 - R4 core package directory: `/home/jmandel/hobby/r6breaks/fhir-definitions/r4-4.0.1/package`
@@ -15,6 +21,13 @@ Use these local primary inputs:
 - R6 package index: `/home/jmandel/hobby/r6breaks/fhir-definitions/r6-6.0.0-ballot4/package/.index.json`
 - R4/R6 package metadata: each package has `package.json` in the package directory.
 - R4 base artifact list for the batch run: `/home/jmandel/hobby/r6breaks/agent-inputs/r4-base-resources-and-datatypes.tsv`
+- Local R4 rendered spec pages: `/home/jmandel/hobby/r6breaks/fhir-specs/r4-4.0.1/html`
+- Local R6 rendered spec pages: `/home/jmandel/hobby/r6breaks/fhir-specs/r6-6.0.0-ballot4/html`
+- Page download status/provenance: `/home/jmandel/hobby/r6breaks/batch/behavior/source-status.tsv`
+- Behavior page seed manifest: `/home/jmandel/hobby/r6breaks/agent-inputs/behavior-page-manifest.tsv`
+- FMM/standards-status context: `/home/jmandel/hobby/r6breaks/batch/behavior/fmm-context.json`
+
+Prefer local rendered HTML pages when present. Use the published URLs below as provenance and as a fallback only if the local page cache is missing a page.
 
 Review these published HL7 source pages in the appropriate FHIR versions:
 
@@ -75,10 +88,12 @@ Your task:
    - R4 resources listed in `r4-base-resources-and-datatypes.tsv`;
    - parameters whose `base[]` changes because an R4 resource was removed, renamed, split, or replaced in R6;
    - changes that affect server indexes, generated client query builders, conformance tests, query result sets, or reverse include behavior.
-6. Distinguish direct search behavior changes from data-model changes. If a search parameter changed only because an underlying element changed, report the search impact here and put the resource/datatype dependency in `followUpDependencies` or `reducerHints`.
-7. For each material finding, explain the concrete runtime mechanism: old query rejected, old query accepted but returning different results, R6 query not expressible against an R4 server, changed chaining/comparator/modifier behavior, changed index target, or changed advertised capability.
-8. Include `checkedNoMaterialChange` entries for major areas you checked with no material change.
-9. Include limitations where official diffs, narrative search documentation, terminology expansions, or implementation-specific CapabilityStatements would improve confidence.
+6. Distinguish direct search behavior changes from data-model changes. If a search parameter changed only because an underlying element changed, report the search impact here and put the resource/datatype dependency in `followUpDependencies` or `reducerHints`; do not duplicate the underlying StructureDefinition finding.
+7. For each material finding, explain the concrete R4→R6 runtime mechanism: an R4 query is rejected, an R4 query is accepted but returns materially different results, chaining/comparator/modifier behavior changed for an R4 parameter, an R4 index target changed, or an R4 advertised capability changed.
+8. For each material finding, assess whether the inferred R6 goal is reasonable and whether a less-breaking base R6 search design was available. Explain concrete alternatives such as preserving an old search code as an alias, accepting both old and new expressions during a transition, broadening an expression rather than replacing a parameter, or documenting a preferred replacement while keeping the old query stable.
+9. Populate `freshReview` for every finding using the rubric in `docs/fresh-review-judgment-framework.md`: reconstruct the concrete R4→R6 behavior change, give one real-world scenario, identify the R4→R6 compatibility mechanism, apply R4 FMM/standards-status as stability pressure, stress-test less-breaking base R6 designs, and choose `Revisit`, `Unclear`, `Breaking but probably OK`, or `No problem`.
+10. Include `checkedNoMaterialChange` entries for major areas you checked with no material change.
+11. Include limitations where official diffs, narrative search documentation, terminology expansions, or implementation-specific CapabilityStatements would improve confidence.
 
 Output requirements:
 

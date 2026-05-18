@@ -14,9 +14,16 @@ Use these local primary inputs:
 - R4 package index: `/home/jmandel/hobby/r6breaks/fhir-definitions/r4-4.0.1/package/.index.json`
 - R6 package index: `/home/jmandel/hobby/r6breaks/fhir-definitions/r6-6.0.0-ballot4/package/.index.json`
 - R4/R6 package metadata: each package has `package.json` in the package directory.
+- R4 FMM/standards-status map: `/home/jmandel/hobby/r6breaks/viewer/r4-maturity.json`
 - R4 base artifact list for the future batch run: `/home/jmandel/hobby/r6breaks/agent-inputs/r4-base-resources-and-datatypes.tsv`
 
 You may inspect any related local R4/R6 StructureDefinitions, ValueSets, CodeSystems, ConceptMaps, examples, package indexes, and spec artifacts inside those two package directories when needed. In particular, check dependency datatypes referenced by `Observation` when they affect breaking-change interpretation, but keep this report scoped to `Observation`.
+
+FMM/standards-status rule:
+
+- Use the R4 artifact's FMM and standards status as the stability baseline.
+- Do not use R6 FMM or R6 standards status to increase the burden for R4 compatibility.
+- FMM/status is not an impact score by itself; it only changes the expected strength of the justification for a concrete R4→R6 compatibility break.
 
 Inherited/base-artifact scope rule:
 
@@ -29,7 +36,7 @@ Inherited/base-artifact scope rule:
 Your task:
 
 1. Compare R4 `Observation` to R6 `Observation` in depth.
-2. Identify hard instance-breaking changes, likely breaking changes, runtime/codegen risks, R6-to-R4 representability risks, semantic/conformance risks, and notable non-breaking changes.
+2. Identify hard instance-breaking changes, likely breaking changes, runtime/codegen risks, semantic/conformance risks, and notable non-breaking changes. Keep the analysis scoped to R4→R6 compatibility: reverse conversion, downgrade, or round-trip-only concerns can be migration notes but should not become material findings unless there is also a concrete R4→R6 break.
 3. Distinguish local `Observation` changes from inherited/base-resource changes and exclude inherited-only changes from `findings[]`.
 4. Consider:
    - element additions/removals/renames/moves;

@@ -260,7 +260,23 @@
       "migrationGuidanceMd": "Before R6 validation, scan all elements typed as `time` for a decimal fraction longer than 9 digits. Decide whether to reject those records, round them, truncate them, or preserve the original literal in an extension or audit trail. A transform from more than 9 digits to 9 digits is not lossless, so test boundary cases with no fraction, 1 digit, 9 digits, 10 digits, and leap-second values such as `23:59:60.1234567890`.",
       "backwardCompatibilityAnalysisMd": "The same interoperability goal could have been pursued less disruptively by keeping the R4 regex and adding a warning invariant, implementation guidance, or an R6 profile that limits precision. That alternative would keep all R4-valid literals accepted by the base datatype, but it would not give base R6 implementations a single bounded precision rule.",
       "reviewerNotesMd": "The finding is based on the computable regex extension. An official narrative page or ballot change note could confirm whether the intended precision limit is specifically nanoseconds or another implementation-driven cap.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "time:VALUE_CONSTRAINT:time.value:fractional-precision-9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 narrows the lexical value space for `time.value`: an R4 time such as `12:34:56.1234567890` has a valid fractional second under the R4 regex but is invalid under the R6 regex because R6 caps the fraction at 9 digits. That is a real old-valid/new-invalid break for strict validators and primitive parsers. The affected slice is narrow, though: ordinary second, millisecond, microsecond, and nanosecond times remain valid, and the same 9-digit cap appears to be part of a broader R6 temporal-primitive consistency change. Because the likely interoperability goal is an enforceable bounded precision and the break only affects sub-nanosecond or arbitrary-precision literals, the change is breaking but appears proportionate.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-time.json` `time.value` regex is `([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\\.[0-9]+)?`, allowing any positive number of fractional-second digits.",
+          "R6 `StructureDefinition-time.json` `time.value` regex is `([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)(\\.[0-9]{1,9})?`, allowing only 1 through 9 fractional-second digits.",
+          "The regex difference is present in both snapshot and differential for `time.value`, so this is a local value constraint change rather than inherited noise.",
+          "R4 and R6 `StructureDefinition-time.json` both carry `structuredefinition-standards-status` = `normative` and `structuredefinition-normative-version` = `4.0.0`.",
+          "Local comparison of R6 `time`, `dateTime`, and `instant` definitions shows the same `{1,9}` fractional-second cap across temporal primitive regexes."
+        ],
+        "fmmEffect": "The supplied R4 maturity context and the StructureDefinition metadata indicate normative content, so the hard validation break carries a high stability burden. That pushed the review away from dismissing the change as minor, but the break applies only to values with more than 9 fractional-second digits and appears tied to a consistent primitive precision rule, so normative status alone did not make it a Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `time` values with more than 9 fractional-second digits can newly fail R6 validation or parsing. Reverse R6-to-R4 representability is not a concern for this specific constraint because the R6 value space is a subset of the R4 regex.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained the R4 unbounded regex for one release and added warning-level guidance discouraging precision beyond 9 digits. That would preserve all R4-valid literals, but it would not deliver an enforceable base R6 precision cap and would keep arbitrary-length fractional seconds in validators, parsers, storage constraints, and comparison code. Profile-only rules, migration transforms, or preserving the original literal in an extension are mitigations rather than less-breaking base R6 designs. Overall, the alternative is plausible but has material tradeoffs and is not clearly preferable.",
+        "comparisonToExisting": "agree: the existing report correctly identifies a hard R4-to-R6 instance break, likely rare prevalence, and only a partial less-breaking alternative. The fresh review reaches the same practical conclusion while giving normative status explicit weight."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -420,5 +436,17 @@
       "Other date/time-related primitives may have similar fractional-precision caps.",
       "Primitive datatypes with R4 `Element` and R6 `PrimitiveType` baseDefinition should be deduplicated to the base artifact analysis."
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/time.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1
+    }
   }
 }

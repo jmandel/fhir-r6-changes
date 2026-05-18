@@ -307,7 +307,22 @@
       "migrationGuidanceMd": "Inventory all persisted and exchanged R4 `ImmunizationRecommendation` resources. Decide whether to retain them as R4 payloads, map them to an implementation-guide-defined R6 profile, or preserve them in extensions/attachments with provenance. Test parser dispatch, REST routing, Bundle entries, references from other resources, and search/export jobs that assume the resource type exists.",
       "backwardCompatibilityAnalysisMd": "From a compatibility standpoint, retaining the resource as deprecated would have avoided the hard break while allowing R6 guidance to prefer newer patterns. Removal may be standards-cleaner if the resource was withdrawn, but it forces every existing implementation to handle an identity-level migration.",
       "reviewerNotesMd": "The absence finding is high confidence. The appropriate replacement, if any, needs work-group or IG confirmation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImmunizationRecommendation:ARTIFACT_IDENTITY:root:5d1b91",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 defines `ImmunizationRecommendation` as a concrete resource for patient-specific vaccine forecasting, while the checked R6 package has no same resource definition, type code, or index entry. That makes existing R4 payloads with this resource type fail base R6 validation and removes the normal generated class, REST type, parser dispatch, and search surface. Although the R4 artifact is only FMM 1/trial-use, the domain is clinical/public-health forecasting and a current HL7 ImmDS guide still profiles and returns ImmunizationRecommendation forecast results, so this is not merely speculative low-maturity churn.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ImmunizationRecommendation.json: id/type ImmunizationRecommendation, kind resource, abstract false, FMM 1 and trial-use.",
+          "R6 package: StructureDefinition-ImmunizationRecommendation.json is absent; .index.json has no ImmunizationRecommendation entry.",
+          "R6 CodeSystem-fhir-types contains Immunization but not ImmunizationRecommendation.",
+          "HL7 ImmDS IG source profiles ImmDSImmunizationRecommendation with Parent ImmunizationRecommendation and defines an ImmDS forecast operation output parameter of type ImmunizationRecommendation: https://github.com/HL7/ImmunizationFHIRDS/blob/ee63a21fc92412ed435ce49508d55fe17d4fa39c/input/fsh/ImmDSPatient.fsh"
+        ],
+        "fmmEffect": "FMM 1/trial-use substantially lowers the baseline stability expectation, so the mere fact of removal would not be enough by itself. The top-level resource identity break, clinical/public-health role, and ImmDS implementation-guide evidence raise the concern back to Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance whose resourceType is ImmunizationRecommendation has no R6 core StructureDefinition/type to validate against; runtime/API/codegen surfaces also disappear.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design exists: keep ImmunizationRecommendation as a deprecated or legacy trial-use resource while documenting any preferred R6 workflow pattern. This would preserve most R4 wire instances and generated APIs, with real tradeoffs of continued maintenance, possible dual representations, and slower migration away from a model the work group may no longer want.",
+        "comparisonToExisting": "agree with the existing Critical impact and Yes less-breaking-alternative judgment, with the caveat that low FMM tempers prevalence assumptions but does not remove the public-health interoperability concern."
+      }
     },
     {
       "findingId": "ImmunizationRecommendation:ELEMENT_PRESENCE_OR_IDENTITY:ImmunizationRecommendation.recommendation:7c9a20",
@@ -502,7 +517,23 @@
       "migrationGuidanceMd": "Do not perform a mechanical element rename. Create a migration decision table for each local path: preserve root identifiers and patient/date metadata, map vaccine/disease context, decide how to encode forecast status and date criteria, and preserve supporting references. Include tests for due, overdue, immune, contraindicated, multiple recommendations, target-disease-only recommendations, and recommendations supported by ImmunizationEvaluation references.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible model could have kept the R4 resource and added guidance or optional links to newer workflow resources. If the intent was to consolidate workflow patterns, a computable R6 profile and cross-version extension set would have reduced ambiguity while still allowing the old paths to validate.",
       "reviewerNotesMd": "Because the possible replacement is not computably identified, review by immunization workflow/domain experts is needed before choosing a production mapping.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImmunizationRecommendation:ELEMENT_PRESENCE_OR_IDENTITY:ImmunizationRecommendation.recommendation:7c9a20",
+        "judgment": "Revisit",
+        "narrativeMd": "The removed `recommendation` backbone is the central forecast payload, not an incidental child element. In R4 it is mandatory and repeatable, requires either vaccineCode or targetDisease, and contains mandatory modifier `forecastStatus`, forecast reasons, date criteria, dose/series details, and supporting-evidence references. R6 Immunization has adjacent concepts such as `basedOn` and `protocolApplied`, but those describe an immunization event or references to plans/orders rather than a standalone point-in-time forecast snapshot. Existing forecast integrations would need a policy-bearing transform, not a mechanical path rename.",
+        "keyEvidence": [
+          "R4 ImmunizationRecommendation.recommendation: min 1, max *, invariant imr-1 requires vaccineCode or targetDisease.",
+          "R4 ImmunizationRecommendation.recommendation.forecastStatus: min 1, max 1, isModifier true.",
+          "R4 recommendation.dateCriterion has required code/value children for dates such as due/overdue/earliest/latest administration.",
+          "R6 Immunization.basedOn targets CarePlan, MedicationRequest, and ServiceRequest; R6 Immunization.protocolApplied is scoped to the protocol followed for an administered dose.",
+          "HL7 ImmDS example populates multiple recommendation entries with forecastStatus and due/overdue/earliest/latest dateCriterion values: https://github.com/HL7/ImmunizationFHIRDS/blob/ee63a21fc92412ed435ce49508d55fe17d4fa39c/input/fsh/examples.fsh"
+        ],
+        "fmmEffect": "FMM 1 softens the stability claim, but this path is mandatory, central to the resource's actual forecasting function, and used by public-health decision-support examples. Low maturity does not make the direct loss of forecast status and timing semantics harmless.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing the required recommendation backbone have no R6 base path; runtime/API/codegen accessors and FHIRPath logic for forecastStatus and dateCriterion also disappear.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design would retain the R4 recommendation backbone inside a deprecated ImmunizationRecommendation resource, possibly with new optional links to R6 workflow resources. It would preserve existing data, but it would also leave overlapping forecast representations and require reconciliation rules if R6 wanted forecasts expressed as requests, plans, or guidance responses.",
+        "comparisonToExisting": "agree with the existing High impact assessment and mostly agree that the less-breaking alternative is Partial rather than cleanly equivalent, because retaining this backbone is useful but perpetuates a second forecast model."
+      }
     },
     {
       "findingId": "ImmunizationRecommendation:TERMINOLOGY_BINDING:ImmunizationRecommendation.recommendation.forecastStatus:42d8ee",
@@ -678,7 +709,23 @@
       "migrationGuidanceMd": "Preserve original codings during migration. If mapping to R6 event/request statuses, create an explicit local ConceptMap and review each status (`due`, `overdue`, `immune`, `contraindicated`, `complete`) for clinical equivalence. Do not assume R6 `Immunization.status` or event-oriented target-disease codes are equivalent to forecast status.",
       "backwardCompatibilityAnalysisMd": "The less-breaking approach would be to keep the terminology artifacts or publish mappings even if the resource was removed. That would allow systems to validate and translate historical forecast data without carrying the full resource in active R6 workflows.",
       "reviewerNotesMd": "A terminology server backed by external terminology.hl7.org may still expose some artifacts not packaged here; this report only verifies the local core package contents.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImmunizationRecommendation:TERMINOLOGY_BINDING:ImmunizationRecommendation.recommendation.forecastStatus:42d8ee",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The terminology-specific change is real but weaker than the resource and backbone removals. R4 bound `forecastStatus` only at example strength to recommendation-specific status terminology, so the binding itself was not a base conformance gate for arbitrary CodeableConcept values. Removing the resource-specific ValueSet/CodeSystem files from the R6 core package can still break enum generation, terminology-service caches, or stricter profile pipelines, but if the base resource is no longer present it is internally consistent for R6 core not to carry all of that support terminology.",
+        "keyEvidence": [
+          "R4 forecastStatus binding strength is example, valueSet http://hl7.org/fhir/ValueSet/immunization-recommendation-status.",
+          "R4 CodeSystem-immunization-recommendation-status defines due, overdue, immune, contraindicated, and complete.",
+          "R6 package lacks ValueSet-immunization-recommendation-status/reason/date-criterion/target-disease and CodeSystem-immunization-recommendation-status files.",
+          "R6 package retains related event-oriented immunization terminology such as ValueSet-immunization-target-disease and ValueSet-immunization-status.",
+          "HL7 ImmDS defines profile-specific ForecastStatus terminology, showing implementers may already specialize these status codes outside the R4 core example binding."
+        ],
+        "fmmEffect": "FMM 1 plus example binding strength significantly softens this finding. There is migration and tooling friction, but not a strong base instance-validity promise for the exact R4 status ValueSet.",
+        "compatibilityMechanism": "runtime/API/codegen: generated enums, terminology caches, or stricter profile validators that expect the R4 recommendation status artifacts may fail; the binding alone is not an old-valid/new-invalid base instance break.",
+        "lessBreakingAlternativeAssessment": "A less disruptive support choice would be to keep the recommendation-specific CodeSystem and ValueSets in R6 as retired/deprecated artifacts, perhaps with ConceptMaps. That would reduce tooling friction, but it would not make `forecastStatus` valid without a surviving base element and would extend maintenance for terminology tied to a removed resource.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative assessment; disagree with any implication that the terminology binding itself is a hard base validation break, because the R4 binding was example-strength."
+      }
     },
     {
       "findingId": "ImmunizationRecommendation:CONVERSION_OR_MAPPING:root:a4f3c1",
@@ -821,7 +868,23 @@
       "migrationGuidanceMd": "Create an explicit migration profile before transforming data. For each R4 recommendation, decide whether it represents a future order/request, decision-support guidance, a patient reminder, or historical forecast evidence. Preserve original identifiers, forecast generation date, status, date criteria, contraindications, and supporting references, using extensions or retained source payloads where no target element exists. Validate with clinical examples rather than only schema tests.",
       "backwardCompatibilityAnalysisMd": "A computable map or replacement profile would have been a partial backward-compatible alternative even if the resource was removed. Without it, independent implementers are likely to create incompatible mappings.",
       "reviewerNotesMd": "The R6 candidate-resource list is not exhaustive for implementation guides. It is enough to conclude that the core package lacks a direct replacement, not enough to prescribe a universal migration target.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImmunizationRecommendation:CONVERSION_OR_MAPPING:root:a4f3c1",
+        "judgment": "Revisit",
+        "narrativeMd": "No computable R6 successor or local cross-version map was found for the full R4 forecast resource. The plausible R6 destinations split the meaning across event, request, plan, orchestration, or guidance concepts, and none obviously preserves the same point-in-time forecast status, due/overdue date criteria, contraindicated vaccine options, and supporting evidence in one base representation. That makes migration expert- and policy-dependent, with clinically relevant round-trip loss risk.",
+        "keyEvidence": [
+          "Local R6 package search found no ImmunizationRecommendation StructureDefinition and no exact replacement named Recommendation.",
+          "Local R6 ConceptMap/StructureMap search found no ImmunizationRecommendation conversion artifact.",
+          "R6 Immunization.basedOn can reference CarePlan, MedicationRequest, and ServiceRequest, while protocolApplied describes protocol details for an immunization event.",
+          "R4 resource definition is a point-in-time set of recommendations/forecasting with optional supporting justification.",
+          "HL7 ImmDS forecast operation defines ImmunizationRecommendation as the produced forecast, supporting implementation relevance for a computable migration path."
+        ],
+        "fmmEffect": "Low FMM reduces the expectation that R6 must preserve every R4 migration path, but public-health forecasting and the absence of a clear replacement map make lossy, inconsistent migrations credible enough to merit renewed attention.",
+        "compatibilityMechanism": "R6-to-R4 loss: candidate R6 workflow/event resources do not obviously round-trip to the R4 forecast snapshot; runtime/API migration code must choose how to encode forecastStatus, date criteria, contraindications, and evidence.",
+        "lessBreakingAlternativeAssessment": "For this conversion-only finding, a ConceptMap or IG would be valuable migration support but is not itself a less-breaking base R6 design because it would not make R4 instances valid as base R6. The base less-breaking option is the resource-retention path covered by the artifact-identity finding; a replacement base profile/resource with explicit mappings would reduce loss but still add maintenance and dual-model costs.",
+        "comparisonToExisting": "partially agree with the existing High conversion-risk assessment and Not applicable base-alternative framing; I would still mark this Revisit because the missing map/replacement creates clinically meaningful migration variance, not just documentation polish."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -982,5 +1045,18 @@
       "R4 resource-specific search parameters whose base resource was removed",
       "Recommendation/forecast terminology artifacts absent from R6 core"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ImmunizationRecommendation.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 1
+    }
   }
 }

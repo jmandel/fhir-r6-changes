@@ -288,7 +288,22 @@
       "validationAndCompatibilityMd": "An R4-valid `ResearchElementDefinition` instance becomes R6-invalid at the resource-type level. The failure happens before element-level validation: a strict R6 validator or parser cannot select a base StructureDefinition for the resource. There is no same-identity R6 instance to round-trip back to R4, so the direct R6-to-R4 question is not applicable for this root finding.",
       "migrationGuidanceMd": "Inventory stored instances, references, profiles, search parameters, generated code, and CapabilityStatements that use `ResearchElementDefinition`. Select an explicit replacement pattern, likely involving R6 `EvidenceVariable` and sometimes `Evidence`, `Group`, or extensions. Test at least minimal R4 instances, instances with all characteristic timing fields, and instances referenced from `ResearchDefinition` or knowledge artifacts.",
       "backwardCompatibilityAnalysisMd": "Removal may be reasonable for a draft trial-use artifact, but it is not backward compatible. A deprecated resource shell, formal ConceptMap, or cross-version extension package would have reduced validation and code-generation disruption while still allowing the evidence domain to converge on R6 `EvidenceVariable`.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ResearchElementDefinition:ARTIFACT_IDENTITY:root:75e1c9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `ResearchElementDefinition` instances cannot validate or route as R6 resources because the same-name StructureDefinition is absent and R6 marks the name as an old FHIR type. That is a real resource-identity and generated-code break. The change still looks proportionate because the R4 artifact was FMM 0/trial-use, the R4 narrative pages themselves show very immature scope content, and keeping an obsolete resource in base R6 would force ongoing server, validator, search, and SDK support for a duplicate evidence-domain representation.",
+        "keyEvidence": [
+          "R4 package contains `StructureDefinition-ResearchElementDefinition.json`; R6 package has no same-name file or package-index StructureDefinition entry.",
+          "R6 `CodeSystem-fhir-old-types` includes `ResearchElementDefinition` as an old resource name no longer used in this version.",
+          "R4 maturity map reports standardsStatus=trial-use and fmm=0.",
+          "R4 spec page `https://hl7.org/fhir/R4/researchelementdefinition.html` has TODO Scope/Boundaries text; examples page has only a TODO examples section. Quick web/GitHub checks found generated model support but no concrete production-exchange evidence."
+        ],
+        "fmmEffect": "R4 FMM 0 and trial-use status strongly soften the stability concern; the hard resource-type break remains real, but low maturity and lack of quick production-use evidence make removal less concerning than it would be for mature content.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 instance with `resourceType: ResearchElementDefinition` lacks a base R6 StructureDefinition, and generated model/server resource registries lose the type.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained a deprecated compatibility resource with the R4 shape. That would preserve old payloads and SDK properties, but it would keep a duplicate, immature evidence resource alive and require ongoing search, validation, documentation, and implementation support; a ConceptMap alone would be migration guidance, not a less-breaking base design.",
+        "comparisonToExisting": "partially agree with the existing High hard-break impact and Partial alternative judgment; the independent review gives more weight to FMM 0 and the cost of retaining a duplicate obsolete resource, so the final judgment is probably OK rather than a design revisit."
+      }
     },
     {
       "findingId": "ResearchElementDefinition:CONVERSION_OR_MAPPING:successor:2a40d6",
@@ -412,7 +427,22 @@
       "validationAndCompatibilityMd": "A same-identity R4 instance remains invalid in R6. If an implementation changes only `resourceType` to `EvidenceVariable`, mandatory R4 fields such as `type` and `characteristic` become unknown R6 elements, and R6 fields such as `dataStorage` or `constraint` cannot be represented back in R4 without extensions or loss.",
       "migrationGuidanceMd": "Define a project-level mapping policy before converting data. Decide whether R4 `type` becomes `Evidence.variableDefinition.variableRole`, `EvidenceVariable.classifier`, an extension, or context supplied by the referencing resource. Preserve original canonical URLs and resource ids where possible, and add regression tests for population, exposure, comparator, and outcome cases.",
       "backwardCompatibilityAnalysisMd": "The likely consolidation may be justified by a cleaner evidence model, but the lack of an explicit compatibility layer makes the migration policy-dependent. Backward-compatible aliases, conversion maps, or profiles would have reduced ambiguity without forcing the old model to remain the preferred R6 representation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchElementDefinition:CONVERSION_OR_MAPPING:successor:2a40d6",
+        "judgment": "Unclear",
+        "narrativeMd": "The closest inspected R6 resource, `EvidenceVariable`, shares purpose text with R4 `ResearchElementDefinition`, but it is not a clean rename because R4 already had a separate `EvidenceVariable` and R6 also uses `Evidence.variableDefinition` for variable roles. Without an official migration note or ConceptMap, it is not possible to say whether a particular ResearchElementDefinition instance should become an EvidenceVariable, an Evidence variable definition, a Group, extensions, or some combination. That uncertainty is the compatibility problem for this finding.",
+        "keyEvidence": [
+          "R4 `ResearchElementDefinition.description`: PICO element that knowledge is about; R6 `EvidenceVariable.description`: element that knowledge (Evidence) is about.",
+          "R4 package already contains a separate `StructureDefinition-EvidenceVariable.json`, so R6 `EvidenceVariable` is not just a renamed R4 `ResearchElementDefinition`.",
+          "No official local ConceptMap or migration guide was found in the supplied packages.",
+          "R6 `Evidence.variableDefinition.variableRole` is required and bound to population/exposure/outcome/covariate, showing that some old role semantics may live outside `EvidenceVariable`."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the burden for a clean compatibility path, but it does not resolve the evidence gap about the intended successor and whether migration is lossless.",
+        "compatibilityMechanism": "semantic/documentation: the direct validation break is covered by the root removal; this finding is about ambiguous successor semantics and policy-dependent conversion.",
+        "lessBreakingAlternativeAssessment": "A deprecated base `ResearchElementDefinition` compatibility resource would reduce uncertainty for old instances, but would duplicate the redesigned model. An official base-level alias or normative conversion map would help, but a map by itself would not preserve R4 instances as valid R6 base instances.",
+        "comparisonToExisting": "partially agree with the existing High mapping risk and Partial alternative judgment; the old report's direction is plausible, but the fresh assessment treats the missing official successor rationale as enough to make the specific adjudication unclear."
+      }
     },
     {
       "findingId": "ResearchElementDefinition:TERMINOLOGY_BINDING:ResearchElementDefinition.type:ca94fb",
@@ -598,7 +628,22 @@
       "validationAndCompatibilityMd": "An R4 instance's `type` field cannot be carried as a same-name R6 EvidenceVariable element. Without transformation, it is invalid; with transformation, it may be lossy unless a specific target such as `Evidence.variableDefinition.variableRole`, `classifier`, or an extension is chosen. R6 handling codes also cannot all be represented in R4 `variableType`.",
       "migrationGuidanceMd": "Define a mapping table for `population`, `exposure`, and `outcome` before migration. If variables are referenced from R6 `Evidence`, prefer preserving the role in the `Evidence` variable-definition context; otherwise use a documented classifier or extension. Map R4 `variableType=dichotomous|continuous` to R6 `handling` when clinically appropriate, and manually review `descriptive` cases.",
       "backwardCompatibilityAnalysisMd": "The richer R6 handling model is useful, but removing the required PICO role without an alias or formal mapping was avoidable. A backward-compatible design could have added new handling fields while retaining a deprecated role code for cross-version conversion.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchElementDefinition:TERMINOLOGY_BINDING:ResearchElementDefinition.type:ca94fb",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 required a primitive `type` code for population, exposure, or outcome and optionally carried `variableType`; those same paths do not exist on R6 `EvidenceVariable`. A naive field-preserving conversion is therefore invalid or semantically incomplete. However, R6 has a coherent alternative model: statistical handling belongs on `EvidenceVariable.handling`, while PICO role can be represented in `Evidence.variableDefinition.variableRole` with required population/exposure/outcome codes. Keeping the old role directly on `EvidenceVariable` would be more compatible but would duplicate role semantics that R6 appears to place in the Evidence context.",
+        "keyEvidence": [
+          "R4 `ResearchElementDefinition.type` is 1..1 code with required binding to `research-element-type` codes population, exposure, outcome.",
+          "R4 `ResearchElementDefinition.variableType` is 0..1 code with required binding to dichotomous, continuous, descriptive.",
+          "R6 `EvidenceVariable.handling` is 0..1 CodeableConcept with example binding including continuous, dichotomous, ordinal, polychotomous, time-to-event, and not-specified.",
+          "R6 `Evidence.variableDefinition.variableRole` is 1..1 code with required binding including population, exposure, outcome, and covariate."
+        ],
+        "fmmEffect": "Because the R4 element is part of an FMM 0/trial-use resource, the required-code break does not by itself justify broad stability concern; the presence of an R6 role mechanism outside EvidenceVariable further softens the concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `type` and `variableType` fields are not valid same-path R6 EvidenceVariable fields; generated enum switches and reverse mapping for newer handling codes need conversion logic.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept a deprecated PICO role element or added a first-class EvidenceVariable role. That would preserve old enum switches, but it would overlap with `Evidence.variableDefinition.variableRole` and could create conflicting role assertions between the variable and the evidence context.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the break is real, but the report underweights the R6 `Evidence.variableDefinition.variableRole` mechanism and the low-FMM context."
+      }
     },
     {
       "findingId": "ResearchElementDefinition:SLICING_AND_CONTENT_MODEL:ResearchElementDefinition.characteristic:18bd20",
@@ -766,7 +811,22 @@
       "validationAndCompatibilityMd": "An R4 instance containing the required `characteristic` element is invalid as an R6 `EvidenceVariable` without a structural transform. An R6 `EvidenceVariable` can omit definition entirely or use new fields such as `dataStorage`, `constraint`, and `missingDataMeaning`, so it may not be representable as an R4 `ResearchElementDefinition` that requires `type` and `characteristic.definition[x]`.",
       "migrationGuidanceMd": "Map each R4 characteristic separately. Preserve inclusion/exclusion, original choice type, timing basis, units, and aggregation measure in testable rules. Use extensions when no R6 core element clearly preserves semantics. Review multiple-characteristic cases because R4 explicitly used `and` semantics.",
       "backwardCompatibilityAnalysisMd": "The redesign may be beneficial, but removing a mandatory backbone maximizes breakage. A compatibility period or formal extension mapping would have allowed old instances to validate or convert reproducibly while R6 implementers adopted the richer model.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchElementDefinition:SLICING_AND_CONTENT_MODEL:ResearchElementDefinition.characteristic:18bd20",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The required R4 `characteristic` backbone and mandatory `characteristic.definition[x]` do not survive as same-path R6 `EvidenceVariable` content. Migration of criteria, exclusion, timing, units, and conjunction semantics needs explicit rules, so this is a real content-model and code-generation break. The redesigned R6 model is nevertheless plausibly justified: it separates variable definition, definition modifiers, timing, periods, constraints, missing-data meaning, and unacceptable-data handling in ways the compact R4 backbone could not express cleanly. Retaining the old backbone in the same base resource would create two competing ways to state membership criteria.",
+        "keyEvidence": [
+          "R4 `ResearchElementDefinition.characteristic` is 1..* BackboneElement and says multiple characteristics are applied with AND semantics.",
+          "R4 `characteristic.definition[x]` is 1..1 with CodeableConcept, canonical(ValueSet), Expression, or DataRequirement choices.",
+          "R6 `EvidenceVariable.definition` is 0..1 CodeableReference(Group); `definitionModifier.value[x]` supports CodeableConcept, boolean, Quantity, Range, Period, RelativeTime, Reference(Resource), Expression, and uri.",
+          "R6 EvidenceVariable also has timing, period, constraint, missingDataMeaning, and unacceptableDataHandling elements."
+        ],
+        "fmmEffect": "FMM 0/trial-use reduces the expectation that the mandatory R4 backbone must be preserved unchanged. The criteria are semantically important, but quick checks did not find concrete production-use evidence that would overcome the low maturity signal.",
+        "compatibilityMechanism": "old-valid/new-invalid: valid R4 instances must contain `characteristic`, but R6 EvidenceVariable has no same-path backbone; generated code also loses the old backbone and choice properties.",
+        "lessBreakingAlternativeAssessment": "A deprecated `characteristic` backbone in the R6 successor would preserve many old instances, but supporting it alongside definition/modifier/timing/constraint fields would require precedence and conflict rules and would perpetuate duplicate criteria representations.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the migration burden is high for affected data, but the low maturity and stronger R6 model make the break proportionate."
+      }
     },
     {
       "findingId": "ResearchElementDefinition:ELEMENT_PRESENCE_OR_IDENTITY:metadata:6f981a",
@@ -948,7 +1008,22 @@
       "validationAndCompatibilityMd": "An R4 instance using these optional paths is invalid as a naive R6 `EvidenceVariable` because the field names and datatypes differ or are absent. R6 `note` and `relatesTo` can carry some information back to R4 only with conversion rules; otherwise round-tripping can lose authoring notes, relationship types, or logic references.",
       "migrationGuidanceMd": "Inventory optional field usage. Convert `comment` to `note.text` where appropriate. Decide whether `library` becomes `relatesTo`, an extension, or a related artifact on a surrounding resource. Preserve `subject[x]` explicitly if the R4 default Patient was relied on by CQL or other logic.",
       "backwardCompatibilityAnalysisMd": "A formal metadata map would have been a low-cost compatibility measure. Without it, implementations can choose incompatible mappings for common knowledge-artifact metadata.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchElementDefinition:ELEMENT_PRESENCE_OR_IDENTITY:metadata:6f981a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The optional R4 metadata and relationship fields are not path-compatible with the likely R6 successor: comments become annotations, related artifacts become `relatesTo`, and fields such as subject, usage, jurisdiction, topic, subtitle, and library lack obvious same-path homes. Instances that used these fields need migration policy, especially if they relied on the Patient subject default or on Library references for formal logic. Still, these are optional fields on an FMM 0 resource, and many can be transformed or preserved with extensions without forcing the base R6 model to carry a large set of deprecated aliases.",
+        "keyEvidence": [
+          "R4 `subject[x]` is 0..1 CodeableConcept or Reference(Group) with meaningWhenMissing=Patient.",
+          "R4 `library` is 0..* canonical(Library) and `comment` is 0..* string.",
+          "R6 `EvidenceVariable.note` is 0..* Annotation and `relatesTo` is a BackboneElement relationship pattern.",
+          "No same-path R6 EvidenceVariable elements were found for several R4 fields including subject[x], usage, jurisdiction, topic, subtitle, and library."
+        ],
+        "fmmEffect": "Low FMM and trial-use status soften the concern; subject and library can matter semantically, but the affected fields are optional and no quick production-use evidence was found.",
+        "compatibilityMechanism": "old-valid/new-invalid: old optional fields become invalid or absent after a naive successor conversion; some information can be remapped but not by simple path preservation.",
+        "lessBreakingAlternativeAssessment": "R6 could retain selected deprecated metadata aliases, especially subject and library, but aliases would overlap with `note`, `relatesTo`, classifiers, and extensions and could create divergent metadata. A published mapping would be useful but is not a base compatibility design.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative judgment; the optional metadata loss is real, but the fresh review sees aliases as less compelling given low FMM and duplicate-surface costs."
+      }
     },
     {
       "findingId": "ResearchElementDefinition:CARDINALITY:status-successor:2f7c4e",
@@ -1098,7 +1173,21 @@
       "validationAndCompatibilityMd": "All valid R4 instances have `status`, so this specific cardinality change does not make old data invalid after a proper transform. R6 data without `status` is not directly representable in R4 `ResearchElementDefinition`, whose status is mandatory.",
       "migrationGuidanceMd": "Preserve R4 status during forward migration. For R6-to-R4 conversion, define whether missing status becomes `unknown`, causes rejection, or is populated from governance metadata. Test retired, active, draft, unknown, and absent cases.",
       "backwardCompatibilityAnalysisMd": "Making a modifier lifecycle field optional may be convenient but was not the most backward-compatible choice. Retaining mandatory status would have avoided reverse-conversion ambiguity.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ResearchElementDefinition:CARDINALITY:status-successor:2f7c4e",
+        "judgment": "No problem",
+        "narrativeMd": "This specific cardinality change does not make valid R4 data invalid in R6: every R4 `ResearchElementDefinition` already has `status`, and R6 `EvidenceVariable.status` can still carry it. The concern is mainly reverse conversion or runtime assumptions for new R6 EvidenceVariable instances that omit status. Because R6 gives missing status an explicit unknown meaning and this is not an old-valid/new-invalid R4-to-R6 break, it is not a material fresh-review concern.",
+        "keyEvidence": [
+          "R4 `ResearchElementDefinition.status` is 1..1 code, required-bound to publication-status, isModifier=true, and isSummary=true.",
+          "R6 `EvidenceVariable.status` is 0..1 code, required-bound to publication-status, isModifier=true, isSummary=true, and meaningWhenMissing is `Value is unknown.`",
+          "All valid R4 instances already contain status, so forward migration can preserve the value."
+        ],
+        "fmmEffect": "FMM 0/trial-use further lowers concern; even for mature content this would mostly be a reverse-conversion policy issue rather than an R4-to-R6 validity break.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances may omit status and need rejection or defaulting for R4, but old R4 instances are not invalidated by the min-cardinality decrease.",
+        "lessBreakingAlternativeAssessment": "Keeping R6 EvidenceVariable.status mandatory would improve lifecycle discipline and round-tripping, but it would be a stricter R6 modeling choice rather than a less-breaking design needed to preserve R4-valid instances.",
+        "comparisonToExisting": "partially agree with the existing reverse-conversion observation and Not applicable alternative judgment; disagree with treating this as a medium R4-to-R6 compatibility problem."
+      }
     },
     {
       "findingId": "ResearchElementDefinition:FLAGS_AND_MODIFIERS:summary-flags:8df68b",
@@ -1219,7 +1308,21 @@
       "validationAndCompatibilityMd": "FHIR instance validation is not directly affected. Runtime behavior can change in REST APIs, caches, UI list views, and generated summary DTOs. A full read can still retrieve non-summary fields if the server supports them.",
       "migrationGuidanceMd": "Audit callers that use `_summary=true`, `_elements`, generated summary models, or search-result projections. Add tests ensuring migrated clients fetch full resources when they need effective periods, experimental flags, or detailed variable criteria.",
       "backwardCompatibilityAnalysisMd": "Summary changes are often acceptable when the content model changes, but documenting them would reduce surprise. Keeping old summary-relevant semantics available in summary responses would have been more compatible.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ResearchElementDefinition:FLAGS_AND_MODIFIERS:summary-flags:8df68b",
+        "judgment": "No problem",
+        "narrativeMd": "Summary flag differences can change `_summary` projections or generated summary DTOs, but they do not affect instance validity and are secondary to the resource replacement itself. In the likely successor, `definition` is summary while `effectivePeriod` and `experimental` are not, so clients that need those fields should request full resources or explicit elements. For an FMM 0 retired resource, this is migration awareness rather than a base compatibility issue that warrants redesign.",
+        "keyEvidence": [
+          "R4 marked `ResearchElementDefinition.characteristic`, `effectivePeriod`, and `experimental` as summary elements.",
+          "R6 EvidenceVariable marks `definition` and `versionAlgorithm[x]` as summary, while `effectivePeriod` and `experimental` are not summary.",
+          "Summary flags affect REST/client projections, not whether a resource instance validates."
+        ],
+        "fmmEffect": "FMM 0/trial-use makes summary projection continuity a weak stability concern, especially because no concrete production use of `_summary` for this resource was found.",
+        "compatibilityMechanism": "metadata/tooling: summary projections, caches, or generated summary views may change, but base instance validation and full-resource retrieval are unaffected.",
+        "lessBreakingAlternativeAssessment": "R6 could mark more successor fields as summary or retain summary-compatible deprecated fields, but that would increase payload size and still could not emulate the removed characteristic backbone without duplicate representation.",
+        "comparisonToExisting": "disagree with the existing Medium runtime impact and Partial alternative judgment; the fresh review treats this as low-risk projection/tooling churn, not a meaningful compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1378,5 +1481,19 @@
       "Removed SearchParameters for old evidence/research resource types",
       "CanonicalResource-style metadata shifts in successor resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ResearchElementDefinition.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Unclear": 1,
+      "Breaking but probably OK": 4,
+      "No problem": 2
+    }
   }
 }

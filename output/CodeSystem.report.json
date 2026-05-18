@@ -246,7 +246,22 @@
       "validationAndCompatibilityMd": "This is a hard old-valid/new-invalid validation change. The reverse direction is structurally safe because R4 already has `supplements`.",
       "migrationGuidanceMd": "Find CodeSystems with `content=\"supplement\"` and missing `supplements`; populate the true target canonical or hold the resource for terminology review.",
       "backwardCompatibilityAnalysisMd": "A warning would have been more backward-compatible, but less safe because targetless supplements cannot be applied deterministically.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CodeSystem:VALUE_CONSTRAINT:CodeSystem.content:csd4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an error invariant that a CodeSystem with `content='supplement'` must name the supplemented CodeSystem in `supplements`. That is a true old-valid/new-invalid case for targetless R4 supplements, and CodeSystem is normative/FMM 5, so the bar is high. The affected case is narrow, however, and a supplement without a target is not deterministically applicable by terminology consumers.",
+        "keyEvidence": [
+          "R4 CodeSystem root constraints include csd-0 and csd-1 but no supplement-target invariant.",
+          "R6 CodeSystem root constraint csd-4 is error severity: `CodeSystem.content = 'supplement' implies CodeSystem.supplements.exists()`.",
+          "CodeSystem.supplements has the same 0..1 canonical CodeSystem shape in R4 and R6; the change is conditional validation, not a wire rename.",
+          "A local scan of packaged R4 CodeSystem instances found no supplement resources missing `supplements`."
+        ],
+        "fmmEffect": "R4 CodeSystem is normative/FMM 5, which raises the burden for a hard validation break. The targeted nature of the break and the semantic need to know a supplement target satisfy that burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with `content='supplement'` and no `supplements` can become R6-invalid under an error invariant.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have made this warning-level or profile-specific, preserving targetless supplements. That alternative has a material tradeoff because it leaves base R6 supplements ambiguous for all consumers.",
+        "comparisonToExisting": "Partially agree: the existing report correctly identifies the hard break and a partial warning-style alternative, but I would emphasize the narrow affected case rather than treating the impact as broadly high."
+      }
     },
     {
       "findingId": "CodeSystem:TERMINOLOGY_BINDING:CodeSystem.concept.designation.language:required-all-languages",
@@ -390,7 +405,22 @@
       "validationAndCompatibilityMd": "The break is terminology-mediated. R6-valid values remain representable in R4, but old R4 values outside all-languages can fail R6.",
       "migrationGuidanceMd": "Normalize designation languages to BCP 47; test underscores, private-use subtags, and local labels; preserve unresolvable originals in extensions or migration logs.",
       "backwardCompatibilityAnalysisMd": "The same goal could have been phased through warnings or profiles, but that would allow non-interoperable language labels to persist.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CodeSystem:TERMINOLOGY_BINDING:CodeSystem.concept.designation.language:required-all-languages",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The designation language element keeps the same cardinality and primitive type, but the binding changes from preferred language codes to a required all-languages value set. Strict R6 terminology validation can reject R4 designations that used informal or non-BCP-47 language labels. For a normative/FMM 5 artifact this is a real migration concern, but the field's purpose is specifically to carry interoperable human language tags.",
+        "keyEvidence": [
+          "R4 `CodeSystem.concept.designation.language` binding is preferred to `http://hl7.org/fhir/ValueSet/languages` with a maxValueSet extension for all-languages.",
+          "R6 `CodeSystem.concept.designation.language` binding is required to `http://hl7.org/fhir/ValueSet/all-languages|6.0.0-ballot4`.",
+          "The element remains 0..1 and type `code`; only terminology conformance changed.",
+          "A local scan of packaged R4 CodeSystem designation languages found ordinary tags such as de, en, es, fr, it, nl, pl, ru, and zh rather than obvious informal labels."
+        ],
+        "fmmEffect": "Normative/FMM 5 status increases the need for justification. The stability concern is softened by the prior preferred binding and by the interoperability value of requiring standard language tags.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with nonconformant designation language codes may fail R6 required-binding validation.",
+        "lessBreakingAlternativeAssessment": "A preferred, extensible, or warning-first binding would be less disruptive, but it would not guarantee that designation languages are machine-interpretable BCP-47 tags. The less-breaking alternative is therefore only partial.",
+        "comparisonToExisting": "Agree: the existing report's potential hard-break characterization and partial less-breaking alternative are consistent with the independent evidence."
+      }
     },
     {
       "findingId": "CodeSystem:VALUE_CONSTRAINT:CodeSystem.concept:alternateCode-reciprocal",
@@ -544,7 +574,23 @@
       "validationAndCompatibilityMd": "The R6 validation mechanism is error invariant csd-6. R6-valid reciprocal data is structurally representable in R4, though R4 may not assign the same standard meaning.",
       "migrationGuidanceMd": "Inventory `alternateCode` properties; add reciprocals only for true equivalence; use different properties or ConceptMaps for directional replacement.",
       "backwardCompatibilityAnalysisMd": "Strict symmetry is safer but not fully backward-compatible with arbitrary R4 property naming.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CodeSystem:VALUE_CONSTRAINT:CodeSystem.concept:alternateCode-reciprocal",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 adds an error invariant requiring every concept property with code `alternateCode` to have a reciprocal property on the referenced concept. That supports the new FHIR-defined meaning of alternate-code equivalence, but R4 treated concept property codes as references to local `CodeSystem.property.code` declarations. A locally declared R4 property named `alternateCode` could have been one-way, editorial, or otherwise not the new reciprocal equivalence relation, and R6 appears to enforce the invariant by bare code.",
+        "keyEvidence": [
+          "R4 `CodeSystem.concept` has no csd-6 invariant.",
+          "R6 `CodeSystem.concept` adds error constraint csd-6 requiring reciprocal `alternateCode` relationships.",
+          "R4 `CodeSystem.concept.property.code` is defined as a reference to `CodeSystem.property.code`.",
+          "R6 `CodeSystem.concept.property.code` allows FHIR-defined concept-properties only when there is no corresponding local property code, but csd-6 still triggers on `code = 'alternateCode'`.",
+          "R6 `CodeSystem-concept-properties.json` defines `alternateCode`; the R4 package's selected concept-properties did not include it."
+        ],
+        "fmmEffect": "Normative/FMM 5 status raises the burden substantially because this is an error-level constraint on existing instance content. The rationale for reciprocal standard alternate codes is good, but the local-code collision risk is not fully addressed.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 CodeSystem with a nonreciprocal local concept property named `alternateCode` can become R6-invalid.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design exists: enforce reciprocity only when `alternateCode` is being used as the FHIR-defined property without a local `CodeSystem.property` declaration, or make the rule warning-level for locally declared properties. The tradeoff is continued ambiguity around the same bare code, but that seems narrower than invalidating all local uses.",
+        "comparisonToExisting": "Partially agree: the existing report correctly finds a potential hard break and a partial alternative, but I disagree with treating the design as probably justified without revisiting the local-property collision."
+      }
     },
     {
       "findingId": "CodeSystem:SEMANTIC_OR_CONFORMANCE_TEXT:CodeSystem.caseSensitive:unknown-guidance",
@@ -674,7 +720,22 @@
       "validationAndCompatibilityMd": "Old data remains valid, but `$validate-code`, expansion filtering, and client-side matching can produce different results. Warning-as-error pipelines can also fail.",
       "migrationGuidanceMd": "Populate `caseSensitive` explicitly where known and test same-case and different-case validation before changing production behavior.",
       "backwardCompatibilityAnalysisMd": "R6 could have kept R4 tolerance, but chose safer matching semantics to avoid false positives.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CodeSystem:SEMANTIC_OR_CONFORMANCE_TEXT:CodeSystem.caseSensitive:unknown-guidance",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The `caseSensitive` wire element is unchanged, but R6 reverses the recommended behavior when the value is absent: R4 favored accepting codes in any case, while R6 says to treat unknown case sensitivity as case-sensitive and adds a warning that the element should be populated. This can change `$validate-code`, lookup, and client matching behavior, but it does not invalidate instances.",
+        "keyEvidence": [
+          "R4 `CodeSystem.caseSensitive` comment says that when the rule is not known, systems should produce correct case and accept codes in any case.",
+          "R6 `CodeSystem.caseSensitive` comment says systems should produce correct case and treat codes as case-sensitive when sensitivity is unknown.",
+          "R6 root constraint csd-7 is warning severity: `caseSensitive.exists()`.",
+          "The element remains 0..1 boolean in both R4 and R6."
+        ],
+        "fmmEffect": "Normative/FMM 5 status raises the burden because terminology matching behavior is central. The R6 rationale is safety-oriented: unknown case rules should not silently broaden code matches.",
+        "compatibilityMechanism": "runtime/API/codegen: existing omitted `caseSensitive` resources remain valid, but validation and terminology matching may return different results; warning-as-error pipelines may also fail.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the R4 tolerant default and only warned authors to populate `caseSensitive`. That is less disruptive but keeps the risk of false-positive code interpretation and locale-dependent case handling.",
+        "comparisonToExisting": "Agree: the existing report treats this as a runtime/conformance change rather than a hard instance break, with a partial but safety-weaker alternative."
+      }
     },
     {
       "findingId": "CodeSystem:ELEMENT_PRESENCE_OR_IDENTITY:CodeSystem:r6-only-fields",
@@ -822,7 +883,22 @@
       "validationAndCompatibilityMd": "No R4 instance becomes invalid. Direct R6 JSON containing these fields is invalid to strict R4 parsers and cannot be exactly round-tripped without mapping policy.",
       "migrationGuidanceMd": "Update generated R6 models. For R6-to-R4, define extensions for metadata and either duplicate designations or extension-map `additionalUse`.",
       "backwardCompatibilityAnalysisMd": "Keeping extensions only would be more R4-compatible but less consistent and less discoverable in R6.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CodeSystem:ELEMENT_PRESENCE_OR_IDENTITY:CodeSystem:r6-only-fields",
+        "judgment": "No problem",
+        "narrativeMd": "The listed fields are optional R6 additions: governance and lifecycle metadata, `versionAlgorithm[x]`, `relatedArtifact`, and `concept.designation.additionalUse`. They do not remove or rename any R4 element and do not make old R4 CodeSystem instances invalid. The main issue is deliberate reverse-version conversion policy if an R6 CodeSystem using these fields must be sent to an R4-only system.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no local elements matching the listed R6-only field names.",
+          "R6 adds each listed root field with min 0; `concept.designation.additionalUse` is also min 0.",
+          "R6 `concept.designation` adds csd-5 only when `additionalUse` is present.",
+          "R6 `relatedArtifact` adds csd-8 prohibiting `depends-on` and `composed-of`, affecting only the new optional element."
+        ],
+        "fmmEffect": "Normative/FMM 5 status does not make optional additive fields a backward-compatibility problem. It does mean any downgrade loss should be documented by implementers, but the base R4-to-R6 path is stable.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances that use the new optional fields cannot be represented exactly in base R4 without extensions or omission, but old R4 instances are preserved.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for R4 compatibility. Keeping the information only in extensions would make R6 less uniform and discoverable while not improving acceptance of existing R4 instances.",
+        "comparisonToExisting": "Disagree on impact emphasis: the existing report correctly notes R6-to-R4 loss, but for fresh R4-to-R6 review this is an optional additive change and should not be treated as a meaningful break."
+      }
     },
     {
       "findingId": "CodeSystem:TERMINOLOGY_BINDING:CodeSystem.filter.operator:new-r6-operators",
@@ -937,7 +1013,22 @@
       "validationAndCompatibilityMd": "R6-to-R4 conversion cannot preserve the new operators as valid R4 values. R4 enum switches may throw or default incorrectly.",
       "migrationGuidanceMd": "Update filter-operator enums and terminology filter implementations; negotiate unsupported operators with R4 clients.",
       "backwardCompatibilityAnalysisMd": "Standard codes improve interoperability in R6 at the cost of R4 compatibility for new operator use.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CodeSystem:TERMINOLOGY_BINDING:CodeSystem.filter.operator:new-r6-operators",
+        "judgment": "No problem",
+        "narrativeMd": "The required `filter.operator` value set is widened by adding `child-of` and `descendent-leaf`; no R4 operator is removed. R4 CodeSystem instances using the R4 operator set remain valid under the R6 binding. R6 systems and generated enums need to learn the new codes, but that is expected vocabulary evolution rather than a backward break.",
+        "keyEvidence": [
+          "R4 `CodeSystem.filter.operator` is required-bound to `filter-operator|4.0.1`.",
+          "R6 `CodeSystem.filter.operator` is required-bound to `filter-operator|6.0.0-ballot4`.",
+          "Packaged terminology comparison shows R6 retains the R4 operators and adds `child-of` and `descendent-leaf`.",
+          "The element remains 1..* code in both R4 and R6."
+        ],
+        "fmmEffect": "Normative/FMM 5 status would matter if codes were removed or redefined incompatibly. Here the value set widens, so the stability expectation is met for R4 content.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 enum handlers and terminology servers may need to support new operators, but R4-to-R6 validation is not broken.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed because the required value set was widened. Avoiding standard codes would push useful hierarchy-filter semantics into local extensions or prose.",
+        "comparisonToExisting": "Partially agree: the existing report's evidence is right, but I assess the change as no problem for backward compatibility rather than medium impact."
+      }
     },
     {
       "findingId": "CodeSystem:VALUE_CONSTRAINT:CodeSystem.hierarchyMeaning:csd2-csd3",
@@ -1060,7 +1151,22 @@
       "validationAndCompatibilityMd": "No hard validation break, but warning-sensitive tooling may fail and terminology consumers may require a value for reliable interpretation.",
       "migrationGuidanceMd": "Populate `hierarchyMeaning` for nested concepts or parent/child property hierarchies when known; use `grouped-by` for non-subsumption grouping where appropriate.",
       "backwardCompatibilityAnalysisMd": "The warning-level choice is a backward-compatible design.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CodeSystem:VALUE_CONSTRAINT:CodeSystem.hierarchyMeaning:csd2-csd3",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds warning-level constraints asking authors to provide `hierarchyMeaning` when explicit nested concepts or parent/child properties indicate a hierarchy. This surfaces useful semantic ambiguity without making the resource invalid at error level. Warning-as-error publication pipelines may need policy updates, but that is not a base instance break.",
+        "keyEvidence": [
+          "R4 root constraints do not include csd-2 or csd-3.",
+          "R6 root constraint csd-2 is warning severity for nested concepts without `hierarchyMeaning`.",
+          "R6 root constraint csd-3 is warning severity for parent/child properties without `hierarchyMeaning`.",
+          "`CodeSystem.hierarchyMeaning` remains optional 0..1 with required binding in both R4 and R6."
+        ],
+        "fmmEffect": "Normative/FMM 5 status supports caution, but the use of warning severity is already a compatibility-preserving choice.",
+        "compatibilityMechanism": "warning-level: base R6 validation can warn on existing hierarchical CodeSystems, but the warning does not make them error-invalid.",
+        "lessBreakingAlternativeAssessment": "No less-breaking alternative is needed. Dropping the warnings would hide real hierarchy ambiguity, while making them errors would be more breaking.",
+        "comparisonToExisting": "Agree: the existing report treats the change as low impact and recognizes that warning severity is the compatibility-preserving design."
+      }
     },
     {
       "findingId": "CodeSystem:SEMANTIC_OR_CONFORMANCE_TEXT:CodeSystem.concept.property.code:fhir-defined-properties",
@@ -1202,7 +1308,22 @@
       "validationAndCompatibilityMd": "No R4 content becomes invalid. R6 content that relies on standard undeclared properties may be semantically under-specified or rejected by R4 business rules.",
       "migrationGuidanceMd": "For R6-to-R4, add explicit `CodeSystem.property` declarations or map standard properties through extensions/documentation; manually review status and replacement properties.",
       "backwardCompatibilityAnalysisMd": "The R6 design improves reuse but is not fully backward-compatible with R4 local-declaration assumptions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CodeSystem:SEMANTIC_OR_CONFORMANCE_TEXT:CodeSystem.concept.property.code:fhir-defined-properties",
+        "judgment": "No problem",
+        "narrativeMd": "R6 broadens the definition of `concept.property.code` so it may refer either to local `CodeSystem.property.code` or, when no local declaration exists, to a FHIR-defined concept property. That is a semantic expansion and convenience for R6 authors. Existing R4 content with local property declarations remains structurally valid, and the direct risk is mainly for R6-to-R4 downgrade or older tooling that insists every property be locally declared.",
+        "keyEvidence": [
+          "R4 `CodeSystem.concept.property.code` definition says it is a reference to `CodeSystem.property.code`.",
+          "R6 definition allows a local property code or a code from `http://hl7.org/fhir/concept-properties` when no corresponding local property code is defined.",
+          "R6 `CodeSystem-concept-properties.json` includes additional standard properties such as `status` and `alternateCode`.",
+          "The element remains required 1..1 and type `code` in both R4 and R6."
+        ],
+        "fmmEffect": "Normative/FMM 5 status would make an incompatible semantic override concerning. The R6 wording preserves local declarations and adds a standard fallback, so the stability concern is limited.",
+        "compatibilityMechanism": "semantic/documentation: the meaning of undeclared property codes is broadened for R6; existing R4 wire content is not invalidated.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for R4-to-R6 compatibility. Requiring local declarations for all standard properties would preserve R4-era assumptions but would add boilerplate and weaken reusable standard semantics.",
+        "comparisonToExisting": "Partially agree: the existing evidence is sound, but I assess the compatibility impact as lower because the change is semantic/additive and not old-valid/new-invalid."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1401,5 +1522,19 @@
       "caseSensitive missing-value semantics",
       "FHIR-defined concept-properties"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/CodeSystem.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 4
+    }
   }
 }

@@ -271,7 +271,21 @@
       "migrationGuidanceMd": "Before R6 validation, remove `closure` or transform it to a site-specific extension or other documented capability mechanism. Migration tests should include an R4 instance with `closure.translation` to ensure the transform does not silently discard an operational capability that clients still depend on.",
       "backwardCompatibilityAnalysisMd": "The backward-compatible alternative was to retain the optional element with a deprecation note. Without official rationale, the removal appears disruptive for the small set of systems that used `$closure` capability discovery.",
       "reviewerNotesMd": "Confirm against the R6 `$closure` OperationDefinition or terminology narrative before deciding whether the capability can be dropped.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "TerminologyCapabilities:ELEMENT_PRESENCE_OR_IDENTITY:TerminologyCapabilities.closure:9f6a01",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed an optional `TerminologyCapabilities.closure` backbone to advertise support for `ConceptMap/$closure`, including `closure.translation`; the R6 StructureDefinition has no corresponding element. An R4 capability instance that populated this block is therefore rejected or loses that property in strict R6 tooling. The affected information is narrow terminology-operation metadata rather than patient/business data, and the R6 package also appears not to carry the old `$closure` operation definition, so removing the advertisement looks proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `TerminologyCapabilities.closure` 0..1 BackboneElement and `closure.translation` 0..1 boolean.",
+          "R6 StructureDefinition: no element id under `TerminologyCapabilities.closure`.",
+          "Local package check found `OperationDefinition-ConceptMap-closure.json` in R4 but no matching R6 operation definition."
+        ],
+        "fmmEffect": "R4 FMM 0 / trial-use substantially softens the stability concern. I did not find closure-specific production-use evidence in the quick checks, so I did not infer broad impact from the hard break alone.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing `closure` become invalid or unknown to R6 validators and generated R6 models.",
+        "lessBreakingAlternativeAssessment": "A deprecated optional `closure` element would preserve old instances only if the operation were still part of the R6 design. If `$closure` is intentionally gone, keeping a base capability flag could mislead clients; extension-based migration is mitigation, not a less-breaking base design.",
+        "comparisonToExisting": "Partially agree with the existing impact: the hard break is real, but low FMM and apparent operation removal make it less concerning than a general resource capability deletion."
+      }
     },
     {
       "findingId": "TerminologyCapabilities:TERMINOLOGY_BINDING:TerminologyCapabilities.codeSearch:4f18c2",
@@ -461,7 +475,21 @@
       "migrationGuidanceMd": "Do not blindly rename codes. Review server behavior and map `all` and `explicit` to the R6 compose/expansion model using local policy or a ConceptMap if one becomes available. Update generated enums, tests, UI text, validation fixtures, and database constraints.",
       "backwardCompatibilityAnalysisMd": "The new model is probably clearer, but replacing a required code system is highly disruptive. A transitional required value set containing both old and new codes, plus deprecation metadata, would have been more compatible.",
       "reviewerNotesMd": "No local ConceptMap was found. Mapping `explicit` is especially ambiguous because the R4 definition mentions codes explicitly detailed on includes or expansions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "TerminologyCapabilities:TERMINOLOGY_BINDING:TerminologyCapabilities.codeSearch:4f18c2",
+        "judgment": "Revisit",
+        "narrativeMd": "`TerminologyCapabilities.codeSearch` kept the same optional path but replaced the required code set: R4 allowed `explicit` and `all`, while R6 allows `in-compose`, `in-expansion`, and `in-compose-or-expansion`. That is a real enum break for terminology servers that publish code-search behavior, and down-conversion has no native place for the new combined code. Because this is a single existing code-valued path, preserving the R4 codes as deprecated legacy aliases while adding the R6 codes seems like a plausible lower-cost base design.",
+        "keyEvidence": [
+          "R4 `codeSearch` binding is required to `ValueSet/code-search-support|4.0.1`; R4 CodeSystem codes are `explicit` and `all`.",
+          "R6 `codeSearch` binding is required to `ValueSet/code-search-support|6.0.0-ballot4`; R6 CodeSystem codes are `in-compose`, `in-expansion`, and `in-compose-or-expansion`.",
+          "HL7 terminology-service specification describes a terminology-capabilities endpoint (`https://fhir.hl7.org/fhir/terminology-service.html`); quick web search also found public HAPI FHIR and Ontoserver documentation for TerminologyCapabilities/resource support."
+        ],
+        "fmmEffect": "R4 FMM 0 / trial-use softens the stability expectation, but this path describes terminology-service API behavior and has at least resource-level implementation evidence, so the low FMM does not fully dispose of the compatibility concern.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: old required-binding codes are invalid in R6, new required-binding codes are invalid in R4, and generated enums/switch logic need changes.",
+        "lessBreakingAlternativeAssessment": "R6 could retain `explicit` and `all` as deprecated or legacy codes alongside the new names, with guidance mapping them to the nearest R6 semantics. The tradeoff is carrying imprecise old labels, but it avoids duplicate fields and would preserve many old-valid instances.",
+        "comparisonToExisting": "Partially agree with the existing High impact assessment, but disagree with treating less-breaking alternatives as absent; a single-path enum compatibility strategy is plausible enough to warrant renewed design review."
+      }
     },
     {
       "findingId": "TerminologyCapabilities:CARDINALITY:TerminologyCapabilities.codeSystem.content:8d71a5",
@@ -627,7 +655,21 @@
       "migrationGuidanceMd": "Inventory all R4 instances with `codeSystem`. For each entry, populate `content` from authoritative server knowledge rather than guessing. If the value cannot be determined, use a migration exception workflow or profile-specific policy and test all five R6 content-mode codes.",
       "backwardCompatibilityAnalysisMd": "The stricter requirement is useful for interoperability, but it could have been introduced as optional first. Making it mandatory in the base resource forces semantic decisions during migration.",
       "reviewerNotesMd": "The R6 binding URL is versioned `|6.0.0` in the R6 ballot StructureDefinition, not `|6.0.0-ballot4`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "TerminologyCapabilities:CARDINALITY:TerminologyCapabilities.codeSystem.content:8d71a5",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 adds mandatory `TerminologyCapabilities.codeSystem.content` with a required content-mode code on every `codeSystem` entry. R4 entries had no such field, so any R4 instance listing supported code systems must be enriched before strict R6 validation. The value is not always mechanically inferable: choosing `complete`, `fragment`, `example`, `not-present`, or `supplement` can change what clients believe the terminology server can provide.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `TerminologyCapabilities.codeSystem.content` element.",
+          "R6 StructureDefinition defines `codeSystem.content` as 1..1 code with required binding to codesystem-content-mode.",
+          "R6 CodeSystem `codesystem-content-mode` includes `not-present`, `example`, `fragment`, `complete`, and `supplement`; R6 terminology-server example populates `content: complete`."
+        ],
+        "fmmEffect": "R4 FMM 0 / trial-use softens the stability expectation, but `codeSystem` is central to the resource's purpose and the needed migration value can require terminology-server knowledge rather than a rote transform.",
+        "compatibilityMechanism": "old-valid/new-invalid plus R6-to-R4 loss: R4 `codeSystem` repetitions without `content` fail R6, while R6 content-mode assertions have no native R4 field.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have made `content` optional for one release, used a warning-level expectation, or added an explicit unknown/unspecified mode. Those options weaken computability, but they would preserve R4 instances where the correct content mode is not knowable automatically.",
+        "comparisonToExisting": "Partially agree with the existing High hard-break assessment; the old report correctly identifies a significant validation break, but the plausible transitional base alternatives make this more review-worthy than the existing alternative assessment indicates."
+      }
     },
     {
       "findingId": "TerminologyCapabilities:VALUE_CONSTRAINT:TerminologyCapabilities.codeSystem:17b6aa",
@@ -778,7 +820,21 @@
       "validationAndCompatibilityMd": "This is old-valid/new-invalid whenever the duplicate patterns occur. It does not create a new R6-to-R4 representability problem because R4 is looser.",
       "migrationGuidanceMd": "Group code-system declarations by URI, merge duplicate versions, ensure `version.code` is unique within each grouped entry, and choose a single `isDefault=true` version. Add tests for duplicate URI, duplicate version code, two defaults, and absent default.",
       "backwardCompatibilityAnalysisMd": "The constraints are likely justified because duplicate declarations are ambiguous. However, imposing them as base errors rather than warnings creates immediate validation failures for legacy data.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "TerminologyCapabilities:VALUE_CONSTRAINT:TerminologyCapabilities.codeSystem:17b6aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds error-level constraints requiring distinct `codeSystem.uri` values, distinct version codes within a code system, and at most one default version. Some R4 instances that repeated the same system URI or asserted conflicting defaults will now fail validation. The constraints address genuine ambiguity in a capability statement, so the break appears targeted at data quality rather than a cosmetic reshaping.",
+        "keyEvidence": [
+          "R4 had `tcp-1` on `TerminologyCapabilities.codeSystem` but not `tcp-6`, `tcp-7`, or `tcp-8`.",
+          "R6 root constraint `tcp-6`: `codeSystem.uri.isDistinct()`.",
+          "R6 `codeSystem` constraints `tcp-7` and `tcp-8`: distinct `version.code` values and no more than one `isDefault = true`."
+        ],
+        "fmmEffect": "R4 FMM 0 / trial-use lowers the burden for tightening ambiguous capability metadata. The affected cases are likely unusual and operational rather than safety-critical.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with duplicate code-system declarations, duplicate version codes, or multiple default versions become R6 validation errors.",
+        "lessBreakingAlternativeAssessment": "R6 could have introduced these as warning-level constraints, but that would continue to allow ambiguous defaults and duplicate declarations in base instances. Requiring cleanup is a reasonable tradeoff for unambiguous terminology capability discovery.",
+        "comparisonToExisting": "Partially agree with the existing hard-break finding; I agree the validation break is real, but the High overall impact seems stronger than warranted after applying FMM 0 and the narrow ambiguity-focused mechanism."
+      }
     },
     {
       "findingId": "TerminologyCapabilities:TERMINOLOGY_BINDING:TerminologyCapabilities.codeSystem.version.language:2ac0de",
@@ -903,7 +959,21 @@
       "migrationGuidanceMd": "Normalize values to valid IETF language tags before R6 validation. Keep a reject list for non-language tokens and decide whether private-use tags are acceptable under the R6 value set expansion used by your validator.",
       "backwardCompatibilityAnalysisMd": "The strengthened binding is justified by the element's meaning. A preferred or extensible transitional binding would have reduced validation failures but allowed poor-quality data.",
       "reviewerNotesMd": "A terminology server expansion of `all-languages` would improve confidence for edge cases such as private-use or grandfathered BCP 47 tags.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "TerminologyCapabilities:TERMINOLOGY_BINDING:TerminologyCapabilities.codeSystem.version.language:2ac0de",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed any `code` in `TerminologyCapabilities.codeSystem.version.language`; R6 adds a required binding to all IETF BCP 47 language tags. Existing instances that used actual language tags should remain valid, while local or non-language tokens become invalid. Since the element is explicitly about supported display languages, the stricter binding improves interoperability and mainly affects data that was structurally allowed but semantically weak.",
+        "keyEvidence": [
+          "R4 `codeSystem.version.language` is 0..* `code` with no binding.",
+          "R6 `codeSystem.version.language` remains 0..* `code` but has required binding to `ValueSet/all-languages|6.0.0-ballot4`.",
+          "R6 `ValueSet/all-languages` includes `urn:ietf:bcp:47`."
+        ],
+        "fmmEffect": "R4 FMM 0 / trial-use softens the compatibility concern, especially because the path was already semantically language-specific and no quick evidence showed broad production use of non-language tokens.",
+        "compatibilityMechanism": "old-valid/new-invalid, potentially: only R4 instances using values outside the required language-tag value set fail R6 binding validation.",
+        "lessBreakingAlternativeAssessment": "An extensible binding or warning would be less disruptive, but it would not give clients a reliable computable language-tag contract. Required BCP 47 binding is proportionate for a language display declaration.",
+        "comparisonToExisting": "Partially agree with the existing Potential hard-break assessment, but the Medium runtime concern appears overstated for properly populated language tags."
+      }
     },
     {
       "findingId": "TerminologyCapabilities:SERIALIZATION_OR_CODEGEN:markdown-fields:63be91",
@@ -1022,7 +1092,21 @@
       "validationAndCompatibilityMd": "This is mostly a runtime/codegen risk rather than a hard instance break. R6 markdown values are JSON strings and can be placed into R4 string fields, but markdown semantics and sanitization may be lost.",
       "migrationGuidanceMd": "Regenerate models and update serializers, validators, and UI rendering paths for these two fields. Tests should include plain text, markdown formatting, and any local sanitization rules.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible option was to keep `string` and use comments to permit markdown conventions. The R6 change is more strongly typed but creates generated-code churn.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "TerminologyCapabilities:SERIALIZATION_OR_CODEGEN:markdown-fields:63be91",
+        "judgment": "No problem",
+        "narrativeMd": "R6 changes `implementation.description` and `expansion.parameter.documentation` from `string` to `markdown`, but JSON/XML primitive values are still text and ordinary R4 descriptions remain valid markdown/plain text. The main effect is generated primitive wrapper types, rendering, or sanitization policy for two descriptive fields, not a base instance-compatibility failure.",
+        "keyEvidence": [
+          "R4 `implementation.description` and `expansion.parameter.documentation` have type `string`.",
+          "R6 changes both paths to type `markdown` without changing cardinality.",
+          "Both affected paths are descriptive/local documentation fields."
+        ],
+        "fmmEffect": "R4 FMM 0 / trial-use further reduces concern. These paths are not central operational flags, and there is no evidence of a broad old-valid/new-invalid problem for ordinary text.",
+        "compatibilityMechanism": "runtime/API/codegen: some generated models or renderers may distinguish markdown from string, but the wire representation remains text and normal existing values should still validate.",
+        "lessBreakingAlternativeAssessment": "Keeping `string` would reduce codegen churn but would also prevent R6 from declaring intended markdown rendering. Because plain text is markdown-compatible in practice, a less-breaking base design is not needed.",
+        "comparisonToExisting": "Disagree with the existing Medium impact; the concern is mostly tooling/rendering churn and should not be treated as a meaningful compatibility problem."
+      }
     },
     {
       "findingId": "TerminologyCapabilities:CONVERSION_OR_MAPPING:canonical-metadata-additions:0b55ad",
@@ -1134,7 +1218,21 @@
       "validationAndCompatibilityMd": "Existing R4 instances remain valid with respect to these additions. Valid R6 instances using these fields are not cleanly R4-representable without extensions.",
       "migrationGuidanceMd": "For R6-to-R4, decide whether to drop the fields, map them to standard or custom extensions, or preserve them in an out-of-band migration envelope. Pay special attention to `versionAlgorithm[x]` because losing it can affect version ordering.",
       "backwardCompatibilityAnalysisMd": "Adding optional elements is the least disruptive way to improve R6 expressivity, but not representable in R4. Extensions would be more backward-compatible but less convenient for R6 implementers.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "TerminologyCapabilities:CONVERSION_OR_MAPPING:canonical-metadata-additions:0b55ad",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional canonical-resource metadata fields such as `identifier`, `versionAlgorithm[x]`, and `copyrightLabel`. They do not invalidate R4 instances during R4-to-R6 migration. Down-converting an R6 instance to R4 can lose these fields, but that is expected for optional new metadata and does not indicate a problematic R6 base design.",
+        "keyEvidence": [
+          "R6 StructureDefinition adds optional `identifier` 0..*, `versionAlgorithm[x]` 0..1, and `copyrightLabel` 0..1.",
+          "No corresponding R4 base elements exist.",
+          "R6 terminology-server example uses `identifier`, showing possible but optional reverse-conversion loss."
+        ],
+        "fmmEffect": "R4 FMM 0 / trial-use softens any reverse-compatibility concern; these are metadata additions rather than central terminology-service behavior.",
+        "compatibilityMechanism": "R6-to-R4 loss: optional R6 metadata has no native R4 representation, but there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "Not adding the metadata would preserve down-conversion but would reduce R6 expressiveness. R4 extensions can mitigate conversion loss, but they are not a less-breaking base R6 design.",
+        "comparisonToExisting": "Partially agree that reverse conversion is lossy, but disagree with treating it as Medium overall impact; this is an additive optional metadata change."
+      }
     },
     {
       "findingId": "TerminologyCapabilities:CONVERSION_OR_MAPPING:supplement-support:7e0d4c",
@@ -1256,7 +1354,21 @@
       "migrationGuidanceMd": "Define a cross-version extension strategy if R4 clients must understand supplement support. Otherwise document the loss during R6-to-R4 conversion and avoid treating the R4 result as a faithful capability statement for terminology displays or designations.",
       "backwardCompatibilityAnalysisMd": "Native R6 elements are understandable for new clients but not backward-compatible with R4. A published extension could bridge both versions at the cost of weaker native support.",
       "reviewerNotesMd": "Assess alongside CodeSystem supplement and designation behavior in the broader terminology package.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "TerminologyCapabilities:CONVERSION_OR_MAPPING:supplement-support:7e0d4c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional capability declarations for CodeSystem supplements and global language-pack behavior. These fields can matter to multilingual terminology clients, and an R6-to-R4 bridge will lose them unless it uses extensions or side-channel policy. However, the change is additive for R4-to-R6 migration and represents new terminology-service functionality that R4 simply did not model.",
+        "keyEvidence": [
+          "R6 adds `codeSystem.supplement` and `codeSystem.version.supplement` canonical fields.",
+          "R6 adds `supplements.globals` with required binding to `global-langpack-support`.",
+          "R6 `global-langpack-support` codes are `not-supported`, `explicit`, and `implicit`; no native R4 elements correspond."
+        ],
+        "fmmEffect": "R4 FMM 0 / trial-use softens the down-conversion concern. I found only general terminology-server implementation evidence, not quick evidence that these specific R6 supplement declarations are already broadly exchanged.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 supplement and global language-pack capabilities cannot be represented natively in R4, though R4-to-R6 instances are not invalidated.",
+        "lessBreakingAlternativeAssessment": "Using only extensions or not adding the fields would be less visible to R4 down-converters but would undermine the R6 goal of computable supplement support. Because the additions are optional and model a real new capability, the base design appears proportionate.",
+        "comparisonToExisting": "Partially agree with the existing reverse-loss concern, but the low FMM and additive direction keep this below Revisit."
+      }
     },
     {
       "findingId": "TerminologyCapabilities:SEMANTIC_OR_CONFORMANCE_TEXT:TerminologyCapabilities.jurisdiction:5aa5e1",
@@ -1386,7 +1498,21 @@
       "validationAndCompatibilityMd": "This is not a hard validator break. Existing values remain structurally valid, but consumers may interpret the same data differently in R6.",
       "migrationGuidanceMd": "Review whether existing R4 `jurisdiction` values mean intended use or authority location. If they mean intended use, consider migrating them to `useContext` using the jurisdiction usage-context code while preserving authority jurisdiction separately if known.",
       "backwardCompatibilityAnalysisMd": "The semantic change was avoidable by introducing a separate authority-jurisdiction concept or relying on comments only. Because the element name is unchanged, implementers need explicit data-governance review.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "TerminologyCapabilities:SEMANTIC_OR_CONFORMANCE_TEXT:TerminologyCapabilities.jurisdiction:5aa5e1",
+        "judgment": "No problem",
+        "narrativeMd": "`TerminologyCapabilities.jurisdiction` keeps the same cardinality, type, and extensible jurisdiction binding, but R6 changes the wording from intended jurisdiction of use to jurisdiction of the maintaining authority and points intended-use jurisdiction toward `useContext`. This can require semantic attention during migration, but it is a documentation/meaning shift rather than a structural break.",
+        "keyEvidence": [
+          "R4 `jurisdiction` definition: legal/geographic region where the terminology capabilities is intended to be used.",
+          "R6 `jurisdiction` definition: jurisdiction of the maintaining authority, with a deprecation note recommending jurisdictional `useContext`.",
+          "Cardinality remains 0..*, type remains `CodeableConcept`, and binding remains extensible jurisdiction."
+        ],
+        "fmmEffect": "R4 FMM 0 / trial-use softens concern. Without evidence that this metadata path drives production safety, regulatory, or billing decisions, the semantic cleanup does not merit renewed standards attention.",
+        "compatibilityMechanism": "semantic/documentation: existing values may be reinterpreted unless migrated to `useContext`, but base validation and wire shape do not break.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the old intended-use meaning and added a separate maintainer-jurisdiction field, but that would add metadata surface area. Given the deprecation note and unchanged computable shape, the current design is acceptable.",
+        "comparisonToExisting": "Agree with the existing Low/no-hard-break assessment; the compatibility issue is semantic migration guidance rather than a design break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1598,5 +1724,19 @@
       "CanonicalResource metadata additions across resources",
       "CodeSystem supplement and global language-pack support"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/TerminologyCapabilities.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 4,
+      "No problem": 3
+    }
   }
 }

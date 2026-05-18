@@ -307,7 +307,22 @@
       "migrationGuidanceMd": "Define a policy for deriving `status`, commonly defaulting current usable records to `active`, mapping R4 `operationalStatus=entered-in-error` to `status=entered-in-error`, and using `unknown` only when lifecycle status genuinely cannot be determined. Test modifier handling explicitly, especially that entered-in-error records are not treated as active metrics.",
       "backwardCompatibilityAnalysisMd": "The change is understandable because it separates lifecycle validity from operational state, but making the field mandatory in the base resource is disruptive. A transition-compatible alternative would have been optional base status plus profile-level requiredness or an invariant warning.",
       "reviewerNotesMd": "Review defaulting rules carefully for historical or decommissioned metrics; an unconditional `active` default may be clinically or operationally misleading.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.status:0d4f3a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds `DeviceMetric.status` as a required modifier, so an unchanged R4 DeviceMetric will not validate and generated models must expose a new mandatory lifecycle field. The break is real, but the path separates record lifecycle from device operational state and gives entered-in-error/inactive status explicit modifier semantics. Given the low R4 maturity, this looks proportionate rather than a change that needs renewed design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `DeviceMetric.status` element.",
+          "R6 `DeviceMetric.status` is 1..1 code, required-bound to metric-status, `isModifier=true`, and summary.",
+          "R6 metric-status codes are active, inactive, entered-in-error, and unknown.",
+          "Lightweight web search found official/IG-level DeviceMetric and IEEE 11073 relevance, but no direct evidence of broad production deployment."
+        ],
+        "fmmEffect": "R4 DeviceMetric is FMM 1/trial-use, so the mandatory addition is not judged with mature-resource stability expectations. Safety relevance keeps it from being dismissed, but low FMM softens the concern.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen and R6-to-R4 loss: R4 instances lack the required field, R6 consumers must inspect the modifier, and R6 lifecycle values have no base R4 slot.",
+        "lessBreakingAlternativeAssessment": "Making status optional in base R6 or requiring it only in profiles would preserve legacy instances, but it would defeat the goal that every base DeviceMetric carries computable lifecycle/modifier state. That tradeoff makes the less-breaking design only partially acceptable.",
+        "comparisonToExisting": "partially agree with the existing high hard-break assessment and partial alternative judgment, but the prior report overstates broad prevalence for an FMM 1 resource."
+      }
     },
     {
       "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.device:7b61c0",
@@ -442,7 +457,22 @@
       "migrationGuidanceMd": "Choose a deterministic mapping rule. If R4 `parent` identifies the component that owns the metric, it may be the best R6 `device`; if only `source` is present, use `source`; if both are present and differ, inspect the Device hierarchy and preserve the other relationship on Device.parent or with an extension. Add tests for no reference, source-only, parent-only, and source-plus-parent cases.",
       "backwardCompatibilityAnalysisMd": "The single-reference design is cleaner and probably aligns with Device hierarchy modeling, but preserving optional deprecated aliases or publishing a ConceptMap-like structural transform would have reduced migration ambiguity.",
       "reviewerNotesMd": "The exact source/parent-to-device mapping may depend on how an implementation represented channels, modules, or containment trees in R4 Device resources.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.device:7b61c0",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 removes R4 `source` and `parent` and replaces them with required `device`. This breaks R4 instances that use either old reference and also breaks instances that omitted both. More importantly, conversion can require deciding whether the correct R6 reference is the source device, a channel/component device, or a reconstructed Device hierarchy; the reverse direction is similarly policy-dependent. Because device association is central to interpreting a metric and wrong association can affect patient-monitoring context, this deserves renewed review despite low R4 maturity.",
+        "keyEvidence": [
+          "R4 `DeviceMetric.source` is 0..1 Reference(Device) for the source/admin device.",
+          "R4 `DeviceMetric.parent` is 0..1 Reference(Device) for containment/location context.",
+          "R6 `DeviceMetric.device` is 1..1 Reference(Device) and states the referenced device may be top-level or a component.",
+          "R6 `Device.parent` exists as the hierarchy link for an encompassing device."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the general compatibility burden, but this path is central to the resource's actual use and migration can be lossy or require expert policy. Those factors overcome the low-FMM discount.",
+        "compatibilityMechanism": "old-valid/new-invalid plus R6-to-R4 loss: old reference names are invalid in R6, missing the new required reference is invalid, and a single R6 device reference does not always map back cleanly to R4 source versus parent.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have added `device` while retaining deprecated optional `source` and `parent`, or made `device` optional during transition with consistency guidance. That would introduce duplicate relationship paths and conflict rules, but the tradeoff may be justified for a central association path.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial-alternative analysis, but I judge the lossy central association change more concerning than probably justified."
+      }
     },
     {
       "findingId": "DeviceMetric:TERMINOLOGY_BINDING:DeviceMetric.operationalStatus:54ce8f",
@@ -603,7 +633,21 @@
       "validationAndCompatibilityMd": "This is a direct terminology validation break for R4 instances that used `entered-in-error`. R6 `unknown` cannot be represented as an R4 operationalStatus code under the required R4 value set, although a converter could omit the element with some semantic loss.",
       "migrationGuidanceMd": "Map R4 `operationalStatus=entered-in-error` to R6 `status=entered-in-error` and usually omit R6 `operationalStatus` unless a real operational state is known. For R6-to-R4, decide whether `unknown` should become omission, an extension, or a rejected conversion.",
       "backwardCompatibilityAnalysisMd": "The change is semantically cleaner but could have been phased by keeping the old code deprecated. Required bindings make code removal immediately breaking for strict validators.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DeviceMetric:TERMINOLOGY_BINDING:DeviceMetric.operationalStatus:54ce8f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The required value set for optional `operationalStatus` drops `entered-in-error` and adds `unknown`. This creates a validation break only for R4 instances that used the old entered-in-error operational code; the intended R6 representation is the new lifecycle `status=entered-in-error`, usually with operationalStatus absent unless a real operational state is known. The change cleans up a semantic overload and has a narrow affected instance set.",
+        "keyEvidence": [
+          "R4 `DeviceMetric.operationalStatus` is 0..1 code with required binding containing on, off, standby, entered-in-error.",
+          "R6 `DeviceMetric.operationalStatus` remains 0..1 code with required binding containing on, off, standby, unknown.",
+          "R6 separately adds `DeviceMetric.status` with entered-in-error as a lifecycle status."
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use makes a rare optional-code break less concerning, while the new status element provides a plausible migration target.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: the old entered-in-error code is no longer valid for operationalStatus, and R6 unknown has no exact R4 required-bound code.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained entered-in-error as a deprecated operationalStatus code, but that would keep record validity mixed with operational state and create contradiction risk with the new modifier status. The less-breaking option has meaningful semantic cost.",
+        "comparisonToExisting": "agree with the existing medium impact and partial alternative judgment, with low FMM further supporting that the break is probably acceptable."
+      }
     },
     {
       "findingId": "DeviceMetric:TYPE_DOMAIN:DeviceMetric.category:19b7e1",
@@ -754,7 +798,21 @@
       "migrationGuidanceMd": "Wrap standard R4 codes in `CodeableConcept.coding` with system `http://hl7.org/fhir/metric-category`. For R6-to-R4, prefer a coding from that system and a code available in R4; otherwise use an extension, manual mapping, or reject lossy conversion.",
       "backwardCompatibilityAnalysisMd": "The richer type is likely useful, but a mandatory primitive-to-complex-type replacement is avoidably disruptive if backward wire compatibility is a priority. A transition element or cross-version extension would have reduced risk.",
       "reviewerNotesMd": "Because the binding was weakened from required to extensible, local profiles may need to restore stricter coding if downstream systems assume the R4 enum.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceMetric:TYPE_DOMAIN:DeviceMetric.category:19b7e1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`category` remains mandatory but changes from a primitive code to a CodeableConcept with an extensible binding. That is a wire-format and generated-API break for every conformant R4 instance, but the core category codes are unchanged and straightforward R4-to-R6 migration can wrap the old code as a coding. R6-to-R4 can lose extra codings or text, but the change is a common enrichment of terminology representation rather than an obvious design error.",
+        "keyEvidence": [
+          "R4 `DeviceMetric.category` is 1..1 primitive code with required metric-category binding.",
+          "R6 `DeviceMetric.category` is 1..1 CodeableConcept with extensible metric-category binding.",
+          "Local R4 and R6 metric-category code systems both include measurement, setting, calculation, and unspecified."
+        ],
+        "fmmEffect": "Because the R4 resource was FMM 1/trial-use, the mandatory wire-shape change is softened unless there is evidence of widespread production reliance. The field is central, but migration of ordinary R4 codes is mechanical.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: a primitive string representation is invalid where R6 expects CodeableConcept, and generated client/server types change.",
+        "lessBreakingAlternativeAssessment": "Keeping the primitive `category` and adding a richer companion element or choice would preserve R4 wire compatibility, but it would create duplicate representations and precedence rules for a required classification. The less-breaking design is plausible but not clearly better.",
+        "comparisonToExisting": "partially agree: the prior report correctly identified a hard/API break and partial alternative, but its high impact should be tempered by low FMM and mechanical migration for the standard codes."
+      }
     },
     {
       "findingId": "DeviceMetric:TERMINOLOGY_BINDING:DeviceMetric.color:3a91bd",
@@ -980,7 +1038,21 @@
       "migrationGuidanceMd": "Map the eight R4 metric-color codes to matching `http://hl7.org/fhir/color-names` codes when possible. For RGB or non-R4 named colors, use an extension or preserve the original R6 CodeableConcept outside the R4 base element. Test terminology validation against the R6 ballot package's color-codes ValueSet.",
       "backwardCompatibilityAnalysisMd": "The broader color terminology is sensible, but omitting the old metric-color system or an explicit ConceptMap makes migration more brittle than necessary.",
       "reviewerNotesMd": "The R6 `color-rgb` CodeSystem has content `not-present`; expansion behavior may depend on terminology server support for that code system.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceMetric:TERMINOLOGY_BINDING:DeviceMetric.color:3a91bd",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`color` changes from an optional primitive metric-color code to an optional CodeableConcept using the general color-codes value set. Existing R4 instances with color need transformation, and many R6 colors cannot downgrade to the R4 eight-code domain. Still, this is optional display metadata with low safety weight, and the R4 color names map naturally into the broader R6 color-names system.",
+        "keyEvidence": [
+          "R4 `DeviceMetric.color` is 0..1 code with required binding to eight metric-color codes.",
+          "R6 `DeviceMetric.color` is 0..1 CodeableConcept with required binding to color-codes and is no longer summary.",
+          "R6 color-codes includes color-names and color-rgb; color-names contains 148 named colors including black and blue."
+        ],
+        "fmmEffect": "FMM 1/trial-use and the optional display-only nature of the field substantially reduce the need for standards reconsideration, even though instances using the field need a transform.",
+        "compatibilityMechanism": "old-valid/new-invalid plus R6-to-R4 loss: the primitive R4 code shape is invalid in R6 and expanded R6 colors or RGB values cannot always be represented in R4.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have kept the old primitive `color` as deprecated and added a richer CodeableConcept color field. That alternative is real and relatively low cost, but it still introduces two color representations for optional display preference data.",
+        "comparisonToExisting": "partially agree: I agree a less-breaking base design exists, but I would not carry forward the existing high impact concern for an optional low-safety FMM 1 path."
+      }
     },
     {
       "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.measurementFrequency:8fb2d4",
@@ -1124,7 +1196,21 @@
       "migrationGuidanceMd": "Convert simple periodic Timing.repeat forms to UCUM-like frequency Quantities where possible, document assumptions, and route complex schedules for manual review or extension preservation. Include tests for simple hourly cadence, sub-second cadence, non-time-based cadence, and complex Timing patterns.",
       "backwardCompatibilityAnalysisMd": "The R6 model is clearer for metric frequency but could have been introduced alongside the existing Timing field to support gradual migration.",
       "reviewerNotesMd": "Confirm the intended UCUM representation for frequencies in local implementation guidance; the base StructureDefinition does not bind `measurementFrequency` to a value set.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.measurementFrequency:8fb2d4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 removes optional `measurementPeriod` Timing and adds optional `measurementFrequency` Quantity. R4 instances that populate measurementPeriod do not validate without transformation, and complex Timing patterns may not reduce cleanly to one Quantity. The R6 definition and device-standard mappings indicate a narrower frequency/determination-period concept, so the design goal is plausible and retaining both cadence fields would create conflict rules.",
+        "keyEvidence": [
+          "R4 `DeviceMetric.measurementPeriod` is 0..1 Timing and summary.",
+          "R6 `DeviceMetric.measurementFrequency` is 0..1 Quantity and not summary.",
+          "R6 mappings reference BICEPS MetricDescriptor/DeterminationPeriod and DIM Measure-Period or update-period."
+        ],
+        "fmmEffect": "Low R4 FMM softens the break, but the path can matter for device monitoring cadence. Because it is optional and the R6 model has a clear standards-mapping goal, the concern remains probably acceptable.",
+        "compatibilityMechanism": "old-valid/new-invalid and possible R6-to-R4 loss: the old element name/type is gone, and Timing schedules and Quantity frequencies are not fully equivalent in either direction.",
+        "lessBreakingAlternativeAssessment": "R6 could have added `measurementFrequency` while retaining deprecated `measurementPeriod`, but two cadence fields can disagree and Timing is broader than the R6 frequency concept. The alternative preserves more data but has non-trivial modeling cost.",
+        "comparisonToExisting": "agree with the existing medium impact and partial alternative assessment, with explicit FMM tempering."
+      }
     },
     {
       "findingId": "DeviceMetric:TYPE_DOMAIN:DeviceMetric.calibration:bd4e02",
@@ -1322,7 +1408,21 @@
       "migrationGuidanceMd": "Wrap calibration type and state codes using their HL7 code systems. Map R4 `state=unspecified` to R6 `unknown` only if the business meaning is acceptable; otherwise preserve the original code in an extension or alternate coding and flag for review. For reverse conversion, select one R4-supported coding or preserve the R6 CodeableConcept externally.",
       "backwardCompatibilityAnalysisMd": "The richer representation is probably reasonable for calibration metadata, but it could have been phased through extensions or deprecated primitive fields.",
       "reviewerNotesMd": "Because bindings are extensible, local profiles may need to constrain allowed calibration codings if R4-style enum behavior is required.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DeviceMetric:TYPE_DOMAIN:DeviceMetric.calibration:bd4e02",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Calibration entries still exist, but `calibration.type` and `calibration.state` move from optional primitive codes with required bindings to optional CodeableConcepts with extensible bindings, and state changes from unspecified to unknown. R4 calibration content needs structural wrapping and possible code mapping, while richer R6 codings may not downgrade losslessly. Because the backbone is optional and the ordinary code wrapping is straightforward, the break looks proportionate for an FMM 1 resource.",
+        "keyEvidence": [
+          "R4 `DeviceMetric.calibration.type` and `.state` are 0..1 primitive code elements with required bindings.",
+          "R6 `DeviceMetric.calibration.type` and `.state` are 0..1 CodeableConcept elements with extensible bindings.",
+          "R4 calibration-state includes unspecified; R6 calibration-state includes unknown instead."
+        ],
+        "fmmEffect": "Calibration can be safety-relevant, but the affected children are optional and the resource was FMM 1/trial-use. That favors accepting a richer representation unless migration evidence shows broader harm.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen and R6-to-R4 loss: primitive calibration codes are invalid in the new shape, generated types change, and extra R6 codings/text may not collapse to R4 codes.",
+        "lessBreakingAlternativeAssessment": "Keeping primitive calibration type/state as deprecated aliases while adding CodeableConcept fields would preserve R4 instances, but it would duplicate facts inside a repeating backbone and require precedence rules, especially for unspecified versus unknown. The tradeoff is significant.",
+        "comparisonToExisting": "agree with the existing medium impact and partial alternative judgment, while treating low FMM as a reason not to escalate."
+      }
     },
     {
       "findingId": "DeviceMetric:FLAGS_AND_MODIFIERS:summary-flags:aa6e71",
@@ -1449,7 +1549,21 @@
       "validationAndCompatibilityMd": "Full instances remain valid based on content, but summary serialization can omit fields that R4 summary clients expected. This affects REST behavior and generated summary DTOs rather than base instance representability.",
       "migrationGuidanceMd": "Audit clients and servers that rely on `_summary=true`, generated summary classes, or summary indexing. Request full resources or explicit `_elements` for color, measurementFrequency, and calibration data when needed.",
       "backwardCompatibilityAnalysisMd": "The change could have been avoided by keeping summary flags stable, but summary selection is partly a design judgment about payload importance. The absence of narrative rationale limits assessment.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DeviceMetric:FLAGS_AND_MODIFIERS:summary-flags:aa6e71",
+        "judgment": "No problem",
+        "narrativeMd": "The summary-flag changes do not make any instance invalid and do not remove the underlying data from full resource reads. They can change default `_summary` payloads or generated summary views, but clients that need color, calibration, or cadence information can request the full resource or explicit elements. With an FMM 1 R4 resource and no evidence of production dependence on DeviceMetric summaries, this is metadata/runtime summary churn rather than a compatibility issue needing action.",
+        "keyEvidence": [
+          "R4 marks color, measurementPeriod, calibration, calibration.type, calibration.state, and calibration.time as summary elements.",
+          "R6 marks color, measurementFrequency, calibration, calibration.type, calibration.state, and calibration.time as not summary.",
+          "No cardinality or datatype validation break is caused solely by the summary flags."
+        ],
+        "fmmEffect": "Low maturity strongly softens this non-instance-breaking concern; absent evidence of summary-response reliance, FMM 1 favors no action.",
+        "compatibilityMechanism": "metadata/tooling with limited runtime/API summary behavior: `_summary` and generated summary views may differ, but base instances remain representable.",
+        "lessBreakingAlternativeAssessment": "Keeping the R4 summary flags would be more compatible for summary clients, but the compatibility benefit is speculative and would preserve a larger default summary surface. A separate lean-summary convention is implementation policy, not a necessary base design.",
+        "comparisonToExisting": "disagree with the existing medium runtime concern; the evidence supports a much lower practical risk and no need for revisit."
+      }
     },
     {
       "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.availability:6c2a44",
@@ -1585,7 +1699,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken by this optional addition. R6-to-R4 conversion loses the element unless an extension or sidecar mapping is used.",
       "migrationGuidanceMd": "When downgrading R6 to R4, preserve `availability` in a cross-version extension if the receiving system needs the distinction. When upgrading R4 to R6, leave it absent unless availability can be derived reliably.",
       "backwardCompatibilityAnalysisMd": "This is the least disruptive kind of change in the forward direction. Reverse compatibility necessarily requires an extension because R4 lacks the concept.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.availability:6c2a44",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `availability`; R4 content remains valid with respect to this path because the element can be absent. R6-to-R4 downgrade can lose availability if it is used, but that is a reverse-only information loss for new R6 content rather than a break in migrating R4 DeviceMetric instances.",
+        "keyEvidence": [
+          "R4 DeviceMetric has no `availability` element.",
+          "R6 `DeviceMetric.availability` is 0..1 CodeableConcept with extensible metric-availability binding.",
+          "R6 metric-availability codes are intr, cont, and unknown."
+        ],
+        "fmmEffect": "FMM 1/trial-use reinforces that an optional additive element with only downgrade loss should not be elevated.",
+        "compatibilityMechanism": "R6-to-R4 loss only: new R6 availability data has no base R4 slot, but R4-to-R6 validation is not broken.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed because the field is optional. Downgrade extensions or sidecar mappings are migration mitigations, not better R6 base designs.",
+        "comparisonToExisting": "agree with the existing low impact and not-applicable alternative assessment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1771,5 +1899,19 @@
       "R4 Timing cadence elements converted to Quantity frequency elements",
       "R4 resource-specific color codes replaced by shared color-codes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DeviceMetric.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 6,
+      "No problem": 2
+    }
   }
 }

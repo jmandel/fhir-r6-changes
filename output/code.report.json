@@ -318,7 +318,22 @@
       "migrationGuidanceMd": "Scan serialized JSON and XML after parsing for code-valued primitives containing tabs, newlines, carriage returns, or other non-space whitespace. For unbound or locally governed codes, decide whether replacing each non-space whitespace separator with a single space preserves the intended code. For terminology-bound fields, validate against the binding after any cleanup and quarantine values that are not known codes. Add regression tests for `alpha beta`, `alpha\\tbeta`, leading/trailing whitespace, and repeated spaces.",
       "backwardCompatibilityAnalysisMd": "The breaking behavior was probably avoidable technically, but not necessarily desirable. R6 could have preserved `\\s` and added a warning-level rule, which would be easier for legacy data. However, because the prose definition already limited whitespace to single spaces, the R6 regex likely closes a conformance gap rather than introducing a new semantic requirement.",
       "reviewerNotesMd": "The old-valid/new-invalid example assumes the validator's interpretation of `\\s` includes tab and similar whitespace characters. Most common regex engines do, but official FHIR regex processing details and rendered narrative could refine the exact boundary.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "code:VALUE_CONSTRAINT:code.value:7b4e2a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 narrows `code.value` by changing the internal separator in the regex from regex whitespace to a literal U+0020 space. That can be a real R4-to-R6 validation break for a JSON value such as `alpha\\tbeta` if an R4 validator applies the R4 `\\s` regex in the usual way. The affected class is narrow, though, and the root `code` definition in both R4 and R6 already says there is no whitespace other than single spaces. For a normative primitive this deserves scrutiny, but the change looks like making the computable rule match the already-stated datatype semantics rather than introducing a new business rule.",
+        "keyEvidence": [
+          "R4 StructureDefinition-code.json `code.value` regex in snapshot and differential is `[^\\s]+(\\s[^\\s]+)*`.",
+          "R6 StructureDefinition-code.json `code.value` regex in snapshot and differential is `[^\\s]+( [^\\s]+)*`.",
+          "R4 and R6 `code` root definitions both state that the contents have no whitespace other than single spaces.",
+          "R4 StructureDefinition and viewer/r4-maturity.json mark `code` as normative with normativeVersion 4.0.0."
+        ],
+        "fmmEffect": "The supplied R4 maturity/status context is normative, so even a narrow hard validation break has a high stability burden. That burden is substantially reduced here because the invalidated values were already contrary to the unchanged normative prose definition.",
+        "compatibilityMechanism": "old-valid/new-invalid: a code lexical value containing a tab, newline, or other non-space whitespace between token runs can pass the R4 regex in common regex engines but fail the R6 regex; validators and generated primitive validation helpers are the main runtime surface.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design could have retained the R4 `\\s` regex for one release and added warning-level guidance that only ordinary spaces are conformant. That would preserve rare legacy values, but it would leave base validators accepting data the datatype definition says should not exist across a widely used normative primitive. I do not see a low-cost alternative that both preserves those old-valid instances and achieves the same computable enforcement goal.",
+        "comparisonToExisting": "agree with the existing medium-impact/probably-justified direction and its partial less-breaking-alternative assessment. The independent review confirms the hard regex narrowing but treats it as proportionate because R6 aligns the computable constraint with unchanged single-space prose."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -495,5 +510,17 @@
       "Primitive `*.value` regex changes should be tested in shared validators and generated model libraries.",
       "Snapshot `structuredefinition-fhir-type` extension corrections can affect metadata-driven code generators even when wire serialization is unchanged."
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/code.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1
+    }
   }
 }

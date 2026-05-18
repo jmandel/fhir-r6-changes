@@ -262,7 +262,23 @@
       "validationAndCompatibilityMd": "An R4-valid `id` instance does not become invalid solely because of this metadata change. Valid R6 `id` values remain representable in R4 because the regex, cardinality, and primitive string representation are unchanged. The compatibility issue is runtime/tooling-oriented: strict generated-code tests, schema snapshots, primitive-type registries, or serializer dispatch tables may need to account for `id` rather than `string` as the fhir-type annotation.",
       "migrationGuidanceMd": "Review generators and validators that read `snapshot.element[].type[].extension` for primitive fhir-type metadata. Prefer the canonical StructureDefinition type and the local regex for validation, and add regression tests that confirm `id` values are still accepted as strings on the wire while preserving the specific primitive metadata where the R6 model expects `id`.",
       "backwardCompatibilityAnalysisMd": "The change was probably necessary to make the snapshot internally consistent with the `id` datatype and with the R4/R6 differentials. A backward-compatible alternative would have been to keep the R4 snapshot's `string` annotation, but that would continue to obscure the difference between the base scalar representation and the specialized FHIR primitive.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "id:SERIALIZATION_OR_CODEGEN:id.value:4b8c2f",
+        "judgment": "No problem",
+        "narrativeMd": "The actual R4-to-R6 change is limited to the snapshot metadata extension on `id.value`: R4's snapshot labels the value's FHIR type as `string`, while R6 labels it as `id`. The primitive still has the same FHIRPath scalar type, cardinality, regex, and wire representation, and even the R4 differential already used `id`. A snapshot-only generator or metadata regression test may need to update an expectation, but an R4-valid `id` value does not become invalid and ordinary serializers do not need a data migration. At this path level, this is metadata/tooling churn from correcting an inconsistent computable annotation rather than a meaningful compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition-id.json snapshot `id.value` has `structuredefinition-fhir-type` valueUrl `string`.",
+          "R4 differential for the same `id.value` element already has `structuredefinition-fhir-type` valueUrl `id`.",
+          "R6 snapshot and differential both have `id.value` `structuredefinition-fhir-type` valueUrl `id`.",
+          "R4 and R6 both keep `id.value` as FHIRPath `System.String` with regex `[A-Za-z0-9\\-\\.]{1,64}` and cardinality 0..1.",
+          "R4 maturity/status evidence checked: `id` is normative with normative version 4.0.0."
+        ],
+        "fmmEffect": "The R4 artifact is normative, so true instance, API, or semantic breaks would carry a high stability burden. Here that pressure is softened by the narrow mechanism: the change aligns snapshot metadata with the datatype identity and with the existing R4 differential without changing accepted values or serialization.",
+        "compatibilityMechanism": "metadata/tooling: a consumer that treats the R4 snapshot `structuredefinition-fhir-type=string` annotation as an exact expected value may see churn, but this is not an old-valid/new-invalid instance break, not R6-to-R4 data loss, and not a runtime API removal.",
+        "lessBreakingAlternativeAssessment": "A base R6 design could have preserved the R4 snapshot marker as `string`, but that would intentionally keep the snapshot inconsistent with the primitive's canonical `id` identity and with the differential. Adding duplicate metadata would create multiple sources of truth for generic tooling. The cleaner R6 correction is proportionate because the wire format and value space are unchanged.",
+        "comparisonToExisting": "partially agree with the existing low impact assessment and the conclusion that the change is probably justified; I would classify the less-breaking alternative as not worth preserving for base R6 rather than a meaningful partial alternative, because it mainly retains an inconsistent metadata marker."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -425,5 +441,17 @@
       "Primitive datatype snapshot fhir-type annotations that changed from a base scalar to the specialized primitive type",
       "Inherited Element and Extension constraint presentation changes visible in primitive datatype snapshots"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/id.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

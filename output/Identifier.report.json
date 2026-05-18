@@ -335,7 +335,22 @@
       "validationAndCompatibilityMd": "An R4 instance without `Identifier.value` is not automatically invalid in R6, but an R6 validator that reports warnings will now flag it. Strict CI or import policies that escalate warnings to failures can experience runtime or workflow breaks. R6 content that uses `_value.extension` to explain the absent value is structurally representable in R4 if the extension is accepted, but systems must not assume the identifier can be used for matching without an actual value.",
       "migrationGuidanceMd": "Audit Identifier instances with missing `value`. If the value is truly unknown, suppressed, or masked, consider representing that explicitly on the `value` primitive element with a data-absent-reason-style extension and document downstream matching behavior. Test validators and ingestion pipelines with warning handling enabled so warning-as-error policies are discovered before production migration.",
       "backwardCompatibilityAnalysisMd": "Because the change is a warning rather than an error, it is a backward-compatible way to signal a quality issue while preserving exchange of legacy data. A fully backward-compatible alternative would be prose-only guidance, but that would not give automated validators a consistent signal.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Identifier:VALUE_CONSTRAINT:Identifier:ident-1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds a computable warning invariant on the root `Identifier` requiring `value.exists()`, while leaving `Identifier.value` optional. This is not an old-valid/new-invalid structural break, but warning-aware validators and warning-as-error import pipelines can newly flag R4 identifiers that carry only `system`, `type`, `assigner`, or extensions. The change is proportionate because a value-less identifier is usually weak for matching, auditing, and deduplication, and R6 chose warning severity rather than making `value` mandatory.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-Identifier.json` root `Identifier` has only inherited `ele-1` as a constraint.",
+          "R6 `StructureDefinition-Identifier.json` root `Identifier` adds `ident-1` with severity `warning`, expression `value.exists()`, and text about limited utility when no value is present.",
+          "R6 keeps `Identifier.value` cardinality `0..1` and links it to condition `ident-1`.",
+          "R4 Identifier is normative in the StructureDefinition extension, with normative version 4.0.0."
+        ],
+        "fmmEffect": "Identifier is normative, so even warning-level behavior on a central datatype deserves attention; however, warning severity and unchanged cardinality substantially limit the compatibility concern.",
+        "compatibilityMechanism": "warning-level; R4 instances remain structurally valid in R6, but validator output and warning-as-error operational policies can change.",
+        "lessBreakingAlternativeAssessment": "A prose-only recommendation would be less disruptive because validators would not emit a new base warning, but it would not provide the same uniform automated signal for ambiguous value-less identifiers. Making the invariant informational or profile-only would similarly preserve more legacy behavior while weakening the R6 data-quality goal.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that this is not a hard instance break and that prose-only guidance is only a partial alternative, but I would characterize the practical impact as warning-level rather than a broadly medium break."
+      }
     },
     {
       "findingId": "Identifier:SEMANTIC_OR_CONFORMANCE_TEXT:Identifier.system:absolute-url",
@@ -472,7 +487,22 @@
       "migrationGuidanceMd": "Inventory `Identifier.system` values. Replace local or relative namespaces with stable absolute URLs, preferably the identifier system URL from the FHIR/THO/affiliate registry when applicable. Regression-test matching, deduplication, token search, and downstream routing because changing `system` values can alter token identity even when `value` is unchanged. Where historical values cannot be rewritten, preserve provenance and document crosswalks from old local systems to canonical systems.",
       "backwardCompatibilityAnalysisMd": "The same goal could have been approached with profile-specific requirements or a warning invariant, but base-level text is a defensible interoperability choice because `Identifier.system` is foundational to token identity across all resources. The tradeoff is that old local practices become visibly non-conformant even without a computable validation error.",
       "reviewerNotesMd": "The local package did not include the referenced `identifier-registry.html` page, so reviewers should confirm which identifier types have mandatory registered systems before classifying partner-specific data as non-conformant.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Identifier:SEMANTIC_OR_CONFORMANCE_TEXT:Identifier.system:absolute-url",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 does not change the wire element, cardinality, or primitive type for `Identifier.system`, but it tightens the base text from a URL namespace to an absolute URL namespace and adds SHALL-level registry language for certain identifier types. That can make old local, relative, or ad hoc system values non-conformant under stricter R6 review even when generic StructureDefinition validation still accepts the `uri` string. The change is credible because `system` is the namespace half of token identity; allowing non-global or non-canonical systems undermines matching and partner interoperability.",
+        "keyEvidence": [
+          "R4 `Identifier.system` is `0..1` type `uri` and defines the namespace as `a URL that describes a set values that are unique`.",
+          "R6 `Identifier.system` remains `0..1` type `uri` but defines the namespace as `an absolute URL that describes a set values that are unique`.",
+          "R6 `Identifier.system` comment adds that FHIR, terminology.hl7.org, and HL7 affiliates define identifier systems that SHALL be used for certain types of identifiers.",
+          "R4 and R6 `StructureDefinition-uri.json` both use the same broad `\\S*` primitive regex, so the local computable type does not enforce absolute-URL syntax."
+        ],
+        "fmmEffect": "Identifier is normative, so stronger conformance text on a foundational identifier field has a high justification burden. The burden is met enough here because the field's core purpose is globally stable token identity, though the exact registry scope remains policy-dependent.",
+        "compatibilityMechanism": "semantic/documentation; no local cardinality, type, or invariant change occurs, but stricter conformance policies may treat some R4-era `system` values as no longer acceptable.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the R4 wording and used SHOULD-level or profile-specific registry guidance, which would reduce pressure on legacy local namespaces. That would be less breaking, but it would also leave base identifier matching less predictable and would not fully meet the goal of canonical system use for known identifier types.",
+        "comparisonToExisting": "partially agree: I agree there is a real policy/conformance migration risk and that softer guidance is only a partial alternative, but I treat the mechanism as semantic and validator-policy dependent rather than a clear hard instance break from the core StructureDefinition alone."
+      }
     },
     {
       "findingId": "Identifier:TERMINOLOGY_BINDING:Identifier.use:usual-definition",
@@ -668,7 +698,22 @@
       "validationAndCompatibilityMd": "No R4 instance becomes invalid solely because of this binding update: the codes are unchanged and the binding strength remains required. R6 instances using the same codes are representable in R4. Runtime risk arises in enum documentation, generated terminology metadata, switch statements with embedded definitions, and business rules that infer priority among `usual`, `official`, and `temp`.",
       "migrationGuidanceMd": "Refresh generated terminology artifacts and documentation for `IdentifierUse`. Add tests for resources containing both `official` and `usual` identifiers and confirm display/selection logic chooses the intended identifier. No code-value transform is needed unless local business rules encoded an interpretation of `usual` inconsistent with the R6 definition.",
       "backwardCompatibilityAnalysisMd": "This was largely backward compatible because no code was removed and no binding strength was increased. The same clarification could have been left as narrative-only guidance, but changing the CodeSystem definition is the right place if the intended meaning of a required code has evolved.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Identifier:TERMINOLOGY_BINDING:Identifier.use:usual-definition",
+        "judgment": "No problem",
+        "narrativeMd": "`Identifier.use` keeps the same path, modifier flag, cardinality, required binding strength, and five code values. The only material change is the CodeSystem definition of `usual`, which now says it is the display/use identifier when different from the official identifier. That can prompt applications to review display or selection logic, but existing R4 instances using `usual`, `official`, `temp`, `secondary`, or `old` remain code-valid in R6.",
+        "keyEvidence": [
+          "R4 `Identifier.use` is `0..1` code, modifier, required-bound to `http://hl7.org/fhir/ValueSet/identifier-use|4.0.1`.",
+          "R6 `Identifier.use` is still `0..1` code, modifier, required-bound to `http://hl7.org/fhir/ValueSet/identifier-use|6.0.0-ballot4`.",
+          "R4 and R6 `ValueSet-identifier-use.json` both include the same CodeSystem without added or removed codes.",
+          "R4 `CodeSystem-identifier-use#usual` says recommended for display and real-world use; R6 adds that this applies when different from the `official` identifier."
+        ],
+        "fmmEffect": "Normative status makes semantic drift worth checking, but the stable required code set and unchanged element shape keep the compatibility burden low.",
+        "compatibilityMechanism": "semantic/documentation; code values and binding strength are stable, with only terminology definition text changing.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for R4-to-R6 instance compatibility. Leaving the R4 definition unchanged would avoid semantic clarification, but it is not an alternative to a structural or code-set break because no such break occurred.",
+        "comparisonToExisting": "agree: the existing report's low-impact/no-hard-break assessment and not-applicable alternative judgment match the fresh path-level review."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -854,5 +899,18 @@
       "Required terminology bindings with unchanged code sets but changed code definitions",
       "Identifier.system canonical URL and registry conformance across resource search/token implementations"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Identifier.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

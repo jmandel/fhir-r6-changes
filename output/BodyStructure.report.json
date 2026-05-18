@@ -295,7 +295,21 @@
       "migrationGuidanceMd": "Create `includedStructure[0].structure` from R4 `location` when present. If location is absent, derive it, reject the record for R6, or use an implementation-specific extension/profile policy. Test missing, single, and multiple anatomy cases.",
       "backwardCompatibilityAnalysisMd": "The expressive model appears justified, but mandatory adoption and removal of the old path are the breaking parts. Deprecated root aliases and consistency checks would have been less disruptive but more ambiguous.",
       "reviewerNotesMd": "Human review is needed for records without location and for systems deciding whether multiple R6 included structures are allowed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.includedStructure.structure:0d7e41",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 represented the anatomical site at optional root `BodyStructure.location`; R6 replaces that with required repeating `includedStructure`, whose `structure` is 1..1. A raw R4 instance using `location` is not R6-shaped, and an R4 instance with only patient/description has no obvious required R6 structure to populate. For ordinary single-site instances the migration is usually mechanical, and the R6 goal of supporting multiple included/excluded structures with per-structure details is coherent.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `BodyStructure.location` is 0..1 CodeableConcept with example body-site binding.",
+          "R6 StructureDefinition: `BodyStructure.includedStructure` is 1..* and `includedStructure.structure` is 1..1 CodeableConcept.",
+          "HL7 mCODE Tumor Profile v4.0.0 profiles R4 BodyStructure for tumor tracking and makes `BodyStructure.location` 1..1 must-support."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens the stability expectation. mCODE shows real oncology use of the path, so the break is not dismissed, but the low base maturity and coherent remodel keep it below Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: old wire instances with root `location` and no R6 `includedStructure.structure` need transformation before R6 validation; generated paths and queries also change.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could retain root `location` as a deprecated alias while adding `includedStructure`, but that creates duplicate site representations and precedence rules once multiple structures or excluded structures exist. That alternative is only partial and has material model-cleanliness cost.",
+        "comparisonToExisting": "partially agree: I agree with the existing hard-break concern and partial-alternative assessment, but the FMM 1 context and duplicate-representation tradeoff make the break probably acceptable."
+      }
     },
     {
       "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.morphology:9a35b2",
@@ -456,7 +470,21 @@
       "migrationGuidanceMd": "Move R4 `morphology` into the `includedStructure` created from `location`. Down-converters should reject, extend, or manually review R6 instances with more than one distinct morphology.",
       "backwardCompatibilityAnalysisMd": "The move is semantically clean, but a deprecated root alias could have preserved simple old instances at the cost of ambiguity.",
       "reviewerNotesMd": "The bodystructure-code ValueSet compose changed as well; see the terminology finding.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.morphology:9a35b2",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 had optional root `BodyStructure.morphology`; R6 removes the root element and adds `includedStructure.morphology`. Existing instances, FHIRPath, generated models, and profiles that refer to the root path must be updated. For a single included structure the data move is mostly mechanical, while the R6 design usefully scopes morphology to the anatomical component it describes.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `BodyStructure.morphology` is 0..1 CodeableConcept.",
+          "R6 StructureDefinition: `BodyStructure.includedStructure.morphology` is 0..1 CodeableConcept and no root `morphology` exists.",
+          "HL7 mCODE Tumor Profile v4.0.0 uses R4 `BodyStructure.morphology` as a must-support tumor element with an extensible tumor morphology binding."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use lowers the compatibility burden for base redesign. The mCODE evidence shows implementation relevance, so this remains a real migration issue rather than harmless churn.",
+        "compatibilityMechanism": "old-valid/new-invalid: old instances and generated APIs using root `morphology` need path migration to `includedStructure.morphology`.",
+        "lessBreakingAlternativeAssessment": "R6 could keep root `morphology` as a deprecated single-structure shortcut, but it would be ambiguous or conflicting when an instance has multiple included structures. The alias would preserve simple R4 instances but at the cost of two ways to represent the same morphology fact.",
+        "comparisonToExisting": "partially agree: I agree that the old path is broken and the alternative is only partial; I would emphasize the mCODE impact but still consider the redesign proportionate."
+      }
     },
     {
       "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.locationQualifier:47c68d",
@@ -688,7 +716,22 @@
       "migrationGuidanceMd": "Classify each R4 qualifier. Map true laterality to `includedStructure.laterality`, retained relative-location qualifiers to `includedStructure.qualifier`, and landmark-specific data to `bodyLandmarkOrientation` only when source data supports that meaning.",
       "backwardCompatibilityAnalysisMd": "The split improves semantic precision, but preserving `locationQualifier` as a deprecated catch-all would have avoided direct instance breakage at the cost of continued ambiguity.",
       "reviewerNotesMd": "Laterality migration needs clinical/terminology review because no official ConceptMap was available locally.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.locationQualifier:47c68d",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `locationQualifier` was a repeatable root catch-all for laterality, relative location, directionality, number, and plane. R6 removes that path and splits the content across per-structure `qualifier`, `laterality`, and landmark-orientation fields. The structural goal is reasonable, but migration is not just a rename: laterality and qualifier codes may need clinical/terminology classification, and mistakes in laterality are safety-significant.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `BodyStructure.locationQualifier` is 0..* CodeableConcept and its definition explicitly includes laterality.",
+          "R6 StructureDefinition: `includedStructure.qualifier` is 0..*, `includedStructure.laterality` is 0..1, and landmark-orientation subelements are separate.",
+          "R4 relative-location ValueSet includes Unilateral left/right and Bilateral; R6 moves Bilateral plus Left/Right qualifier values into `bodystructure-laterality` and changes the relative-location list.",
+          "HL7 mCODE Tumor Profile v4.0.0 uses R4 `BodyStructure.locationQualifier` as a must-support element with a required body-location/laterality qualifier value set."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use would normally soften a structural break, but the path carries clinical laterality and has official oncology IG use. That safety and implementation evidence raises the need for a more compatibility-conscious transition.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old root field is no longer valid, and correct migration may require classifying each qualifier as laterality, generic qualifier, or landmark orientation rather than copying a property name.",
+        "lessBreakingAlternativeAssessment": "A transitional base design could retain deprecated root `locationQualifier` for one release or explicitly allow legacy qualifier concepts in the new split fields while recommending the structured destinations. This would preserve old instances and reduce laterality-mapping risk, with tradeoffs of duplicate representations and precedence rules. Given the safety relevance, that tradeoff deserves renewed standards review.",
+        "comparisonToExisting": "partially agree: I agree that the split has a valid modeling goal and only a partial alternative, but I rate the current design more concerning than the existing report because of laterality safety and mCODE usage."
+      }
     },
     {
       "findingId": "BodyStructure:CARDINALITY:BodyStructure.patient:5fb7c4",
@@ -822,7 +865,21 @@
       "validationAndCompatibilityMd": "R4 instances remain valid with respect to `patient` in R6. A valid R6 BodyStructure without `patient` is not R4-representable unless a patient can be supplied from trusted context.",
       "migrationGuidanceMd": "R6-to-R4 transforms must require a patient reference, derive it from trusted context, or reject conversion. R6 generated-code users should treat patient as nullable.",
       "backwardCompatibilityAnalysisMd": "The relaxation could have been avoided by using profiles for patientless cases, preserving down-conversion at the cost of constraining the base model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "BodyStructure:CARDINALITY:BodyStructure.patient:5fb7c4",
+        "judgment": "No problem",
+        "narrativeMd": "R6 relaxes `BodyStructure.patient` from required to optional. This does not make any R4 instance invalid in R6, because every R4-valid instance already has the patient reference. The practical concern is reverse conversion or R6 client code that assumed all BodyStructure instances are patient-specific, but patient-specific workflows can retain the R4 guarantee with profiles.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `BodyStructure.patient` is 1..1 Reference(Patient).",
+          "R6 StructureDefinition: `BodyStructure.patient` is 0..1 Reference(Patient).",
+          "HL7 R4 BodyStructure scope says the resource supports tracking an anatomical location on a patient; mCODE Tumor Profile keeps `patient` 1..1 for its oncology workflow."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens concern about broadening the base resource. The mCODE evidence shows patient-specific profiles matter, but those profiles can still require `patient`.",
+        "compatibilityMechanism": "R6-to-R4 loss: patientless R6 instances cannot be faithfully represented as R4 BodyStructure without inventing a patient; R4-to-R6 validation is not broken.",
+        "lessBreakingAlternativeAssessment": "Keeping `patient` required would preserve the R4 semantic guarantee, but it would block the R6 goal of patientless or definitional anatomical structures. Requiring patient in profiles is the cleaner compatibility mechanism for patient-specific workflows.",
+        "comparisonToExisting": "partially agree: I agree with the existing conclusion that this is not an R4-to-R6 hard break; I would down-rank the impact to no base-design problem despite reverse-conversion awareness."
+      }
     },
     {
       "findingId": "BodyStructure:TYPE_DOMAIN:BodyStructure.description:88a61b",
@@ -947,7 +1004,21 @@
       "validationAndCompatibilityMd": "R4 strings and R6 markdown both serialize as JSON strings. R6 markdown can be stored in R4 as a string, but R4 applications may display markup literally.",
       "migrationGuidanceMd": "Update type annotations and UI rendering assumptions. Treat markdown as untrusted user-facing content unless the rendering pipeline already sanitizes it.",
       "backwardCompatibilityAnalysisMd": "The change could have been avoided by comments alone, but using markdown gives tooling stronger semantic information.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "BodyStructure:TYPE_DOMAIN:BodyStructure.description:88a61b",
+        "judgment": "No problem",
+        "narrativeMd": "`BodyStructure.description` changes from `string` to `markdown`, but markdown is a string-derived primitive and the wire value is still a JSON string. Existing plain text remains valid markdown, and systems are not required to render markdown. Some generated SDKs may expose a different primitive type, but this optional descriptive field does not create a meaningful base instance-compatibility problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `BodyStructure.description` type is `string`.",
+          "R6 StructureDefinition: `BodyStructure.description` type is `markdown`.",
+          "R6 `StructureDefinition-markdown` has baseDefinition `http://hl7.org/fhir/StructureDefinition/string` and defines markdown as a string that may contain GitHub Flavored Markdown."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use further softens a minor optional-field primitive refinement.",
+        "compatibilityMechanism": "runtime/API/codegen: some generated models may distinguish string from markdown, but old serialized values remain strings and should remain acceptable as markdown text.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could leave the type as `string` and mention markdown in prose. That would be slightly more stable for generated APIs, but it would also provide a weaker computable signal. Because the compatibility effect is small, the alternative does not warrant a Revisit judgment.",
+        "comparisonToExisting": "disagree: the existing report identified a real less-breaking alternative, but I do not think the optional string-derived markdown change has enough practical compatibility impact to be a problem."
+      }
     },
     {
       "findingId": "BodyStructure:CONVERSION_OR_MAPPING:BodyStructure.includedStructure.bodyLandmarkOrientation:dd302e",
@@ -1083,7 +1154,21 @@
       "migrationGuidanceMd": "For R6-to-R4, reject unsupported details, preserve them in extensions, or flatten only when unambiguous and clinically safe. Test excluded structures, spatialReference, per-structure images, and landmark distances.",
       "backwardCompatibilityAnalysisMd": "The expressivity is likely justified. Extension-based alternatives would preserve compatibility but reduce first-class interoperability.",
       "reviewerNotesMd": "Confirm exact R6 instance examples with an R6 validator when building production transforms.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BodyStructure:CONVERSION_OR_MAPPING:BodyStructure.includedStructure.bodyLandmarkOrientation:dd302e",
+        "judgment": "No problem",
+        "narrativeMd": "The cited R6 elements, including `excludedStructure`, landmark orientation details, spatial reference, and per-structure image, are optional additions. They do not reject R4 instances. They can be lossy when converting rich R6 instances back to R4, but that is expected for genuinely new R6 expressivity rather than an avoidable R4-to-R6 base break.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `excludedStructure` is 0..* and content-references `includedStructure`.",
+          "R6 StructureDefinition: landmark description, clock-face position, distance from landmark, surface orientation, `spatialReference`, and per-structure `image` are optional.",
+          "R4 StructureDefinition has no corresponding excluded-structure, landmark-orientation, or spatial-reference elements."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use lowers stability concern, and optional additive R6 content is the kind of evolution expected for low-maturity material.",
+        "compatibilityMechanism": "R6-to-R4 loss: new optional R6 localization details may not fit into R4 without extensions or narrative, but R4-to-R6 instances are not made invalid by the additions.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for R4 preservation. Modeling all new detail only as extensions would improve round-tripping but would sacrifice first-class discoverability and interoperability; that is a conversion mitigation, not a better base model.",
+        "comparisonToExisting": "agree: the existing report treated this mainly as R6-to-R4 loss with no applicable less-breaking base alternative, which matches my assessment."
+      }
     },
     {
       "findingId": "BodyStructure:TERMINOLOGY_BINDING:BodyStructure.includedStructure.morphology:1b4f70",
@@ -1231,7 +1316,21 @@
       "migrationGuidanceMd": "Inventory local binding-strength overrides and pick lists. Update terminology services for R6 ValueSets and build or obtain ConceptMaps for R4 unilateral qualifiers and morphology filter changes.",
       "backwardCompatibilityAnalysisMd": "Compatibility would be improved by official ConceptMaps and transitional ValueSets. Without them, implementers need human-reviewed mappings.",
       "reviewerNotesMd": "Confidence is medium because SNOMED expansions and official cross-version maps were unavailable.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "BodyStructure:TERMINOLOGY_BINDING:BodyStructure.includedStructure.morphology:1b4f70",
+        "judgment": "No problem",
+        "narrativeMd": "The BodyStructure-related ValueSets changed, including the SNOMED filter behind `bodystructure-code` and the split of laterality concepts from relative-location. At the base StructureDefinition level, the relevant bindings on morphology, structure, qualifier, and laterality are example strength, and the landmark surface-orientation binding is preferred. These changes can affect UI pick lists, terminology caches, and profile authors, but they do not make base instances invalid.",
+        "keyEvidence": [
+          "R4 `ValueSet-bodystructure-code` uses SNOMED filter concept is-a 49755003; R6 uses concept is-a 118956008.",
+          "R4 relative-location ValueSet includes Unilateral left/right and Bilateral; R6 relative-location removes the unilateral concepts and adds a separate laterality ValueSet.",
+          "R6 StructureDefinition bindings for `includedStructure.morphology`, `includedStructure.qualifier`, and `includedStructure.laterality` are example strength; `bodyLandmarkOrientation.surfaceOrientation` is preferred."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens concern. Because the base bindings are example/preferred rather than required/extensible, low maturity reinforces treating this as metadata/tooling churn rather than a base break.",
+        "compatibilityMechanism": "metadata/tooling: terminology expansions, pick lists, and documentation may change, but base validators should not reject an old CodeableConcept solely because these example/preferred ValueSets changed.",
+        "lessBreakingAlternativeAssessment": "R6 could publish broader transitional example ValueSets or ConceptMaps to ease migration, but those would mainly be guidance and tooling aids. Since base conformance is not tightened, a less-breaking base design is not necessary.",
+        "comparisonToExisting": "disagree: the existing report treated the terminology change as uncertain with a partial alternative; I find the base compatibility risk low because the bindings are not required."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1388,5 +1487,19 @@
       "Resources that weaken subject/patient cardinality between R4 and R6",
       "string-to-markdown local element type changes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/BodyStructure.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 2,
+      "No problem": 4
+    }
   }
 }

@@ -320,7 +320,21 @@
       "validationAndCompatibilityMd": "R4 JSON containing `accessionIdentifier` will not validate as a base R6 Specimen. R6 data can be converted back only if a converter can identify which `identifier` entry is the accession identifier; `Identifier.type` = `ACSN` is the intended signal but may be absent in real data.",
       "migrationGuidanceMd": "Move `accessionIdentifier` into `identifier[]`, preserve `system`, `value`, `assigner`, `period`, and add or preserve `Identifier.type` coding `ACSN` when appropriate. Test cases should include specimens with both R4 `identifier` and `accessionIdentifier` so duplicate handling and ordering are deterministic.",
       "backwardCompatibilityAnalysisMd": "The consolidation is understandable because `Identifier.type` can express accession semantics without a special field. It was not fully backward compatible; retaining the old element as deprecated for one release would have made old instances valid while still allowing the new representation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.accessionIdentifier:10dc7f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 had a distinct `accessionIdentifier` slot, while R6 folds accession numbers into repeating `identifier` entries marked with `Identifier.type = ACSN`. That is a real old-valid/new-invalid wire break for specimens that carry accession numbers and it can affect lab tracking models, but the migration is usually mechanical and the R6 design avoids maintaining two first-class accession fields with conflict rules.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-Specimen.json` defines `Specimen.accessionIdentifier` as `Identifier` 0..1.",
+          "R6 has no `Specimen.accessionIdentifier`; `Specimen.identifier.comment` says accession identifiers should use Identifier.type code ACSN.",
+          "R4 metadata checked: Specimen FMM 2 and standards status trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it does not create a strong stability presumption, but accession identifiers are operationally important enough that the hard wire break still matters.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with `accessionIdentifier` uses an element R6 no longer defines; generated models also lose the dedicated property.",
+        "lessBreakingAlternativeAssessment": "A deprecated `accessionIdentifier` alias could have preserved old instances, but it would leave two same-resource places for the same accession number and require precedence or synchronization rules. That tradeoff makes the R6 consolidation proportionate.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment: the hard break is real, but I would not treat the alias option as low-cost enough to require redesign."
+      }
     },
     {
       "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.container:934b19",
@@ -492,7 +506,21 @@
       "validationAndCompatibilityMd": "R4 properties such as `container.identifier`, `container.type`, `container.capacity`, and `container.additive[x]` are unknown in R6. Separately, R6 requires `container.device[x]` with `min=1`, so a converted container without a device value fails validation. R6-to-R4 conversion is lossy for Device/DeviceDefinition identity and for device-level attributes not present in R4 Specimen.container.",
       "migrationGuidanceMd": "Map old `container.type` to `container.deviceCodeableConcept` when a code or text is sufficient. For real container instances, create or reference `Device`; for catalog-level container definitions, use canonical `DeviceDefinition` where appropriate. Decide how to carry old container identifiers, capacity, and additives, because R6 Specimen no longer has direct fields for them. Regression tests should cover containers with each removed child and containers with only `specimenQuantity`.",
       "backwardCompatibilityAnalysisMd": "The change likely supports a more consistent device model, but the mandatory `device[x]` and removal of old fields make it avoidably harsh for legacy data. Optional `device[x]` plus deprecated inline children would have allowed gradual migration. The tradeoff would have been ambiguity about which representation is authoritative.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.container:934b19",
+        "judgment": "Revisit",
+        "narrativeMd": "The R6 container backbone keeps the parent path but removes R4 inline container facts such as identifiers, type, capacity, description, and additive, while making `container.device[x]` mandatory. A legacy specimen with container details, or even one with only `specimenQuantity`, needs a nontrivial device-based transform before it can validate. Because containers are central to specimen handling, this looks harsher than necessary for a trial-use/FMM 2 resource.",
+        "keyEvidence": [
+          "R4 defines `Specimen.container.identifier`, `description`, `type`, `capacity`, `specimenQuantity`, and `additive[x]`, all optional.",
+          "R6 defines `Specimen.container.device[x]` as 1..1 CodeableConcept, Reference(Device), or canonical(DeviceDefinition), and retains only `specimenQuantity` from the old inline details.",
+          "R4 metadata checked: Specimen FMM 2 and standards status trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral rather than strongly protective, but the affected path is a practical lab specimen-handling surface, so the compatibility burden remains material.",
+        "compatibilityMechanism": "old-valid/new-invalid: removed child elements are unknown in R6, and each R6 container now requires a `device[x]` value that old instances did not need.",
+        "lessBreakingAlternativeAssessment": "R6 could have added optional `device[x]` while deprecating the old inline children for a transition release, or at least avoided making `device[x]` mandatory. That would create duplicate inline-vs-device representations, but the current design invalidates common legacy container records and forces device modeling before validation.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment, but disagree with treating the remodel as probably justified; the required device plus removed inline fields merits renewed design attention."
+      }
     },
     {
       "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.processing.procedure:8870a4",
@@ -651,7 +679,21 @@
       "validationAndCompatibilityMd": "R4 `processing.procedure` content is old-valid/new-invalid because R6 does not define that child. R6 `processing.method` is not accepted by R4. Code generators and FHIRPath rules must update property names, and terminology-aware systems should not assume every old v2-0373 code has a SNOMED method equivalent.",
       "migrationGuidanceMd": "Rename `processing.procedure` to `processing.method`. Preserve CodeableConcept text and codings, but run a terminology review if the implementation expects values from the R6 example SNOMED-based value set. Profile authors should update constraints, search extraction, and transforms referencing the old path.",
       "backwardCompatibilityAnalysisMd": "The rename is probably intended to avoid conflating a coded technique with a Procedure event, but it could have been introduced as an additive alias first. A warning invariant would have supported transition without invalidating old instances immediately.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.processing.procedure:8870a4",
+        "judgment": "Revisit",
+        "narrativeMd": "`Specimen.processing.procedure` became `Specimen.processing.method` with the same cardinality and datatype, plus a changed example value set. This is a classic same-concept property rename: old JSON, profiles, FHIRPath, generated models, and storage columns all have to move even though R6 could have clarified the old element text and binding guidance in place.",
+        "keyEvidence": [
+          "R4 defines `Specimen.processing.procedure` as CodeableConcept 0..1 with example ValueSet `specimen-processing-procedure`.",
+          "R6 omits `processing.procedure` and defines `Specimen.processing.method` as CodeableConcept 0..1 with example ValueSet `specimen-processing-method`.",
+          "Local ValueSet check: R4 processing procedure includes HL7 v2-0373; R6 processing method includes SNOMED CT descendants of 9265001."
+        ],
+        "fmmEffect": "FMM 2/trial-use does not by itself require old names forever, but it also does not justify an avoidable wire rename when the old path could carry the clarified semantics.",
+        "compatibilityMechanism": "old-valid/new-invalid: populated R4 `processing.procedure` is an undefined R6 child; runtime/API/codegen references to the old property also break.",
+        "lessBreakingAlternativeAssessment": "Keeping `processing.procedure` and revising the short/definition/aliases to say processing method would preserve old instances without adding a duplicate field. The tradeoff is living with a less precise legacy name, which is modest compared with the migration burden.",
+        "comparisonToExisting": "agree with the existing High impact and Yes/probably avoidable alternative judgment."
+      }
     },
     {
       "findingId": "Specimen:TYPE_DOMAIN:Specimen.collection.bodySite:7c3859",
@@ -826,7 +868,21 @@
       "validationAndCompatibilityMd": "A populated R4 CodeableConcept at `collection.bodySite` will fail R6 validation because `coding` is no longer a direct child of the element. R6 BodyStructure references cannot round-trip to R4 without extension policy. Generated models will expose a different type and different accessors.",
       "migrationGuidanceMd": "Wrap old CodeableConcept values as `collection.bodySite.concept`. For R6 BodyStructure references, decide whether to dereference to a code, use the R4 bodySite extension mentioned by R4, or preserve the relationship in an implementation-specific extension. Include tests for coded body sites, text-only body sites, and BodyStructure references.",
       "backwardCompatibilityAnalysisMd": "CodeableReference is well suited to the stated need, but it breaks existing JSON. A sibling reference would have been more compatible while less elegant and potentially harder to constrain. The chosen design favors model consistency over wire compatibility.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Specimen:TYPE_DOMAIN:Specimen.collection.bodySite:7c3859",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes `collection.bodySite` from a raw CodeableConcept to CodeableReference(BodyStructure). Existing coded body sites must be wrapped under `bodySite.concept`, and R6 references to BodyStructure cannot be represented in base R4 at the same path. The break is real, but the R6 goal of supporting a coded site or a modeled site instance is clinically reasonable, and sibling-field alternatives would split one anatomical fact across two fields.",
+        "keyEvidence": [
+          "R4 `Specimen.collection.bodySite` is CodeableConcept 0..1 with body-site example binding.",
+          "R6 `Specimen.collection.bodySite` is CodeableReference 0..1 targeting BodyStructure with the same body-site value set for the concept arm.",
+          "R6 `StructureDefinition-CodeableReference.json` defines `concept` and `reference` children."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The clinical importance of body site makes migration correctness important, but the maturity level does not make the compatibility break disproportionate by itself.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `bodySite.coding` or `bodySite.text` is not the R6 CodeableReference shape; R6 BodyStructure references create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "A separate optional BodyStructure reference beside the old CodeableConcept would preserve R4 JSON, but it would create competing representations for the same collection site and require rules when both are present. CodeableReference is a coherent R6 design despite the wire-shape break.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment: the break is significant, but the less-breaking design has material modeling costs."
+      }
     },
     {
       "findingId": "Specimen:TYPE_DOMAIN:Specimen.processing.additive:b5ac2d",
@@ -993,7 +1049,21 @@
       "validationAndCompatibilityMd": "A direct R4 Reference object in `processing.additive[]` is not a valid R6 CodeableReference. R6 content using the concept arm or SubstanceDefinition target cannot be represented as R4 `Reference(Substance)` without loss or extensions.",
       "migrationGuidanceMd": "Wrap old references as `additive[].reference`. Decide whether concept-only R6 additives should become generated Substance resources, extensions, or be rejected for R4 export. Test conversions for Substance references, SubstanceDefinition references, and text-only concepts.",
       "backwardCompatibilityAnalysisMd": "The expressivity gain is clear, but a direct choice expansion or sibling element could have avoided changing the JSON shape of existing references. The R6 choice favors a standard CodeableReference pattern at the cost of compatibility.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Specimen:TYPE_DOMAIN:Specimen.processing.additive:b5ac2d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`processing.additive` moved from direct Reference(Substance) values to CodeableReference values that can be a concept, a Substance reference, or a SubstanceDefinition reference. Direct R4 Reference JSON must be nested under the CodeableReference reference arm, so old instances and generated APIs break. The added expressivity is plausible for additives known by code or definition rather than an instantiated Substance.",
+        "keyEvidence": [
+          "R4 `Specimen.processing.additive` is Reference(Substance) 0..*.",
+          "R6 `Specimen.processing.additive` is CodeableReference 0..* targeting Substance or SubstanceDefinition.",
+          "R6 `StructureDefinition-CodeableReference.json` defines separate `concept` and `reference` children."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Processing additives can affect analytic interpretation, but the R6 expressivity gain is relevant enough that FMM does not push this to Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 array items with direct Reference fields are not the R6 CodeableReference shape; concept-only and SubstanceDefinition R6 additives are lossy to R4.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the Reference(Substance) element and added sibling coded or definition-based additive elements. That would preserve old references but duplicate additive semantics and complicate precedence and constraints. The single CodeableReference design is probably worth the migration cost.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "Specimen:SEMANTIC_OR_CONFORMANCE_TEXT:Specimen.subject:9ac738",
@@ -1148,7 +1218,21 @@
       "validationAndCompatibilityMd": "Most R4 `subject` references remain valid R6 references. The break is semantic and round-trip oriented: R6 can represent subject/focus pairs and new target types that base R4 cannot carry. Strict R6 validation will accept old target types but cannot validate that an old subject was semantically reinterpreted correctly.",
       "migrationGuidanceMd": "Review use cases where specimens are collected from an entity associated with a patient or record target, such as donor material, fetus specimens, animal/environmental sources linked to a patient record, biologically derived products, and group/herd scenarios. Populate R6 `focus` when the collection source differs from the subject of record. For R4 export, define an extension or a policy for collapsing `focus` to `subject` with known information loss.",
       "backwardCompatibilityAnalysisMd": "The R6 split is clinically clearer and aligns `subject` with broader FHIR usage. A more backward-compatible but less conventional design would have kept the old source meaning and added a new record-subject field. The chosen approach requires migration review but improves long-term semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Specimen:SEMANTIC_OR_CONFORMANCE_TEXT:Specimen.subject:9ac738",
+        "judgment": "Revisit",
+        "narrativeMd": "The structural target list mostly widens, but the meaning of `subject` changes from the source the specimen came from to the subject of record, with new `focus` holding a different actual source. That can be safety-significant for donor, fetus, group, animal, environmental, or product-associated specimens because a converter may need clinical or workflow context to decide whether an old R4 subject remains `subject` or becomes `focus` with a different record subject.",
+        "keyEvidence": [
+          "R4 `Specimen.subject.definition` says where the specimen came from and targets Patient, Group, Device, Substance, or Location.",
+          "R6 `Specimen.subject.definition` says subject of record and directs different collection sources to `Specimen.focus`.",
+          "R6 adds `Specimen.focus` 0..1 Reference including RelatedPerson and the other source-like targets."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but the affected element is central to associating specimen results with the correct record or source, so the safety relevance outweighs the modest maturity level.",
+        "compatibilityMechanism": "semantic/documentation: unchanged R4 instances may still validate, but their intended meaning can shift; R6 `focus` also creates R6-to-R4 semantic loss.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `subject` as the physical source and added a separate subject-of-record field, or added `focus` without redefining `subject`. That would preserve old semantics but keep Specimen less aligned with broader FHIR subject-as-record-target conventions. The design may be right, but the migration ambiguity is substantial enough to deserve attention.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative judgment: the R6 split is well motivated, but the old-to-new semantic decision can be expert-dependent and safety-relevant."
+      }
     },
     {
       "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.combined-role-feature:5dbde8",
@@ -1279,7 +1363,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is unaffected unless a migration chooses to populate `feature` incompletely; R6 requires both `feature.type` and `feature.description`. R6-to-R4 conversion cannot preserve these fields in base R4 without extensions or text degradation.",
       "migrationGuidanceMd": "For R4-consuming systems, define cross-version extensions for `combined`, `role`, and `feature`, or document intentional loss. For R6 validation, ensure each feature has both `type` and `description`. Tests should include pooled specimens, QC/control roles, and feature annotations with missing required children.",
       "backwardCompatibilityAnalysisMd": "Because these are optional additions, the R6 design is backward-compatible for R4-to-R6 and the R6-to-R4 loss is inherent to older-version export. No less disruptive R6 design is apparent beyond publishing standard cross-version extensions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.combined-role-feature:5dbde8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`combined`, `role`, and `feature` are optional R6 additions, so unchanged R4 specimens are not invalidated. The compatibility issue is downgrade-only: R6 can now express pooled/grouped status, workflow role, and feature annotations that base R4 cannot carry. That loss can matter for quality-control and interpretation workflows, but avoiding the fields would simply make R6 less expressive.",
+        "keyEvidence": [
+          "R6 adds optional `Specimen.combined`, `Specimen.role`, and repeating `Specimen.feature`.",
+          "R6 `Specimen.feature.type` and `Specimen.feature.description` are both 1..1 when a feature is present.",
+          "Local code systems checked: `specimen-combined` has grouped/pooled; `specimen-role` includes patient, control specimen, calibrator, proficiency, and replicate roles."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because this is additive for R4-to-R6, FMM does not increase concern; possible downgrade loss is judged on workflow relevance instead.",
+        "compatibilityMechanism": "R6-to-R4 loss: base R4 has no equivalent elements for grouped/pooled status, specimen role, or structured feature annotations.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed because the fields are optional and do not break old instances. Standard R4 extensions would help downgrades, but they are mitigation rather than an alternate R6 shape.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Not applicable alternative judgment: the downgrade loss is real, but it is not evidence that the R6 additions are problematic."
+      }
     },
     {
       "findingId": "Specimen:VALUE_CONSTRAINT:Specimen.collection.procedure:79a0ad",
@@ -1400,7 +1498,21 @@
       "validationAndCompatibilityMd": "The validation effect is an R6 invariant failure, not an R4 data field removal: a Specimen with both `collection.collector` and `collection.procedure` fails R6 `spm-1`. R6 `collection.procedure` cannot be represented in base R4 Specimen except by extension or separate linkage.",
       "migrationGuidanceMd": "When converting to R6, choose either direct `collection.collector` or `collection.procedure`. If a Procedure is available, move performer details to the Procedure and omit `collection.collector` from Specimen. For R4 export, decide whether to drop the Procedure link, use an extension, or derive `collector` from Procedure.performer where safe.",
       "backwardCompatibilityAnalysisMd": "The invariant promotes consistency but could have been softer during transition. A warning would have accommodated legacy direct collector data while encouraging Procedure-based modeling.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Specimen:VALUE_CONSTRAINT:Specimen.collection.procedure:79a0ad",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `collection.procedure` and an error invariant forbidding it from coexisting with `collection.collector`. Since R4 had no `collection.procedure`, an unchanged R4 specimen with a collector remains valid in R6. The only failure case is an R6 authoring or enrichment choice that adds a Procedure link while also preserving collector, which is a modeling policy issue rather than an R4 compatibility break.",
+        "keyEvidence": [
+          "R4 has `Specimen.collection.collector` but no `Specimen.collection.procedure`.",
+          "R6 adds `Specimen.collection.procedure` Reference(Procedure) 0..1.",
+          "R6 root constraint `spm-1` is error severity with expression `collection.collector.empty() or collection.procedure.empty()`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, and because no unchanged R4 instance is invalidated, maturity does not add practical concern.",
+        "compatibilityMechanism": "none: the invalid combination requires a new R6-only element; old R4 collector-only data is still valid.",
+        "lessBreakingAlternativeAssessment": "A warning-level invariant would be friendlier to enriched conversions, but it would also permit duplicated collector/performer facts when Procedure is the source of truth. Since this does not preserve any otherwise-invalid R4 instance, it is not a necessary less-breaking base design.",
+        "comparisonToExisting": "disagree with the existing Medium impact assessment; the prior report correctly identifies the invariant but overstates it as an R4-to-R6 compatibility problem. The Not applicable alternative judgment is acceptable."
+      }
     },
     {
       "findingId": "Specimen:CONVERSION_OR_MAPPING:Specimen.collection-processing-workflow:33a897",
@@ -1547,7 +1659,21 @@
       "validationAndCompatibilityMd": "R4 validators will reject R6-only fields such as `collection.device[x]`, `processing.performer`, `processing.device[x]`, and `processing.timeDuration`. R4 also rejects newly allowed collector target types such as Organization, Patient, and RelatedPerson. Forward migration is safe if the new fields are not populated or are populated according to R6 choice naming.",
       "migrationGuidanceMd": "For downgrade, decide whether to use extensions, map device/performer facts into Provenance or Procedure resources, or intentionally omit them. For `processing.timeDuration`, consider whether a duration can be converted into a Period only if an anchor time is available; otherwise preserve with an extension. Update generated models and FHIRPath expressions for the new choice names and target domains.",
       "backwardCompatibilityAnalysisMd": "These are optional R6 expressivity improvements, so the primary compatibility burden is on cross-version conversion. Avoiding them would reduce data quality; standard cross-version extensions would be the best compatibility support for R4 ecosystems.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Specimen:CONVERSION_OR_MAPPING:Specimen.collection-processing-workflow:33a897",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 widens collection and processing workflow detail with optional device fields, a processing performer, broader collector targets, and Duration as a processing time choice. These changes preserve the old R4 domain for forward migration, but R6 instances using the new details cannot be cleanly exported to base R4. That can matter for chain-of-custody or pre-analytic quality records, yet the fields are useful R6 expressivity rather than avoidable breakage.",
+        "keyEvidence": [
+          "R4 `collection.collector` targets Practitioner or PractitionerRole; R6 adds Organization, Patient, and RelatedPerson.",
+          "R6 adds `collection.device[x]`, `processing.performer`, and `processing.device[x]`.",
+          "R4 `processing.time[x]` allows dateTime or Period; R6 also allows Duration."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because the changes are optional additions or widenings, FMM does not create a redesign concern; the remaining issue is downgrade policy.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4 validators and models cannot carry the new device, performer, collector-target, or processing Duration representations without extensions or external resources.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is apparent because old R4 content remains in-domain. R4 extensions, Procedure/Provenance mappings, or documented loss are downgrade mitigations rather than reasons to omit the R6 fields.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Not applicable alternative judgment: the conversion burden is real for bidirectional systems, but it is proportionate to the added workflow detail."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1736,5 +1862,19 @@
       "Inline descriptive backbone fields replaced by Device/DeviceDefinition references",
       "Subject-of-record plus focus/source split"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Specimen.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 5,
+      "No problem": 1
+    }
   }
 }

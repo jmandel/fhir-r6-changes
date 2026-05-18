@@ -255,7 +255,21 @@
       "migrationGuidanceMd": "Add an explicit status-assignment rule. Prefer source lifecycle metadata; otherwise document a policy for `unknown` or operationally confirmed `active`. Test missing, valid, and invalid status values.",
       "backwardCompatibilityAnalysisMd": "The change supports consistent lifecycle governance, but optional base cardinality or profile-level requiredness would have been less disruptive.",
       "reviewerNotesMd": "Human review is recommended for default status policy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SpecimenDefinition:ELEMENT_PRESENCE_OR_IDENTITY:SpecimenDefinition.status:required",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds a required modifier `status` that did not exist on R4 `SpecimenDefinition`, so an untransformed R4 instance cannot validate as R6. The break is real, but it is a lifecycle/governance requirement on an R4 FMM 0 trial-use resource, and the required value set includes `unknown`, making a mechanical migration possible when R4 did not record lifecycle state. The R6 goal of making a definitional artifact carry publication status is proportionate despite the migration burden.",
+        "keyEvidence": [
+          "R4 StructureDefinition has standards-status trial-use, FMM 0, and no `SpecimenDefinition.status` element.",
+          "R6 `SpecimenDefinition.status` is min=1, max=1, type code, isModifier=true, isSummary=true, with a required publication-status binding.",
+          "Targeted web search found public IG/project interest in SpecimenDefinition, including IDEA4RC FHIR IG material, but not strong evidence of broad production exchange."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens the stability concern; the hard break alone is not enough for Revisit without stronger production or safety evidence.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances without `status` fail R6 base validation until a status such as `unknown`, `draft`, or `active` is supplied; R6 status also has no native R4 slot.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could add `status` as optional and require it in publication profiles or warning-level rules, but that would weaken generic R6 tooling's ability to rely on lifecycle status for every SpecimenDefinition.",
+        "comparisonToExisting": "partially agree: the hard break and partial alternative are real, but the existing High/Common impact reads too strong after applying FMM 0 and noting the mechanical `unknown` migration option."
+      }
     },
     {
       "findingId": "SpecimenDefinition:CARDINALITY:SpecimenDefinition.identifier:repeat-json",
@@ -393,7 +407,21 @@
       "validationAndCompatibilityMd": "An R4 JSON instance with `identifier: { ... }` can fail strict R6 parsing because the R6 property is repeating. R6 content with two identifiers is not natively representable in R4.",
       "migrationGuidanceMd": "Wrap existing R4 identifier objects in one-element arrays for R6. For downgrade, define a priority rule for the retained R4 identifier and preserve extras through extensions or sidecar data if needed.",
       "backwardCompatibilityAnalysisMd": "The widening is useful but not JSON-wire-compatible. An extension for additional identifiers would have been less disruptive but less clean for R6 tooling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SpecimenDefinition:CARDINALITY:SpecimenDefinition.identifier:repeat-json",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 widens `identifier` from 0..1 to 0..*, which is logically additive but changes populated JSON from a single object to an array. R4-to-R6 migration is mechanical for a single identifier, while R6-to-R4 can be lossy when multiple identifiers are present. For a low-maturity definitional resource, allowing multiple business identifiers is a reasonable model cleanup and the less-breaking alternatives create lasting duplicate-field complexity.",
+        "keyEvidence": [
+          "R4 `SpecimenDefinition.identifier` is 0..1 Identifier.",
+          "R6 `SpecimenDefinition.identifier` is 0..* Identifier.",
+          "FHIR JSON represents repeating elements as arrays, so the serialized shape changes when the element is populated."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use lowers the expectation that a populated singleton JSON shape must be preserved unchanged.",
+        "compatibilityMechanism": "old-valid/new-invalid: a populated R4 JSON `identifier` object must be wrapped as an R6 array; R6 instances with multiple identifiers cannot be represented natively in R4 without choosing or extending.",
+        "lessBreakingAlternativeAssessment": "Keeping the old singleton and adding a second repeating element for additional identifiers would preserve R4 JSON shape, but it would split one business concept across two paths and complicate search, mapping, and client logic indefinitely.",
+        "comparisonToExisting": "partially agree: the report correctly identifies the JSON shape and downgrade loss, but its High/Common impact is softened by FMM 0 and the straightforward one-to-array migration."
+      }
     },
     {
       "findingId": "SpecimenDefinition:REFERENCE_TARGET:SpecimenDefinition.typeTested.container.additive.additive-x:substance-definition",
@@ -556,7 +584,21 @@
       "migrationGuidanceMd": "Inventory additiveReference usage. Create or identify corresponding R6 SubstanceDefinition resources, update references, or migrate to additiveCodeableConcept when a code is sufficient. Test both choice branches.",
       "backwardCompatibilityAnalysisMd": "The target replacement is probably semantically justified but avoidable as a hard break by allowing both targetProfiles for a transition period.",
       "reviewerNotesMd": "Human review is needed because R4 Substance instances may not map one-to-one to R6 SubstanceDefinition resources.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SpecimenDefinition:REFERENCE_TARGET:SpecimenDefinition.typeTested.container.additive.additive-x:substance-definition",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 replaces the allowed reference target for container additives from `Substance` to `SubstanceDefinition`. That is coherent for a definitional specimen resource, but it directly invalidates existing additive references and mapping a concrete or cataloged `Substance` to a `SubstanceDefinition` may require domain judgment. Because FHIR references can allow multiple target profiles, R6 could likely meet the definitional goal while preserving R4 references during transition.",
+        "keyEvidence": [
+          "R4 `SpecimenDefinition.typeTested.container.additive.additive[x]` permits CodeableConcept or Reference targeted to `StructureDefinition/Substance`.",
+          "R6 keeps CodeableConcept but changes the Reference target to `StructureDefinition/SubstanceDefinition`.",
+          "Container additives such as preservatives and anticoagulants are directly relevant to specimen handling; targeted web search found some public IG/project interest but not broad production prevalence."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens broad prevalence assumptions, but the path is clinically meaningful and the migration can be lossy or expert-dependent, so low FMM does not neutralize the concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `Reference(Substance)` additive values no longer satisfy the R6 target profile; R6 `Reference(SubstanceDefinition)` values are also not native R4 references.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking R6 base design is to allow both `Reference(Substance)` and `Reference(SubstanceDefinition)`, while recommending the definitional target in guidance or profiles. The tradeoff is that clients must tolerate two substance models, but that seems lower cost than a hard target-profile break.",
+        "comparisonToExisting": "partially agree: agree with the hard break and the Yes less-breaking alternative; the existing High impact may overstate prevalence for FMM 0, but the design still merits Revisit."
+      }
     },
     {
       "findingId": "SpecimenDefinition:CONVERSION_OR_MAPPING:SpecimenDefinition.metadata:r6-only",
@@ -657,7 +699,21 @@
       "validationAndCompatibilityMd": "R4 validators reject these as unknown native elements if copied directly. Dropping them loses canonical identity, versioning, publisher, jurisdiction, review, or effective-period semantics.",
       "migrationGuidanceMd": "For upgrade, populate metadata from catalog or IG sources where available. For downgrade, define extensions or sidecar persistence for fields that must survive.",
       "backwardCompatibilityAnalysisMd": "Native elements improve R6 consistency and tooling. Extensions would have been more backward-compatible but less discoverable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SpecimenDefinition:CONVERSION_OR_MAPPING:SpecimenDefinition.metadata:r6-only",
+        "judgment": "No problem",
+        "narrativeMd": "The canonical/publication metadata fields added in R6 are optional. They do not make R4 instances invalid in R6, and their main compatibility issue is loss when richer R6 metadata is downgraded to native R4. That reverse-only governance loss is real but not a reason to revisit the base R6 design for a low-maturity resource.",
+        "keyEvidence": [
+          "R4 lacks R6 metadata elements such as `url`, `version`, `versionAlgorithm[x]`, `name`, `title`, `derivedFromCanonical`, `derivedFromUri`, `experimental`, `date`, `publisher`, `contact`, `description`, `useContext`, `jurisdiction`, `purpose`, `copyright`, `copyrightLabel`, `approvalDate`, `lastReviewDate`, and `effectivePeriod`.",
+          "The listed R6 metadata elements are optional, with min=0.",
+          "R6 metadata aligns SpecimenDefinition with governed definitional/canonical-resource style publication metadata."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use reinforces that optional metadata additions should not be treated as a major compatibility problem.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 metadata cannot be represented natively in R4, but no old R4 instance becomes invalid because these fields are optional.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6 compatibility; extensions or sidecars can mitigate downgrade loss but are not alternative base designs.",
+        "comparisonToExisting": "partially agree: agree that the concern is R6-to-R4 and that no less-breaking base alternative is applicable, but disagree that this optional metadata group deserves Medium impact."
+      }
     },
     {
       "findingId": "SpecimenDefinition:CONVERSION_OR_MAPPING:SpecimenDefinition.qualifiers:r6-only",
@@ -780,7 +836,21 @@
       "migrationGuidanceMd": "For downgrade, preserve these fields through agreed extensions or sidecar mappings when they affect operations. For upgrade, derive them only from explicit source catalog data.",
       "backwardCompatibilityAnalysisMd": "Native R6 elements are reasonable, but cross-version extensions would have preserved semantics more easily across R4 and R6.",
       "reviewerNotesMd": "Human review is recommended for operational catalogs where single-use or testing destination affects workflow.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SpecimenDefinition:CONVERSION_OR_MAPPING:SpecimenDefinition.qualifiers:r6-only",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional qualifier fields for subject applicability, single-use status, and testing destination. These do not invalidate R4 instances, but R6 content using them can lose workflow meaning when converted back to R4, especially for single-use or routing semantics. The additions are proportionate because they express real specimen-definition workflow concepts that R4 had no native place to carry.",
+        "keyEvidence": [
+          "R4 lacks `SpecimenDefinition.subject[x]`, `SpecimenDefinition.typeTested.singleUse`, and `SpecimenDefinition.typeTested.testingDestination`.",
+          "R6 adds optional `subject[x]` as CodeableConcept or Reference(Group), optional `singleUse` boolean, and optional repeating `testingDestination` CodeableConcept.",
+          "`singleUse` definition says a specimen can be used by only one test or panel when true; `testingDestination` describes where the specimen will be tested."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens broad production-impact claims, but workflow loss on downgrade is still plausible for implementations that adopt these R6 fields.",
+        "compatibilityMechanism": "R6-to-R4 loss: optional R6 qualifier semantics have no native R4 representation, but R4-to-R6 validation is preserved by absence.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is apparent because these are optional additions; preserving them for R4 consumers would require extensions or mapping policy rather than a different R6 base shape.",
+        "comparisonToExisting": "partially agree: agree with the Medium reverse-conversion concern and not-applicable alternative judgment, while treating it as proportionate rather than a reason for standards redesign."
+      }
     },
     {
       "findingId": "SpecimenDefinition:TYPE_DOMAIN:SpecimenDefinition.markdown-text:string-to-markdown",
@@ -892,7 +962,21 @@
       "validationAndCompatibilityMd": "Typical R4 string content should remain lexically valid in R6. R6 markdown content downgraded to R4 may be displayed literally or sanitized differently.",
       "migrationGuidanceMd": "Update generated models and rendering paths. Treat migrated R4 text as plain markdown. When downgrading, decide whether to strip markdown or preserve it as literal text.",
       "backwardCompatibilityAnalysisMd": "The formal markdown type gives R6 renderers a clear signal, but comments could have allowed markdown-like content without changing generated primitive types.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SpecimenDefinition:TYPE_DOMAIN:SpecimenDefinition.markdown-text:string-to-markdown",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Several existing text elements move from `string` to `markdown`. The wire value remains a JSON string and ordinary R4 plain text remains valid markdown, so this is not a hard instance break. The real burden is generated-model typing plus rendering or sanitization expectations, and the formal markdown signal is a reasonable R6 goal for descriptive requirements and handling instructions.",
+        "keyEvidence": [
+          "R4 `container.description`, `container.preparation`, `typeTested.requirement`, and `handling.instruction` are typed as string.",
+          "R6 changes those same paths to markdown.",
+          "The report's primitive comparison found markdown is string-valued and no additional local hard value restriction was identified for these fields."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use reduces concern about generated primitive-type churn where the serialized value remains compatible.",
+        "compatibilityMechanism": "runtime/API/codegen: generated models and renderers may distinguish markdown from string, but typical instance JSON remains carryable and plain text remains valid.",
+        "lessBreakingAlternativeAssessment": "Keeping `string` and allowing markdown only in prose would reduce codegen churn, but generic R6 clients would not have a computable signal to apply markdown rendering or sanitization consistently.",
+        "comparisonToExisting": "partially agree: agree with the non-hard break and partial alternative, but the practical impact is limited by unchanged JSON string representation and FMM 0."
+      }
     },
     {
       "findingId": "SpecimenDefinition:TERMINOLOGY_BINDING:SpecimenDefinition.typeTested.container.type:container-vs",
@@ -1010,7 +1094,21 @@
       "migrationGuidanceMd": "Compare actual local container type codes against R6 expansions when available. Review any profile that strengthens this binding.",
       "backwardCompatibilityAnalysisMd": "Keeping both old and new hierarchy includes could be more compatible, but may retain an intentionally overbroad code set.",
       "reviewerNotesMd": "Terminology review with a licensed/current SNOMED CT expansion is needed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SpecimenDefinition:TERMINOLOGY_BINDING:SpecimenDefinition.typeTested.container.type:container-vs",
+        "judgment": "No problem",
+        "narrativeMd": "The container type value set definition changes its SNOMED CT filter root, but the element binding remains example strength. Base R6 validation should not reject R4 instances solely because a code is outside the example value set. Downstream picklists or profiles might need review, but this finding is not a meaningful base R4-to-R6 compatibility break.",
+        "keyEvidence": [
+          "R4 `SpecimenDefinition.typeTested.container.type` binding is example strength to `ValueSet/specimen-container-type`.",
+          "R6 binding remains example strength to the same value set URL.",
+          "R4 ValueSet compose uses SNOMED CT filter `is-a 706041008`; R6 uses `is-a 434711009`."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use further lowers concern for a non-required example binding with no base validation rejection.",
+        "compatibilityMechanism": "none: at base level the example binding change should not create old-valid/new-invalid instances; any effect is limited to optional terminology guidance, picklists, or derived profiles.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed. A compatibility include with both SNOMED hierarchies could help picklists only if expansion review showed important removals, but that is terminology curation rather than a base compatibility requirement.",
+        "comparisonToExisting": "agree: the existing Low impact and not-applicable alternative judgment match the fresh path-level assessment."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1199,5 +1297,19 @@
       "Reference target replacements from instance resources to definitional resources",
       "String-to-markdown type changes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SpecimenDefinition.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 4,
+      "No problem": 2
+    }
   }
 }

@@ -263,7 +263,22 @@
       "validationAndCompatibilityMd": "An R4-valid instance does not become R6-invalid simply because `Element` now specializes `Base`; `Base` has no additional serialized children in the inspected R6 StructureDefinition. R6 content also does not become unrepresentable in R4 at the JSON/XML instance level for this reason alone. The compatibility issue is runtime metadata: code that expects `Element.baseDefinition` to be absent or that assumes no superclass above Element can fail or skip Base-level processing.",
       "migrationGuidanceMd": "Regenerate model classes and validators from the R6 StructureDefinitions, and explicitly test type traversal from `Base` to `Element` to concrete datatypes/resources. Cross-version converters should not serialize `Base` as an extra instance element; it is a model hierarchy concept. Reflection code should handle both the R4 no-base case and the R6 `Base` superclass case.",
       "backwardCompatibilityAnalysisMd": "The less disruptive option would have been to keep Element as the formal root and document Base separately, but that would preserve an implicit hierarchy. Adding `Base` is probably justified for uniform R6 infrastructure, provided generators and migration guidance make the non-serialized nature of the change clear.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Element:ARTIFACT_IDENTITY:Element:6f3a9b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 keeps the Element canonical and serialized local shape, but inserts a computable Base superclass above Element. A model generator, validator, or reflection API that assumed Element had no parent can need code changes, so this is a real infrastructure compatibility issue. It does not make existing Element instance content invalid, and the R6 goal of an explicit common root for FHIR types and resources is coherent enough that the hierarchy change looks proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Element.json has no baseDefinition or derivation.",
+          "R6 StructureDefinition-Element.json declares baseDefinition http://hl7.org/fhir/StructureDefinition/Base and derivation specialization.",
+          "R6 StructureDefinition-Base.json is an abstract complex-type with no serialized child elements in the inspected root.",
+          "Package indexes show Base absent in R4 and present in R6."
+        ],
+        "fmmEffect": "Element is normative in R4, so a superclass/API change deserves stronger justification. That raised scrutiny, but the absence of an instance-shape change and the plausible type-system rationale kept the judgment below Revisit.",
+        "compatibilityMechanism": "runtime/API/codegen: generated inheritance, type traversal, reflection metadata, or validators keyed to Element as the root can break; no old-valid/new-invalid instance mechanism was found.",
+        "lessBreakingAlternativeAssessment": "R6 could have left Element as the formal root and documented Base conceptually, but that would not provide the same computable Base-to-Element hierarchy. A deprecated alias concept is not very applicable to a superclass edge, so there is no clean low-cost base design that both preserves R4 tooling assumptions and meets the R6 goal.",
+        "comparisonToExisting": "agree with the existing no-hard-break and medium runtime-impact assessment, and broadly agree that the alternative is only partial rather than a clearly less-breaking equivalent."
+      }
     },
     {
       "findingId": "Element:SERIALIZATION_OR_CODEGEN:Element.ele-1:9b21c4",
@@ -401,7 +416,22 @@
       "validationAndCompatibilityMd": "For validators that execute FHIRPath, an R4-valid Element does not become invalid in R6 and an R6-valid Element does not become unrepresentable in R4 because the expression is identical. For XPath-only or condition-driven tooling, the R6 definition can be a runtime break: the invariant is still present, but not in the old metadata location/form.",
       "migrationGuidanceMd": "Migrate validation engines to use `constraint.expression` FHIRPath as the source of truth. Do not treat the missing `xpath` property as removal of `ele-1`. Test empty elements, primitive values with extensions, and elements with only `id` to confirm the R6 validator still enforces `hasValue() or (children().count() > id.count())`.",
       "backwardCompatibilityAnalysisMd": "The semantic goal was achievable without breaking XPath-based tooling by retaining `constraint.xpath` as deprecated or informational metadata. The tradeoff is that retaining XPath would increase maintenance burden and risk inconsistency between XPath and FHIRPath. Because the validation expression is unchanged, the compatibility issue is avoidable but limited to tooling, not data instances.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Element:SERIALIZATION_OR_CODEGEN:Element.ele-1:9b21c4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The executable ele-1 FHIRPath test is unchanged, so a conformant FHIRPath-based validator should accept and reject the same Element content. The compatibility issue is for older tooling that used the R4 XPath copy or the old condition placement as the computable hook for the invariant. That is migration work for validators and schema emitters, but relying on one canonical FHIRPath expression in R6 is a reasonable cleanup and avoids maintaining duplicate constraint languages.",
+        "keyEvidence": [
+          "R4 Element.constraint[ele-1] expression is hasValue() or (children().count() > id.count()) and includes xpath @value|f:*|h:div.",
+          "R6 Element.constraint[ele-1] keeps the same FHIRPath expression, changes the human text to include 'or both', and has no xpath property.",
+          "R4 root Element lists condition ele-1; R6 places condition ele-1 on Element.id.",
+          "R4 ElementDefinition includes ElementDefinition.constraint.xpath; R6 ElementDefinition.constraint children no longer include xpath."
+        ],
+        "fmmEffect": "Element is normative, which makes removal of computable metadata worth checking carefully. The stability concern is softened by the identical validation expression and by the broader R6 metamodel change away from XPath.",
+        "compatibilityMechanism": "metadata/tooling: XPath-only or condition-driven validation/code generation can fail to carry forward ele-1, but base instance validity is unchanged when constraint.expression is used.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained xpath as deprecated informational metadata, or kept the old condition placement for a transition. That would help legacy tools but would preserve duplicate expression forms after R6 removed xpath from ElementDefinition.constraint, increasing divergence and source-of-truth risk.",
+        "comparisonToExisting": "partially agree with the existing medium tooling-impact assessment; the fresh review gives more weight to the unchanged FHIRPath expression and treats the less-breaking option as costly transitional metadata rather than a strong alternative."
+      }
     },
     {
       "findingId": "Element:VALUE_CONSTRAINT:Element.extension:74d8e1",
@@ -582,7 +612,22 @@
       "migrationGuidanceMd": "Validators and schema generators should not assume that all type-owned constraints are duplicated at every usage site. When processing `Element.extension`, dereference type `Extension` and apply the constraints on `Extension`, especially `ext-1`. Regression tests should include extensions with nested extensions only, value only, and both nested extension plus value to ensure invalid combinations are rejected.",
       "backwardCompatibilityAnalysisMd": "Keeping `ext-1` inline would have been a straightforward backward-compatible packaging choice for R4-style snapshot consumers. Removing the duplicate may be cleaner if R6 expects validators to compose constraints through type references, but that expectation needs to be explicit to avoid permissive validation behavior.",
       "reviewerNotesMd": "Human review should confirm from official R6 narrative or tooling guidance whether this omission is intentional snapshot composition behavior. Do not interpret this finding as saying R6 permits extensions to contain both `extension` and `value[x]`; the R6 `Extension` artifact still forbids that.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Element:VALUE_CONSTRAINT:Element.extension:74d8e1",
+        "judgment": "Unclear",
+        "narrativeMd": "Element.extension keeps the same cardinality, type, slicing, and modifier status, so there is no forward instance rejection for valid R4 data. The concern is that R4's Element snapshot carried the Extension-owned ext-1 invariant inline, while R6's Element snapshot does not. If R6 validators are expected to compose constraints through the declared Extension type, behavior is unchanged; if common tooling validates only the usage-site snapshot, malformed extensions could be accepted. Local package evidence shows the rule still exists on Extension, but not enough evidence was found here to decide whether the missing inline copy is intentional safe packaging or a compatibility-sensitive omission.",
+        "keyEvidence": [
+          "R4 Element.extension constraint list includes ext-1 from http://hl7.org/fhir/StructureDefinition/Extension with expression extension.exists() != value.exists().",
+          "R6 Element.extension still has type Extension and open url slicing but its constraint list contains ele-1 only.",
+          "R6 StructureDefinition-Extension.json still defines ext-1 as an error invariant at Extension root.",
+          "No official Element/Extension snapshot-composition rationale or validator behavior evidence was available in the local inputs reviewed."
+        ],
+        "fmmEffect": "Element is normative and extensions are a universal mechanism, so a packaging change that could affect enforcement of ext-1 has a higher stability burden. That supports not dismissing the finding, but the remaining uncertainty is about intended validator composition rather than FMM.",
+        "compatibilityMechanism": "runtime/API/codegen: snapshot-only validators, schema generators, or flattened constraint indexes may stop enforcing ext-1 at Element.extension; type-aware validation through Extension should have no compatibility break.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could keep ext-1 copied onto Element.extension, possibly marked as inherited or informational, while retaining Extension as the authoritative source. That would protect snapshot-only tools, but it duplicates a type-owned rule and can create stale-copy or precedence ambiguity. Whether that tradeoff is worthwhile depends on official R6 snapshot policy and validator expectations.",
+        "comparisonToExisting": "partially agree with the existing medium runtime-impact and partial-alternative view, but the fresh review stops at Unclear because the decisive evidence is the intended R6 snapshot-composition contract, not just the local JSON delta."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -763,5 +808,18 @@
       "Constraints with R4 xpath metadata removed in R6",
       "Typed usage sites that no longer inline source type constraints"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Element.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Unclear": 1,
+      "Breaking but probably OK": 2
+    }
   }
 }

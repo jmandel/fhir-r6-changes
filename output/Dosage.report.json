@@ -249,7 +249,21 @@
       "migrationGuidanceMd": "Do not simply drop `sequence` without reviewing the containing resource. If the sequence encoded clinically meaningful order or concurrency, migrate that meaning into the R6 container, an R6 `DosageDetails` course structure where applicable, or an extension/profile-specific rule. Test examples with same sequence, different sequence, and omitted sequence.",
       "backwardCompatibilityAnalysisMd": "The change was probably intended to consolidate sequence semantics into richer dose-course modeling, but it could have been introduced compatibly by retaining `sequence` as deprecated. The tradeoff would be model duplication and possible disagreement between old and new ordering fields.",
       "reviewerNotesMd": "The exact R6 migration target depends on the resource or profile containing the Dosage array, which was outside this artifact-scoped review.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Dosage:ELEMENT_PRESENCE_OR_IDENTITY:Dosage.sequence:621bcd",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Dosage.sequence` was an optional integer used to distinguish ordered versus concurrent dosage instructions. R6 removes the local element entirely; a raw R4 dosage carrying `sequence` is not valid R6 Dosage content, and an implementation that used it to interpret tapers, alternating doses, or grouped instructions needs an explicit replacement policy. The R6 `DosageDetails.step` model suggests a richer course representation, but it is not a same-path compatibility bridge for existing Dosage arrays.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-Dosage.json` snapshot has `Dosage.sequence` 0..1 integer, isSummary true, with requirements for concurrent versus sequential Dosages.",
+          "R6 `StructureDefinition-Dosage.json` snapshot has no `Dosage.sequence` element.",
+          "R6 `StructureDefinition-DosageDetails.json` has `step` for dosage-course sequencing, but it is a separate datatype with required `renderedInstruction` and nested `step.component` Dosage content."
+        ],
+        "fmmEffect": "The supplied R4 status is trial-use and the local maturity map gives Dosage `standardsStatus: trial-use` with no numeric FMM, so I did not treat this as a normative-stability violation. However, Dosage is used by medication resources with FMM 2-3 locally, and ordering of medication instructions can be safety-relevant, so trial-use status only partly softens the concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with `sequence` has an element absent from R6; runtime/API/codegen also changes because R6 models no longer expose the property.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design was to keep `Dosage.sequence` as a deprecated 0..1 legacy ordering hint while adding richer course modeling elsewhere. The tradeoff is some duplicated ordering semantics and precedence guidance, but for this narrow field that cost appears modest compared with dropping a clinically meaningful hint.",
+        "comparisonToExisting": "agree: the existing report correctly identifies a hard instance break and a plausible less-breaking alternative; my fresh review likewise treats the removal as deserving renewed design attention."
+      }
     },
     {
       "findingId": "Dosage:ELEMENT_PRESENCE_OR_IDENTITY:Dosage.asNeeded:60b14f",
@@ -443,7 +457,21 @@
       "validationAndCompatibilityMd": "An R4 instance with `asNeededCodeableConcept` is invalid in R6 until transformed to `asNeededFor`. An R4 instance with `asNeededBoolean` is also invalid as raw JSON because R6 uses `asNeeded` rather than the R4 choice name. R6 instances with multiple reasons cannot be represented exactly in R4.",
       "migrationGuidanceMd": "Map `asNeededBoolean` to `asNeeded`. Map `asNeededCodeableConcept` to `asNeededFor[0]` and set `asNeeded` to true unless a local rule intentionally relies on the R6 convention that reasons imply as-needed. Validate migrated records against `dos-1` and test false, true-without-reason, reason-without-boolean, and multiple-reason cases.",
       "backwardCompatibilityAnalysisMd": "The split is understandable because it removes an overloaded choice and supports multiple reasons. A backward-compatible alternative would have kept `asNeeded[x]` as deprecated while introducing `asNeededFor`, but that would have prolonged ambiguity and duplicated PRN semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Dosage:ELEMENT_PRESENCE_OR_IDENTITY:Dosage.asNeeded:60b14f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 used one choice element, serialized as `asNeededBoolean` or `asNeededCodeableConcept`. R6 separates that into `asNeeded` boolean and repeating `asNeededFor` CodeableConcept, with an invariant that reasons cannot accompany `asNeeded=false`. This is a real wire-format and generated-model break, but it also removes an overloaded choice, permits multiple reasons, and makes the false-with-reason case computably invalid.",
+        "keyEvidence": [
+          "R4 `Dosage.asNeeded[x]` is 0..1 with boolean and CodeableConcept choices.",
+          "R6 `Dosage.asNeeded` is 0..1 boolean and `Dosage.asNeededFor` is 0..* CodeableConcept with the same medication-as-needed-reason example binding.",
+          "R6 root invariant `dos-1` is severity error with expression `asNeededFor.empty() or asNeeded.empty() or asNeeded`."
+        ],
+        "fmmEffect": "Trial-use status lowers the compatibility burden compared with normative content, but PRN medication instructions are central enough that the break still matters. The judgment is not softened to `No problem` because existing R4 wire names and generated APIs do need transformation.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 choice members `asNeededBoolean` and `asNeededCodeableConcept` are not the R6 member names; R6-to-R4 loss can also occur when multiple `asNeededFor` reasons are present.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could have kept deprecated `asNeeded[x]` while adding `asNeededFor`, but that would preserve two representations for PRN status and reasons in the base datatype and require conflict handling. Those tradeoffs are material enough that the cleaner R6 split appears proportionate.",
+        "comparisonToExisting": "agree: the existing report's hard/high impact and partial-alternative assessment are consistent with the evidence, though the final judgment emphasizes that the break is probably justified."
+      }
     },
     {
       "findingId": "Dosage:TYPE_DOMAIN:Dosage.site:329ad4",
@@ -603,7 +631,21 @@
       "validationAndCompatibilityMd": "Raw R4 instances with `site.coding` become invalid against R6 because a `CodeableReference` expects `concept` or `reference`. R6 coded concepts can be converted back to R4, but reference-only BodyStructure sites are not cleanly representable without dereferencing, selecting a code, or using an extension.",
       "migrationGuidanceMd": "Wrap R4 `site` as R6 `site.concept`. For R6-to-R4, define a policy for `site.reference`: resolve BodyStructure and map to a CodeableConcept when possible, preserve as an extension, or reject as not representable. Test coded-only, reference-only, and code-plus-reference cases.",
       "backwardCompatibilityAnalysisMd": "The change is likely justified by the need for precise anatomic site references, but a new optional reference field or extension would have avoided changing the JSON shape of existing coded sites. The chosen design is cleaner but breaking.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Dosage:TYPE_DOMAIN:Dosage.site:329ad4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Dosage.site` kept its path but changed from a direct `CodeableConcept` to `CodeableReference(BodyStructure)`. Existing coded R4 sites require wrapping under `site.concept`, and R6 reference-only body sites cannot always be represented as an R4 code without resolving or losing detail. The change is breaking, but it fits the R6 goal of allowing either a coded site or a precise BodyStructure reference in one field.",
+        "keyEvidence": [
+          "R4 `Dosage.site` is 0..1 `CodeableConcept` with example binding to `approach-site-codes`.",
+          "R6 `Dosage.site` is 0..1 `CodeableReference` targeting `http://hl7.org/fhir/StructureDefinition/BodyStructure`, with the same example binding.",
+          "R4 and R6 comments both recognize use cases needing precise body-site attributes; R6 makes that reference capability part of the base element."
+        ],
+        "fmmEffect": "Trial-use status reduces the presumption against model cleanup. Medication administration site can still be clinically relevant, but the forward migration for coded R4 content is deterministic, so the FMM/status context supports accepting the break if the unified CodeableReference goal is desired.",
+        "compatibilityMechanism": "old-valid/new-invalid: raw R4 JSON such as `site.coding` is not the R6 CodeableReference shape; R6-to-R4 loss occurs for `site.reference` when no equivalent CodeableConcept is available.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have left `site` as CodeableConcept and added a separate BodyStructure reference element, but that would split one administration-site fact across parallel fields and require precedence and consistency rules. A `CodeableReference` is a cleaner base model despite the wire-shape migration.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a hard/high bidirectional compatibility issue with only a partial less-breaking alternative."
+      }
     },
     {
       "findingId": "Dosage:ELEMENT_PRESENCE_OR_IDENTITY:Dosage.maxDose:4f1b9f",
@@ -827,7 +869,21 @@
       "migrationGuidanceMd": "Map `maxDosePerAdministration` to `safety.doseLimit` with `scope=administration`; map `maxDosePerLifetime` with `scope=lifetime`; map `maxDosePerPeriod` with `scope=period`, converting the ratio denominator to `period` only when it is safely a duration. Flag unusual ratios, multiple limits, formulas, and exceeded-limit instructions for clinical or implementation review.",
       "backwardCompatibilityAnalysisMd": "The richer R6 safety structure is likely justified, but removal of the old fields was not the only possible path. Deprecated aliases or a profile-level transition period would have allowed old safety constraints to validate while systems adopted `DosageSafety`.",
       "reviewerNotesMd": "Because maximum dose limits are safety-related, mappings should be reviewed with clinical stakeholders when units, periods, or formula-based limits are not straightforward.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Dosage:ELEMENT_PRESENCE_OR_IDENTITY:Dosage.maxDose:4f1b9f",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had three top-level maximum-dose safety controls: per period, per administration, and per lifetime. R6 removes those names and moves dose limits into `Dosage.safety.doseLimit`, where each entry has required `value[x]` and required `scope`. The redesign is clinically richer, but the removed fields are safety-relevant and migration is not always a trivial rename, especially for period ratios and multiple or formula-based R6 limits.",
+        "keyEvidence": [
+          "R4 `Dosage.maxDosePerPeriod` is 0..1 Ratio; `maxDosePerAdministration` and `maxDosePerLifetime` are 0..1 Quantity(SimpleQuantity).",
+          "R6 `StructureDefinition-Dosage.json` omits the three `maxDosePer*` fields and adds `Dosage.safety` 0..1 `DosageSafety`.",
+          "R6 `StructureDefinition-DosageSafety.json` defines repeating `doseLimit` with `value[x]` 1..1 integer, Quantity, or Expression; `scope` 1..1 required code; optional `period`, `text`, and `ifExceeded`."
+        ],
+        "fmmEffect": "Although R4 Dosage is trial-use rather than normative, maximum-dose instructions are medication-safety controls. That safety role and the expert-dependent mapping cases outweigh the softening that trial-use status would otherwise provide.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `maxDosePer*` members are absent in R6; R6-to-R4 loss also occurs for new scopes, formula limits, per-limit text, multiple same-scope limits, and `ifExceeded` instructions.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design was to add `Dosage.safety` while retaining the three old `maxDosePer*` fields as deprecated aliases with explicit consistency rules. The tradeoff is serious because duplicate safety limits can conflict, but the alternative is still credible enough for renewed review given the safety sensitivity and non-trivial period-ratio migration.",
+        "comparisonToExisting": "partially agree: I agree with the existing report's hard/high impact and partial-alternative assessment, but I place more weight on safety and expert-dependent migration than its `probably justified` rationale did."
+      }
     },
     {
       "findingId": "Dosage:TYPE_DOMAIN:Dosage.doseAndRate.Expression:4f04dd",
@@ -985,7 +1041,21 @@
       "migrationGuidanceMd": "Update R6 parsers, serializers, UI, validation tests, and dose-calculation logic to handle `doseExpression` and `rateExpression`. For R6-to-R4, preserve formulas in extensions or narrative when no safe concrete value can be derived, and require review before evaluating formulas into patient-specific quantities.",
       "backwardCompatibilityAnalysisMd": "The change is additive in R6 and therefore relatively compatible in the forward direction. The remaining incompatibility is inherent to R4's older type domain; a cross-version extension is the least lossy fallback.",
       "reviewerNotesMd": "Expression language, variable context, and execution safety were not assessed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Dosage:TYPE_DOMAIN:Dosage.doseAndRate.Expression:4f04dd",
+        "judgment": "No problem",
+        "narrativeMd": "R6 only widens the `dose[x]` and `rate[x]` choices by adding `Expression`; it does not remove the R4 Quantity, Range, or Ratio choices. Existing R4 dosage dose/rate instances therefore remain valid by type domain in R6. Down-converting formula-based R6 content to R4 can be lossy, but that is an expected consequence of adding a new capability rather than a reason to revisit the base R6 design.",
+        "keyEvidence": [
+          "R4 `Dosage.doseAndRate.dose[x]` allows Range and Quantity(SimpleQuantity); R4 `rate[x]` allows Ratio, Range, and Quantity(SimpleQuantity).",
+          "R6 retains those types and adds `Expression` to both `dose[x]` and `rate[x]`.",
+          "R6 comments say Expression is provided for medications that are weight dependent or skin-surface-area dependent."
+        ],
+        "fmmEffect": "Trial-use status further reduces concern for an additive widening. Even with medication-safety relevance, the change does not invalidate R4 content, so FMM/status did not raise this to a standards-design concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: only new R6 `doseExpression` or `rateExpression` content lacks an R4 base choice; there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed because all R4 types are retained. R4 extensions, narrative preservation, or formula evaluation are down-conversion mitigations, not better R6 base designs.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that this is not a hard forward break and that no less-breaking alternative is applicable, but I judge the finding as `No problem` rather than a material impact item because it is additive in R6."
+      }
     },
     {
       "findingId": "Dosage:CONVERSION_OR_MAPPING:Dosage.condition:170374",
@@ -1106,7 +1176,21 @@
       "migrationGuidanceMd": "For R6-to-R4, preserve conditions in an agreed extension or narrative and flag records for review when conditions affect whether therapy should occur. R6 implementations should test condition evaluation, multiple-condition OR semantics, and behavior when both `condition` and `asNeeded` are present.",
       "backwardCompatibilityAnalysisMd": "A core condition element is more interoperable than extensions, so the addition is probably justified. The compatibility cost is borne by reverse conversion because R4 has no equivalent general-purpose field.",
       "reviewerNotesMd": "The R6 definition says any condition can make the dosage apply; implementers should confirm how this interacts with local decision-support logic.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Dosage:CONVERSION_OR_MAPPING:Dosage.condition:170374",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Dosage.condition` is new optional R6 content that states when the whole dosage applies, with any listed condition able to make the dosage applicable. It does not invalidate any R4 Dosage moving forward, but it creates a real down-conversion hazard: if the condition is dropped, a conditional medication instruction may appear unconditional. Because the element is additive and supplies a base home for clinically meaningful applicability logic, the compatibility burden appears proportionate.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-Dosage.json` has no `Dosage.condition` child.",
+          "R6 `StructureDefinition-Dosage.json` adds `Dosage.condition` 0..* `DosageCondition` with summary flag true and definition that the dosage applies if any condition is true.",
+          "R6 `StructureDefinition-DosageCondition.json` requires `code` 1..1 and includes optional `details`, `operation`, broad `value[x]`, and `text` fields."
+        ],
+        "fmmEffect": "Trial-use status and the additive nature of the change soften the forward-compatibility concern. The judgment remains above `No problem` because conditional applicability can be clinically important when R6 content must be represented in R4.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4 has no general Dosage condition container, so strict R4 parsers reject it and lossy converters can change meaning by omitting it.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is necessary for R4-to-R6 compatibility because the element is optional and additive. R4 extensions or narrative are useful down-conversion strategies, but they are not alternative R6 base designs.",
+        "comparisonToExisting": "partially agree: I agree with the existing report's high reverse-conversion concern and no-applicable-alternative reasoning, while framing the additive base change as proportionate rather than a forward break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1293,5 +1377,19 @@
       "Choice-type additions of Expression for dose/rate formulas",
       "BackboneElement to BackboneType base hierarchy shifts"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Dosage.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 3,
+      "No problem": 1
+    }
   }
 }

@@ -418,7 +418,21 @@
       "validationAndCompatibilityMd": "R4→R6: an R4-valid `addresses` reference is old-valid/new-invalid unless transformed to `addresses.reference`. R6→R4: concept-only concerns and references to Procedure or MedicationAdministration are not valid in the R4 base element. Codegen risk is high because the property type changed while the element name stayed the same.",
       "migrationGuidanceMd": "Transform each R4 `addresses` item to `CodeableReference.reference`. For R6→R4, map Condition references directly, but use an extension, supporting resource, or manual review for concept-only concerns and non-Condition references. Tests should include Condition references, concept-only addresses, and the new Procedure/MedicationAdministration target cases.",
       "backwardCompatibilityAnalysisMd": "The broader model is useful, but a same-name type replacement is one of the more disruptive approaches. A sibling optional element or a transition period retaining a Reference-shaped field would have been more wire-compatible, at the cost of duplicate representations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CarePlan:TYPE_DOMAIN:CarePlan.addresses:9f4d0a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The unchanged element path hides a real wire-format break: an R4 `addresses` item is a direct `Reference`, while R6 expects a `CodeableReference` with either a nested `reference` or a `concept`. Generated models, FHIRPath, and serializers must change, and R6 can now express concept-only concerns or non-Condition references that R4 cannot. Still, the R6 goal is coherent: a care plan concern may be a coded problem or a referenced clinical resource, and `CodeableReference` is the base R6 pattern for that. Keeping both the old Reference field and a new concept/reference concern field would preserve old instances but create duplicate concern representations.",
+        "keyEvidence": [
+          "R4 CarePlan.addresses is 0..* Reference constrained to Condition.",
+          "R6 CarePlan.addresses is 0..* CodeableReference targeting Condition, Procedure, or MedicationAdministration.",
+          "R6 CarePlan.addresses adds an example binding to clinical-findings and comments distinguishing addresses.concept from addresses.reference."
+        ],
+        "fmmEffect": "R4 CarePlan is FMM 2 and trial-use, so maturity is neutral under the framework. The hard break matters, but FMM 2 does not by itself make a coherent CodeableReference modernization suspect.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 JSON with addresses[n].reference as a direct Reference is not the R6 CodeableReference shape; R6 concept-only and non-Condition references also create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained Reference(Condition) at `addresses` and added a new optional CodeableReference concern element, or kept the old form as a deprecated alias. That would preserve many R4 instances, but it would split one clinical concern across overlapping fields and complicate search, profiling, and duplicate/conflict handling.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the fresh review agrees the break is real but treats the R6 design as proportionate rather than needing renewed standards attention."
+      }
     },
     {
       "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.activity.detail:6ac124",
@@ -580,7 +594,21 @@
       "migrationGuidanceMd": "Inventory all uses of `activity.detail`. For each activity, choose a target request resource such as ServiceRequest, MedicationRequest, NutritionOrder, DeviceRequest, CommunicationRequest, Task, Appointment, or VisionPrescription, then map R4 child fields to that resource. Pay special attention to `doNotPerform`, `scheduled[x]`, status/statusReason, performer, product, quantity/dailyAmount, goals, and reasons. Where no target field exists, use an extension or retain the original R4 data for manual review.",
       "backwardCompatibilityAnalysisMd": "The removal probably reflects a deliberate move away from partial inline request representations. It is nevertheless avoidable as a hard break: the old backbone could have remained deprecated while R6 encouraged references. That alternative would have preserved old instances but would continue allowing divergent representations of the same planned activity.",
       "reviewerNotesMd": "Migration quality depends heavily on the chosen target request resource and is not determinable from CarePlan alone.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.activity.detail:6ac124",
+        "judgment": "Revisit",
+        "narrativeMd": "Removing `activity.detail` is more than a property rename. R4 allowed a complete inline planned-activity summary with status, timing, negation, performer, product, quantity, reasons, goals, and description. R6 has no inline replacement, so migration often requires creating or selecting a separate request resource and moving each child into resource-specific fields. That can be expert-dependent and safety-relevant, especially for `doNotPerform`, timing, product, and quantity. The R6 cleanup goal is understandable, but a transitional base design retaining deprecated inline detail with mutual exclusion against `plannedActivityReference` looks plausible enough to warrant renewed review.",
+        "keyEvidence": [
+          "R4 CarePlan.activity.detail is 0..1 BackboneElement.",
+          "R4 detail has children including kind, code, reasonCode, reasonReference, goal, status, statusReason, doNotPerform, scheduled[x], location, performer, product[x], dailyAmount, quantity, and description.",
+          "R6 CarePlan has activity.plannedActivityReference and performedActivity, but no CarePlan.activity.detail element."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it does not impose normative stability, but it also does not soften this to an experimental-change concern. The path-level migration burden and clinical meaning dominate.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 instance with activity.detail contains an element absent from R6; generated nested detail classes and validators also break.",
+        "lessBreakingAlternativeAssessment": "Yes, with tradeoffs. R6 could keep `activity.detail` as optional and deprecated, preserving the existing mutual-exclusion pattern with the planned activity reference. That would prolong the embedded-request model and require consumers to support two activity representations, but it would preserve old instances and reduce lossy or expert-dependent migration.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment, but disagree with treating the removal as probably justified; the fresh review judges the expert-dependent migration and plausible transitional design as Revisit."
+      }
     },
     {
       "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.activity.reference:2e70f1",
@@ -763,7 +791,21 @@
       "validationAndCompatibilityMd": "R4→R6: `activity.reference` is an unknown/invalid element in R6. R6→R4: `activity.plannedActivityReference` is unknown in R4, and RequestOrchestration references are outside R4 CarePlan.activity.reference targets. Strict enum/union target handling and FHIRPath expressions must be updated.",
       "migrationGuidanceMd": "Rename `activity.reference` to `activity.plannedActivityReference`. Verify all target resource types, and route RequestGroup references through a RequestGroup→RequestOrchestration migration or preserve them via extension when no lossless mapping is available. Tests should cover every target type in the R4 list.",
       "backwardCompatibilityAnalysisMd": "The clearer name is useful but not strictly necessary for compatibility. Retaining the old name as deprecated would have avoided hard instance breaks while allowing R6 systems to prefer the new name.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.activity.reference:2e70f1",
+        "judgment": "Revisit",
+        "narrativeMd": "`activity.reference` and `activity.plannedActivityReference` have the same cardinality and nearly the same role for non-orchestration targets. For most existing references, the migration is just a wire-name change, which means R4 instances, FHIRPath expressions, generated accessors, and indexes break mainly for terminology cleanup. The RequestGroup to RequestOrchestration target change is a separate resource migration issue, but it did not require renaming the CarePlan property. Retaining `activity.reference` and clarifying its definition would have been a low-cost base-compatible design.",
+        "keyEvidence": [
+          "R4 CarePlan.activity.reference is 0..1 Reference to Appointment, CommunicationRequest, DeviceRequest, MedicationRequest, NutritionOrder, Task, ServiceRequest, VisionPrescription, or RequestGroup.",
+          "R6 CarePlan.activity.plannedActivityReference is 0..1 Reference to the same list except RequestOrchestration replaces RequestGroup.",
+          "R6 CarePlan has no activity.reference element."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, so the avoidability of the same-type same-cardinality rename carries the judgment rather than maturity pressure.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 activity.reference is unknown in R6 until renamed; RequestGroup references also need resource-level migration to RequestOrchestration.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could keep `activity.reference` as the base wire name, update the short/definition to emphasize planned activity, and adjust target guidance for RequestOrchestration. The main cost is retaining a less descriptive property name, which is modest compared with breaking all existing references to the path.",
+        "comparisonToExisting": "agree with the existing High impact and Yes alternative judgment; this remains an avoidable hard path rename."
+      }
     },
     {
       "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.activity.outcome:5a1b6f",
@@ -952,7 +994,21 @@
       "validationAndCompatibilityMd": "R4→R6 validation fails for `outcomeCodeableConcept` and `outcomeReference`. R6→R4 requires splitting CodeableReference values back into either outcomeCodeableConcept or outcomeReference, which is structurally possible for concept/reference values but semantically uncertain for the new performed-activity framing.",
       "migrationGuidanceMd": "Map `outcomeReference` to `performedActivity.reference` and `outcomeCodeableConcept` to `performedActivity.concept`, then review coded outcomes that describe results rather than activities. If the outcome is actually a goal result or observation, consider representing it in the appropriate event or observation resource instead of blindly converting.",
       "backwardCompatibilityAnalysisMd": "A unified CodeableReference is a reasonable R6 design, but removing both old names is avoidable. Keeping deprecated aliases could have allowed old instances to validate while warning implementers to migrate to the new representation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.activity.outcome:5a1b6f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 split activity outcomes into coded and referenced fields; R6 unifies them as `performedActivity` CodeableReference. That invalidates old element names and changes generated APIs. The semantic label also shifts from outcome/result to activity performed, so coded results should not be mapped blindly. However, the R6 structure matches a real modeling improvement: concept-or-reference values move into one repeating element and the activity performed is separated from goal outcomes. Keeping old outcome fields alongside `performedActivity` would preserve instances but leave overlapping and potentially conflicting activity/result channels.",
+        "keyEvidence": [
+          "R4 CarePlan.activity.outcomeCodeableConcept is 0..* CodeableConcept with an example care-plan-activity-outcome binding.",
+          "R4 CarePlan.activity.outcomeReference is 0..* Reference(Resource).",
+          "R6 CarePlan.activity.performedActivity is 0..* CodeableReference(Resource) with an example care-plan-activity-performed binding."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The optional path still has real migration work, but the maturity level does not require preserving the old split when the replacement has a substantive model rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 outcomeCodeableConcept and outcomeReference are absent in R6; R6 performedActivity values must be split or reviewed for R4 down-conversion.",
+        "lessBreakingAlternativeAssessment": "Partial. Deprecated aliases for outcomeCodeableConcept and outcomeReference could preserve old instances, but they would require merge, ordering, duplicate, and semantic-precedence rules with performedActivity, especially where a coded outcome is not actually an activity.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment; the fresh review also agrees the break is proportionate despite needing careful migration for coded outcomes."
+      }
     },
     {
       "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.author:0bdf41",
@@ -1134,7 +1190,21 @@
       "validationAndCompatibilityMd": "R4→R6: any instance with `author` is invalid unless the element is renamed to `custodian`. R6→R4: `custodian` is not an R4 CarePlan element but can usually map to `author` with possible semantic narrowing.",
       "migrationGuidanceMd": "Map `CarePlan.author` to `CarePlan.custodian` for base compatibility. Review downstream workflow and audit rules that used “author” to mean creator rather than responsible custodian, and consider preserving creator information in Provenance or extensions if needed.",
       "backwardCompatibilityAnalysisMd": "Because the replacement is so close structurally, retaining `author` as deprecated would have been a low-cost compatibility path. The main tradeoff would be ambiguity between author and custodian until one is retired.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.author:0bdf41",
+        "judgment": "Revisit",
+        "narrativeMd": "This is a near one-for-one wire rename from `author` to `custodian`: same cardinality, same reference target set, same summary behavior, and very similar responsible-party definition. That makes old instances and generated code fail for what appears mostly to be terminology cleanup. If R6 wanted to clarify stewardship rather than literal authorship, the base model could have kept the `author` wire name and updated its prose, avoiding duplicate fields and preserving R4 data.",
+        "keyEvidence": [
+          "R4 CarePlan.author is 0..1 Reference to Patient, Practitioner, PractitionerRole, Device, RelatedPerson, Organization, or CareTeam.",
+          "R6 CarePlan.custodian has the same cardinality and target profiles.",
+          "R6 CarePlan has no author element."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. It does not forbid renames, but it leaves little reason to accept a same-shape rename when a low-cost compatible wording change was available.",
+        "compatibilityMechanism": "old-valid/new-invalid: populated R4 author is not a valid R6 CarePlan element; runtime/API/codegen also changes from author to custodian.",
+        "lessBreakingAlternativeAssessment": "Yes. Keep `author` as the wire path and clarify that it means the responsible custodian, or add `custodian` only with a deprecated alias period. The alias version has duplicate-responsibility risk, but simply retaining `author` has low modeling cost.",
+        "comparisonToExisting": "agree with the existing Medium impact and Yes alternative judgment; the fresh review classifies the avoidable rename as Revisit."
+      }
     },
     {
       "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.instantiates:4d12c8",
@@ -1265,7 +1335,21 @@
       "migrationGuidanceMd": "Do not drop these values silently. Determine whether they belong on a referenced PlanDefinition, RequestOrchestration, ServiceRequest, Provenance, or a standard/custom extension. Validate migrated examples with consumers that rely on guideline/protocol attribution.",
       "backwardCompatibilityAnalysisMd": "The removal may be part of a broader workflow cleanup, but without rationale it appears potentially avoidable. Retaining deprecated fields or defining a cross-version extension would have allowed old data to remain valid while systems migrated to the preferred R6 pattern.",
       "reviewerNotesMd": "This finding needs official narrative/change-note confirmation to identify the preferred R6 representation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CarePlan:ELEMENT_PRESENCE_OR_IDENTITY:CarePlan.instantiates:4d12c8",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 root-level `instantiatesCanonical` and `instantiatesUri` carried protocol, guideline, or definition links for the whole CarePlan. R6 removes both without a same-level replacement in the CarePlan definition. This is an old-valid/new-invalid break and a traceability risk, not just cleanup of an obscure child path. The preferred R6 home may be a referenced request, RequestOrchestration, PlanDefinition, Provenance, or extension, but that is not evident from the base CarePlan StructureDefinition. Keeping the optional fields as deprecated while documenting the new pattern would be a modest less-breaking base design.",
+        "keyEvidence": [
+          "R4 CarePlan.instantiatesCanonical is 0..* canonical targeting PlanDefinition, Questionnaire, Measure, ActivityDefinition, or OperationDefinition.",
+          "R4 CarePlan.instantiatesUri is 0..* uri for external protocols or definitions.",
+          "R6 CarePlan has no instantiatesCanonical or instantiatesUri element."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but protocol and definition traceability can affect CDS, audit, quality, and explanation. The absence of a visible base replacement keeps the removal concerning.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with root instantiatesCanonical or instantiatesUri fail strict R6 validation and can lose protocol linkage unless another representation is chosen.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could retain both optional fields as deprecated and point to the preferred R6 representation. The tradeoff is continued legacy workflow surface area and possibly multiple places to find protocol links, but the fields are optional and do not create direct conflict with a replacement CarePlan element.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the fresh review treats the missing replacement and modest deprecated-field alternative as strong enough for Revisit."
+      }
     },
     {
       "findingId": "CarePlan:TERMINOLOGY_BINDING:CarePlan.status:7c3a9e",
@@ -1434,7 +1518,21 @@
       "validationAndCompatibilityMd": "R4→R6: no old-valid/new-invalid status code was found. R6→R4: `status=\"ended\"` is not representable as a valid R4 CarePlan.status code without a mapping choice such as revoked, completed, or an extension, each of which changes meaning.",
       "migrationGuidanceMd": "For R4→R6, update generated enums and tests to include `ended`. For R6→R4, define a policy and preferably preserve the original `ended` value in an extension if mapping to a nearest R4 status. Test downstream workflow rules that decide whether a plan is actionable.",
       "backwardCompatibilityAnalysisMd": "Adding `ended` is clinically/operationally useful, but it could have been modeled as a profile or extension for compatibility. The tradeoff is that base interoperability around ended plans would remain weak.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CarePlan:TERMINOLOGY_BINDING:CarePlan.status:7c3a9e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The required status binding is widened by adding `ended`; the R4 status codes remain available in the R6 request-status system, so this is not an R4-to-R6 validation break for existing CarePlans. It still matters because `status` is required and a modifier: closed enums, switch statements, workflow state machines, and R6-to-R4 gateways must handle `ended` deliberately. The added lifecycle state is reasonable and the base model preserved old codes, so this is migration work rather than a standards-design problem.",
+        "keyEvidence": [
+          "R4 CarePlan.status is 1..1 code with required binding to request-status|4.0.1.",
+          "R6 CarePlan.status is 1..1 code with required binding to request-status|6.0.0-ballot4.",
+          "R6 request-status adds ended, defined as no longer to be acted upon without differentiating degree of action already undertaken."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Because the change is additive for R4 content, maturity does not create a revisit concern, though the modifier status path makes runtime handling important.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 consumers with closed R4-era status enums or workflow logic must handle ended; R6-to-R4 loss applies when no exact R4 status exists.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 base compatibility. R6 kept the R4 codes and only added a new one. Profiles, extensions, or ConceptMaps can help down-conversion, but they are mitigations rather than less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Not applicable alternative judgment; the fresh review emphasizes that the additive modifier-code change is real but proportionate."
+      }
     },
     {
       "findingId": "CarePlan:TERMINOLOGY_BINDING:CarePlan.intent:a19e6b",
@@ -1596,7 +1694,21 @@
       "validationAndCompatibilityMd": "R4→R6: existing R4 intent codes remain valid. R6→R4: `directive` has no valid R4 CarePlan.intent representation. Runtime risk comes from required binding enforcement, exhaustive switch statements, and business rules that use intent to decide authority.",
       "migrationGuidanceMd": "Update R6 enum handling and UI/business logic to recognize directive. For R6→R4, do not silently coerce directive to plan/order/proposal; preserve the original value using an extension or require human/policy review.",
       "backwardCompatibilityAnalysisMd": "The new code is likely justified for expressiveness, but base-level inclusion is not backward-compatible for R4 consumers. A profile or extension could have staged the change, at the cost of less consistent support.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CarePlan:TERMINOLOGY_BINDING:CarePlan.intent:a19e6b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds `directive` to the required CarePlan.intent binding while retaining the R4 intent codes. That does not invalidate R4 instances, but `intent` is required and a modifier, and directive-level authority is not safely interchangeable with proposal, plan, order, or option. Implementers need enum, UI, authorization, and R6-to-R4 policy updates. Adding the code in the base value set is a reasonable way to support directive CarePlans, so the break is mainly reverse-conversion and runtime readiness rather than a reason to revisit the R6 design.",
+        "keyEvidence": [
+          "R4 CarePlan.intent required binding includes proposal, plan, order, and option.",
+          "R6 CarePlan.intent required binding includes proposal, plan, order, option, and directive.",
+          "R6 request-intent defines directive as an instruction authored by a Patient or RelatedPerson."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. The safety/legal meaning of directive keeps the runtime and reverse-conversion concern meaningful, but the additive nature keeps the base design proportionate.",
+        "compatibilityMechanism": "runtime/API/codegen: closed intent enums and business rules must recognize directive; R6-to-R4 loss applies because R4 CarePlan.intent has no exact directive code.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 base compatibility. R6 retained all R4 intent codes. Using an extension or profile for directive would ease reverse compatibility but would weaken consistent base support for a distinct authority level.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Not applicable alternative judgment; the fresh review agrees on the reverse/runtime risk but not on any need for a less-breaking base alternative."
+      }
     },
     {
       "findingId": "CarePlan:REFERENCE_TARGET:CarePlan.basedOn:d8b22c",
@@ -1730,7 +1842,21 @@
       "validationAndCompatibilityMd": "R4→R6: existing CarePlan references remain valid. R6→R4: non-CarePlan basedOn references are not valid against the R4 StructureDefinition. Codegen may still use a Reference type, but generated target-union metadata, validation, and business dispatch logic must handle the new targets.",
       "migrationGuidanceMd": "Update R6 validators, search logic, and dereference code to accept the new target profiles. For R6→R4, either preserve non-CarePlan targets in an extension, create intermediary CarePlan resources only when clinically justified, or flag records for manual conversion.",
       "backwardCompatibilityAnalysisMd": "Because this is additive for R4→R6, it is relatively compatible. The main missing compatibility aid is a standard reverse-conversion policy for non-CarePlan targets.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "CarePlan:REFERENCE_TARGET:CarePlan.basedOn:d8b22c",
+        "judgment": "No problem",
+        "narrativeMd": "`basedOn` is widened from CarePlan-only to CarePlan, ServiceRequest, RequestOrchestration, or NutritionOrder. Existing R4 basedOn references to CarePlan remain valid in R6, and the element shape and cardinality are unchanged. Code that consumes new R6 data must not assume every target is another CarePlan, and down-conversion of non-CarePlan targets needs policy, but that is the normal cost of additive expressivity rather than an R4-to-R6 compatibility problem.",
+        "keyEvidence": [
+          "R4 CarePlan.basedOn is 0..* Reference(CarePlan).",
+          "R6 CarePlan.basedOn is 0..* Reference(CarePlan, ServiceRequest, RequestOrchestration, NutritionOrder).",
+          "The R6 definition generalizes basedOn to a higher-level request resource fulfilled by the CarePlan."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral. Since no R4 target was removed, maturity does not add stability concern for this path.",
+        "compatibilityMechanism": "R6-to-R4 loss: only R6 instances using ServiceRequest, RequestOrchestration, or NutritionOrder targets lack a base R4 representation; old R4 CarePlan targets remain valid.",
+        "lessBreakingAlternativeAssessment": "Not applicable. A less-breaking R6 base design is not needed because the old target remains allowed. Rejecting the added targets would reduce R6 workflow expressivity and would only help reverse conversion.",
+        "comparisonToExisting": "partially agree with the existing report's reverse/runtime risk, but disagree with treating this as a material R4-to-R6 problem; the fresh review judges the additive target widening as No problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1892,5 +2018,19 @@
       "author/responsible-party fields renamed to custodian",
       "required workflow value sets adding ended or directive"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/CarePlan.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 4,
+      "No problem": 1
+    }
   }
 }

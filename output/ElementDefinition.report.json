@@ -248,7 +248,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid when an R4 ElementDefinition contains `constraint.xpath`. R6-to-R4 is not a problem for this field because R6 no longer emits it.",
       "migrationGuidanceMd": "Scan StructureDefinitions for `constraint.xpath`; verify each invariant has an adequate FHIRPath `expression`; preserve unmatched XPath only outside the core R6 model.",
       "backwardCompatibilityAnalysisMd": "The removal is technically justified but could have been staged with deprecation or a standard legacy extension.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ElementDefinition:ELEMENT_PRESENCE_OR_IDENTITY:ElementDefinition.constraint.xpath:3f6a91",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `constraint.xpath` was a real optional wire element and R6 removes it rather than deprecating it. A strict R6 parser or generated ElementDefinition model has no place for R4 XPath constraints, and the local R4 core corpus uses `xpath` heavily. The R4 comment already warned that XPath might be removed and FHIRPath is the better cross-format constraint language, so the direction is understandable, but for normative ElementDefinition this common hard break deserves renewed design attention for a transitional base-compatible field or other standard preservation path.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ElementDefinition defines `ElementDefinition.constraint.xpath` as 0..1 string with a comment that XPath may be removed in the future.",
+          "R6 StructureDefinition-ElementDefinition omits `constraint.xpath` while retaining `constraint.expression`.",
+          "Local scan found 656 R4 core StructureDefinition files with an `xpath` member.",
+          "viewer/r4-maturity.json records ElementDefinition standardsStatus `normative`, normativeVersion `4.0.0`."
+        ],
+        "fmmEffect": "Normative R4 maturity raises the burden for removing a common wire element; the prior R4 deprecation warning softens but does not eliminate that stability concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 ElementDefinition instances containing `constraint.xpath` are invalid or lose data in strict R6 models; generated APIs and validators also lose the XPath property.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design could have retained `constraint.xpath` as deprecated legacy metadata while making `constraint.expression` the preferred computable form. The tradeoff is continuing an XML-only duplicate constraint representation and a lingering validator/tooling burden, but the compatibility benefit is substantial enough to merit reconsideration.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; I put more weight on normative maturity and common core use, so I judge this as Revisit rather than merely probably justified."
+      }
     },
     {
       "findingId": "ElementDefinition:ELEMENT_PRESENCE_OR_IDENTITY:ElementDefinition.binding.additional:8c2b72",
@@ -371,7 +386,21 @@
       "validationAndCompatibilityMd": "Strict R4 validators/classes reject or drop these children. Dropping `binding.additional` can alter terminology guidance and validation behavior.",
       "migrationGuidanceMd": "For R6-to-R4, map these fields to governed extensions or sidecar metadata and test additional-binding preservation.",
       "backwardCompatibilityAnalysisMd": "First-class R6 fields are cleaner than extensions, but a standard cross-version extension bridge would be more backward-compatible.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ElementDefinition:ELEMENT_PRESENCE_OR_IDENTITY:ElementDefinition.binding.additional:8c2b72",
+        "judgment": "No problem",
+        "narrativeMd": "The cited R6 elements are optional additions. They do not make R4 ElementDefinition instances invalid when moving forward to R6, even though R6 definitions that use them cannot be represented natively in R4. That down-conversion loss is real for cross-version tooling, but it is not a problematic R4-to-R6 base compatibility break.",
+        "keyEvidence": [
+          "R6 adds optional `binding.additional`, `constraint.suppress`, `mustHaveValue`, and `valueAlternatives`; R4 has no corresponding local elements.",
+          "R6 `binding.additional.purpose` and `binding.additional.valueSet` are required only inside each optional additional binding repeat.",
+          "Local scan found 160 R6 core StructureDefinition files with `binding.additional` arrays."
+        ],
+        "fmmEffect": "Normative R4 maturity matters, but optional additive R6 metadata preserves R4-valid forward migration, so FMM does not turn this into a revisit-worthy break.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 metadata such as additional bindings and primitive value rules is not natively representable in R4; there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "Using only extensions or sidecar metadata could ease R6-to-R4 conversion, but that is not a less-breaking R6 base design for R4-valid instances and would weaken R6 computability of these concepts.",
+        "comparisonToExisting": "partially agree with the existing recognition of high R6-to-R4 representability risk, but disagree with treating this as a high-impact R4-to-R6 compatibility problem; the existing Not applicable alternative assessment is appropriate."
+      }
     },
     {
       "findingId": "ElementDefinition:TYPE_DOMAIN:ElementDefinition.value-x-choice-types:aa704e",
@@ -504,7 +533,22 @@
       "migrationGuidanceMd": "Scan for affected choice suffixes. Map Contributor manually; preserve new R6 choices as extensions/sidecar data when converting to R4.",
       "backwardCompatibilityAnalysisMd": "Adding choice arms is forward-compatible; removing Contributor could have been softened through deprecation.",
       "reviewerNotesMd": "No Contributor choice occurrences were found in the local R4 core package; external IG prevalence is unknown.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ElementDefinition:TYPE_DOMAIN:ElementDefinition.value-x-choice-types:aa704e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 removes the `Contributor` choice arm from several value-bearing ElementDefinition choices while adding R6 datatypes such as `integer64`, `CodeableReference`, and `RatioRange`. An R4 definition that actually uses `fixedContributor`, `patternContributor`, `defaultValueContributor`, or `example.valueContributor` has a hard suffix-level break, but local core usage appears absent and the removed arm tracks a retired R4 datatype shape. The added R6 arms are forward-compatible for R4 instances and mainly affect reverse conversion.",
+        "keyEvidence": [
+          "R4 `defaultValue[x]`, `fixed[x]`, `pattern[x]`, and `example.value[x]` include `Contributor`.",
+          "R6 corresponding choices omit `Contributor` and add `integer64`, `CodeableReference`, `RatioRange`, `Availability`, `ExtendedContactDetail`, and `VirtualServiceDetail`.",
+          "R6 `minValue[x]` and `maxValue[x]` add `integer64`.",
+          "Local R4 core scan found zero `defaultValueContributor`, `fixedContributor`, `patternContributor`, or `valueContributor` occurrences."
+        ],
+        "fmmEffect": "Normative ElementDefinition raises the stability bar for choice-arm removal, but the affected old arm appears rare locally and preserving it would carry obsolete datatype debt.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances using a removed `Contributor` choice suffix fail in R6; R6-to-R4 loss also exists for newly added R6 choice suffixes.",
+        "lessBreakingAlternativeAssessment": "R6 could keep deprecated `Contributor` choice arms, but that would require preserving or emulating a retired datatype and would keep obsolete generated properties in circulation. The alternative is possible but has material type-system and tooling costs.",
+        "comparisonToExisting": "agree with the existing Medium impact and Partial alternative judgment; the break is real but narrow and the cleanup rationale is proportionate."
+      }
     },
     {
       "findingId": "ElementDefinition:VALUE_CONSTRAINT:ElementDefinition.binding.eld-23:db84d4",
@@ -621,7 +665,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid for bindings with neither description nor valueSet; the wire field names are unchanged but invariant validation fails.",
       "migrationGuidanceMd": "Scan bindings and populate a real `valueSet` or meaningful markdown `description`.",
       "backwardCompatibilityAnalysisMd": "A warning-level transition would have preserved backward compatibility while encouraging better bindings.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ElementDefinition:VALUE_CONSTRAINT:ElementDefinition.binding.eld-23:db84d4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an error invariant requiring every binding to have either `description` or `valueSet`. A sparse R4 binding with only `strength` is therefore old-valid/new-invalid, but such a binding is underspecified for readers and tools, local core examples were not found, and remediation is usually straightforward by adding a meaningful description or value set.",
+        "keyEvidence": [
+          "R4 `ElementDefinition.binding` has no `description.exists() or valueSet.exists()` constraint.",
+          "R6 `ElementDefinition.binding` adds error invariant `eld-23` with expression `description.exists() or valueSet.exists()`.",
+          "Local R4 core scan found zero bindings missing both `description` and `valueSet`."
+        ],
+        "fmmEffect": "Normative maturity raises the burden for a new error invariant, but the affected pattern appears rare locally and the rule protects basic binding interpretability.",
+        "compatibilityMechanism": "old-valid/new-invalid: sparse R4 bindings that contain only `strength` fail R6 invariant validation.",
+        "lessBreakingAlternativeAssessment": "A warning-level or publisher-QA transition would preserve sparse R4 bindings, but it would leave base R6 unable to rely on bindings having any usable narrative or computable terminology content.",
+        "comparisonToExisting": "agree with the existing Medium impact and Partial alternative judgment; the break is real but proportionate."
+      }
     },
     {
       "findingId": "ElementDefinition:VALUE_CONSTRAINT:ElementDefinition.path.eld-19:1d4b66",
@@ -752,7 +810,21 @@
       "migrationGuidanceMd": "Run R6 validation over all StructureDefinitions and normalize non-standard paths or warning escalations.",
       "backwardCompatibilityAnalysisMd": "The stricter rule improves interoperability but could have been phased in as warning-only.",
       "reviewerNotesMd": "Impact depends partly on FHIRPath regex semantics in the validator used for R4.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ElementDefinition:VALUE_CONSTRAINT:ElementDefinition.path.eld-19:1d4b66",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 anchors the `eld-19` path regular expression and adds several warning-level modeling checks. The strongest compatibility issue is a potential hard break for definitions that passed the looser R4 expression but contain nonconforming path text; the added warnings can also affect CI policies that treat warnings as failures. No failing local R4 core paths were found, and the R6 changes mostly make the intended path and code-generation rules explicit.",
+        "keyEvidence": [
+          "R4 `eld-19` is an error constraint with an unanchored path regex; R6 `eld-19` uses an anchored `^...$` expression.",
+          "R6 adds warning constraints `eld-24`, `eld-25`, `eld-27`, and `eld-33` on ElementDefinition.",
+          "A local R4 core path scan using the R6-style regex approximation found zero failing paths."
+        ],
+        "fmmEffect": "Normative maturity makes a tightened path invariant worth checking carefully, but the local evidence suggests it mostly closes edge cases rather than invalidating normal R4 definitions.",
+        "compatibilityMechanism": "old-valid/new-invalid: possible for malformed paths previously accepted by the R4 expression; warning-level: new modeling warnings may affect strict QA gates.",
+        "lessBreakingAlternativeAssessment": "R6 could have phased the anchored path rule in as a warning, but that would prolong ambiguous or codegen-hostile path names in the base model. The warning additions are already the less-breaking form for the other modeling checks.",
+        "comparisonToExisting": "agree with the existing Medium/Potential impact and Partial alternative judgment, while treating the lack of local failures as evidence that the break is probably acceptable."
+      }
     },
     {
       "findingId": "ElementDefinition:TERMINOLOGY_BINDING:ElementDefinition.binding-strength-discriminator-type:5b93fe",
@@ -895,7 +967,21 @@
       "migrationGuidanceMd": "Regenerate enums and validators; map `pattern` discriminator semantics to `value` where appropriate; do not use R4 `defined-types` as the R6 `type.code` universe.",
       "backwardCompatibilityAnalysisMd": "Adding codes is safer than removing them but still breaks closed-enum consumers; ConceptMaps or compatibility shims are advisable.",
       "reviewerNotesMd": "A live terminology expansion would improve confidence, especially for `elementdefinition-types`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ElementDefinition:TERMINOLOGY_BINDING:ElementDefinition.binding-strength-discriminator-type:5b93fe",
+        "judgment": "No problem",
+        "narrativeMd": "The required enum-like domains checked here preserve the R4 codes and add R6 codes such as `descriptive` and `position`; `pattern` remains present but deprecated. Closed enum implementations and R6-to-R4 converters need updates, but the cited terminology changes do not make ordinary R4 ElementDefinition instances invalid in R6.",
+        "keyEvidence": [
+          "R4 binding-strength codes are `required`, `extensible`, `preferred`, and `example`; R6 adds `descriptive` without removing those codes.",
+          "R4 discriminator-type codes are `value`, `exists`, `pattern`, `type`, and `profile`; R6 preserves them, deprecates `pattern`, and adds `position`.",
+          "R6 changes `ElementDefinition.type.code` binding from `defined-types` to `elementdefinition-types`, still with extensible strength."
+        ],
+        "fmmEffect": "Normative maturity warrants checking for code removals, but the relevant R4 codes remain valid, so FMM does not create a material compatibility concern.",
+        "compatibilityMechanism": "runtime/API/codegen: closed enum switches may need regeneration for R6-only codes; R6-to-R4 loss can occur for those new values, but there is no old-valid/new-invalid R4-to-R6 code removal.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-valid content because the old codes are retained. Compatibility shims or ConceptMaps may help tooling consume new R6 codes, but they are migration aids rather than better base design.",
+        "comparisonToExisting": "partially agree with the existing runtime and R6-to-R4 concerns, but disagree with the Medium overall concern for R4-to-R6 compatibility; the Not applicable alternative judgment is appropriate."
+      }
     },
     {
       "findingId": "ElementDefinition:TYPE_DOMAIN:ElementDefinition.markdown-fields:6a21bf",
@@ -998,7 +1084,21 @@
       "validationAndCompatibilityMd": "Plain strings remain parseable; differences arise in primitive type validation, extensions, and rendering.",
       "migrationGuidanceMd": "Regenerate models and test markdown rendering/escaping for these fields.",
       "backwardCompatibilityAnalysisMd": "The change is effectively backward-compatible at the wire level.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ElementDefinition:TYPE_DOMAIN:ElementDefinition.markdown-fields:6a21bf",
+        "judgment": "No problem",
+        "narrativeMd": "`binding.description`, `constraint.requirements`, and `mapping.comment` change from `string` to `markdown`, but the JSON wire values remain string-like documentation text and ordinary R4 content remains parseable. The practical effect is generated primitive metadata and rendering behavior, not a meaningful instance-compatibility break.",
+        "keyEvidence": [
+          "R4 types for `ElementDefinition.binding.description`, `ElementDefinition.constraint.requirements`, and `ElementDefinition.mapping.comment` are `string`.",
+          "R6 types for the same element IDs are `markdown`; cardinalities and paths are unchanged.",
+          "The affected fields are descriptive documentation fields, not coded or structural constraints."
+        ],
+        "fmmEffect": "Normative maturity raises scrutiny, but this primitive metadata change preserves the same wire shape and affects documentation handling rather than validity of normal R4 instances.",
+        "compatibilityMechanism": "runtime/API/codegen: generated models may use markdown primitive wrappers and renderers may treat content differently; no meaningful old-valid/new-invalid wire-format break was found.",
+        "lessBreakingAlternativeAssessment": "R6 could have left these fields typed as `string` and documented that markdown is allowed, but that would lose the computable primitive-type signal for tooling. Since wire compatibility is effectively preserved, the alternative is not needed.",
+        "comparisonToExisting": "agree with the existing Low impact assessment; partially disagree that the less-breaking alternative matters because the base wire compatibility concern is minimal."
+      }
     },
     {
       "findingId": "ElementDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:ElementDefinition.mustSupport-fixed-pattern:0e957c",
@@ -1106,7 +1206,22 @@
       "migrationGuidanceMd": "Review profile authoring rules and tests involving mustSupport, obligations, fixed/pattern, xmlAttr, and discriminator `pattern`.",
       "backwardCompatibilityAnalysisMd": "Clarifying prose is useful, but explicit transition guidance would be more backward-compatible.",
       "reviewerNotesMd": "Narrative conformance pages and obligation profiles were not reviewed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ElementDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:ElementDefinition.mustSupport-fixed-pattern:0e957c",
+        "judgment": "Unclear",
+        "narrativeMd": "This finding groups several prose-level changes: mustSupport phase-out language, fixed/pattern occurrence wording, an `xmlAttr` extension prohibition, and discriminator `pattern` deprecation. There is no obvious structural old-valid/new-invalid delta in the ElementDefinition shape, but some wording is normative-sounding and could affect profile authoring or publisher/validator behavior. Without official conformance-page rationale or validator behavior, it is not defensible to classify the grouped semantic change as either harmless clarification or a concrete breaking design problem.",
+        "keyEvidence": [
+          "R6 `mustSupport.definition` says mustSupport is being phased out and replaced by obligations; no local `ElementDefinition.obligation` elements were found in the R6 StructureDefinition.",
+          "R6 `fixed[x]` and `pattern[x]` definitions add `if present` and occurrence-oriented wording while retaining paths and cardinalities.",
+          "R6 `representation.definition` adds that no extensions are allowed on elements represented as `xmlAttr`.",
+          "R6 `slicing.discriminator.type.comment` says `pattern` is deprecated and works like `value`."
+        ],
+        "fmmEffect": "Normative maturity makes these conformance semantics important, but the lack of computable deltas or checked validator behavior prevents a confident impact judgment.",
+        "compatibilityMechanism": "semantic/documentation: profile authoring rules, QA warnings, and conformance interpretation may shift, but the enforceable mechanism is uncertain.",
+        "lessBreakingAlternativeAssessment": "Transitional guidance or warning-only language might be less disruptive if these are new requirements; if they are only clarifications of intended semantics, no alternative is needed. The tradeoff cannot be assessed confidently without the official R6 conformance rationale.",
+        "comparisonToExisting": "partially agree with the existing Medium semantic/runtime concern and Partial alternative judgment, but classify the final action judgment as Unclear because enforcement and intended normative force are not established by the local evidence."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1263,5 +1378,20 @@
       "mustSupport-to-obligations transition",
       "BackboneElement to BackboneType hierarchy shifts"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ElementDefinition.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Unclear": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 3
+    }
   }
 }

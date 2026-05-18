@@ -377,7 +377,21 @@
       "validationAndCompatibilityMd": "R4-valid instances are not made invalid by these additions. R6-valid instances containing the new fields are not natively representable in R4; strict R4 parsers may reject them as unknown properties, and permissive parsers may drop them. The new local constraints apply only when R6-only fields are used, so they mainly affect R6 authoring and R6→R4 preservation rather than R4→R6 acceptance.",
       "migrationGuidanceMd": "R4→R6 migration can leave these elements absent unless source metadata exists outside the R4 instance. R6→R4 migration should choose a preservation policy: official cross-version extensions if available, sidecar metadata, an R6-native registry, or explicit documented loss. Test downgrade with instances containing canonical URL/version, lifecycle dates, related artifacts, and `uniqueId.authoritative`; do not rely on unknown-field dropping if round-trip fidelity matters.",
       "backwardCompatibilityAnalysisMd": "The design is only partially backward-compatible. Optional additions avoid old-instance invalidation, but not reverse-direction interoperability. A fully downgrade-compatible approach would have standardized R4 extensions and transform rules for each new field. The tradeoff is that native R6 elements are easier to index, validate, and author than extension-heavy representations.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NamingSystem:ELEMENT_PRESENCE_OR_IDENTITY:NamingSystem:7c8b20",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional CanonicalResource-style and governance fields under `NamingSystem`, including `url`, `identifier`, `version`, lifecycle/review metadata, contacts, related artifacts, and `uniqueId.authoritative`. Because all of these additions are min=0, an R4-valid NamingSystem instance is not made invalid in R6. The real concern is reverse-direction fidelity: R6 instances can carry metadata that an R4 model cannot natively represent. That is worth documenting for converters, but it is not a base R4-to-R6 compatibility problem or a design issue that needs renewed standards attention.",
+        "keyEvidence": [
+          "R4 differential local element IDs stop at the R4 fields; R6 differential adds 19 local min=0 elements under the same `NamingSystem` resource.",
+          "R6 root and relatedArtifact constraints (`cnl-1`, `nsd-3`, `nsd-4`) apply to R6-only or newly constrained content rather than making existing R4 fields invalid.",
+          "Targeted production-use search did not produce sourceable evidence that these optional R6-only metadata additions create a production-critical R4-to-R6 break."
+        ],
+        "fmmEffect": "R4 NamingSystem is trial-use/FMM 1, which softens stability expectations. With no old-valid/new-invalid mechanism and only optional additions, low FMM strongly favors treating this as normal model evolution.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated R6-only metadata may be rejected or dropped by strict R4 parsers/converters; no old-valid/new-invalid R4-to-R6 mechanism was found.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed to preserve R4 instances because the fields are additive and optional. R4 extensions, sidecar metadata, or cross-version transforms can mitigate downgrade loss, but those are migration mechanisms rather than better base R6 designs.",
+        "comparisonToExisting": "Partially agree: the existing report correctly identifies reverse-direction metadata loss, but its Medium impact framing overstates the R4-to-R6 compatibility concern for optional additions on FMM 1 trial-use content."
+      }
     },
     {
       "findingId": "NamingSystem:TERMINOLOGY_BINDING:NamingSystem.uniqueId.type:6d9a91",
@@ -563,7 +577,21 @@
       "validationAndCompatibilityMd": "An R4 instance using `oid`, `uuid`, `uri`, or `other` remains valid for this binding in R6. An R6 instance using `iri-stem` or `v2csmnemonic` fails R4 required-binding validation because R4 does not contain those codes. Runtime failures are likely in strict deserializers, validation code, database check constraints, and exhaustive enum switches built from R4 definitions.",
       "migrationGuidanceMd": "Update validators and generated enums to include `iri-stem` and `v2csmnemonic` before accepting R6 content. For R6→R4 downgrade, either map the new codes to `other` with an extension/comment preserving the original code or reject/downscope such instances when precision cannot be lost. Add tests for each R4 code plus both new R6 codes.",
       "backwardCompatibilityAnalysisMd": "The change was probably justified because the new codes represent distinct identifier schemes. It was not fully backward-compatible because required bindings are closed. The main compatible alternative, continuing to use `other`, would retain R4 validity but would keep important semantics in prose rather than machine-readable code.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "NamingSystem:TERMINOLOGY_BINDING:NamingSystem.uniqueId.type:6d9a91",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`NamingSystem.uniqueId.type` remains a required code with required binding, and R6 retains every R4 code while adding `iri-stem` and `v2csmnemonic`. Existing R4 instances using `oid`, `uuid`, `uri`, or `other` remain valid for this path in R6. The compatibility work is for software with closed R4 enums or R6-to-R4 conversion: new R6 codes cannot be represented in native R4 except by lossy mapping such as `other`. Since the new codes capture real identifier schemes and R6 chose the least disruptive widening pattern, the break is proportionate.",
+        "keyEvidence": [
+          "R4 `CodeSystem-namingsystem-identifier-type` concepts are `oid`, `uuid`, `uri`, and `other`.",
+          "R6 `CodeSystem-namingsystem-identifier-type` retains those four concepts and adds `iri-stem` and `v2csmnemonic`.",
+          "`NamingSystem.uniqueId.type` is min=1, max=1, type `code`, with required binding in both R4 and R6."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the case for standards rework, but this path is central to NamingSystem because `uniqueId` is required and `type` is required within it. That keeps enum/validator migration real while still making Revisit too strong.",
+        "compatibilityMechanism": "runtime/API/codegen: R4-generated closed enums, validators, or switch statements can fail on the two R6-added codes; R6-to-R4 loss occurs if those codes are downgraded to `other`.",
+        "lessBreakingAlternativeAssessment": "R6 already uses the main less-breaking base design by retaining all R4 codes and widening the value set. Keeping only `other` for these schemes would be more R4-compatible in reverse but would sacrifice computable distinction for RDF IRI stems and HL7 v2 code-system mnemonics.",
+        "comparisonToExisting": "Partially agree: the existing report correctly identifies the closed-enum and R6-to-R4 risk, but the High overall impact is somewhat strong because no R4 code was removed and the artifact is FMM 1."
+      }
     },
     {
       "findingId": "NamingSystem:TERMINOLOGY_BINDING:NamingSystem.type:18b2e4",
@@ -714,7 +742,21 @@
       "migrationGuidanceMd": "Do not blindly reuse R4 `NamingSystem.type` enum/picklist logic for R6. Update terminology services, UI filters, and analytics to use the R6 binding. For downgrade, preserve the Coding as-is where possible and record any R4 validation warnings; if a specific R4 IdentifierType mapping exists, consider adding that coding as an additional translation rather than replacing the original.",
       "backwardCompatibilityAnalysisMd": "The change could have been made more compatible by retaining the old binding as an additional/starter binding or by introducing the new ValueSet with preferred guidance while keeping the old extensible binding for conformance. The tradeoff is that implementers would have to reconcile two partially overlapping category vocabularies.",
       "reviewerNotesMd": "A terminology expansion service would improve confidence about the exact overlap between the old IdentifierType subset and the new NamingSystemIdentifierSystemType ValueSet.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "NamingSystem:TERMINOLOGY_BINDING:NamingSystem.type:18b2e4",
+        "judgment": "No problem",
+        "narrativeMd": "`NamingSystem.type` keeps the same optional `CodeableConcept` shape. R6 changes the binding target and weakens the strength from extensible to preferred. That can alter UI picklists, validator advice, or analytics expectations, but it does not make R4 content invalid and it reduces rather than increases formal conformance pressure. For this path, the change is terminology guidance drift rather than a material compatibility break.",
+        "keyEvidence": [
+          "R4 `NamingSystem.type` is 0..1 `CodeableConcept` with extensible binding to `http://hl7.org/fhir/ValueSet/identifier-type`.",
+          "R6 `NamingSystem.type` is still 0..1 `CodeableConcept`, with preferred binding to `http://hl7.org/fhir/ValueSet/namingsystem-identifier-system-type`.",
+          "The local R6 ValueSet composes `http://terminology.hl7.org/CodeSystem/v2-0203`; the local R4 IdentifierType ValueSet used an explicit v2-0203 subset."
+        ],
+        "fmmEffect": "FMM 1/trial-use lowers the stability concern, and the binding strength decrease means the change should not be treated as a hard conformance break.",
+        "compatibilityMechanism": "warning-level: terminology suggestions and warnings may change, but the element shape is unchanged and R6 weakens the binding to preferred.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the old IdentifierType binding as additional guidance, but that would mainly preserve familiar picklists while creating dual vocabulary expectations. It is not needed to preserve R4 instances.",
+        "comparisonToExisting": "Disagree: the existing report's Medium impact appears too high for an optional CodeableConcept whose binding is weakened; the no-less-breaking-alternative conclusion is mostly acceptable."
+      }
     },
     {
       "findingId": "NamingSystem:SEMANTIC_OR_CONFORMANCE_TEXT:NamingSystem.jurisdiction:42e716",
@@ -884,7 +926,21 @@
       "migrationGuidanceMd": "Review every populated R4 `jurisdiction`. If it records intended usage/applicability, map it to `useContext` using `http://terminology.hl7.org/CodeSystem/usage-context-type#jurisdiction`. If it records the maintaining authority's jurisdiction, it can remain in `NamingSystem.jurisdiction`. When both meanings apply, duplicate deliberately and document the decision.",
       "backwardCompatibilityAnalysisMd": "The change improves cross-resource consistency but reuses an existing element for a different primary meaning. A backward-compatible alternative would add a separate maintainer-jurisdiction element and leave `jurisdiction` as intended-use. That would avoid ambiguity but would not converge with the R6 useContext pattern.",
       "reviewerNotesMd": "The R6 jurisdiction ValueSet canonical points to terminology.hl7.org; a full external expansion comparison would improve confidence that code membership is otherwise equivalent.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "NamingSystem:SEMANTIC_OR_CONFORMANCE_TEXT:NamingSystem.jurisdiction:42e716",
+        "judgment": "Revisit",
+        "narrativeMd": "`NamingSystem.jurisdiction` is the concerning same-path change in this report. R4 describes the field as the legal or geographic region where the naming system is intended to be used. R6 describes it as the jurisdiction of the authority maintaining the resource and directs implementations toward `useContext` with a jurisdiction code. Existing instances can still validate, but a populated R4 value can be silently reinterpreted unless a migrator decides whether it describes intended use, maintaining authority, or both. Because a plausible base design could have preserved the old meaning while adding a separate maintainer-jurisdiction representation, this deserves renewed review despite the low FMM.",
+        "keyEvidence": [
+          "R4 definition: `NamingSystem.jurisdiction` is a region in which the naming system is intended to be used.",
+          "R6 definition: `NamingSystem.jurisdiction` is a region in which the authority that maintains the resource is operating.",
+          "R6 comment includes a deprecation note encouraging migration to `useContext` with `usage-context-type#jurisdiction`; cardinality and datatype remain 0..* `CodeableConcept`."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the stability burden and prevents assuming broad production impact. It does not eliminate concern because jurisdiction can drive governance/regulatory filtering and migration is expert-dependent for each populated value.",
+        "compatibilityMechanism": "semantic/documentation: the same data remains syntactically valid but the path's intended meaning changes from intended use to maintaining authority jurisdiction.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have deprecated `jurisdiction` for new targeting while preserving its R4 intended-use meaning, then added an optional maintainer-authority jurisdiction element or pattern. The tradeoff is duplicate jurisdiction representations and a longer transition, but it avoids silent reinterpretation of existing data.",
+        "comparisonToExisting": "Agree: the existing report correctly identifies a semantic migration hazard and a plausible less-breaking base design, though low FMM keeps the concern focused on populated jurisdiction workflows rather than the entire resource."
+      }
     },
     {
       "findingId": "NamingSystem:SEMANTIC_OR_CONFORMANCE_TEXT:NamingSystem.date:5aa0df",
@@ -1034,7 +1090,21 @@
       "validationAndCompatibilityMd": "No R4 instance becomes invalid because `date` remains required `dateTime`. The compatibility issue is still-valid-but-behaviorally-different and R6-to-R4 information loss. Publication workflows, audit screens, cache invalidation, and version-selection logic that read `date` need to check which version semantics they are processing.",
       "migrationGuidanceMd": "During R4→R6 migration, decide whether each R4 `date` value is actually publication date, last significant-change date, or both. If source systems have separate approval/review/effective metadata, populate the new R6 fields rather than leaving it embedded in description. For R6→R4, preserve the extra lifecycle fields using extensions or sidecar metadata; if flattening into `description` or `usage`, mark the transform as lossy.",
       "backwardCompatibilityAnalysisMd": "The change probably improves semantic clarity but reinterprets an existing required element. A backward-compatible alternative would have introduced a new last-change element and retained the old publication-date definition. That would reduce migration ambiguity but at the cost of more fields and less alignment with the R6 canonical-resource lifecycle model.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "NamingSystem:SEMANTIC_OR_CONFORMANCE_TEXT:NamingSystem.date:5aa0df",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`NamingSystem.date` remains required `dateTime`, so this is not a structural break. The first sentence changes from publication date in R4 to last significant-change date in R6, while R6 adds separate lifecycle fields such as `approvalDate`, `lastReviewDate`, `effectivePeriod`, and `purpose`. Migration can require judgment if an R4 registry treated `date` as publication date only. However, R4 already required the date to change when business version, status, or substantive content changed, so the R6 wording is partly a clarification and alignment with canonical-resource lifecycle metadata rather than an arbitrary reinterpretation.",
+        "keyEvidence": [
+          "R4 `NamingSystem.date` is min=1, max=1, type `dateTime`, defined as when the naming system was published, with text requiring changes when business version, status, or substantive content changes.",
+          "R6 `NamingSystem.date` is still min=1, max=1, type `dateTime`, defined as when the naming system was last significantly changed.",
+          "R6 differential adds optional lifecycle/rationale fields including `purpose`, `approvalDate`, `lastReviewDate`, and `effectivePeriod`."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the case for Revisit. The field is required and can affect audit or publication workflows, so the semantic migration is real, but the old wording already contained change-date behavior.",
+        "compatibilityMechanism": "semantic/documentation: existing instances validate, but date-driven audit, sorting, publication, or cache logic may need version-aware interpretation; R6-to-R4 loss is possible for the new lifecycle fields.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept `date` as publication date and added a new last-significant-change field, but that would create overlapping lifecycle dates and diverge from the broader canonical-resource pattern. Given the R4 text already mixed publication and change semantics, the R6 design appears proportionate.",
+        "comparisonToExisting": "Partially agree: the existing report correctly flags a semantic migration burden and partial alternative, but the concern is moderated by the R4 change-date wording and low FMM."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1239,5 +1309,19 @@
       "required code bindings widened with new enum values",
       "date fields reinterpreted from publication date to last significant change date"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/NamingSystem.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 2,
+      "No problem": 2
+    }
   }
 }

@@ -355,7 +355,21 @@
       "migrationGuidanceMd": "Map `choice` to `coding` with `answerConstraint=optionsOnly` when the R4 questionnaire intended answers to come only from the enumerated list. Map `open-choice` to `coding` with `answerConstraint=optionsOrString`, and preserve `maxLength` only if that answerConstraint is present. Review any use of generic `question` manually and replace it with the actual answer datatype.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by retaining deprecated aliases in the R6 required value set. The R6 approach is semantically cleaner, but because the binding is required, code removal is a true validation break rather than a soft deprecation.",
       "reviewerNotesMd": "The migration recipe depends on whether the R4 form treated choices as closed. If local profiles or renderer conventions allowed answers outside `choice`, manual review is needed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Questionnaire:TERMINOLOGY_BINDING:Questionnaire.item.type:item-type-useable",
+        "judgment": "Revisit",
+        "narrativeMd": "The binding change is a real front-door break: R4 questionnaires that used `choice` or `open-choice` for coded answer questions no longer satisfy the R6 required value set, and migration must also choose the right `answerConstraint`. Because these codes are central to ordinary questionnaire authoring, one-step removal deserves design review even though the R6 `coding` plus `answerConstraint` model is cleaner.",
+        "keyEvidence": [
+          "R4 Questionnaire.item.type required binding is ValueSet-item-type|4.0.1; R6 binding is ValueSet-item-type-useable|6.0.0-ballot4.",
+          "R4 CodeSystem-item-type includes choice and open-choice; R6 CodeSystem-item-type replaces those with coding and ValueSet-item-type-useable excludes question.",
+          "R6 questionnaire-answer-constraint CodeSystem defines optionsOnly, optionsOrType, and optionsOrString."
+        ],
+        "fmmEffect": "Questionnaire is R4 FMM 3/trial-use. That is not normative, but this is a central discriminator in a mature resource, so common required-binding removals need stronger justification.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 type=choice, type=open-choice, or type=question instances can fail R6 validation; generated enums and R6-to-R4 mappings also need explicit translation.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could retain choice and open-choice as deprecated legacy codes with defined mapping to coding plus answerConstraint. That creates duplicate representations, but it appears feasible enough for such a central path to merit revisit.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment and partial alternative judgment; I give the alternative more weight because deprecated legacy codes could preserve many R4 forms."
+      }
     },
     {
       "findingId": "Questionnaire:TERMINOLOGY_BINDING:Questionnaire.subjectType:resource-types",
@@ -555,7 +569,21 @@
       "migrationGuidanceMd": "Build an explicit resource-type ConceptMap for questionnaire subject types. Some mappings are plausible renames or replacements, while others require manual business review. Do not silently drop `subjectType`; absence means unrestricted subject type and can materially broaden permitted QuestionnaireResponses.",
       "backwardCompatibilityAnalysisMd": "A version-independent binding would have been easier for cross-version payloads but less precise for a release-specific core resource. Required version-specific resource names are defensible, but migration tooling must handle the changed inventory.",
       "reviewerNotesMd": "The report did not infer one-to-one mappings for every removed resource name; this should be coordinated with the corresponding resource-level reports.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Questionnaire:TERMINOLOGY_BINDING:Questionnaire.subjectType:resource-types",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`subjectType` follows the release-specific resource inventory. A required binding makes R4-only subject resource codes invalid in R6, but allowing historical resource names in the R6 base value set would weaken validation and would not resolve removed, renamed, or semantically replaced resources.",
+        "keyEvidence": [
+          "R4 Questionnaire.subjectType required binding is resource-types|4.0.1; R6 binding is resource-types|6.0.0-ballot4.",
+          "Local value set comparison found 41 R4 resource-type codes absent from R6 and 20 R6-only codes.",
+          "The element remains 0..* code in both versions."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the compatibility burden, but this binding is tied to version-specific resource identity rather than a Questionnaire-only modeling preference.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 Questionnaire naming an R4-only subjectType can fail R6 required-binding validation; R6-only subject types also do not downgrade cleanly.",
+        "lessBreakingAlternativeAssessment": "A union or historical resource-type value set would preserve more R4 instances, but it would permit R6 questionnaires to name resources not present in R6 and would push cross-version resource semantics into every validator.",
+        "comparisonToExisting": "agree with the existing high-impact and partial-alternative assessment, but judge the break proportionate to the release-inventory goal."
+      }
     },
     {
       "findingId": "Questionnaire:ELEMENT_PRESENCE_OR_IDENTITY:Questionnaire.item.answerConstraint:added",
@@ -668,7 +696,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 instances are not invalidated by the addition. R6-to-R4 instances lose information unless a cross-version extension or local profile is used. Runtime renderers that ignore the element can present the wrong UI or reject/accept the wrong QuestionnaireResponse answers.",
       "migrationGuidanceMd": "When upgrading, populate `answerConstraint` while converting old `choice` and `open-choice` items. When downgrading, map `optionsOnly` to R4 `choice` where possible, map `optionsOrString` to R4 `open-choice` where possible, and represent `optionsOrType` with an extension or manual rule because R4 has no exact core equivalent.",
       "backwardCompatibilityAnalysisMd": "The element could have been introduced as an extension first, but making it core gives validators and renderers a consistent place to find answer-set semantics. The cost is that R6 content using it is not natively R4-representable.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Questionnaire:ELEMENT_PRESENCE_OR_IDENTITY:Questionnaire.item.answerConstraint:added",
+        "judgment": "No problem",
+        "narrativeMd": "`answerConstraint` is an optional new semantic control. It can matter when rendering or downgrading R6 forms, but adding it does not make any R4 Questionnaire invalid; the disruptive migration work is mainly caused by the separate `item.type` redesign.",
+        "keyEvidence": [
+          "R4 has no Questionnaire.item.answerConstraint element.",
+          "R6 adds Questionnaire.item.answerConstraint 0..1 code with required binding to questionnaire-answer-constraint.",
+          "R6 questionnaire-answer-constraint codes checked locally: optionsOnly, optionsOrType, optionsOrString."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not turn an optional additive element into a forward compatibility concern, though it supports documenting downgrade behavior.",
+        "compatibilityMechanism": "R6-to-R4 loss: a populated answerConstraint has no native R4 slot; there is no old-valid/new-invalid R4-to-R6 mechanism for this added optional element.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for forward compatibility. Keeping the concept extension-only would not preserve any R4 instance and would reduce standard renderer interoperability.",
+        "comparisonToExisting": "disagree with the existing high-impact framing for this finding alone; agree that a less-breaking base alternative is not applicable."
+      }
     },
     {
       "findingId": "Questionnaire:CARDINALITY:Questionnaire.item.definition:max-repeatable",
@@ -788,7 +830,21 @@
       "validationAndCompatibilityMd": "Old R4 instances with zero or one definition remain structurally compatible. R6 instances with two or more definitions are invalid in R4. Generated serializers, object mappers, and database schemas should update from scalar to collection.",
       "migrationGuidanceMd": "For R4-to-R6, wrap the old scalar in a list in generated models. For R6-to-R4, decide whether to keep the primary definition, preserve extras with extensions, or reject lossy conversion.",
       "backwardCompatibilityAnalysisMd": "The change could have been extension-based, but the base cardinality better supports multiple formal definitions. Downgrade remains inherently lossy without an extension convention.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Questionnaire:CARDINALITY:Questionnaire.item.definition:max-repeatable",
+        "judgment": "No problem",
+        "narrativeMd": "Increasing `item.definition` from single-valued to repeatable is a widening. Existing R4 instances with zero or one URI still fit R6; only R6 authors who use multiple definitions, and R4 scalar generated models, need conversion policy.",
+        "keyEvidence": [
+          "R4 Questionnaire.item.definition is 0..1 uri.",
+          "R6 Questionnaire.item.definition is 0..* uri.",
+          "R6 definition text also broadens the described target from ElementDefinition to ElementDefinition or ObservationDefinition."
+        ],
+        "fmmEffect": "FMM 3/trial-use calls for attention to migration burden, but this widening does not violate the stability expectation for existing R4 instances.",
+        "compatibilityMechanism": "R6-to-R4 loss: multiple R6 definition values cannot be represented in R4 core; no R4 instance becomes invalid in R6.",
+        "lessBreakingAlternativeAssessment": "Keeping 0..1 and using an extension for extra definitions would ease downgrade, but it is not needed to preserve R4-valid content and would make the R6 traceability improvement less usable.",
+        "comparisonToExisting": "disagree with the existing medium-impact framing as a fresh standards concern; agree that no forward less-breaking alternative is necessary."
+      }
     },
     {
       "findingId": "Questionnaire:TYPE_DOMAIN:Questionnaire.item.answerOption.value:added-types",
@@ -954,7 +1010,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe for existing answerOption values. R6-to-R4 is not lossless for the newly allowed datatypes. Strict R4 parsers will reject JSON properties such as `valueDecimal`, `valueDateTime`, `valueUri`, or `valueQuantity` under answerOption.",
       "migrationGuidanceMd": "When downgrading, prefer preserving unsupported answer options in extensions rather than coercing to strings unless the receiving system explicitly accepts that semantic loss. Add test cases for every new answerOption datatype used by authored questionnaires.",
       "backwardCompatibilityAnalysisMd": "The change could have been extension-only, but core support for these option datatypes is more consistent with R6 item typing. The backward-compatible alternative would have left common numeric and date/time enumerations awkward to model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Questionnaire:TYPE_DOMAIN:Questionnaire.item.answerOption.value:added-types",
+        "judgment": "No problem",
+        "narrativeMd": "The `answerOption.value[x]` choice is widened. R4 answer options remain valid in R6, while new R6 decimal, dateTime, uri, or SimpleQuantity options are simply not native R4 content.",
+        "keyEvidence": [
+          "R4 answerOption.value[x] allowed integer, date, time, string, Coding, and Reference(Resource).",
+          "R6 retains those types and adds decimal, dateTime, uri, and Quantity profiled to SimpleQuantity.",
+          "The element cardinality remains 1..1 in both versions."
+        ],
+        "fmmEffect": "For FMM 3/trial-use content, widening a choice type does not create a forward stability issue; downgrade limitations are expected for newly expressible R6 data.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 valueDecimal, valueDateTime, valueUri, and valueQuantity options are not valid R4 answerOption branches; no old-valid/new-invalid path exists.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed because the change is additive. Extension-only support would reduce interoperability without preserving additional R4 instances.",
+        "comparisonToExisting": "partially agree that R6-to-R4 representability is real, but disagree that this widening is a meaningful R4-to-R6 compatibility problem."
+      }
     },
     {
       "findingId": "Questionnaire:TYPE_DOMAIN:Questionnaire.item.enableWhen.answer:uri-attachment-simplequantity",
@@ -1152,7 +1222,21 @@
       "validationAndCompatibilityMd": "R4 Quantity values with comparators can become invalid in R6 where SimpleQuantity applies. R6 URI or Attachment enableWhen answers cannot be expressed in R4 core. Generated choice accessors also change because R6 has additional `answerUri`/`answerAttachment` branches.",
       "migrationGuidanceMd": "Audit `initial.valueQuantity` and `enableWhen.answerQuantity` for `comparator`. If present, remove or convert only with clinical/business review. For R6-to-R4, preserve URI/Attachment enablement conditions with extensions or reject downgrade if behavior must remain executable.",
       "backwardCompatibilityAnalysisMd": "The narrowing to SimpleQuantity is arguably justified to avoid comparator ambiguity in questionnaire logic, but it could have been introduced as a warning first. The uri/Attachment additions are backward-compatible forward but not backward-representable.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Questionnaire:TYPE_DOMAIN:Questionnaire.item.enableWhen.answer:uri-attachment-simplequantity",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The uri and Attachment branches are additive. The real break is that Quantity answers and initial values are now SimpleQuantity, so an R4 comparator-bearing Quantity can fail R6. That is a proportionate computability tradeoff because comparators in executable enableWhen logic or initial defaults are hard to interpret consistently.",
+        "keyEvidence": [
+          "R4 Questionnaire.item.enableWhen.answer[x] includes unprofiled Quantity and lacks uri and Attachment.",
+          "R6 enableWhen.answer[x] adds uri and Attachment and profiles Quantity to SimpleQuantity.",
+          "R6 Questionnaire.item.initial.value[x] also profiles Quantity to SimpleQuantity; SimpleQuantity sets Quantity.comparator max to 0."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises concern for hard validator breaks, but the affected comparator pattern is narrower than the common Questionnaire paths and has a plausible safety/computability rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 valueQuantity content with comparator under enableWhen.answer or initial.value can fail R6 validation; added uri and Attachment branches are R6-to-R4 loss only.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could keep unprofiled Quantity and warn on comparator use. That would preserve more R4 instances but would leave ambiguous comparison and defaulting semantics for form engines.",
+        "comparisonToExisting": "partially agree with the existing hard-break and partial-alternative assessment; the overall impact seems narrower than high unless comparator-bearing quantities are common locally."
+      }
     },
     {
       "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.linkId:whitespace",
@@ -1275,7 +1359,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid occurs for whitespace forms newly rejected by que-16. R6-to-R4 is not a problem for valid R6 linkIds. Generated code is unaffected, but validators and migration scripts must normalize carefully.",
       "migrationGuidanceMd": "Detect invalid linkIds, choose stable replacements, and update every internal and external reference. Do not trim silently unless you can prove no collisions are introduced after normalization.",
       "backwardCompatibilityAnalysisMd": "The rule could have been warning-only for one release. Making it an error improves interoperability but creates hard failures for existing questionnaires with visually ambiguous IDs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.linkId:whitespace",
+        "judgment": "Revisit",
+        "narrativeMd": "`linkId` is the stable join key between Questionnaire items, responses, conditional logic, and extraction artifacts. The R6 whitespace rule has a sensible interoperability goal, but making it an error immediately can force coordinated renames for strings that were R4-valid. A warning-first rule would expose the issue without breaking existing identifiers.",
+        "keyEvidence": [
+          "R4 Questionnaire.item.linkId is required string with no local whitespace invariant.",
+          "R6 adds que-16 as an error: LinkId cannot have leading or trailing spaces or intervening whitespace other than single spaces.",
+          "R6 also adds que-15 as a warning for linkId length <=255."
+        ],
+        "fmmEffect": "FMM 3/trial-use gives this central linkage field a meaningful stability expectation even though Questionnaire is not normative.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 linkIds with leading or trailing whitespace, tabs, newlines, or repeated whitespace can fail R6 validation; renaming affects downstream references.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could make the whitespace rule warning-level for a transition or best-practice period. The tradeoff is continued acceptance of fragile identifiers, but that seems lower cost than immediate hard failure on a central key.",
+        "comparisonToExisting": "partially agree with the existing medium-impact and partial-alternative assessment; I escalate to Revisit because the warning-level alternative is modest and the path is central."
+      }
     },
     {
       "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.enableWhen:enableBehavior-threshold",
@@ -1418,7 +1516,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid occurs for exactly two enableWhen repetitions without enableBehavior. R6 valid instances with explicit enableBehavior remain valid in R4. Runtime renderers must not guess `all` or `any` during migration without review.",
       "migrationGuidanceMd": "Find items with `enableWhen.count() == 2` and missing `enableBehavior`. Set the value based on author intent, renderer behavior, or local profile rules. Also review new R6 warnings for enableWhen.question references that do not match a local linkId.",
       "backwardCompatibilityAnalysisMd": "A default would have preserved validation but could silently change form behavior. Requiring the author to choose is safer for clinical and business logic.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.enableWhen:enableBehavior-threshold",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The threshold change closes an R4 computable-invariant gap. Exactly two enableWhen conditions without enableBehavior were structurally valid under the R4 expression, but the runtime meaning is ambiguous; requiring the author to choose all or any is safer than silent defaulting.",
+        "keyEvidence": [
+          "R4 que-12 expression is enableWhen.count() > 2 implies enableBehavior.exists().",
+          "R6 que-12 expression is enableWhen.count() > 1 implies enableBehavior.exists().",
+          "R6 also adds a warning on enableWhen.question references that do not match a linkId."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes the hard break worth noting, but the affected instances encode ambiguous conditional behavior and the R6 requirement is proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: an item with exactly two enableWhen repetitions and no enableBehavior can pass R4 validation and fail R6 validation.",
+        "lessBreakingAlternativeAssessment": "A warning-only rule or implicit default would preserve more instances, but warning leaves runtime ambiguity and defaulting to all or any can change form behavior contrary to author intent.",
+        "comparisonToExisting": "agree with the existing medium-impact, partial-alternative, and justified-break assessment."
+      }
     },
     {
       "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.answerOption-initial:alignment-defaults",
@@ -1537,7 +1649,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid depends on whether the R4 validator enforced comments or only constraints. Strict R6 validation fails the listed inconsistency patterns. R6-to-R4 is not materially risky because R4 can carry the same elements if they satisfy the stricter rules.",
       "migrationGuidanceMd": "Run R6 validation over existing questionnaires and fix the actual datatype or item.type mismatch rather than suppressing errors. For multiple selected defaults, either set `repeats=true` if multiple answers are intended or keep only the single intended default.",
       "backwardCompatibilityAnalysisMd": "The constraints are justified because they prevent forms that renderers cannot safely execute. A less-breaking staged warning would help migration, but would delay enforcement of real semantic errors.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.answerOption-initial:alignment-defaults",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The new invariants reject internally inconsistent forms: answer options or initial values whose datatypes do not match `item.type`, and multiple selected defaults for a non-repeating question. Those patterns may have been structurally accepted by R4 validators, but they are already problematic for renderers and response validation.",
+        "keyEvidence": [
+          "R6 adds que-18a error for answerOption value type alignment.",
+          "R6 adds que-18b error for initial value type alignment.",
+          "R6 adds que-17 error limiting initialSelected options to one when repeats is false."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the burden for new errors, but the affected content is semantically inconsistent rather than a clean legacy modeling pattern.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with mismatched answerOption or initial datatypes, or multiple selected defaults on non-repeating items, can fail R6 validation.",
+        "lessBreakingAlternativeAssessment": "A warning-first stage is possible, but it would continue to declare executable questionnaires conformant even when their declared answer type and defaults disagree.",
+        "comparisonToExisting": "agree with the existing medium-impact and partial-alternative assessment; the break appears proportionate."
+      }
     },
     {
       "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.answerValueSet-maxLength:context-rules",
@@ -1705,7 +1831,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid occurs for the narrowed answerValueSet contexts and boolean maxLength. R6-to-R4 issues occur for contexts newly allowed in R6. The most important migration trap is `open-choice`: converting only to `coding` while keeping `maxLength` fails unless `answerConstraint=optionsOrString` is also set.",
       "migrationGuidanceMd": "Review all items with `answerValueSet` and non-coding/string types. Consider replacing finite primitive/date/quantity value sets with explicit `answerOption` values where R6 supports them, or use profiles/extensions if a terminology server expansion remains necessary. For maxLength, remove it from boolean items and preserve old open-choice behavior with `answerConstraint=optionsOrString`.",
       "backwardCompatibilityAnalysisMd": "The R6 constraints could have been softer warnings for one release, but they reduce ambiguity in how terminology-based options apply to non-coded answers. Migration should be explicit because automatic coercion can change valid answer sets.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.answerValueSet-maxLength:context-rules",
+        "judgment": "Revisit",
+        "narrativeMd": "This is more than a harmless cleanup. R6 narrows `answerValueSet` contexts and changes `maxLength` rules, and the checked R6 `que-10` expression appears to use `optionOrString` even though the allowed answerConstraint code is `optionsOrString`. That mismatch undermines the obvious migration path for old open-choice items with maxLength and should be corrected or staged.",
+        "keyEvidence": [
+          "R4 que-5 allowed answerValueSet or answerOption for choice, open-choice, decimal, integer, date, dateTime, time, string, and quantity.",
+          "R6 que-5b expression allows answerValueSet only when type is coding, string, or uri.",
+          "R4 que-10 allowed maxLength for boolean, decimal, integer, string, text, url, and open-choice.",
+          "R6 que-10 expression checked locally uses answerConstraint='optionOrString', while questionnaire-answer-constraint defines optionsOrString."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes hard narrowing of existing validation contexts significant, and the apparent invariant/code mismatch weakens confidence that the R6 design is ready as-is.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 forms using answerValueSet on now-disallowed item types, boolean maxLength, or open-choice maxLength migration patterns can fail R6 validation.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could retain former contexts as warnings while clarifying semantics, and the optionOrString/optionsOrString mismatch looks like a low-cost fix. Retaining every old context has ambiguity costs, but the current rule set needs standards attention.",
+        "comparisonToExisting": "partially agree with the existing medium-impact and partial-alternative assessment, but disagree with treating the change as probably justified without addressing the primary-evidence mismatch."
+      }
     },
     {
       "findingId": "Questionnaire:CONVERSION_OR_MAPPING:Questionnaire.item.group-empty:inactive-r6",
@@ -1814,7 +1955,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 migration is not broken by this change. R6-to-R4 conversion must add at least one child item, remove the empty group, change the status/validation mode, or reject downgrade.",
       "migrationGuidanceMd": "Before downgrading R6 questionnaires, scan non-active forms for group items without children. Decide whether to remove placeholder groups or keep them with an extension/private authoring representation.",
       "backwardCompatibilityAnalysisMd": "The R6 relaxation is understandable for draft authoring. It could have been confined to tooling profiles, but adding status-sensitive behavior to the base invariant makes authoring-state semantics explicit.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Questionnaire:CONVERSION_OR_MAPPING:Questionnaire.item.group-empty:inactive-r6",
+        "judgment": "No problem",
+        "narrativeMd": "R6 relaxes the empty-group rule for non-active questionnaires. That cannot make R4-valid content invalid in R6; it only means an R6 draft or inactive placeholder group may need action before downgrade to R4.",
+        "keyEvidence": [
+          "R4 que-1 is an error requiring group items to have nested items.",
+          "R6 que-1a makes the empty-group error apply when Questionnaire.status is active.",
+          "R6 que-1b keeps a general warning that groups should have items."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not raise a forward compatibility concern for a relaxation; the only burden is downgrade policy for R6 authoring states.",
+        "compatibilityMechanism": "R6-to-R4 loss: a non-active R6 Questionnaire with an empty group can avoid an R6 error but fail R4 validation.",
+        "lessBreakingAlternativeAssessment": "No less-breaking forward R6 design is needed. Keeping the R4 error for all statuses would reduce downgrade mismatch but would remove the R6 authoring-state relaxation.",
+        "comparisonToExisting": "disagree with the existing medium-impact framing as an R4-to-R6 concern; agree that no backward-compatible alternative is applicable."
+      }
     },
     {
       "findingId": "Questionnaire:ELEMENT_PRESENCE_OR_IDENTITY:Questionnaire.item.disabledDisplay:added",
@@ -1918,7 +2073,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe because the element is optional. R6-to-R4 is not lossless when the element is populated. Runtime renderers need to honor `hidden` versus `protected` to preserve author intent.",
       "migrationGuidanceMd": "For downgrade, carry `disabledDisplay` in a cross-version extension or document a renderer-specific policy. Test conditional-display forms with both `hidden` and `protected` behavior.",
       "backwardCompatibilityAnalysisMd": "A standard element is justified for renderer interoperability, but R4 systems need an extension convention to preserve the behavior.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Questionnaire:ELEMENT_PRESENCE_OR_IDENTITY:Questionnaire.item.disabledDisplay:added",
+        "judgment": "No problem",
+        "narrativeMd": "`disabledDisplay` is an optional R6 element for renderer behavior. It creates a downgrade and rendering consideration when populated, but it does not invalidate existing R4 questionnaires or remove an R4 representation.",
+        "keyEvidence": [
+          "R4 has no Questionnaire.item.disabledDisplay element.",
+          "R6 adds Questionnaire.item.disabledDisplay 0..1 code.",
+          "R6 questionnaire-disabled-display CodeSystem defines hidden and protected."
+        ],
+        "fmmEffect": "For FMM 3/trial-use content, an optional additive rendering control is not a forward compatibility break, though implementers should document downgrade behavior.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated disabledDisplay has no R4 core field; no old-valid/new-invalid mechanism exists.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base alternative is needed. Extension-only support would avoid native R6-to-R4 loss but would also forgo a standard R6 renderer signal.",
+        "comparisonToExisting": "disagree with the existing medium-impact framing for this path-level finding; agree that a less-breaking base alternative is not applicable."
+      }
     },
     {
       "findingId": "Questionnaire:FLAGS_AND_MODIFIERS:Questionnaire.summary:description-derivedFrom",
@@ -2009,7 +2178,21 @@
       "validationAndCompatibilityMd": "Full-resource instances remain valid. Clients using `_summary=true`, generated summary projections, or payload-size assumptions may see extra fields in R6 responses.",
       "migrationGuidanceMd": "Review any code that compares summary payloads, calculates cache signatures, or assumes summary responses omit description/derivedFrom. Use `_elements` for stable field selection if necessary.",
       "backwardCompatibilityAnalysisMd": "The change is low risk and likely useful, but it is not fully backward-compatible for clients that treat summary payload shape as fixed.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Questionnaire:FLAGS_AND_MODIFIERS:Questionnaire.summary:description-derivedFrom",
+        "judgment": "No problem",
+        "narrativeMd": "Changing summary flags affects projection behavior, not instance validity. R6 summary responses may include more Questionnaire metadata, but full-resource content and validation are unchanged.",
+        "keyEvidence": [
+          "R4 Questionnaire.description and Questionnaire.derivedFrom have isSummary=false.",
+          "R6 Questionnaire.description and Questionnaire.derivedFrom have isSummary=true.",
+          "R6 also adds versionAlgorithm[x] as a summary element."
+        ],
+        "fmmEffect": "FMM 3/trial-use has little effect here because the change is metadata/API projection behavior rather than a structural or semantic validation break.",
+        "compatibilityMechanism": "runtime/API/codegen: clients using _summary or generated summary projections may see extra fields; there is no instance-shape break.",
+        "lessBreakingAlternativeAssessment": "No base instance-design alternative is needed. Clients that require fixed projections can request explicit elements, but that is operational mitigation rather than a different R6 model.",
+        "comparisonToExisting": "agree that the impact is low and that no less-breaking base alternative is applicable."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2202,5 +2385,19 @@
       "SimpleQuantity replacing Quantity in questionnaire-related artifacts",
       "resource-types required bindings across resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Questionnaire.fresh-review.json",
+    "findingDecisionCount": 13,
+    "matchedFindingDecisionCount": 13,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 4,
+      "No problem": 6
+    }
   }
 }

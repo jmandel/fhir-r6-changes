@@ -282,7 +282,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is permissive for this element: an R4-valid instance with `country` remains valid with respect to `country` in R6. R6-to-R4 is not lossless: an R6 instance that omits `country` is valid under the R6 datatype but violates R4 minimum cardinality. Strict generated R4 classes, JSON-schema-like validators, and FHIRPath/business rules assuming `country.exists()` will be affected.",
       "migrationGuidanceMd": "For R4-to-R6 migration, no transform is required for `country` beyond normal version conversion. For R6-to-R4 conversion, do not invent a country silently. Try to derive it from the containing resource, authorization context, jurisdictional metadata, or implementation profile; if unavailable, flag for manual review or use an agreed data-absent policy/profile. Test converters with present-country, missing-country, and context-derived-country cases.",
       "backwardCompatibilityAnalysisMd": "The change is probably intentional because R6 generalizes `MarketingStatus` beyond the older medicinal-product authorization wording. A backward-compatible alternative for bidirectional exchange would have kept the base element mandatory and introduced a profile or specialized structure for cases where country is unavailable. That alternative would protect R4 validators but make the R6 core datatype less flexible.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MarketingStatus:CARDINALITY:MarketingStatus.country:6d4e51",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 required `MarketingStatus.country` while R6 allows it to be absent. This is a widening change in the R4-to-R6 instance-validation direction: an R4-valid MarketingStatus already has a country and remains acceptable on this path in R6. The practical compatibility issue is downstream and reverse-directional: R6 data can now omit a country, so R6 generated models must treat it as optional and R6-to-R4 conversion cannot always populate the R4-required field without deriving it from context or inventing data. That is real migration burden in a regulatory product-data area, but the base R6 datatype is also used for broader item/product contexts where country may be unavailable, supplied elsewhere, or constrained by profiles. On balance this looks proportionate rather than a change that needs renewed base-design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition-MarketingStatus.json: `MarketingStatus.country` min 1 max 1, type CodeableConcept, definition tied to marketing authorization country and ISO 3166-1 alpha-2.",
+          "R6 StructureDefinition-MarketingStatus.json: `MarketingStatus.country` min 0 max 1, type CodeableConcept, shortened to the country where marketing status applies.",
+          "Direct use sites checked: R4 uses MarketingStatus in MedicinalProduct.marketingStatus and MedicinalProductPackaged.marketingStatus; R6 uses it in MedicinalProductDefinition, PackagedProductDefinition, and ManufacturedItemDefinition.",
+          "Targeted web search found active IDMP/FHIR regulatory implementation activity (HL7 Global IDMP IG trial-use, EMA SPOR/PMS FHIR materials, Swissmedic IDMP IG), but not evidence that the R4 MarketingStatus.country base cardinality is itself a stable widely deployed production contract."
+        ],
+        "fmmEffect": "The supplied/local R4 maturity context is draft/low stability, with the local R4 StructureDefinition carrying standardsStatus=draft. That softens the burden for this widening cardinality change. The regulatory/IDMP domain keeps the reverse-conversion concern meaningful, but not enough to overcome the low R4 stability expectation.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 MarketingStatus can omit country and then cannot be represented as a valid R4 MarketingStatus without external context or fabricated data. Secondary runtime/API/codegen impact: R6 generated models and consumers must allow a missing country.",
+        "lessBreakingAlternativeAssessment": "A less reverse-breaking base design would keep country required, or require at least one explicit location such as country or jurisdiction. That would preserve more R4 assumptions, but it would also constrain the broader R6 use cases and force placeholder country data when the location is unknown, inherited, or not country-specific. Regulatory profiles can re-require country where needed, so there is no clearly low-cost less-breaking base R6 design.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies no hard R4-to-R6 instance break and a real R6-to-R4/codegen concern, but its High impact reads stronger than the fresh path-level assessment supports after accounting for draft maturity and the widening direction. I agree with the absence of an obvious less-breaking base alternative."
+      }
     },
     {
       "findingId": "MarketingStatus:CARDINALITY:MarketingStatus.dateRange:3f7c2a",
@@ -437,7 +452,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is permissive for this element. R6-to-R4 conversion is potentially lossy or invalid when `dateRange` is absent, because R4 requires a `Period`. Strict R4 validators and generated classes will reject or fail on an omitted `dateRange` unless a conversion policy supplies one.",
       "migrationGuidanceMd": "For R4-to-R6 migration, preserve the existing `dateRange`. For R6-to-R4 conversion, derive the period from source system history, regulatory authorization dates, or containing-resource context where possible. If unavailable, flag for manual review rather than silently using a placeholder. Test converters with complete Periods, missing Periods, and partially populated Periods.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified if R6 needs to represent status when precise market dates are unavailable. A less disruptive alternative would have preserved mandatory `dateRange` in the base datatype and used profiles/extensions for unknown-date cases. That alternative is better for R4 compatibility but less expressive for incomplete R6 records.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MarketingStatus:CARDINALITY:MarketingStatus.dateRange:3f7c2a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 required `MarketingStatus.dateRange` while R6 makes the Period optional. As with country, this does not make old R4 instances invalid in R6, because the old instance already contains the Period. The break is that new R6 content may express a marketing status with no availability period, which is lossy for R6-to-R4 conversion and changes generated/API expectations for code that previously treated the Period as non-null. Availability dates can be operationally important, but the R6 design appears to support broader or less complete market-status statements where exact dates are unavailable or are imposed by a profile. Given the draft R4 maturity and lack of an old-valid/new-invalid break, the migration burden is real but appears proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition-MarketingStatus.json: `MarketingStatus.dateRange` min 1 max 1, type Period, definition says the market placement date shall be provided using a complete ISO 8601 date.",
+          "R6 StructureDefinition-MarketingStatus.json: `MarketingStatus.dateRange` min 0 max 1, type Period, definition describes dates the item is made available on the market.",
+          "MarketingStatus is embedded as repeating marketingStatus in R4 MedicinalProduct/MedicinalProductPackaged and in R6 MedicinalProductDefinition/PackagedProductDefinition/ManufacturedItemDefinition.",
+          "Targeted web search found IDMP/FHIR regulatory activity, but not quick evidence that base R4 `dateRange` cardinality is a widely depended-on production invariant independent of regulatory profiles."
+        ],
+        "fmmEffect": "Draft/low R4 maturity materially softens the stability concern. The path is business-relevant in medicinal-product regulatory workflows, so the concern is not dismissed, but low maturity and the R4-to-R6 widening direction argue against Revisit.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 can omit the Period that R4 requires, so backward conversion may need external dates, a rejection, or non-semantic placeholder data. Secondary runtime/API/codegen impact: code generated from R6 must expose dateRange as optional and downstream logic must handle absence.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept dateRange mandatory, or required at least one date-related field. That would reduce R6-to-R4 loss but would force dates for cases where market status is known before exact availability dates are known, where dates are not relevant to the broader item use case, or where a local profile should decide. A base requirement would be less flexible and may encourage invented dates, so no clearly preferable less-breaking base design stands out.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that this is not a hard R4-to-R6 validation break and that R6-to-R4 conversion can be lossy. I would temper the High impact because the change is a base-model widening on draft R4 content, and I agree that no low-cost less-breaking base alternative is evident."
+      }
     },
     {
       "findingId": "MarketingStatus:SEMANTIC_OR_CONFORMANCE_TEXT:MarketingStatus:9b2a11",
@@ -554,7 +584,22 @@
       "migrationGuidanceMd": "Review local profiles, validators, and business rules that used R4 text as normative guidance. If an implementation still needs medicinal-product-only semantics, ISO country coding, or specific marketing-status vocabularies, express those requirements in R6 profiles or implementation guides rather than relying on the base datatype text. For R6-to-R4 conversion, flag generalized item statuses for domain review if they do not clearly correspond to an R4 medicinal-product marketing status.",
       "backwardCompatibilityAnalysisMd": "The broader wording may be justified by expanded reuse of the datatype in R6, but the same goal could have been achieved with explicit transitional notes or profiles preserving R4 regulatory guidance. That would reduce surprise for implementers but would make the base narrative longer and might imply constraints the R6 core no longer wants to impose.",
       "reviewerNotesMd": "This finding is intentionally not counted as a hard validation break. Its impact depends on how strongly implementers treated R4 narrative text as conformance policy in the absence of computable bindings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MarketingStatus:SEMANTIC_OR_CONFORMANCE_TEXT:MarketingStatus:9b2a11",
+        "judgment": "No problem",
+        "narrativeMd": "The root wording changed from medicinal-product-specific marketing status to a more general item marketing status, and several R4 textual cues were simplified or removed. Those cues matter for interpretation, but the finding is semantic/documentation-level: the removed language was not encoded as a required binding, fixed code system, invariant, or separate validator rule in the base datatype. The cardinality effects for country and dateRange are already covered by the two specific findings above. For this text-only generalization, existing R4 instances are not rejected by R6 and generated model shape is not broken by the wording itself. Regulatory implementations that need ISO country coding, ISO/TS 20443 status semantics, or complete availability dates should carry those requirements in profiles or IGs rather than relying on base narrative text.",
+        "keyEvidence": [
+          "R4 root definition describes the date when a medicinal product is put on the market or no longer available.",
+          "R6 root definition generalizes the subject to an item.",
+          "R4 element definitions include textual cues for ISO 3166 country coding, ISO/TS 20443 status context, and complete dates; R6 definitions are shorter and generic.",
+          "No separate R4 base binding, fixed value, or invariant for those textual cues was identified in the MarketingStatus StructureDefinition evidence checked."
+        ],
+        "fmmEffect": "Because the R4 artifact is draft/low maturity, semantic wording churn receives a low stability burden. R6's normative status does not increase the compatibility burden for R4 consumers under the review framework.",
+        "compatibilityMechanism": "semantic/documentation: the change broadens and simplifies descriptive/conformance text, but it is not an old-valid/new-invalid instance break and not a direct runtime/API/codegen break separate from the cardinality findings.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained more medicinal-product-specific explanatory notes while also saying the datatype applies to items generally. That might help readers, but it would not materially improve wire compatibility. Reinstating the old `shall`/ISO cues as base conformance would conflict with the broader R6 datatype and should be handled by profiles for regulatory medicinal-product use.",
+        "comparisonToExisting": "partially agree: the existing report correctly treats this as semantic/conformance risk rather than a hard break. I would downgrade it to No problem because the removed cues were not machine-enforced in the base datatype, the cardinality changes are separately reviewed, and the R4 artifact was draft."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -721,5 +766,18 @@
       "R4 medicinal-product wording generalized to R6 item/product wording",
       "Base datatype hierarchy shifts from BackboneElement to BackboneType/DataType"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MarketingStatus.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

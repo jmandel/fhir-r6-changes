@@ -305,7 +305,21 @@
       "migrationGuidanceMd": "Inventory use of both R4 fields. If the canonical or URI is operationally important, define a local extension, map to a profile-specific relationship, or preserve the link outside the Communication resource. Regression tests should include Communications with only canonical links, only URI links, and both fields present.",
       "backwardCompatibilityAnalysisMd": "Because the fields were optional and non-modifier, a backward-compatible design could have retained them while marking them deprecated. Removing them from the base resource gives a cleaner model but shifts the burden to cross-version extensions or out-of-band migration policy.",
       "reviewerNotesMd": "Human review should confirm whether another R6 artifact or official conversion map provides a preferred home for these protocol links.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Communication:ELEMENT_PRESENCE_OR_IDENTITY:Communication.instantiates:4f0a63",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed `Communication.instantiatesCanonical` and `Communication.instantiatesUri` as optional summary elements for linking the communication to a protocol, guideline, order set, operation, questionnaire, or external definition. R6 removes both local elements without an equivalent replacement on `Communication`. An R4 communication that records that a notification followed a specific protocol can no longer validate as base R6 without moving that information elsewhere or using an extension. Because the fields were optional, non-modifier provenance links, retaining them as deprecated elements would likely have preserved old instances at relatively low base-model cost.",
+        "keyEvidence": [
+          "R4 `Communication.instantiatesCanonical` is 0..* canonical targeting PlanDefinition, ActivityDefinition, Measure, OperationDefinition, and Questionnaire.",
+          "R4 `Communication.instantiatesUri` is 0..* uri for externally maintained protocols or definitions.",
+          "R6 Communication snapshot has no `instantiatesCanonical` or `instantiatesUri` local element."
+        ],
+        "fmmEffect": "R4 Communication is FMM 2/trial-use, so maturity does not create a normative stability presumption; however FMM 2 is neutral rather than very-low, and the break affects optional but meaningful workflow/provenance fields.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 JSON containing either removed property is not a valid R6 Communication shape, and R6 generated models will not expose the old fields.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking R6 base design was to keep both optional fields with deprecation guidance while steering new implementations to any preferred R6 pattern. The tradeoff is ongoing support for legacy protocol-link elements, but that seems modest compared with silently invalidating existing instances.",
+        "comparisonToExisting": "agree with the existing medium hard-break assessment and the reported Yes less-breaking alternative; the fresh review puts the finding in Revisit because the removal looks avoidable."
+      }
     },
     {
       "findingId": "Communication:REFERENCE_TARGET:Communication.basedOn:37bb12",
@@ -466,7 +480,20 @@
       "migrationGuidanceMd": "Classify existing `basedOn` targets. References to the R6 allowed request resources can migrate directly. Other references should be reviewed and remapped to a more appropriate relationship such as `about`, a local extension, or a profile-specific element. Test with both resolvable references and literal references whose type can be inferred from the reference string.",
       "backwardCompatibilityAnalysisMd": "The narrowing is semantically defensible because R4 already described `basedOn` as a request relationship. It was not strictly necessary to change the base target profile; an invariant or profile could have preserved old structural compatibility while encouraging request-only use.",
       "reviewerNotesMd": "Confirm whether local historical data used `basedOn` for non-request context links, because those are the instances affected by this change.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Communication:REFERENCE_TARGET:Communication.basedOn:37bb12",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 made `Communication.basedOn` a `Reference(Resource)`, while its definition and comment described an order, proposal, plan, or other request-like source. R6 keeps the path and cardinality but narrows the target profiles to named request/workflow resources. A strict R6 validator can reject an R4 instance whose `basedOn` points to a non-listed resource, but that instance was already outside the element's stated request-oriented intent. Making the intended target set computable is a reasonable R6 goal.",
+        "keyEvidence": [
+          "R4 `Communication.basedOn` is 0..* `Reference(Resource)` with comment that it must point to some sort of request resource.",
+          "R6 `Communication.basedOn` is 0..* Reference to CarePlan, CommunicationRequest, DeviceRequest, MedicationRequest, NutritionOrder, ServiceRequest, Task, or VisionPrescription."
+        ],
+        "fmmEffect": "FMM 2/trial-use makes this a neutral maturity context: the target narrowing still matters, but the judgment turns mainly on the element's pre-existing semantics and the computable R6 goal.",
+        "compatibilityMechanism": "old-valid/new-invalid: target-profile validation can reject R4 `basedOn` references outside the R6 finite request-resource list; generated APIs may also expose a narrower reference target set.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `Reference(Resource)` and used prose, a warning, or profiles to encourage request-like targets. That would preserve more old data, but it would not meet the same base-level computability goal and would leave validators and code generators without a finite target set.",
+        "comparisonToExisting": "agree with the existing medium impact and Partial alternative judgment: the alternative is real but materially weaker than the R6 design goal."
+      }
     },
     {
       "findingId": "Communication:CONVERSION_OR_MAPPING:Communication.reason:bd5217",
@@ -701,7 +728,22 @@
       "migrationGuidanceMd": "Map `reasonCode[]` to `reason[].concept` and `reasonReference[]` to `reason[].reference`. Do not assume lossless pairing between old codes and references unless local data conventions explicitly define that pairing. For R6-to-R4, split concepts and references back to the old arrays only when the reference target is one of the R4-allowed types; otherwise use an extension, `about`, or manual review.",
       "backwardCompatibilityAnalysisMd": "The unified CodeableReference model is likely justified, but the immediate removal of the R4 fields was avoidable. A deprecation period would have preserved instance compatibility while giving implementers time to move queries, validation rules, and generated model properties to `reason.concept` and `reason.reference`.",
       "reviewerNotesMd": "Review local data to see whether reason codes and reason references were intended to be independent or paired. The base R4 model did not define pairing semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Communication:CONVERSION_OR_MAPPING:Communication.reason:bd5217",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 represented reasons with two separate repeated properties: `reasonCode` for coded/text reasons and `reasonReference` for references to a limited set of resources. R6 replaces both with repeated `reason` `CodeableReference(Resource)`. This is a real wire-format and generated-model break, and reverse conversion can lose information when an R6 reason uses a reference outside the old target list or combines concept and reference in one CodeableReference. Still, the R6 shape directly addresses the code-or-reference modeling split and uses a standard datatype for that purpose.",
+        "keyEvidence": [
+          "R4 `Communication.reasonCode` is 0..* CodeableConcept with example clinical-findings binding.",
+          "R4 `Communication.reasonReference` is 0..* Reference to Condition, Observation, DiagnosticReport, or DocumentReference.",
+          "R6 `Communication.reason` is 0..* CodeableReference targeting Resource with the same example clinical-findings binding.",
+          "R6 CodeableReference has optional `concept` and `reference` children."
+        ],
+        "fmmEffect": "FMM 2/trial-use softens the stability burden compared with mature or normative content, but this remains important because the path carries justification for the communication and affects generated models.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen and R6-to-R4 loss: old `reasonCode`/`reasonReference` names are invalid in R6, and some R6 CodeableReference uses cannot be represented cleanly in base R4.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have added `reason` while keeping deprecated `reasonCode` and `reasonReference`. That would preserve R4 instances but create parallel representations for the same reason, requiring reconciliation and precedence rules when old and new fields coexist.",
+        "comparisonToExisting": "agree with the existing high impact and Partial alternative judgment: the migration burden is real, but the less-breaking alternative has substantial duplicate-representation costs."
+      }
     },
     {
       "findingId": "Communication:TYPE_DOMAIN:Communication.payload.content_x_:a81629",
@@ -906,7 +948,21 @@
       "migrationGuidanceMd": "For text-only payloads, map `contentString` to `contentCodeableConcept.text` unless local policy chooses Attachment or a referenced resource. For coded R6 payloads, decide whether the coding can be safely downgraded to text for R4, or whether an extension/cross-version profile is required. Test payloads with simple text, coded concepts, attachments, and references.",
       "backwardCompatibilityAnalysisMd": "The added codified payload capability is useful, but removing `string` was avoidable. Keeping `string` alongside `CodeableConcept` would have preserved R4 data and let implementations gradually normalize text payloads.",
       "reviewerNotesMd": "Because payload carries the actual communicated message part, automated migration should avoid collapsing coded content to text without clinical or business review.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Communication:TYPE_DOMAIN:Communication.payload.content_x_:a81629",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 payload content could be a primitive string, Attachment, or Reference(Resource). R6 removes the string choice and adds CodeableConcept, with prose saying uncoded text can be carried in `contentCodeableConcept.text`. Since `payload.content[x]` is required within each payload item, any R4 payload using `contentString` needs a wire-format transform before it can validate as R6. The R6 goal of allowing coded payloads is reasonable, but removing the existing string choice looks like avoidable churn on the core communicated content.",
+        "keyEvidence": [
+          "R4 `Communication.payload.content[x]` is 1..1 with types string, Attachment, and Reference(Resource).",
+          "R6 `Communication.payload.content[x]` is 1..1 with types Attachment, Reference(Resource), and CodeableConcept.",
+          "R6 comment says non-codified content can use `contentCodeableConcept.text` and that CodeableConcept is the content, not a category."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but payload content is central to the resource's practical use; the maturity level does not by itself justify changing a common wire representation when an additive option appears available.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen and R6-to-R4 loss: `contentString` instances are invalid in R6, generated serializers change, and coded R6 payloads cannot round-trip to R4 without policy or loss.",
+        "lessBreakingAlternativeAssessment": "R6 could have widened the choice to `string | Attachment | Reference | CodeableConcept`, marked string as deprecated, and recommended `contentCodeableConcept.text` for new text payloads. That creates two ways to carry free text and requires normalization, but it preserves R4 instances while still enabling coded payloads.",
+        "comparisonToExisting": "agree with the existing high impact and Yes less-breaking alternative judgment; the fresh review also sees this as a Revisit case because the additive design seems straightforward."
+      }
     },
     {
       "findingId": "Communication:REFERENCE_TARGET:Communication.participants:0d9978",
@@ -1090,7 +1146,22 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid solely because of these additions. The risk runs the other way: an R6 instance with Endpoint, Location-as-recipient, or CareTeam-as-sender is not cleanly representable in R4 without moving the participant to an extension or another relationship.",
       "migrationGuidanceMd": "R4-to-R6 migration can preserve existing sender/recipient values. R6-to-R4 conversion should detect new target types and either use a local extension, map to Organization/HealthcareService when clinically and operationally correct, or flag for manual review. Do not silently drop Endpoint references, because they may be the actionable routing address.",
       "backwardCompatibilityAnalysisMd": "The additions are backward compatible in the R4-to-R6 direction. Down-conversion cannot be made lossless using only R4 base elements because the R4 target sets are fixed.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Communication:REFERENCE_TARGET:Communication.participants:0d9978",
+        "judgment": "No problem",
+        "narrativeMd": "For `sender` and `recipient`, R6 keeps the same element paths and expands the allowed target profiles. Existing R4 participant references remain within the R6 target sets. New R6 references to Endpoint, Location, or sender CareTeam may not down-convert to base R4, but that is a reverse-direction representability issue caused by an additive/widening change, not an R4-to-R6 compatibility break.",
+        "keyEvidence": [
+          "R4 recipient targets include Device, Organization, Patient, Practitioner, PractitionerRole, RelatedPerson, Group, CareTeam, and HealthcareService.",
+          "R6 recipient targets retain the R4 set and add Location and Endpoint.",
+          "R4 sender targets include Device, Organization, Patient, Practitioner, PractitionerRole, RelatedPerson, and HealthcareService.",
+          "R6 sender targets retain the R4 set and add Endpoint and CareTeam."
+        ],
+        "fmmEffect": "FMM 2/trial-use does not raise a stability concern because the change widens the allowed R6 target set and preserves R4-valid instances.",
+        "compatibilityMechanism": "R6-to-R4 loss only: some new R6 participant targets cannot be represented in base R4, but there is no old-valid/new-invalid R4-to-R6 break for these paths.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for forward compatibility. Avoiding the new target types would reduce R6 expressiveness rather than preserve R4 instances, and R4 backports or extensions are migration mitigations rather than base-design alternatives.",
+        "comparisonToExisting": "disagree with treating the medium reverse-conversion concern as a meaningful R4-to-R6 problem; agree that no backward-compatible alternative is applicable."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1253,5 +1324,19 @@
       "Event-pattern instantiatesCanonical/instantiatesUri removals",
       "Reference(Resource) narrowed to enumerated request target profiles"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Communication.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

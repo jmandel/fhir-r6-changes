@@ -337,7 +337,22 @@
       "validationAndCompatibilityMd": "An R4 instance with `Organization.telecom` can be valid in R4 and invalid in R6 because the element is no longer allowed at the top level. R6 contact telecom data can usually be mapped back to some R4 contact representation, but context such as R6 contact period or handler organization may not survive a simple downgrade.",
       "migrationGuidanceMd": "Move each top-level `telecom` item into `Organization.contact.telecom`. If the source system already has purpose-specific contacts, decide whether to merge telecoms into existing contact entries or create separate entries. Regression tests should include organizations with several telecom systems and uses, including the prohibited `home` use.",
       "backwardCompatibilityAnalysisMd": "The consolidation is understandable, but not fully backward-compatible. A transition period with both a deprecated top-level element and the new contact structure would have allowed old instances to validate while encouraging migration.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Organization:ELEMENT_PRESENCE_OR_IDENTITY:Organization.telecom:6bb8d1",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 exposed `Organization.telecom` as a top-level repeating `ContactPoint` for official organization contact details, with an error rule excluding `home` use. R6 removes that path and expects official telecom values to appear under `Organization.contact.telecom` through `ExtendedContactDetail`. An R4 directory Organization with a phone, email, fax, or website at the old path is therefore old-valid/new-invalid until transformed, and generated models lose a familiar common property. The migration is not conceptually hard, but this is a common directory field on a mature trial-use resource, so the direct wire-format break looks large enough to deserve renewed design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Organization.telecom` is `0..* ContactPoint`, official organization contact detail, and forbids `use = home`.",
+          "R6 StructureDefinition: no `Organization.telecom`; `Organization.contact` is `0..* ExtendedContactDetail` for official contact details.",
+          "R6 ExtendedContactDetail: `telecom` is `0..* ContactPoint`.",
+          "R4 maturity map: Organization is FMM 3, standards status trial-use."
+        ],
+        "fmmEffect": "FMM 3/trial-use raises the compatibility concern for a common path, but less than a normative/FMM 5 resource. I did not use the R6 normative status to increase the R4 compatibility burden.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing top-level `telecom` are not valid against the R6 Organization content model, with related runtime/API/codegen churn for generated `telecom` properties.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have retained `Organization.telecom` as a deprecated transitional alias while introducing `Organization.contact.telecom`. That would preserve most R4 instances, but it would create duplicate places for official telecom data and require conflict, search, and update rules. The tradeoff is real, yet the alternative is plausible enough for a common FMM 3 field to merit reconsideration.",
+        "comparisonToExisting": "Partially agree with the existing high impact and partial-alternative assessment: the hard break and migration target are real, but I judge the common mature field plus plausible transitional alias as warranting Revisit rather than simply accepting the break as probably justified."
+      }
     },
     {
       "findingId": "Organization:ELEMENT_PRESENCE_OR_IDENTITY:Organization.address:4e9a21",
@@ -512,7 +527,22 @@
       "validationAndCompatibilityMd": "An R4 instance with top-level `address` can be valid in R4 and invalid in R6. R6 can carry equivalent address values, but the structural location and grouping rules changed, and each `ExtendedContactDetail` has at most one address.",
       "migrationGuidanceMd": "Move each top-level R4 address into an `Organization.contact` entry. Preserve `Address.use`, periods, lines, and jurisdictional details. If downstream systems depend on address search, rebuild indexes against the R6 contact-address path; the SearchParameter artifacts should be assessed separately.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive by keeping the old element deprecated while adding the new model. The main tradeoff would be duplicate address-bearing fields and more complicated conformance/search rules.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Organization:ELEMENT_PRESENCE_OR_IDENTITY:Organization.address:4e9a21",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Organization.address` was a top-level repeating `Address` used for contacting, billing, reporting, and organization disambiguation, and it was directly indexed by the Organization address search parameters. R6 removes that element and places addresses inside `Organization.contact.address`. This preserves the information after a deliberate transform, but a pre-existing R4 instance with a top-level address is old-valid/new-invalid in R6 and generated R6 APIs no longer expose the same property. Because addresses are central organization directory data, the compatibility cost is more than incidental.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Organization.address` is `0..* Address` with requirements for contacting, billing, or reporting.",
+          "R6 StructureDefinition: no top-level `Organization.address`; `Organization.contact` is the official contact detail container.",
+          "R6 ExtendedContactDetail: `address` is `0..1 Address`; multiple addresses require multiple contact entries.",
+          "SearchParameter comparison: R4 address searches point to `Organization.address`; R6 keeps the search codes but expressions point to `Organization.contact.address`."
+        ],
+        "fmmEffect": "FMM 3/trial-use makes a direct break to a common administrative/directory path significant, though not as strongly protected as normative content.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with top-level `address` fail strict R6 validation unless transformed; generated models and address indexing logic also need path migration.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `Organization.address` as deprecated for one release while adding the richer contact-based representation and requiring search parameters to index both locations. That would preserve most R4 instances but would duplicate address representations and complicate grouping, update semantics, and conflict handling. The tradeoff is material, but the commonness of the field makes the less-breaking option credible.",
+        "comparisonToExisting": "Partially agree with the existing high impact and partial-alternative assessment. I agree the consolidation has a coherent goal and non-trivial duplicate-data costs, but I rate the top-level address removal as concerning enough to Revisit."
+      }
     },
     {
       "findingId": "Organization:SERIALIZATION_OR_CODEGEN:Organization.contact:9c0b72",
@@ -710,7 +740,22 @@
       "migrationGuidanceMd": "Regenerate models from R6 definitions and update mapping code for `Organization.contact`. Convert singleton `contact.name` objects to one-item arrays. Decide how to downgrade or extend R4 for `ExtendedContactDetail.period` and `ExtendedContactDetail.organization` if bidirectional exchange is required.",
       "backwardCompatibilityAnalysisMd": "A less disruptive design could have retained the R4 backbone and added new optional children, but that would duplicate the reusable datatype. The chosen design favors consistency across FHIR at the cost of local codegen and JSON compatibility.",
       "reviewerNotesMd": "This finding intentionally treats the `ExtendedContactDetail` datatype only as it affects `Organization.contact`. A full datatype-level assessment should be done separately.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Organization:SERIALIZATION_OR_CODEGEN:Organization.contact:9c0b72",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The `Organization.contact` path remains, but its type changes from an Organization-specific backbone to the reusable `ExtendedContactDetail` datatype. Most familiar child concepts still exist, but generated code changes type names/classes and `contact.name` changes from a singleton `HumanName` in R4 to repeating `HumanName` in R6, which changes FHIR JSON serialization for instances that include a named contact. That is a real API and wire-shape migration burden. The R6 goal of using a shared extended contact datatype is nevertheless a substantive modeling goal rather than a simple rename, and the affected data can generally be transformed without clinical meaning loss.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `Organization.contact` is `0..* BackboneElement`.",
+          "R4 StructureDefinition: `Organization.contact.name` is `0..1 HumanName`.",
+          "R6 StructureDefinition: `Organization.contact` is `0..* ExtendedContactDetail`.",
+          "R6 ExtendedContactDetail: `name` is `0..* HumanName`, with optional `organization` and `period` context."
+        ],
+        "fmmEffect": "FMM 3/trial-use means generated API and instance-shape breaks matter, but the resource was still trial-use and the R6 reusable datatype goal reduces the concern.",
+        "compatibilityMechanism": "runtime/API/codegen: generated models change from a local backbone component to a datatype; also old-valid/new-invalid for R4 JSON where `contact.name` is serialized as an object instead of the R6 repeating-array shape.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the local backbone and added optional fields such as period and handling organization, or made the reusable datatype closer to the R4 cardinalities. That would reduce breakage but would undercut cross-resource reuse or force duplicate maintenance of parallel contact structures. The less-breaking designs have enough architectural cost that the break appears proportionate.",
+        "comparisonToExisting": "Agree in substance with the existing high impact and partial-alternative assessment: the compatibility burden is real, but the shared datatype objective makes the break probably acceptable."
+      }
     },
     {
       "findingId": "Organization:VALUE_CONSTRAINT:Organization.contact:no-home:fc4a8e",
@@ -853,7 +898,21 @@
       "validationAndCompatibilityMd": "Old R4 nested contact details using `home` can become invalid in R6. The issue is validation-time rather than codegen-time, and it is likely less common than top-level telecom/address usage.",
       "migrationGuidanceMd": "Scan R4 `Organization.contact.telecom.use` and `Organization.contact.address.use` for `home` before migration. Decide whether to omit the use, recode it to an allowed value, move the data to a more appropriate resource, or flag it for manual cleanup.",
       "backwardCompatibilityAnalysisMd": "A warning-first approach would have been less breaking, but R6 chose a base invariant consistent with the official-organization-contact semantics. The alternative trades strict interoperability for easier migration of edge-case legacy data.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Organization:VALUE_CONSTRAINT:Organization.contact:no-home:fc4a8e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 already prohibited `home` use on top-level organization telecom and address, but the nested `Organization.contact.telecom` and `Organization.contact.address` elements did not carry that Organization-specific error invariant. R6 applies no-home error constraints to the new official contact container. This can reject a narrow class of R4 contact entries after migration, especially if an implementation used the nested contact as a person's home contact. The affected pattern is likely uncommon and the R6 rule is aligned with the stated official-organization-contact semantics.",
+        "keyEvidence": [
+          "R4 StructureDefinition: top-level `Organization.telecom` and `Organization.address` forbid `home`, but nested `Organization.contact.telecom` and `.address` only have inherited element constraints.",
+          "R6 StructureDefinition: `Organization.contact` has error constraints `org-3` and `org-4` forbidding `telecom.use = home` and `address.use = home`.",
+          "R6 `Organization.contact` comment says these are official contacts for the Organization, not provider-person contact details."
+        ],
+        "fmmEffect": "FMM 3/trial-use keeps the validator break relevant, but the break is narrow and reinforces a rule that already applied to R4's official top-level organization contact fields.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 nested contact telecom/address using `home` can become invalid under the R6 Organization contact constraints.",
+        "lessBreakingAlternativeAssessment": "A warning-level invariant or profile-specific rule would be less disruptive for legacy home-use contact data. The tradeoff is that base R6 would continue to permit home contacts in a container explicitly defined as official organization contact information, weakening the cleanup. For this narrow pattern, the stricter base rule appears proportionate.",
+        "comparisonToExisting": "Agree with the existing medium impact and partial-alternative assessment: there is a real validator break, but it is narrow and the less-breaking warning/profile approach would weaken the R6 semantic guarantee."
+      }
     },
     {
       "findingId": "Organization:CONVERSION_OR_MAPPING:Organization.description:0f73ac",
@@ -962,7 +1021,21 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid merely because R6 added this optional field. However, valid R6 content using `description` is not cleanly R4-representable in the core resource.",
       "migrationGuidanceMd": "For R6-to-R4 exchange, define an extension mapping or decide whether to copy the text into narrative with known loss of computability. Test downgrade/upgrade cycles to ensure the description is not silently discarded if it is important to directory selection.",
       "backwardCompatibilityAnalysisMd": "Adding an optional core element is backward-compatible for forward validation, but not for downgrade. An extension-only approach would have preserved R4 compatibility at the expense of weaker standardization.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Organization:CONVERSION_OR_MAPPING:Organization.description:0f73ac",
+        "judgment": "No problem",
+        "narrativeMd": "`Organization.description` is an optional R6 addition for human-readable disambiguation. It does not invalidate any R4 Organization instance moving forward. The only concern is downgrade or round-trip loss if an R6 instance using the new markdown field must be represented in core R4 without an extension or narrative convention. That is normal additive-version behavior and does not indicate a problematic R6 base design.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `Organization.description` is `0..1 markdown` and helps users verify the correct Organization.",
+          "R4 StructureDefinition: no `Organization.description` element exists.",
+          "The element is optional, so R4 instances remain valid with respect to this change when moving to R6."
+        ],
+        "fmmEffect": "FMM 3/trial-use does not turn an optional additive R6 field into an R4-to-R6 compatibility break; it only suggests downgrade guidance may be useful.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 description has no core R4 slot, but there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed. Avoiding the field would reduce R6 expressiveness, while R4 extensions or narrative mappings are downgrade mitigations rather than better R6 base designs.",
+        "comparisonToExisting": "Disagree with treating this as medium impact for fresh-review purposes. I agree that downgrade loss exists and that no base-design alternative is needed, but the optional additive nature makes this No problem."
+      }
     },
     {
       "findingId": "Organization:CONVERSION_OR_MAPPING:Organization.qualification:ab18d4",
@@ -1122,7 +1195,22 @@
       "migrationGuidanceMd": "For R6-to-R4 exchange, define a standard extension mapping, an implementation-guide-specific profile, or a related-resource strategy. Treat qualification status codes as terminology-bearing data and test active/inactive/revoked cases. Avoid silently flattening qualifications into narrative if downstream systems make eligibility or credentialing decisions.",
       "backwardCompatibilityAnalysisMd": "An extension-first path would have been more R4-compatible but less visible in the core R6 model. Given the regulatory and directory significance of qualifications, adding a core backbone is plausible, but cross-version implementers need explicit mapping policy.",
       "reviewerNotesMd": "Terminology expansion for the qualification code itself was not available because `qualification.code` has an example binding without a valueSet. Human review is recommended for jurisdiction-specific accreditation and licensure mappings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Organization:CONVERSION_OR_MAPPING:Organization.qualification:ab18d4",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Organization.qualification` is an optional R6 backbone for certifications, accreditations, licenses, status, period, and issuer. It is not an R4-to-R6 validation break, but an R6 Organization that relies on this structured data cannot be faithfully downgraded into core R4 without extensions or another agreed mapping. Because qualification and accreditation data can matter for directory trust, eligibility, and regulatory workflows, that reverse-conversion loss is meaningful. Still, adding optional structured qualification data is a reasonable R6 evolution, and a more backward-compatible base design would mostly mean not adding the needed R6 capability.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `Organization.qualification` is `0..* BackboneElement` for qualifications, certifications, accreditations, licenses, and training.",
+          "R6 StructureDefinition: `qualification.code` is required `1..1 CodeableConcept`; optional fields include status, period, and issuer.",
+          "R6 CodeSystem `qualification-status` includes active, inactive, suspended, revoked, and related lifecycle statuses.",
+          "R4 StructureDefinition: no core `Organization.qualification` path exists."
+        ],
+        "fmmEffect": "FMM 3/trial-use supports taking reverse-conversion loss seriously where regulatory or directory-trust data is involved, but it does not make an optional additive R6 backbone a forward hard break.",
+        "compatibilityMechanism": "R6-to-R4 loss: structured R6 qualification/accreditation data has no core R4 representation, so downgrade requires extensions, alternate resources, or lossy omission.",
+        "lessBreakingAlternativeAssessment": "There is no attractive less-breaking R6 base design for the R4-to-R6 direction because the element is optional and additive. Deferring the content to extensions would preserve R4 core symmetry but would sacrifice the R6 goal of a standard structured slot for organization qualifications. Downgrade mappings are mitigation, not a better base R6 design.",
+        "comparisonToExisting": "Partially agree with the existing high downgrade-risk assessment and not-applicable alternative judgment. I agree the reverse loss can be important, but judge the optional additive R6 design as proportionate rather than a reason to Revisit."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1290,5 +1378,19 @@
       "Resources moving address/telecom into contact datatypes",
       "Qualification backbone additions across practitioner and organization directory artifacts"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Organization.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 3,
+      "No problem": 1
+    }
   }
 }

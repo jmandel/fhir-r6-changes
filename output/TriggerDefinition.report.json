@@ -344,7 +344,22 @@
       "validationAndCompatibilityMd": "An R4 fragment such as `type: periodic` plus `timingReference` can be valid in R4 and invalid in R6 because R6 no longer defines the `Reference` choice at this path. The reverse direction is not problematic for this specific narrowing: any R6 `timingTiming`, `timingDate`, or `timingDateTime` value uses a type that R4 also allowed.",
       "migrationGuidanceMd": "Search for `timingReference` on TriggerDefinition values. Where the referenced `Schedule` is resolvable and simple enough, convert it to `timingTiming`; where it is not, preserve the reference with an extension, a cross-version profile, or manual review. Tests should include `timingReference`, `timingTiming`, `timingDate`, and `timingDateTime` cases.",
       "backwardCompatibilityAnalysisMd": "The same modeling goal could probably have been achieved by retaining `Reference(Schedule)` and marking it discouraged or profile-restricted. Removing the choice simplifies R6 consumers but forces legacy data transformation and may be lossy when a Schedule cannot be flattened.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "TriggerDefinition:TYPE_DOMAIN:TriggerDefinition.timing[x]:schedule-reference-removed",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed `TriggerDefinition.timingReference` to point at a `Schedule`; R6 narrows `timing[x]` to `Timing`, `date`, and `dateTime`. A PlanDefinition or EventDefinition trigger that used a shared Schedule resource is old-valid/new-invalid in R6, and generated R6 models would also lack the old choice property. Even if local example prevalence appears low, this is a direct loss of a representational option for when a trigger fires.",
+        "keyEvidence": [
+          "R4 StructureDefinition-TriggerDefinition.json: `TriggerDefinition.timing[x]` types include `Timing`, `Reference` targeting `Schedule`, `date`, and `dateTime`.",
+          "R6 StructureDefinition-TriggerDefinition.json: `TriggerDefinition.timing[x]` types include only `Timing`, `date`, and `dateTime`.",
+          "R4 and R6 Schedule StructureDefinitions both define Schedule as an appointment-slot container, so the referenced target still exists.",
+          "Local package search found no `timingReference` examples, which lowers prevalence confidence but does not change the hard validation mechanism."
+        ],
+        "fmmEffect": "R4 context is trial-use rather than a high-stability normative promise, so the break is not automatically unacceptable. However, the path is used through `PlanDefinition.action.trigger` and `EventDefinition.trigger`, and R6 now marks TriggerDefinition normative, so a direct type-domain removal should have a strong rationale before being locked in.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with `timingReference` can validate in R4 but has no legal R6 `timing[x]` choice; generated R6 APIs also lose the `timingReference` property.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could retain `Reference(Schedule)` as a supported or deprecated choice while encouraging inline `Timing`/date/dateTime where preferred. The tradeoff is one extra choice type and continued support for schedule indirection, but that seems modest because `Schedule` remains in R6 and the trigger-type definition still describes periodic triggers in terms of timing or schedule.",
+        "comparisonToExisting": "agree: the existing report correctly identified a high-confidence hard instance break. I also agree with the implied less-breaking alternative; retaining the Schedule reference looks like a plausible lower-break base design."
+      }
     },
     {
       "findingId": "TriggerDefinition:TERMINOLOGY_BINDING:TriggerDefinition.type:subscription-topic-code-added",
@@ -503,7 +518,22 @@
       "validationAndCompatibilityMd": "R4-valid `type` codes remain R6-valid. However, a valid R6 `subscription-topic` trigger is not valid R4 because the required R4 ValueSet does not include the code. Runtime systems that use exhaustive switches over R4 trigger types need a new branch or a safe unknown-code path before processing R6 data.",
       "migrationGuidanceMd": "For R6-to-R4 conversion, do not silently coerce `subscription-topic` to another code unless a domain-specific rule says that semantic loss is acceptable. Prefer a cross-version extension or reject/queue such instances for manual policy handling. Update generated enums and trigger dispatch tests to include the new code.",
       "backwardCompatibilityAnalysisMd": "The R6 model could have avoided a new required-bound code by carrying the SubscriptionTopic canonical in an extension while keeping `type = named-event`. That would preserve R4 validation but lose clear R6 semantics and machine validation. The added code is therefore probably justified but not backward-compatible.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "TriggerDefinition:TERMINOLOGY_BINDING:TriggerDefinition.type:subscription-topic-code-added",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The required binding is widened, not narrowed: all R4 trigger-type codes remain valid in R6, and R6 adds `subscription-topic`. This is not an R4-to-R6 instance rejection. The compatibility burden is for R4-era enum dispatchers or R6-to-R4 converters that encounter the new code; they must either reject it, map it out-of-band, or preserve it with an extension. Because the code identifies a new SubscriptionTopic-based trigger form, the added enum value appears proportionate.",
+        "keyEvidence": [
+          "R4 `TriggerDefinition.type` binding is required to `http://hl7.org/fhir/ValueSet/trigger-type|4.0.1`.",
+          "R6 `TriggerDefinition.type` binding is required to `http://hl7.org/fhir/ValueSet/trigger-type|6.0.0-ballot4` and the short description adds `subscription-topic`.",
+          "R6 CodeSystem-trigger-type.json defines `subscription-topic` as `The trigger occurs as defined by a subscription topic.`",
+          "R4 and R6 CodeSystem extracts show the pre-existing R4 codes are retained."
+        ],
+        "fmmEffect": "Trial-use R4 status softens the stability concern for enum growth. The fact that R6 is making TriggerDefinition normative argues for checking the design, but this particular change is an additive code for a new capability rather than a withdrawal of an R4 code.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 instance with `type = subscription-topic` is outside the R4 required value set and can break R4-generated enum handling, but old R4 values remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "No strong less-breaking base design. Reusing `named-event` or avoiding a new code would preserve R4 enums but would blur SubscriptionTopic dispatch semantics and make the new `subscriptionTopic` element less computable. Conversion guidance can mitigate older consumers, but it is not a better base R6 design.",
+        "comparisonToExisting": "partially agree: the existing report's reverse-direction risk is real, but its High impact should not be read as a forward R4-to-R6 hard break. The additive code is breaking mainly for reverse conversion and old enum runtimes, and the less-breaking alternative is weak."
+      }
     },
     {
       "findingId": "TriggerDefinition:ELEMENT_PRESENCE_OR_IDENTITY:TriggerDefinition.subscriptionTopic:element-added",
@@ -626,7 +656,22 @@
       "migrationGuidanceMd": "When down-converting, preserve the canonical in an extension or a sidecar mapping rather than dropping it. When validating R6, add tests for `subscriptionTopic` alone and with other trigger details, because the exclusivity sentence may require business-rule enforcement beyond the listed invariants.",
       "backwardCompatibilityAnalysisMd": "The first-class element is useful for R6 but could have been delivered as an extension for R4 compatibility. That alternative would avoid unknown base elements in R4 but would make the new feature less visible to generic R6 tooling.",
       "reviewerNotesMd": "Human review is useful to decide how strictly to enforce the definition sentence `If this element is provided, no other information about the trigger definition may be supplied`, because the local invariant list only requires `subscriptionTopic` when `type = subscription-topic`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "TriggerDefinition:ELEMENT_PRESENCE_OR_IDENTITY:TriggerDefinition.subscriptionTopic:element-added",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an optional `subscriptionTopic` canonical reference to `SubscriptionTopic`; R4 had no such element. Existing R4 TriggerDefinition instances remain valid with respect to this addition, but an R6 subscription-topic trigger cannot be represented cleanly in base R4. Dropping the canonical during downgrade would lose the actual event definition that drives subscription routing.",
+        "keyEvidence": [
+          "R4 StructureDefinition-TriggerDefinition.json has no `TriggerDefinition.subscriptionTopic` element.",
+          "R6 StructureDefinition-TriggerDefinition.json adds `TriggerDefinition.subscriptionTopic` as `0..1` canonical targeting `http://hl7.org/fhir/StructureDefinition/SubscriptionTopic`.",
+          "R6 definition says the element references a SubscriptionTopic resource that defines the event.",
+          "R6 StructureDefinition-SubscriptionTopic.json defines SubscriptionTopic as the topic for triggering events within the Subscriptions framework."
+        ],
+        "fmmEffect": "R4 trial-use status lowers the compatibility burden compared with mature/normative R4 content. Still, subscription event routing can be operationally important, so the reverse loss should be acknowledged even if it is acceptable for a new R6 feature.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 `subscriptionTopic` canonical is an unknown base element in R4 and points to a resource form not present in the R4 TriggerDefinition shape.",
+        "lessBreakingAlternativeAssessment": "No. R6 could have overloaded the existing `name` string with a SubscriptionTopic canonical URI, which would be more R4-shaped, but that would lose target typing and create weaker dispatch semantics. Adding an optional canonical is already the less disruptive way to model the new feature in R6.",
+        "comparisonToExisting": "partially agree: the existing report correctly notes reverse-direction loss, but this is an optional additive element rather than an R4-to-R6 invalidation. The impact is proportionate to introducing a typed SubscriptionTopic trigger."
+      }
     },
     {
       "findingId": "TriggerDefinition:VALUE_CONSTRAINT:TriggerDefinition.trd-3:named-event-code-allowed",
@@ -757,7 +802,22 @@
       "validationAndCompatibilityMd": "No R4 instance becomes invalid merely because of this change. A valid R6 code-only named event is not R4-representable without deriving a `name` or using an extension. Strict generated R4 parsers will also reject the `code` property.",
       "migrationGuidanceMd": "Update trigger dispatch logic to check `code` as well as `name`. For R6-to-R4 conversion, define a deterministic mapping from selected codings to `name` only where governance exists; otherwise preserve the CodeableConcept in an extension and flag the instance for review.",
       "backwardCompatibilityAnalysisMd": "Keeping `name` mandatory while adding optional `code` would have been more backward-compatible and would still support coded metadata. The tradeoff is that some R6 authors would need to provide a redundant string identifier when the code is already authoritative.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "TriggerDefinition:VALUE_CONSTRAINT:TriggerDefinition.trd-3:named-event-code-allowed",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 required a `name` for `type = named-event`; R6 relaxes the invariant to allow either `name` or the new `code` CodeableConcept. This does not invalidate old named-event triggers, but it creates valid R6 code-only named events that R4 validation and R4-era dispatch logic may not understand. The change improves coded computability for named events, and the migration burden is bounded to consumers that assumed the string `name` was always present.",
+        "keyEvidence": [
+          "R4 invariant `trd-3`: `type = 'named-event' implies name.exists()`.",
+          "R6 invariant `trd-3`: `type = 'named-event' implies (name.exists() or code.exists())`.",
+          "R6 adds `TriggerDefinition.code` as `0..1 CodeableConcept` with definition `A code that identifies the event.`",
+          "R4 has no `TriggerDefinition.code` element."
+        ],
+        "fmmEffect": "Trial-use R4 status makes a relaxation like this easier to justify than it would be on mature/normative R4 content. Because named-event triggers can affect workflow dispatch, the runtime effect is still real enough to document.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 permits named events without `name`, so dispatch code or generated models that key only on `name` can miss a valid R6 trigger; reverse R6-to-R4 validation also fails for code-only named events.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could require `name` even when `code` is present to preserve a downgrade/display fallback, but that would force duplicate identifiers and conflict rules between `name` and `code`. Allowing code-only events is a cleaner R6 model if coded event identity is the goal.",
+        "comparisonToExisting": "partially agree: the existing Medium runtime/reverse concern is credible. I would not escalate it because old R4 instances still pass and the less-breaking design has non-trivial duplication tradeoffs."
+      }
     },
     {
       "findingId": "TriggerDefinition:VALUE_CONSTRAINT:TriggerDefinition.trd-2:condition-without-data-allowed",
@@ -867,7 +927,22 @@
       "migrationGuidanceMd": "For R6 consumers, test condition evaluation on named and periodic triggers, not only data triggers. For R6-to-R4 conversion, either reject condition-without-data instances, preserve the condition in an extension, or apply a domain-specific transformation that introduces an appropriate data requirement if one exists.",
       "backwardCompatibilityAnalysisMd": "The base change could have been avoided by preserving `trd-2` and adding an extension/profile for non-data trigger conditions. That would protect R4 assumptions but would make the broadened R6 use case less interoperable in the base datatype.",
       "reviewerNotesMd": "Review the R6 narrative/spec page or committee notes if available; the computable definition removes the rule, but the retained comment still describes `condition` primarily as data-trigger refinement.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "TriggerDefinition:VALUE_CONSTRAINT:TriggerDefinition.trd-2:condition-without-data-allowed",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 had an error invariant requiring `condition` only when `data` exists. R6 removes that invariant and updates the condition comment so a condition can refine any trigger type. This is an old-invalid/new-valid relaxation, not a forward validation break, but trigger engines and downgrade converters must no longer assume conditions only refine data events. Ignoring a condition on a periodic, named, or subscription-topic trigger could cause an action to fire when it should not.",
+        "keyEvidence": [
+          "R4 root invariant `trd-2`: `condition.exists() implies data.exists()` with severity `error`.",
+          "R6 root constraints include `trd-1` and revised `trd-3` but no `trd-2`.",
+          "R4 condition comment says condition can only be specified for data type triggers.",
+          "R6 condition comment says condition can be specified for any type of trigger and provides additional criteria."
+        ],
+        "fmmEffect": "R4 trial-use status softens the stability concern for widening allowed trigger semantics. The path can still affect action firing behavior, so the practical runtime assumption change should not be dismissed as mere metadata churn.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 validators accept condition-bearing non-data triggers, and trigger evaluators or R6-to-R4 converters that assume `condition` implies `data` can behave incorrectly.",
+        "lessBreakingAlternativeAssessment": "No. Keeping `trd-2`, or making it a warning, would preserve R4 assumptions but would not meet the apparent R6 goal of allowing conditions to refine all trigger types. The safer migration answer is to update evaluators to honor `condition` wherever it appears.",
+        "comparisonToExisting": "partially agree: the existing Medium concern is real for runtime and reverse conversion, but it is not a hard R4-to-R6 instance break. The relaxation appears proportionate to the broader R6 semantics."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1016,5 +1091,18 @@
       "Artifacts adding SubscriptionTopic canonical references",
       "Required-bound code systems with R6-only codes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/TriggerDefinition.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 4
+    }
   }
 }

@@ -354,7 +354,21 @@
       "migrationGuidanceMd": "Map `patient` to `subject` for Patient recipients and update generated models, FHIRPath, search/extraction logic, tests, and serializers. Add explicit tests for Patient and Group recipients. For Group subjects, choose a cross-version extension, reject for R4 export, or map to a representative Patient only under a documented business rule.",
       "backwardCompatibilityAnalysisMd": "The subject generalization is understandable, but changing the required element name makes every conformant R4 instance require transformation. A backward-compatible deprecation strategy could have reduced disruption while the group-recipient use case matured.",
       "reviewerNotesMd": "Human review is most important for R6 group subjects and for trading partners that key business rules on beneficiary patient identity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ClaimResponse:ELEMENT_PRESENCE_OR_IDENTITY:ClaimResponse.patient:2c2b8f",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 required `ClaimResponse.patient` as `Reference(Patient)` and R6 requires `ClaimResponse.subject` as `Reference(Patient|Group)`. This is a direct wire-name and generated-model break for a required, central billing recipient field: an R4 claim response with `patient` is missing required `subject` in R6, while a Group subject cannot be represented in native R4. The Group generalization is reasonable, but replacing the required path looks disproportionate because the base model could have retained the old recipient path while widening or clarifying its target.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ClaimResponse.patient`: min 1, max 1, type Reference(Patient), isSummary true.",
+          "R6 StructureDefinition `ClaimResponse.subject`: min 1, max 1, type Reference(Patient|Group), isSummary true.",
+          "R4 maturity map and StructureDefinition extensions show ClaimResponse FMM 2, trial-use."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral: it does not impose normative stability pressure, but it also does not soften a required-path break on a central billing recipient field.",
+        "compatibilityMechanism": "old-valid/new-invalid: the R4 `patient` property is not the R6 path and required `subject` is absent; additionally, R6 Group subjects create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Yes. Keeping the recipient path as `patient` while broadening its target or definition would preserve most R4 instances and meet the Group-recipient goal, at the cost of an awkward legacy name for non-Patient recipients. A parallel `subject` alias would add conflict risk, but simply retaining the old path is a plausible lower-cost base design.",
+        "comparisonToExisting": "agree with the existing high impact and the conclusion that a less-breaking base design plausibly exists."
+      }
     },
     {
       "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.item.adjudication.value:8a733d",
@@ -547,7 +561,21 @@
       "migrationGuidanceMd": "Transform `value` to `quantity.value` and, where possible, infer a unit from `adjudication.category` or trading-partner rules. Add tests for percentages, unitless quantities, and round-tripping back to R4. Avoid silently discarding `Quantity.unit`, `system`, `code`, or comparator on R6-to-R4 export.",
       "backwardCompatibilityAnalysisMd": "The richer type is likely justified by better modeling, but a one-release overlap could have avoided immediate instance breakage. Without a supplied ConceptMap or narrative migration note, unit assignment must be resolved by implementers.",
       "reviewerNotesMd": "Review category-specific conventions before converting bare decimals to percentages or other units.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.item.adjudication.value:8a733d",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 non-monetary adjudication used optional primitive decimal `value`; R6 uses optional `quantity` of type `Quantity` with the same business meaning. This breaks instances and code wherever adjudication backbones are reused, but the R6 goal is coherent: percentages, counts, and other non-money values are safer when units can be explicit. The obvious compatibility design would keep both decimal and Quantity forms, but that would duplicate a financial adjudication value and require precedence rules when both are present.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ClaimResponse.item.adjudication.value`: 0..1 decimal, short `Non-monetary value`.",
+          "R6 StructureDefinition `ClaimResponse.item.adjudication.quantity`: 0..1 Quantity, short `Non-monetary value`.",
+          "The adjudication backbone is reused by item/detail/addItem/header adjudication paths."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the judgment turns on the path-level financial semantics and the duplicate-representation cost of alternatives.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `value` is no longer the R6 property or type; R6 Quantity also creates R6-to-R4 loss when units, system, code, comparator, or extensions matter.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained deprecated decimal `value` beside `quantity`, preserving old instances. The tradeoff is material because all adjudication locations would have two ways to state the same value, and financial logic would need conflict and unit interpretation rules.",
+        "comparisonToExisting": "agree with the existing high impact and partial less-breaking alternative assessment."
+      }
     },
     {
       "findingId": "ClaimResponse:SERIALIZATION_OR_CODEGEN:ClaimResponse.addItem.bodySite:673c7e",
@@ -831,7 +859,21 @@
       "migrationGuidanceMd": "Transform R4 `bodySite` into one R6 `bodySite` repetition with `site.concept`; move sibling `subSite` values into that repetition. For R6-to-R4, flatten only when there is a single coded site and no BodyStructure reference; otherwise use an extension, reject export, or require human review.",
       "backwardCompatibilityAnalysisMd": "The model improvement is clear, but the same goal could have been introduced as an additional optional repeating detailed structure while deprecating the flat fields. The chosen design favors a cleaner R6 model over direct backward compatibility.",
       "reviewerNotesMd": "Confirm the exact CodeableReference JSON conventions used by target tooling before implementing transforms.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ClaimResponse:SERIALIZATION_OR_CODEGEN:ClaimResponse.addItem.bodySite:673c7e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 modeled added-item location as flat `addItem.bodySite` CodeableConcept plus sibling repeated `subSite`; R6 remodels this as repeated `bodySite` backbone entries with required `site` CodeableReference(BodyStructure) and nested `subSite`. Existing JSON and generated classes break when location is present. The R6 design addresses real limitations: multiple grouped sites, BodyStructure references, and site-specific sub-sites. Retaining the flat fields would preserve old instances but create two competing anatomical-location models.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ClaimResponse.addItem.bodySite`: 0..1 CodeableConcept; `ClaimResponse.addItem.subSite`: 0..* CodeableConcept.",
+          "R6 StructureDefinition `ClaimResponse.addItem.bodySite`: 0..* BackboneElement.",
+          "R6 StructureDefinition `ClaimResponse.addItem.bodySite.site`: 1..* CodeableReference(BodyStructure); `bodySite.subSite`: 0..* CodeableConcept."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; this is an optional but business-relevant location model, so the model improvement and migration burden both matter.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 flat bodySite/subSite properties do not match the R6 nested backbone shape; R6 multiple site groups or BodyStructure references create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial. A new detailed body-site backbone could have been added while retaining deprecated flat fields. That would reduce immediate breakage but would duplicate location semantics and require precedence and grouping rules, especially when both old and new forms appear.",
+        "comparisonToExisting": "agree with the existing high impact and partial alternative judgment."
+      }
     },
     {
       "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.processNote.type:b6ec0a",
@@ -1023,7 +1065,21 @@
       "validationAndCompatibilityMd": "An R4 instance with `\"type\":\"print\"` is invalid in R6 because the element type is no longer primitive `code`. An R6 CodeableConcept can be valid without a single R4 note-type code, so down-conversion may be lossy or impossible.",
       "migrationGuidanceMd": "Wrap R4 codes into a CodeableConcept using the note-type code system. Update generated models, serializers, and UI/business logic that switch on string values. For R6-to-R4, require exactly one recognized note-type code or preserve richer content in an extension.",
       "backwardCompatibilityAnalysisMd": "The richer type is reasonable but could have been introduced as an additive element. The direct type replacement makes optional note metadata a hard validation break when present.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.processNote.type:b6ec0a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `processNote.type` was an optional primitive code with required note-type binding; R6 keeps the path but changes the type to CodeableConcept with extensible binding. Instances that include `type` must be reshaped, and SDK code switching on a string needs updating. The change is still proportionate because CodeableConcept supports coding systems, displays, translations, and local concepts that a primitive code cannot carry; a less-breaking dual-field approach would duplicate the same note-purpose meaning.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ClaimResponse.processNote.type`: 0..1 code, required binding to `ValueSet/note-type|4.0.1`.",
+          "R6 StructureDefinition `ClaimResponse.processNote.type`: 0..1 CodeableConcept, extensible binding to `ValueSet/note-type`.",
+          "Local R4 and R6 `CodeSystem-note-type.json` both contain display, print, and printoper."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; because the field is optional process-note metadata, the stability concern is less than for required core claim identity fields.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 scalar code is not the R6 CodeableConcept object; R6 CodeableConcepts without a single recognized R4 code can cause R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept the primitive `type` and added a new CodeableConcept element, but that would create duplicate note-purpose fields and rules for choosing one on down-conversion.",
+        "comparisonToExisting": "partially agree: the structural break and partial alternative are real, but the existing high impact seems somewhat overstated for an optional note-purpose field with stable core code values."
+      }
     },
     {
       "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.processNote.text:c4a320",
@@ -1155,7 +1211,21 @@
       "validationAndCompatibilityMd": "This is not a typical old-valid/new-invalid JSON break because both primitives serialize as strings. The compatibility risk is runtime and semantic: code that treats the field as plain text may render or sanitize differently when the FHIR type is markdown.",
       "migrationGuidanceMd": "Keep the string value, update type mappings to markdown, and test UI rendering/sanitization for markdown syntax. If systems must preserve plain-text display, escape or render according to local policy.",
       "backwardCompatibilityAnalysisMd": "Using markdown is a precision improvement, but it could also have been documented without changing the primitive type. The chosen approach favors explicit semantics over codegen stability.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.processNote.text:c4a320",
+        "judgment": "No problem",
+        "narrativeMd": "The element remains required at the same path and still serializes as a JSON string; R6 changes the FHIR primitive from `string` to `markdown`. This can affect generated type metadata or UI rendering policy, but ordinary R4 note text remains wire-compatible and no path, cardinality, or JSON object shape changes. The possible less-breaking design of documenting markdown in prose is not needed to address a material base compatibility problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ClaimResponse.processNote.text`: 1..1 string.",
+          "R6 StructureDefinition `ClaimResponse.processNote.text`: 1..1 markdown.",
+          "R6 markdown derives from string in the primitive datatype definitions."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral and does not elevate a same-wire-shape primitive semantic change into a standards concern.",
+        "compatibilityMechanism": "runtime/API/codegen: type-aware generators and renderers may treat markdown differently, but there is no meaningful old-valid/new-invalid JSON break.",
+        "lessBreakingAlternativeAssessment": "Yes in theory: R6 could have kept `string` and said markdown is allowed in prose. The benefit would be small because the wire shape already remains a string; the cost would be losing a computable markdown signal.",
+        "comparisonToExisting": "disagree with treating this as a material medium-impact break; the existing alternative idea is plausible but the compatibility issue is minor enough for `No problem`."
+      }
     },
     {
       "findingId": "ClaimResponse:TERMINOLOGY_BINDING:ClaimResponse.processNote.language:225ed1",
@@ -1331,7 +1401,21 @@
       "migrationGuidanceMd": "Normalize process-note language codings to BCP-47 (`urn:ietf:bcp:47`) before R6 validation. Inventory local language systems and create a small mapping table. Add tests for omitted language, common language, uncommon but valid BCP-47 language, and invalid local code.",
       "backwardCompatibilityAnalysisMd": "The stricter binding is justifiable for interoperability but could have been phased in with best-practice warnings. Because language tagging affects human comprehension, reject-or-map behavior should be explicit rather than silent.",
       "reviewerNotesMd": "Confidence is medium because a full terminology expansion/validation of all BCP-47 behavior was not performed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ClaimResponse:TERMINOLOGY_BINDING:ClaimResponse.processNote.language:225ed1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 allowed `processNote.language` as an optional CodeableConcept with only preferred language binding; R6 keeps the shape but changes to a required binding to all BCP-47 languages. Local-only language codings that were acceptable under R4's preferred binding can fail R6 validation. The break is limited to populated language elements and the R6 target is strong: enforceable, machine-readable language tags for human-facing adjudication notes. The all-languages value set also broadens beyond the old common-language starter set.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ClaimResponse.processNote.language`: 0..1 CodeableConcept, preferred binding to `ValueSet/languages`.",
+          "R6 StructureDefinition `ClaimResponse.processNote.language`: 0..1 CodeableConcept, required binding to `ValueSet/all-languages|6.0.0-ballot4`.",
+          "Local ValueSet files show the language system is `urn:ietf:bcp:47`; R6 all-languages has an unrestricted BCP-47 include."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; it softens broad stability expectations but does not erase the human-comprehension value of interoperable language tagging.",
+        "compatibilityMechanism": "old-valid/new-invalid: local or non-BCP-47 language codings tolerated under a preferred binding may fail the R6 required binding; omitted language remains compatible.",
+        "lessBreakingAlternativeAssessment": "Partial. Keeping preferred or extensible binding would preserve more legacy local codes, but it would not meet the same enforceable BCP-47 interoperability goal for note language.",
+        "comparisonToExisting": "agree with the existing medium impact and partial less-breaking alternative assessment."
+      }
     },
     {
       "findingId": "ClaimResponse:CARDINALITY:required-elements-relaxed:9d56c1",
@@ -1510,7 +1594,21 @@
       "migrationGuidanceMd": "For R6-to-R4 export, validate that required R4 fields are present after other transforms. Do not synthesize payer, adjudication, or product/service codes unless a profile or trading-partner rule supplies deterministic values. Add tests for queued/error responses and addItem entries with omitted product/service.",
       "backwardCompatibilityAnalysisMd": "The relaxations may be necessary for partial workflows, but they shift responsibility to profiles and converters. A profile-based relaxation would have preserved a stricter base resource but reduced R6 flexibility.",
       "reviewerNotesMd": "Review with financial-management domain experts to determine when omitted adjudication/product data is expected versus incomplete.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ClaimResponse:CARDINALITY:required-elements-relaxed:9d56c1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 lowers minimum cardinalities for insurer, adjudication arrays, and added-item product/service fields that R4 required. This is not a forward R4-to-R6 validation break because R4 instances already contain those fields. It is a real reverse-direction compatibility issue: valid R6 responses can omit payer, adjudication, or service-code data that native R4 cannot omit. The relaxation appears proportionate if R6 is intentionally allowing queued, partial, or administratively incomplete responses; keeping the R4 minimums would block that base-resource goal.",
+        "keyEvidence": [
+          "R4 vs R6 `ClaimResponse.insurer`: min changes from 1 to 0.",
+          "R4 vs R6 `ClaimResponse.item.adjudication`, detail adjudication, and addItem adjudication paths: min changes from 1 to 0.",
+          "R4 vs R6 `ClaimResponse.addItem.productOrService` and nested detail/subDetail productOrService: min changes from 1 to 0."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; it supports judging the concrete reverse-conversion risk rather than treating a min-cardinality decrease as inherently problematic.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 can omit elements that R4 requires, and converters cannot safely invent payer, adjudication, or product/service codes without business rules.",
+        "lessBreakingAlternativeAssessment": "Not applicable for preserving R4-to-R6 compatibility. Retaining R4's stricter minimums would improve reverse conversion but would fail the apparent R6 base goal of accepting incomplete or not-yet-adjudicated responses; profiles cannot generally relax a stricter base minimum.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies high R6-to-R4 risk, but this is not a forward hard break and the less-breaking alternative is not applicable."
+      }
     },
     {
       "findingId": "ClaimResponse:CONVERSION_OR_MAPPING:r6-added-content:0c88a4",
@@ -1693,7 +1791,21 @@
       "migrationGuidanceMd": "Inventory which R6 additions are used by trading partners. Define cross-version extensions for values that must survive R4 export, especially trace numbers, decisions, review outcomes, supportingInfo, addItem request links, taxes, and error expressions. Add negative tests that ensure unknown R6 fields are not silently dropped when lossless conversion is required.",
       "backwardCompatibilityAnalysisMd": "The additions are backward-compatible in the R4-to-R6 direction and mostly unavoidable for new information needs. The compatible approach for R4 is explicit extensions or a documented lossy export mode.",
       "reviewerNotesMd": "Prioritize review based on actual payer/provider workflows because the prevalence of these new fields is unknown from core definitions alone.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ClaimResponse:CONVERSION_OR_MAPPING:r6-added-content:0c88a4",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 fields are optional additions such as trace numbers, status reason, decision, events, encounters, supportingInfo, reviewOutcome, addItem request/tax/range details, processNote class, and error expressions. They do not invalidate any R4 instance moving to R6. They do create R6-to-R4 preservation work when populated, but optional additive elements are the normal least-breaking base design for representing new information. R4 export should use extensions, rejection, or documented lossy policy rather than treating the R6 additions as a design problem.",
+        "keyEvidence": [
+          "R6 StructureDefinition contains optional added elements including `ClaimResponse.traceNumber`, `statusReason`, `decision`, `event`, `supportingInfo`, `reviewOutcome`, and `error.expression`.",
+          "The corresponding element ids are absent from the R4 ClaimResponse snapshot.",
+          "The additions are optional in R6, so omission remains valid for R4-origin instances."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; it does not require R6 to avoid optional additions that carry new claim-response information.",
+        "compatibilityMechanism": "R6-to-R4 loss: populated R6-only fields lack native R4 homes, but there is no R4-to-R6 instance break.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Declining to add the optional fields would avoid reverse-conversion work but would also fail the R6 goal of expressing new trace, review, support, request-link, tax, and error-location data. Cross-version extensions are mitigations, not less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree: the existing reverse-representability concern is real, but as optional additive R6 content this is not a base compatibility problem needing renewed standards attention."
+      }
     },
     {
       "findingId": "ClaimResponse:TERMINOLOGY_BINDING:ClaimResponse.outcome:1f093b",
@@ -1841,7 +1953,21 @@
       "migrationGuidanceMd": "Update binding canonical references, generated enum metadata, terminology cache configuration, and tests that mention `remittance-outcome`. Treat the code values as preserved unless an official expansion or ConceptMap indicates otherwise.",
       "backwardCompatibilityAnalysisMd": "Changing the canonical without changing codes minimizes instance impact. An official ConceptMap or alias would further reduce runtime terminology risk.",
       "reviewerNotesMd": "Confidence is medium because local CodeSystems were inspected, but no official terminology expansion or ConceptMap was available.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ClaimResponse:TERMINOLOGY_BINDING:ClaimResponse.outcome:1f093b",
+        "judgment": "No problem",
+        "narrativeMd": "`ClaimResponse.outcome` remains a required primitive code at the same path, and the local R4 and R6 terminology files show the same relevant code values `queued`, `complete`, `error`, and `partial` under the new claim-outcome binding. The value set and code system canonical changed, so terminology caches, generated enum metadata, or documentation may need updates, but existing JSON code values should not require transformation.",
+        "keyEvidence": [
+          "R4 StructureDefinition `ClaimResponse.outcome`: 1..1 code, required binding to `ValueSet/remittance-outcome|4.0.1`.",
+          "R6 StructureDefinition `ClaimResponse.outcome`: 1..1 code, required binding to `ValueSet/claim-outcome|6.0.0-ballot4`.",
+          "Local CodeSystems show `queued`, `complete`, `error`, and `partial` in R4 remittance-outcome and R6 claim-outcome."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral and does not make terminology canonical churn a material compatibility issue when primitive code values are stable.",
+        "compatibilityMechanism": "metadata/tooling: binding canonical and terminology metadata changed, but the same primitive code strings remain valid based on local evidence.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Keeping the old canonical would avoid metadata churn but would not accomplish the terminology rename; a ConceptMap or alias would be helpful mitigation rather than a less-breaking element design.",
+        "comparisonToExisting": "agree with the existing low-impact assessment and no less-breaking base-design need."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2033,5 +2159,19 @@
       "bodySite CodeableConcept to BackboneElement/CodeableReference remodeling",
       "R6 optional field additions requiring cross-version extensions"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ClaimResponse.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 5,
+      "No problem": 3
+    }
   }
 }

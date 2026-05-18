@@ -458,7 +458,22 @@
       "migrationGuidanceMd": "Regenerate FHIR type-code enums from R6 definitions and inventory DataRequirement instances for codes outside R6 `fhir-types`. Use an authoritative cross-version ConceptMap where available; otherwise treat mappings such as `RequestGroup` to `RequestOrchestration` as review-required, not automatic. Preserve `profile` values during migration and test both strict validation and runtime dispatch for old, renamed, removed, and new type codes.",
       "backwardCompatibilityAnalysisMd": "Because FHIR major versions legitimately change the available type universe, the required-binding change is probably justified. The compatibility gap could be reduced by a normative ConceptMap, deprecated aliases, or migration extensions, but keeping obsolete type codes in the base R6 required ValueSet would blur conformance and could make R6 artifacts appear to request data types that no longer exist.",
       "reviewerNotesMd": "The local comparison did not use an official terminology expansion or change rationale. Before bulk migration, confirm exact mappings for each removed R4 type code using official cross-version materials.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DataRequirement:TERMINOLOGY_BINDING:DataRequirement.type:b7c3a1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 and R6 keep `DataRequirement.type` as a mandatory `code`, but the required binding moves from R4 `all-types` to R6 `fhir-types`. That is a real compatibility break for affected artifacts: an R4 data requirement with a removed or renamed type code such as `DeviceUseStatement`, `RequestGroup`, or `Any` can fail R6 required-binding validation and generated enum/switch logic until it is mapped. The break appears proportionate because the set of FHIR types legitimately changes across major versions, and accepting obsolete names in the base R6 type universe would make it look as if removed R4 types are still requestable R6 data.",
+        "keyEvidence": [
+          "R4 StructureDefinition DataRequirement.type: min 1, max 1, type code, required binding to http://hl7.org/fhir/ValueSet/all-types|4.0.1.",
+          "R6 StructureDefinition DataRequirement.type: min 1, max 1, type code, required binding to http://hl7.org/fhir/ValueSet/fhir-types|6.0.0-ballot4.",
+          "Local terminology comparison: R4 all-types includes data-types, resource-types, and abstract-types; examples present in R4 and absent in R6 include DeviceUseStatement, RequestGroup, Any, MoneyQuantity, and SimpleQuantity; examples present in R6 and absent in R4 include RequestOrchestration, CodeableReference, integer64, CanonicalResource, and MetadataResource.",
+          "R4/R6 StructureDefinitions use DataRequirement in knowledge-artifact paths including Library.dataRequirement, PlanDefinition action inputs/outputs, GuidanceResponse.dataRequirement, and TriggerDefinition.data."
+        ],
+        "fmmEffect": "The supplied/local R4 maturity context is trial-use standards status with no numeric FMM found in the R4 maturity map. That softens the stability burden compared with normative/FMM 5 content, but the mandatory type code is central to DataRequirement dispatch in knowledge artifacts, so the break remains meaningful.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-valid DataRequirement.type codes outside the R6 fhir-types value set fail required-binding validation; runtime/API/codegen enum and switch handling may also need migration.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 design could add deprecated legacy R4 type aliases to the R6 fhir-types value set, possibly with canonical mappings. That would preserve some old instances but is only a partial solution because some old codes are removed, renamed, or semantically ambiguous, and accepting them in a required R6 type value set would weaken conformance clarity.",
+        "comparisonToExisting": "partially agree with the existing high-impact assessment because affected strict validators and generated clients do break; I agree any less-breaking alternative is only partial and do not see this as disproportionate enough to revisit."
+      }
     },
     {
       "findingId": "DataRequirement:ELEMENT_PRESENCE_OR_IDENTITY:DataRequirement.valueFilter:9d84fe",
@@ -600,7 +615,22 @@
       "migrationGuidanceMd": "When downgrading R6 to R4, detect `DataRequirement.valueFilter` explicitly. If the content must be preserved, use an agreed extension or a cross-version extension strategy and mark the transform as not core-R4-equivalent. If preservation is not possible, reject the downgrade or flag it for manual review rather than silently omitting the filter. Tests should cover `valueFilter` with path-only, searchParam-only, comparator-present, and comparator-absent cases.",
       "backwardCompatibilityAnalysisMd": "The core addition is a reasonable way to improve expressivity in R6. A backward-compatible alternative would have been to standardize the filter as an extension first, making R4 and R6 artifacts able to carry the same content. The tradeoff is that extension semantics are less visible to generic consumers than a native element.",
       "reviewerNotesMd": "Unlike R4/R6 `codeFilter` and `dateFilter`, the inspected R6 `valueFilter` does not show a local XOR invariant requiring exactly one of `path` or `searchParam`. Implementers may need profile or application-level checks to avoid ambiguous value filters.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DataRequirement:ELEMENT_PRESENCE_OR_IDENTITY:DataRequirement.valueFilter:9d84fe",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds `DataRequirement.valueFilter` as an optional repeating element family; R4 has no corresponding core element. This does not make any R4-valid DataRequirement instance invalid in R6. The real issue is only reverse-direction: an R6 artifact that relies on value filters cannot be represented losslessly in R4 core, and an R4 parser receiving R6 content may reject or drop the unknown element. That is a down-conversion/interversion concern, not a reason to flag the R6 additive base design as a breaking R4-to-R6 problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no element id beginning DataRequirement.valueFilter.",
+          "R6 StructureDefinition defines DataRequirement.valueFilter as min 0, max *, type Element, isSummary true.",
+          "R6 valueFilter children include path, searchParam, comparator, and value[x]; value[x] allows dateTime, Period, and Duration.",
+          "R6 valueFilter.comparator is optional but required-bound, when present, to ValueSet/value-filter-comparator with eq, gt, lt, ge, le, sa, and eb."
+        ],
+        "fmmEffect": "The trial-use R4 status further lowers concern here because the finding is additive for R4-to-R6 validation. Even if DataRequirement is used in clinical knowledge artifacts, no existing R4 instance is invalidated by this new optional R6 capability.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 valueFilter content cannot be represented in R4 core and may be rejected or silently dropped by R4 tooling; there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed to preserve R4 instances because they are already preserved. Standardizing only an extension or backporting an extension would help downgrade/round-trip workflows, but that is a mitigation and would make the R6-native constraint less discoverable and less consistently validated.",
+        "comparisonToExisting": "disagree with the existing high overall impact as an R4-to-R6 break. The existing report correctly identifies R6-to-R4 loss, but that should be treated as reverse-direction migration risk rather than a concerning base R6 addition."
+      }
     },
     {
       "findingId": "DataRequirement:TERMINOLOGY_BINDING:DataRequirement.subject_x_:a4e62d",
@@ -832,7 +862,22 @@
       "migrationGuidanceMd": "Normalize subject CodeableConcept codings to the R6 `http://hl7.org/fhir/fhir-types` system where possible while preserving original codings if round-trip fidelity matters. Add test cases for old R4 subject codings, new R6 participant subject codes, omitted subject with `Patient` meaningWhenMissing, and `subjectReference(Group)`, which remains unchanged.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified because it covers more participant subject types and resolves the mismatch where R4 prose named subjects such as RelatedPerson that were absent from the R4 ValueSet. A backward-compatible design could have included both old and new systems or a formal ConceptMap, at the cost of more complex terminology normalization.",
       "reviewerNotesMd": "A terminology expansion service would help confirm exact validator behavior for extensible bindings across systems.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DataRequirement:TERMINOLOGY_BINDING:DataRequirement.subject_x_:a4e62d",
+        "judgment": "Revisit",
+        "narrativeMd": "`DataRequirement.subject[x]` keeps the same cardinality, choice types, `Reference(Group)` target, and `meaningWhenMissing = Patient`; the change is the extensible CodeableConcept binding. R4 binds selected subject resource types from the `resource-types` system, while R6 binds participant resources from the unified `fhir-types` system and adds subject codes such as `CareTeam`, `PractitionerRole`, and `RelatedPerson`. Because the binding remains extensible, this is not a hard structural break, but R4 codings like `http://hl7.org/fhir/resource-types|Patient` may no longer satisfy strict R6 terminology checks without adding a canonical `fhir-types` coding. Since subject scoping is explicitly described as critical and tied to CQL context, the avoidable warning/conformance churn is worth renewed design review.",
+        "keyEvidence": [
+          "R4 StructureDefinition DataRequirement.subject[x]: min 0, max 1, types CodeableConcept or Reference(Group), extensible binding to http://hl7.org/fhir/ValueSet/subject-type, meaningWhenMissing Patient.",
+          "R6 StructureDefinition DataRequirement.subject[x]: same cardinality, choice types, Reference(Group) target, and meaningWhenMissing Patient, but extensible binding to http://hl7.org/fhir/ValueSet/participant-resource-types.",
+          "R4 ValueSet/subject-type includes resource-types codes Patient, Practitioner, Organization, Location, and Device; R6 ValueSet/participant-resource-types includes fhir-types codes CareTeam, Device, Group, HealthcareService, Location, Organization, Patient, Practitioner, PractitionerRole, and RelatedPerson.",
+          "The DataRequirement.subject[x] comment in both R4 and R6 says the subject is critical, limits data by relationship to the subject, and corresponds to the CQL context declaration."
+        ],
+        "fmmEffect": "Trial-use R4 status softens the stability concern and keeps this below a hard-break alarm. It does not eliminate concern because the path controls data scoping in knowledge artifacts and the compatibility-preserving terminology design appears modest.",
+        "compatibilityMechanism": "warning-level: the wire shape is unchanged, but the extensible binding and code system switch can create terminology validation warnings or warnings-as-errors for R4 resource-types codings; reverse conversion also loses the added R6 participant subject codes.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could compose participant-resource-types from the canonical R6 fhir-types participant codes plus the five legacy R4 resource-types subject codings as deprecated/accepted aliases. The tradeoff is dual terminology-system support and normalization burden, but CodeableConcept can carry multiple codings and the cost seems moderate compared with invalidating or warning on common R4 subject codings.",
+        "comparisonToExisting": "partially agree with the existing medium-impact assessment: it is not a hard structural break, but the warning-level conformance risk is real. I agree with the existing less-breaking-alternative direction and judge it strong enough to warrant Revisit."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1020,5 +1065,19 @@
       "R6 additions that are not R4-representable except by extension",
       "ValueSet system migration from resource-types to fhir-types"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DataRequirement.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

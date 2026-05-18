@@ -304,7 +304,22 @@
       "migrationGuidanceMd": "Install the appropriate THO terminology package or configure a terminology server when validating R6. Audit code generators and enum/pick-list builders for hard-coded `http://hl7.org/fhir/ValueSet/usage-context-type`. If cross-version validation matters, compare the R4 and current THO expansions and add mappings or warnings for codes present only in one version.",
       "backwardCompatibilityAnalysisMd": "The change appears probably justified as a terminology-governance move, but it could have been less disruptive with a bundled alias, explicit redirect, or ConceptMap preserving the old value-set canonical as a compatibility entry point. Without that, offline consumers must discover and install the external terminology artifact.",
       "reviewerNotesMd": "The exact R6 `usage-context-type` expansion was not available locally. Review against current THO before classifying specific code additions or removals.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "UsageContext:TERMINOLOGY_BINDING:UsageContext.code:7b4c2e",
+        "judgment": "No problem",
+        "narrativeMd": "R4 and R6 keep `UsageContext.code` as a required `Coding` with an extensible binding. The confirmed change is the binding value set canonical moving from the FHIR core URL to `terminology.hl7.org`; the R4 value set already points at the THO `usage-context-type` CodeSystem, so existing instances using codes such as `gender`, `age`, or `workflow` do not need a wire-format change. The practical risk is an R6 terminology loader or validator that has only the old core-package terminology and cannot resolve the new canonical, which is resolver/package churn rather than a path-level data compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition `UsageContext.code`: min 1, max 1, type `Coding`, extensible binding to `http://hl7.org/fhir/ValueSet/usage-context-type`.",
+          "R6 StructureDefinition `UsageContext.code`: same cardinality and type, extensible binding to `http://terminology.hl7.org/ValueSet/usage-context-type`.",
+          "R4 `ValueSet/usage-context-type` includes `http://terminology.hl7.org/CodeSystem/usage-context-type`, and the R4 CodeSystem defines the expected context-type codes.",
+          "The R6 core package has no bundled `*usage-context-type*.json` artifact, so offline tooling may need THO terminology resolution."
+        ],
+        "fmmEffect": "The supplied R4 maturity context is trial-use with unknown standards status, which softens stability pressure compared with normative content. Even without that softening, this is not a direct instance-validity break.",
+        "compatibilityMechanism": "metadata/tooling: binding canonical resolution changes; existing `Coding` instances remain structurally valid and the extensible binding does not by itself make prior codings invalid.",
+        "lessBreakingAlternativeAssessment": "A compatibility alias, redirect, or bundled legacy value set could reduce resolver friction, but keeping the old canonical as the base R6 binding would conflict with the terminology-governance move and create duplicate canonical entry points. That is useful packaging support, not a clearly better base StructureDefinition design.",
+        "comparisonToExisting": "partially agree: I agree with the existing report's low/non-hard impact direction, but I would not treat the alias or redirect idea as strong evidence of a less-breaking base R6 design."
+      }
     },
     {
       "findingId": "UsageContext:TERMINOLOGY_BINDING:UsageContext.value_x:1a9d8f",
@@ -527,7 +542,22 @@
       "migrationGuidanceMd": "Do not transform `UsageContext.value[x]` structurally. Instead, refresh terminology expansion caches and review any code that assumes the R4 `use-context` compose. If systems use `valueCodeableConcept` for filtering or search facets, add tests covering removed R4 includes, the new `v2-0265` include, and the agreement-scope codes.",
       "backwardCompatibilityAnalysisMd": "The change may be appropriate terminology curation, but the supplied inputs do not explain why previous example includes were removed. Adding new agreement-scope content without removing old includes would have been easier for existing UI and rule engines, though it might have weakened the intended R6 guidance.",
       "reviewerNotesMd": "Expansion-level comparison was not performed. Some apparent compose removals may be offset by replacement value sets or overlapping external terminology expansions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "UsageContext:TERMINOLOGY_BINDING:UsageContext.value_x:1a9d8f",
+        "judgment": "No problem",
+        "narrativeMd": "R4 and R6 keep `UsageContext.value[x]` with the same cardinality, choice types, reference targets, binding canonical, and example binding strength. The R6 `use-context` value set composition changes by removing some example includes and adding others, but an example binding is guidance for suggested terminology rather than a validation constraint. Existing R4 instances with values drawn from the removed example includes remain structurally valid in R6, and the R6 agreement-scope pattern is also representable in the unchanged R4 `CodeableConcept` shape. The direct effect is limited to pick lists, examples, or terminology suggestions.",
+        "keyEvidence": [
+          "R4 StructureDefinition `UsageContext.value[x]`: min 1, max 1, choice types `CodeableConcept`, `Quantity`, `Range`, and specified `Reference` targets; example binding to `http://hl7.org/fhir/ValueSet/use-context`.",
+          "R6 StructureDefinition `UsageContext.value[x]`: same cardinality, choice types, reference targets, binding canonical, and example strength.",
+          "R4 `ValueSet/use-context` includes `usps-state` and `practitioner-specialty` among other includes.",
+          "R6 `ValueSet/use-context` includes `v2-0265` and `usage-context-agreement-scope` and no longer includes those two R4 value set canonicals."
+        ],
+        "fmmEffect": "The supplied R4 maturity context is trial-use with unknown standards status, so terminology curation has less compatibility weight than it would for normative content. Because this is only an example binding, maturity does not turn it into a material break.",
+        "compatibilityMechanism": "semantic/documentation: the example value set composition changes terminology guidance and possible UI suggestions, but it does not make old instances invalid or change generated element shape.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the removed example includes while adding the new agreement-scope material, but that would be a terminology-curation choice with broader guidance tradeoffs, not a necessary compatibility-preserving base design. Since the binding is example strength, removal from the example set is not a meaningful break.",
+        "comparisonToExisting": "partially agree: I agree with the existing report's non-hard impact direction, but I place less weight on the proposed add-without-removal alternative because example-binding composition is not a constraining compatibility surface."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -708,5 +738,17 @@
       "Other artifacts binding to `http://hl7.org/fhir/ValueSet/usage-context-type` versus `http://terminology.hl7.org/ValueSet/usage-context-type`",
       "Other datatypes whose R6 baseDefinition moved from `Element` to `DataType`"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/UsageContext.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 2
+    }
   }
 }

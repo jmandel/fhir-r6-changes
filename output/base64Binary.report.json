@@ -307,7 +307,23 @@
       "migrationGuidanceMd": "Before R6 validation, normalize legacy base64Binary strings by removing insignificant whitespace only after confirming the payload decodes successfully, then re-encode canonically. Do not blindly strip or rewrite values that fail base64 decoding; quarantine them for manual or source-system review because invalid padding may indicate corrupted content. Down-conversion tooling should decide how to handle R6 empty values: omit when the containing element allows absence, use an extension/profile-specific convention when absence is not equivalent, or reject with an explicit error.",
       "backwardCompatibilityAnalysisMd": "The stricter R6 regex was probably avoidable in the narrow backward-compatibility sense: R6 could have continued accepting whitespace and loose padding while recommending canonical output. However, that would preserve known validation ambiguity and allow malformed encodings. The chosen regex improves conformance precision but imposes a real cleanup step for legacy R4 instances.",
       "reviewerNotesMd": "Confirm against the rendered R6 datatype narrative or ballot change notes whether whitespace rejection is intentional for all serializations. Some implementations may already normalize base64 before applying the regex, which would reduce observed breakage but not change the computable StructureDefinition delta.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "base64Binary:VALUE_CONSTRAINT:base64Binary.value:9f8a4c",
+        "judgment": "Revisit",
+        "narrativeMd": "The material change is a computable constraint on the normative `base64Binary.value` primitive: R6 rejects whitespace-separated or line-wrapped lexical forms that the R4 regex accepted, and it also rejects some padding placements that R4's regex did not exclude. A strict validator, generated model check, import pipeline, or test fixture that accepted an R4 value such as a wrapped `Attachment.data`, `Binary.data`, or `Signature.data` string can fail after moving to R6 even though the element path, cardinality, and underlying FHIRPath type did not change. Tightening padding is a reasonable conformance goal, but removing all whitespace tolerance from a normative primitive looks worth renewed standards review because legitimate R4-era payloads can be normalized without changing the decoded bytes.",
+        "keyEvidence": [
+          "R4 StructureDefinition-base64Binary.json: `base64Binary.value` regex is `(\\s*([0-9a-zA-Z\\+/=]){4}\\s*)+`.",
+          "R6 StructureDefinition-base64Binary.json: `base64Binary.value` regex is `(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?`.",
+          "R4 and R6 keep `base64Binary.value` at 0..1 with FHIRPath `System.String`; the local compatibility issue is the regex, not type or cardinality.",
+          "Anchored regex checks show `QUJD\\nRA==` and `====` match the R4 regex but not the R6 regex, while the empty string matches R6 but not R4.",
+          "R4 package usage includes binary-bearing paths such as `Attachment.data`, `Binary.data`, and `Signature.data`."
+        ],
+        "fmmEffect": "R4 `base64Binary` is normative, with normative status also visible in the local StructureDefinition/maturity data. That raises the justification burden for a hard validator-visible tightening, especially for a primitive used by many resources; it does not make every cleanup impermissible, but it pushes this from a routine cleanup to a change that should be reconsidered.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-valid lexical values with whitespace or non-terminal padding can fail R6 validation. There is also R6-to-R4 loss at the regex level because R6 permits an empty lexical value that R4's regex did not match.",
+        "lessBreakingAlternativeAssessment": "A plausible partial base-design alternative exists: preserve acceptance of insignificant whitespace around complete base64 quanta, enforce terminal padding, and state or warn that producers SHOULD emit canonical no-whitespace base64. That would preserve many legitimate R4 payloads while still rejecting malformed padding. The tradeoff is continued duplicate lexical forms for the same bytes, with possible canonicalization, signature, and string-comparison complications; those tradeoffs are real, but for a normative primitive they are not enough to dismiss the alternative without renewed review.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment. I agree this is a high-confidence hard instance break and that the alternative is partial rather than a clean preservation of every R4-valid string. I weigh the normative stability expectation and the modest whitespace-tolerant transition option more heavily, so I would mark it `Revisit` rather than treating the stricter regex as simply probably justified."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -455,5 +471,17 @@
       "base64Binary value regex changes on elements such as Attachment.data, Binary.data, Signature.data, and other encoded payload fields",
       "R6 PrimitiveType/DataType hierarchy changes excluded from per-primitive reports"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/base64Binary.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1
+    }
   }
 }

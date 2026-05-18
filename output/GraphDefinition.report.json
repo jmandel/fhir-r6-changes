@@ -308,7 +308,22 @@
       "migrationGuidanceMd": "Inventory stored or configured `GraphDefinition` resources before moving to R6. Decide whether to retain them as R4 legacy artifacts, adopt the external API-incubator definition, or convert them into server-specific graph traversal configuration. Validation test suites should include unknown-resource handling and any operation/document-assembly paths that previously accepted a GraphDefinition canonical.",
       "backwardCompatibilityAnalysisMd": "The change may be justified by the resource's low maturity and possible incubator migration, but a compatibility StructureDefinition or formal migration map would have been less disruptive. Without that, downstream systems must make local policy decisions and cannot rely on the R6 core package alone for validation or code generation.",
       "reviewerNotesMd": "Confirm against official ballot notes or the API-incubator package before finalizing migration advice. The local R6 package evidence proves absence from core but not the intended replacement contract.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "GraphDefinition:ARTIFACT_IDENTITY:root:7a9f31",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 GraphDefinition was a real core resource, and R6 core no longer publishes a StructureDefinition for it. An R4 instance with resourceType `GraphDefinition` will not validate or dispatch as a core R6 resource, and generated R6 models will normally omit the type. That is a real break for implementers who used GraphDefinition with graph, document, or validation workflows. I would not mark it Revisit on the available evidence because the resource was FMM 1/trial-use, the R6 package points toward external/incubator handling rather than a simple in-core rename, and quick checks did not establish broad production dependence. The remaining R6 operation text that references GraphDefinition is migration-relevant, but retaining a deprecated core resource would keep an experimental model in core and risk duplicate core/incubator representations.",
+        "keyEvidence": [
+          "R4 StructureDefinition-GraphDefinition.json defines kind=resource, type=GraphDefinition, base=DomainResource; the maturity map reports FMM 1 and standardsStatus trial-use.",
+          "R6 package checks found no StructureDefinition-GraphDefinition.json and no R6 package-index StructureDefinition entry for id/type/url GraphDefinition.",
+          "R6 package text references GraphDefinition only from OperationDefinition-Composition-document and OperationDefinition-Resource-validate; Composition/$document points to an API-incubator URL, and Resource/$validate says the graph parameter is not widely supported.",
+          "HL7 R4 $graph operation documentation describes returning resources based on a GraphDefinition, but targeted web/source checks did not confirm broad production deployment."
+        ],
+        "fmmEffect": "FMM 1/trial-use substantially softens stability expectations; it prevents treating the removal as disproportionate solely because strict validators and generated APIs break.",
+        "compatibilityMechanism": "old-valid/new-invalid; runtime/API/codegen: an R4 GraphDefinition resourceType has no R6 core StructureDefinition, parser dispatch target, generated class, or resource-type enum value.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained GraphDefinition as a deprecated compatibility StructureDefinition while moving active development to the incubator. That would preserve R4 validation, but it has material tradeoffs: continued maintenance of FMM 1 core content, duplicate representations, ambiguous operation targets, and lingering implementer support burden.",
+        "comparisonToExisting": "partially agree: the hard validation and runtime/codegen break is real, and a deprecated compatibility resource is a partial alternative. I would soften the standalone impact compared with the existing High assessment because FMM 1 and limited production-use evidence make the removal more proportionate."
+      }
     },
     {
       "findingId": "GraphDefinition:ELEMENT_PRESENCE_OR_IDENTITY:GraphDefinition-local-elements:2c6b44",
@@ -455,7 +470,22 @@
       "migrationGuidanceMd": "Treat migration as a graph-rule modeling exercise. Extract required R4 fields (`name`, `status`, `start`) and traversal rules (`link`, `target`, `compartment`) into the chosen replacement: an external GraphDefinition package, server configuration, or custom extension-bearing artifact. Test at least simple one-hop links, recursive target links, profile-constrained targets, and compartment rule behavior.",
       "backwardCompatibilityAnalysisMd": "A field-by-field backward-compatible alternative would have been straightforward only if `GraphDefinition` remained in core. Once the resource was removed, old element compatibility requires a wrapper, extension set, or external dependency. Such alternatives are possible but would have shifted complexity from core maintainers to validators and implementers.",
       "reviewerNotesMd": "If the API-incubator StructureDefinition is adopted, compare its elements against the R4 local element list before assuming a lossless transform.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "GraphDefinition:ELEMENT_PRESENCE_OR_IDENTITY:GraphDefinition-local-elements:2c6b44",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 local element tree, including required metadata and recursive traversal rules, has no R6 core destination because the containing resource is absent. A server or tool that used `GraphDefinition.start`, `GraphDefinition.link`, target profiles, or compartment rules must migrate that graph configuration into an external package or non-core server configuration. That is real path-level migration work, but it is derivative of the resource-level removal rather than a separate design issue. Given FMM 1/trial-use, carrying all 32 legacy local paths in base R6 is only justified if the resource itself stays in core.",
+        "keyEvidence": [
+          "R4 GraphDefinition snapshot has 32 local elements whose base path starts with GraphDefinition.",
+          "R4 requires GraphDefinition.name, GraphDefinition.status, and GraphDefinition.start at 1..1.",
+          "R4 local model includes recursive GraphDefinition.link, GraphDefinition.link.target, and GraphDefinition.link.target.link paths plus profile and compartment-rule elements.",
+          "R6 core has no GraphDefinition StructureDefinition, so there are no R6 core element paths corresponding to the R4 local tree."
+        ],
+        "fmmEffect": "FMM 1/trial-use softens the concern: implemented graph workflows still need migration, but the base standard made only a weak stability promise for this experimental element tree.",
+        "compatibilityMechanism": "runtime/API/codegen: generated R6 models, FHIRPath expressions, transforms, and server configuration keyed to GraphDefinition.start/link/target paths lose those paths; old-valid/new-invalid behavior is inherited from the resource removal.",
+        "lessBreakingAlternativeAssessment": "The only meaningful less-breaking base design is retaining the whole deprecated GraphDefinition resource with its R4 element tree. Preserving individual fields without the resource would require wrappers or extensions and would not keep R4 instances valid. Keeping the whole tree would help migration but would duplicate and maintain an experimental graph model in core.",
+        "comparisonToExisting": "partially agree: the old paths really disappear and the migration burden is real. I would rate the standalone concern lower than the existing High assessment because it is fully subsumed by the resource removal and softened by FMM 1."
+      }
     },
     {
       "findingId": "GraphDefinition:TERMINOLOGY_BINDING:GraphDefinition.link.target.compartment:5e1d0a",
@@ -634,7 +664,22 @@
       "migrationGuidanceMd": "If graph compartment semantics matter, preserve the R4 code system URIs and codes in legacy configuration or verify that the external replacement package carries equivalent codes. Include tests for each R4 rule code, especially `custom`, because it depends on an accompanying FHIRPath expression that may not be portable.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible terminology approach would have retained these small code systems or provided an explicit canonical redirect in the replacement package. That would reduce converter ambiguity without necessarily keeping the full resource in core.",
       "reviewerNotesMd": "Terminology expansions were not performed; the R4 CodeSystems are complete locally, but external replacement terminology remains unknown.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "GraphDefinition:TERMINOLOGY_BINDING:GraphDefinition.link.target.compartment:5e1d0a",
+        "judgment": "No problem",
+        "narrativeMd": "R4 compartment use and rule codes were required bindings inside GraphDefinition, and the corresponding graph-specific terminology is not present in the R6 core package. As a specific terminology finding, though, this does not create an additional base R6 validation break beyond the fact that GraphDefinition itself is no longer a core resource. The practical effect is secondary tooling or converter churn for legacy graph configurations. With no remaining R6 core element binding to these draft, resource-specific code systems, keeping them in core would mostly create orphaned or duplicate terminology ownership.",
+        "keyEvidence": [
+          "R4 GraphDefinition.link.target.compartment.use has a required binding to ValueSet/graph-compartment-use|4.0.1; its complete CodeSystem codes are condition and requirement.",
+          "R4 GraphDefinition.link.target.compartment.rule has a required binding to ValueSet/graph-compartment-rule|4.0.1; its complete CodeSystem codes are identical, matching, different, and custom.",
+          "R6 package checks found no CodeSystem or ValueSet files for graph-compartment-use or graph-compartment-rule.",
+          "R6 core also lacks the GraphDefinition compartment element that would bind to these value sets."
+        ],
+        "fmmEffect": "FMM 1/trial-use and draft, resource-specific terminology strongly soften the stability concern; without evidence of broad production dependence, removing orphaned terminology from core is acceptable.",
+        "compatibilityMechanism": "metadata/tooling: legacy validators or converters lose core-package definitions for graph-compartment codes, but no separate R6 core instance path exists where these codes would be accepted or rejected apart from the removed resource.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained the small CodeSystems/ValueSets or moved their canonicals unchanged into the incubator package, which would help legacy converters. That would not make R4 GraphDefinition instances valid in R6 core and would leave terminology in core with no core binding, so it is not a compelling less-breaking base R6 design.",
+        "comparisonToExisting": "disagree: the existing report treated this as a potential hard/medium break with a partial alternative. I see only secondary terminology/tooling churn once the resource itself is gone, so this specific finding is not an independent compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -805,5 +850,18 @@
       "Trial-use/FMM 0-1 resources moved to implementation guides",
       "GraphDefinition-dependent operations and search parameters"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/GraphDefinition.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 1
+    }
   }
 }

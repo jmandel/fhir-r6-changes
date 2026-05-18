@@ -291,7 +291,22 @@
       "validationAndCompatibilityMd": "An R4-valid canonical value does not become invalid in R6 because of this change, and an R6 canonical value remains representable as an R4 canonical string. The compatibility risk is in tooling behavior: generated classes, schema adapters, or FHIRPath/runtime type switches may route through a canonical-specific type in R6 where an R4 snapshot-driven generator used a generic string path.",
       "migrationGuidanceMd": "Multi-version tooling should key the primitive identity from the StructureDefinition URL/type (`canonical`) and treat `canonical.value` as a string-valued primitive with canonical semantics. If code generators previously consumed only the R4 snapshot extension, add a compatibility normalization so R4 `canonical.value` is not downgraded to an ordinary string when comparing or converting between versions.",
       "backwardCompatibilityAnalysisMd": "The change appears to correct old snapshot metadata rather than introduce a new datatype shape. Preserving the old `string` value in R6 would be backward-compatible for snapshot consumers but less accurate for canonical-aware tooling. A compatibility layer in generators is the least disruptive approach because it handles both the old snapshot quirk and the more precise R6 metadata.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "canonical:SERIALIZATION_OR_CODEGEN:canonical.value:b7b4e2",
+        "judgment": "No problem",
+        "narrativeMd": "The specific change is limited to generated snapshot metadata on `canonical.value`: R4's snapshot labels the primitive value's `structuredefinition-fhir-type` as `string`, while R6 labels it as `canonical`. The actual primitive shape is unchanged. Both versions keep `canonical.value` at `0..1`, represented as `xmlAttr`, with ElementDefinition type code `http://hl7.org/fhirpath/System.String` and regex `\\\\S*`; the R4 differential already identifies the same value as `canonical`. A snapshot-only code generator or reflection table could need a version-aware normalization, but R4-valid canonical values are not made invalid, R6 values remain string-valued canonical primitives, and there is no clinical/data-loss mechanism at this path.",
+        "keyEvidence": [
+          "R4 StructureDefinition/canonical: same URL/type/base as R6; `canonical.value` snapshot has fhir-type `string`, type code `http://hl7.org/fhirpath/System.String`, regex `\\\\S*`, min `0`, max `1`.",
+          "R4 StructureDefinition/canonical differential: `canonical.value` already has fhir-type `canonical` with the same string type code and regex.",
+          "R6 StructureDefinition/canonical: `canonical.value` snapshot and differential both have fhir-type `canonical`, type code `http://hl7.org/fhirpath/System.String`, regex `\\\\S*`, min `0`, max `1`.",
+          "R4 maturity map and StructureDefinition metadata checked: canonical is marked normative / normativeVersion 4.0.0."
+        ],
+        "fmmEffect": "Normative status raises the expected scrutiny for real breaks, but here the affected path has no cardinality, lexical, wire-format, or validation tightening. The stability pressure does not turn an apparent snapshot metadata correction into a compatibility problem.",
+        "compatibilityMechanism": "metadata/tooling: snapshot-driven generators or runtime metadata tables may observe `string` in R4 and `canonical` in R6, but this is not an old-valid/new-invalid instance break and not an R6-to-R4 data-loss issue.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for instance compatibility. Leaving the R6 snapshot value as `string` would reduce churn for narrow snapshot-only tooling, but it would preserve an inconsistency with the datatype identity and with both versions' differentials; the better compatibility mechanism is tooling normalization, not a different base model.",
+        "comparisonToExisting": "agree with the existing low-impact and no-alternative-needed judgment. The independent review reaches the same result because the only confirmed delta is metadata/tooling churn, not a hard instance or semantic break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -454,5 +469,17 @@
       "Primitive datatype snapshot structuredefinition-fhir-type extension corrections",
       "R6 structuredefinition-type-characteristics metadata additions"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/canonical.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

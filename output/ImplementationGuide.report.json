@@ -368,7 +368,22 @@
       "migrationGuidanceMd": "Map the output page identifier to R6 `definition.page.name`; map source locations/content to `source[x]` only when the page is not `generated`. Do not blindly rename `nameUrl` to `name`: test generated, HTML, markdown, XML, URL source, Binary reference, and nested page cases. Binary references generally need conversion to a source URL or external file convention.",
       "backwardCompatibilityAnalysisMd": "A compatibility period retaining `name[x]` as deprecated would have allowed old JSON and generated classes to continue parsing while tools adopted the clearer model. The tradeoff is ambiguity: page tooling would need precedence rules between legacy source/name and the new separated fields.",
       "reviewerNotesMd": "The supplied package did not include narrative page migration guidance. Human review is recommended for IGs whose R4 page names are not already the intended published output paths.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImplementationGuide:ELEMENT_PRESENCE_OR_IDENTITY:definition.page.name:0b7c2a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `definition.page.name[x]` was a required choice used for the page source (`nameUrl` or `nameReference` to Binary). R6 replaces that wire shape with required `name` for the published page URL and optional `source[x]` for source content/location, with no Binary reference choice and an error rule forbidding source on generated pages. This is more than a rename: old page JSON is invalid, generated models change, and migration may require deciding whether an R4 URL was a source path or the desired published output name. Because page declarations are central to using an ImplementationGuide as an authoring/publishing artifact, the low R4 FMM does not fully neutralize the concern.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ImplementationGuide.definition.page.name[x]` min=1, types url and Reference(Binary), definition `The source address for the page.`",
+          "R6 StructureDefinition: `ImplementationGuide.definition.page.name` min=1 type url, definition `The url by which the page should be known when published.`",
+          "R6 StructureDefinition: `ImplementationGuide.definition.page.source[x]` optional url/string/markdown; page invariant `generation='generated' implies source.empty()`",
+          "R6 local `ImplementationGuide-example.json` uses page `name` with no source, showing the new published-name shape"
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use softens the stability expectation, but this path is central to IG page publication and migration can be lossy or expert-dependent, so it still merits renewed design attention.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 `nameUrl`/`nameReference` properties are not the R6 `name`/`source[x]` model, and page-publisher code must change behavior rather than only rename fields.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design plausibly could have kept the R4 source choice for one transition cycle, or added a distinct published-name element while preserving old source wire names including Reference(Binary). That would preserve more R4 instances but would require conflict and precedence rules between legacy source fields and the clearer R6 name/source split.",
+        "comparisonToExisting": "partially agree: the existing report correctly treats this as high-impact and identifies a partial less-breaking alternative, but the independent review puts more emphasis on the fact that even R4 `nameUrl` is a wire-shape break, not only a semantic review issue."
+      }
     },
     {
       "findingId": "ImplementationGuide:ELEMENT_PRESENCE_OR_IDENTITY:definition.resource.example:4d8a91",
@@ -541,7 +556,22 @@
       "validationAndCompatibilityMd": "An R4 instance containing `exampleBoolean` or `exampleCanonical` is invalid against R6 because the element names no longer exist. R6 instances with multiple `profile` values or with profile metadata on a non-example resource are not cleanly representable in R4 because R4 had only a single `exampleCanonical` choice tied to example semantics.",
       "migrationGuidanceMd": "Transform `exampleBoolean=true` to `isExample=true`; transform `exampleCanonical` to `profile[0]` and decide whether `isExample=true` is appropriate. Test resources with omitted example metadata, `false`, `true`, canonical profile, and multiple profile annotations after migration.",
       "backwardCompatibilityAnalysisMd": "The split improves semantic clarity and cardinality, but a deprecated `example[x]` alias could have preserved old instances for one cycle. The alias would need conflict rules when both old and new fields appear.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ImplementationGuide:ELEMENT_PRESENCE_OR_IDENTITY:definition.resource.example:4d8a91",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 used `definition.resource.example[x]` to combine two concepts: whether the resource is an example and, optionally, the single profile it exemplifies. R6 separates those into `isExample` and repeatable `profile`. R4 instances with `exampleBoolean` or `exampleCanonical` need transformation and generated model properties change, but the R6 model is clearer and supports non-example profile assertions and multiple profiles. For this low-FMM, non-clinical metadata path, the break looks proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ImplementationGuide.definition.resource.example[x]` optional boolean/canonical, max=1",
+          "R6 StructureDefinition: `ImplementationGuide.definition.resource.isExample` optional boolean",
+          "R6 StructureDefinition: `ImplementationGuide.definition.resource.profile` optional repeatable canonical to StructureDefinition",
+          "R6 local `ImplementationGuide-example.json` uses `definition.resource.profile`"
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use lowers the burden for a localized authoring-metadata migration, especially because the forward transform is usually mechanical.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 `exampleBoolean`/`exampleCanonical` are removed R6 properties; R6-to-R4 loss can occur for multiple profiles or profile metadata on non-example resources.",
+        "lessBreakingAlternativeAssessment": "R6 could have accepted deprecated `example[x]` aliases while adding `isExample` and `profile`, but that would duplicate the same facts and require rules for conflicts such as `exampleCanonical` versus `profile[]` or whether `exampleCanonical` always implies `isExample=true`.",
+        "comparisonToExisting": "agree: the existing medium-impact, partial-alternative assessment matches the fresh path-level judgment."
+      }
     },
     {
       "findingId": "ImplementationGuide:ELEMENT_PRESENCE_OR_IDENTITY:manifest.resource.example:b19c44",
@@ -720,7 +750,22 @@
       "validationAndCompatibilityMd": "R4 `manifest.resource.exampleBoolean` and `manifest.resource.exampleCanonical` are invalid in R6. R6 multi-profile annotations are lossy when projecting to R4 because only one canonical choice was available and it implied example-of semantics.",
       "migrationGuidanceMd": "Apply the same transform used for `definition.resource`: boolean to `isExample`; canonical to `profile` and usually `isExample=true`. Consumers should update generated manifest models and test published package manifests, not only source IG resources.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified for consistency with definition resources. A less-breaking alias was possible but would increase ambiguity in generated manifests.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ImplementationGuide:ELEMENT_PRESENCE_OR_IDENTITY:manifest.resource.example:b19c44",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The manifest-side `example[x]` change mirrors the definition-side split: R4 manifest entries used `exampleBoolean` or `exampleCanonical`, while R6 uses `isExample` and repeatable `profile`. Package manifest consumers and generated classes must update, but the migration is narrow and aligned with the clearer R6 model used for `definition.resource`.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ImplementationGuide.manifest.resource.example[x]` optional boolean/canonical, max=1",
+          "R6 StructureDefinition: `ImplementationGuide.manifest.resource.isExample` optional boolean",
+          "R6 StructureDefinition: `ImplementationGuide.manifest.resource.profile` optional repeatable canonical",
+          "R6 local `ImplementationGuide-fhir.json` manifest resources include `isExample`; `ImplementationGuide-example.json` manifest resources include `profile`"
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use softens the concern; this affects IG/package metadata rather than patient-facing data, and the path-level transform is generally straightforward.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: old manifest `exampleBoolean`/`exampleCanonical` properties are invalid in R6; R6 multi-profile manifest annotations are lossy in R4.",
+        "lessBreakingAlternativeAssessment": "A deprecated legacy alias could preserve R4 manifests for a cycle, but it would create duplicate manifest representations and conflict handling between old `example[x]` and new `isExample`/`profile`.",
+        "comparisonToExisting": "agree: the current report's medium impact and partial less-breaking alternative are consistent with this review."
+      }
     },
     {
       "findingId": "ImplementationGuide:TYPE_DOMAIN:definition.parameter.code:93e2af",
@@ -894,7 +939,22 @@
       "validationAndCompatibilityMd": "R4 `\"code\":\"apply\"` is invalid against R6 because a Coding object is required. R6 Codings using the standard system can be projected to R4 by taking `Coding.code`, but non-standard systems, versions, display text, and extensible out-of-set codes are lossy or invalid in R4.",
       "migrationGuidanceMd": "Wrap known R4 code strings as `{system:\"http://hl7.org/fhir/guide-parameter-code\", code:\"...\"}`. For unknown local codes, choose an explicit tool-specific system and document whether R4 down-conversion should reject, extension-map, or collapse to a string.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible option would have kept the primitive field and added optional qualifiers. R6 instead chose the standard Coding datatype, which is cleaner but requires all serializers, validators, and publisher parameter processors to change.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ImplementationGuide:TYPE_DOMAIN:definition.parameter.code:93e2af",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`definition.parameter.code` keeps the same path name but changes representation from a primitive `code` string to a `Coding` object. That is a direct parser, serializer, and generated-SDK break for IG build parameters. Still, the R6 goal is coherent: tool-specific parameters benefit from a system-qualified Coding, and the binding is relaxed from required to extensible while the known HL7 parameter codes remain unchanged.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ImplementationGuide.definition.parameter.code` type code, required binding to `ValueSet/guide-parameter-code|4.0.1`",
+          "R6 StructureDefinition: same path type Coding, extensible binding to `ValueSet/guide-parameter-code`",
+          "Local CodeSystem comparison: guide-parameter-code has 10 concepts in both R4 and R6 with no added or removed codes",
+          "R6 local `ImplementationGuide-example.json` encodes parameter code as `{system, code}`"
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use softens the stability concern. The path is tooling-relevant, but not safety-critical, and the forward mapping for known codes is clear.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: R4 JSON has `code` as a string, while R6 requires a Coding object at the same property.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have kept primitive `code` and added optional system/version/display fields or a companion Coding, but that would create a bespoke duplicate-Coding pattern and reconciliation rules. Using the standard Coding datatype is cleaner despite the migration cost.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard representation break and a partial alternative, but the fresh judgment treats the high impact as somewhat softened by low FMM and by the unchanged code list."
+      }
     },
     {
       "findingId": "ImplementationGuide:TERMINOLOGY_BINDING:global.type:671ad0",
@@ -1108,7 +1168,22 @@
       "migrationGuidanceMd": "Inventory every `global.type`; compare against the R6 resource-types value set; map renamed/consolidated resources explicitly, remove declarations for retired resources, or preserve intent with an extension/profile note when no R6 resource type exists. Test validators with each migrated global profile.",
       "backwardCompatibilityAnalysisMd": "The R6 binding is justified by model consistency. A backward-compatible value set with retired R4 concepts would make conversion easier but could mislead R6 processors into accepting globals for non-R6 resources.",
       "reviewerNotesMd": "No official cross-version ConceptMap for resource-type migration was supplied; mappings such as RequestGroup to RequestOrchestration or MedicinalProduct* consolidation require domain review.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImplementationGuide:TERMINOLOGY_BINDING:global.type:671ad0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`global.type` remains a required code, but its required binding tracks the resource types available in the target FHIR release. R4 globals for resource codes removed, renamed, or consolidated by R6 can therefore fail R6 validation. That is a real potential break, but it is tightly coupled to the underlying resource model evolution; allowing obsolete resource codes in the R6 base value set would make `global.type` less precise for R6 processors.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ImplementationGuide.global.type` required binding to `ValueSet/resource-types|4.0.1`",
+          "R6 StructureDefinition: `ImplementationGuide.global.type` required binding to `ValueSet/resource-types|6.0.0-ballot4`",
+          "Local terminology comparison: 41 R4 resource-type codes absent from the R6 value set and 20 R6 codes absent from R4",
+          "Examples of R4-only codes checked locally include Media, MedicationKnowledge, GraphDefinition, TestScript, RequestGroup, DocumentManifest, and DeviceUseStatement"
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use softens the concern, and the element is optional at the IG level; nevertheless, affected globals can change validation assumptions for all resources of a type in an IG.",
+        "compatibilityMechanism": "old-valid/new-invalid potential: only R4 IGs using `global.type` values no longer present in the R6 resource type set fail; R6-to-R4 loss exists for new R6 resource codes.",
+        "lessBreakingAlternativeAssessment": "R6 could include retired R4 resource codes as deprecated legacy concepts, but that would allow globals for resource types that no longer exist in R6 and push complex mapping obligations onto validators and publishers. A ConceptMap is useful migration support but is not a less-breaking base design by itself.",
+        "comparisonToExisting": "partially agree: the existing potential-break finding is sound, but the fresh review treats the impact as proportionate to release-specific resource evolution rather than a standalone high-concern IG design issue."
+      }
     },
     {
       "findingId": "ImplementationGuide:TERMINOLOGY_BINDING:fhirVersion:ff2a10",
@@ -1256,7 +1331,22 @@
       "migrationGuidanceMd": "For R4→R6, preserve existing fhirVersion values. For R6→R4, decide whether to reject newer target versions, map to a nearest R4-supported value only with explicit semantics, or carry the true value in an extension while accepting that strict R4 validation will not see it as native.",
       "backwardCompatibilityAnalysisMd": "There is no realistic backward-compatible way for R4 to natively support future R6 codes. Cross-version extensions or converter policy are the appropriate compatibility mechanism.",
       "reviewerNotesMd": "This finding is intentionally labeled R6-to-R4; it should not be counted as an R4→R6 hard break.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImplementationGuide:TERMINOLOGY_BINDING:fhirVersion:ff2a10",
+        "judgment": "No problem",
+        "narrativeMd": "The FHIR-version binding changes because R6 knows later FHIR versions. The local CodeSystem comparison found no R4 FHIR-version codes removed, so this is not an R4-to-R6 instance break. R6 instances that declare R5/R6/ballot target versions are naturally not representable as strict R4, but that reverse-direction issue is expected and does not call for R6 base-design changes.",
+        "keyEvidence": [
+          "R4 StructureDefinition: root and per-resource `fhirVersion` required bindings use `ValueSet/FHIR-version|4.0.1`",
+          "R6 StructureDefinition: corresponding bindings use `ValueSet/FHIR-version|6.0.0-ballot4`",
+          "Local CodeSystem comparison: 22 R4 FHIR-version codes, 63 R6 codes, zero R4 codes removed and 41 codes added",
+          "Added checked examples include `5.0.0`, `6.0.0`, and `6.0.0-ballot4`"
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use reinforces that a reverse-only future-version representability issue should not be escalated as an R4-to-R6 concern.",
+        "compatibilityMechanism": "R6-to-R4 loss only: newer R6 FHIR-version codes are not valid R4 codes; no old-valid/new-invalid R4-to-R6 pattern was found.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6 compatibility because R4 codes remain accepted. R4 could not natively anticipate future release codes; down-conversion requires policy or extensions outside the R6 base model.",
+        "comparisonToExisting": "partially agree: the existing report correctly says this is not an R4-to-R6 hard break, but the fresh judgment downgrades the action concern from medium/high reverse risk to no problem for this review scope."
+      }
     },
     {
       "findingId": "ImplementationGuide:CARDINALITY:definition.resource:3e5d62",
@@ -1370,7 +1460,21 @@
       "validationAndCompatibilityMd": "No R4-valid instance becomes invalid because reducing a minimum cardinality weakens validation. A valid R6 instance with no `definition.resource` cannot validate as R4 if `definition` is otherwise present.",
       "migrationGuidanceMd": "R4→R6 requires no action. R6→R4 converters must either synthesize a valid resource entry, omit/reshape the definition if allowed by local policy, or reject resource-less definitions as not representable.",
       "backwardCompatibilityAnalysisMd": "The R6 relaxation could have been confined to a profile, but making it base behavior is simpler for implementers who need resource-less definitions. The compatibility cost is limited to down-conversion.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ImplementationGuide:CARDINALITY:definition.resource:3e5d62",
+        "judgment": "No problem",
+        "narrativeMd": "The minimum cardinality of `definition.resource` decreases from 1 to 0. That widens the R6 model and cannot invalidate an R4 instance that already satisfied the R4 minimum. It only creates a possible R6-to-R4 down-conversion edge case for resource-less R6 definitions.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ImplementationGuide.definition.resource` min=1 max=*",
+          "R6 StructureDefinition: `ImplementationGuide.definition.resource` min=0 max=*",
+          "Element type and definition remain otherwise aligned as the resource list within an IG definition"
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use further reduces concern, but the main point is that the change is forward-compatible for R4 instances regardless of maturity.",
+        "compatibilityMechanism": "R6-to-R4 loss only: an R6 definition with no resource entries may not validate as R4; no old-valid/new-invalid R4-to-R6 mechanism exists.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 compatibility. Keeping the R4 minimum would reduce reverse-conversion edge cases but would not preserve any additional R4-valid instances in R6.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as no forward hard break with only low reverse-direction concern."
+      }
     },
     {
       "findingId": "ImplementationGuide:SEMANTIC_OR_CONFORMANCE_TEXT:metadata-semantics:aa04c7",
@@ -1503,7 +1607,22 @@
       "migrationGuidanceMd": "Review metadata consumers rather than only serializers. For jurisdiction, decide whether R4 intended-use values should move to `useContext` while `jurisdiction` records the maintaining authority. For date, preserve publication dates in extensions or release metadata if R6 `date` is used for significant-change tracking. Populate `copyrightLabel` when display needs holder/year text separate from the legal notice.",
       "backwardCompatibilityAnalysisMd": "Separate new fields for authority jurisdiction and significant-change date would have been less semantically disruptive, but R6 chose to refine existing canonical metadata. That preserves compactness but requires implementers to audit business logic.",
       "reviewerNotesMd": "The R6 package did not include the external `http://terminology.hl7.org/ValueSet/jurisdiction` ValueSet, and no narrative canonical-resource guidance page was available locally.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ImplementationGuide:SEMANTIC_OR_CONFORMANCE_TEXT:metadata-semantics:aa04c7",
+        "judgment": "No problem",
+        "narrativeMd": "The cited metadata fields mostly keep their wire shapes while R6 refines canonical-resource metadata semantics: `date` is last significant change rather than simply publication, `jurisdiction` is the maintaining authority's jurisdiction with intended-use jurisdiction encouraged in `useContext`, `publisher` is explicitly release/maintenance responsibility, `experimental` is more strongly lifecycle-oriented, and `copyrightLabel` is additive. These are real metadata interpretation changes, especially for registries, but they do not create an instance validation break and are largely governance/documentation clarifications.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `jurisdiction` definition is intended use region; R6 definition is authority/maintainer operating region and includes a useContext migration note",
+          "R4 StructureDefinition: `date` definition refers to when the IG was published; R6 refers to when it was last significantly changed",
+          "R4/R6 StructureDefinitions: `publisher`, `experimental`, and `copyright` keep their primitive/markdown shapes while prose changes",
+          "R6 StructureDefinition: optional `copyrightLabel` added as a short display string"
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use materially softens stability concern. Without evidence of safety, regulatory, billing, or production harm for these metadata interpretations, the finding should not be escalated.",
+        "compatibilityMechanism": "semantic/documentation plus metadata/tooling: existing JSON generally remains structurally valid, but catalog, governance, and display logic may need to reinterpret fields.",
+        "lessBreakingAlternativeAssessment": "A less semantically disruptive design could have preserved the R4 meanings and added separate authority-jurisdiction or last-significant-change fields, but that would expand metadata surface and diverge from the broader canonical-resource cleanup. Because this is metadata-only under low FMM, the additive alternative is not enough to make the change a revisit item.",
+        "comparisonToExisting": "disagree: the existing report reasonably noticed the semantic drift and possible additive alternative, but its medium-impact concern overstates this path-level issue under the fresh low-FMM rubric."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1679,5 +1798,19 @@
       "R4 example[x] to R6 isExample/profile split pattern",
       "Resource-type terminology changes in release-specific bindings"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ImplementationGuide.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 4,
+      "No problem": 3
+    }
   }
 }

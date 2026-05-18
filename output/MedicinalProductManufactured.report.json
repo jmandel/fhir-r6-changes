@@ -301,7 +301,22 @@
       "migrationGuidanceMd": "Implement an explicit resource-level transform from R4 `MedicinalProductManufactured` to R6 `ManufacturedItemDefinition`. Update references, profile URLs, search/indexing code, package allow-lists, serialization tests, and generated model names. Do not rely on accepting the old resource type in R6 unless a deliberate compatibility layer is added.",
       "backwardCompatibilityAnalysisMd": "The change may be justified by a clearer definitional model, but it could have been made less disruptive by keeping a deprecated alias or publishing a normative ConceptMap. Without such compatibility machinery, all consumers must coordinate on the new resource identity.",
       "reviewerNotesMd": "The successor identification is strong but inferred from local package evidence; an official migration note would be useful.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductManufactured:ARTIFACT_IDENTITY:root:5f0c1a",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 does not carry forward `MedicinalProductManufactured` as a resource identity; local evidence points to `ManufacturedItemDefinition` as the successor. That is a top-level wire/API break, not just an element rename: `resourceType`, canonical StructureDefinition URLs, generated classes, validation allow-lists, and references all need coordinated migration. R4 FMM 0 makes the rename more tolerable than it would be for mature content, but the medicinal-product/IDMP domain is regulatory and implementation-guide relevant, and simply retaining the old resource identity while updating the model would have preserved the largest compatibility surface.",
+        "keyEvidence": [
+          "R4 StructureDefinition id/type/url are `MedicinalProductManufactured` and status metadata is draft, trial-use, FMM 0.",
+          "No R6 `StructureDefinition-MedicinalProductManufactured.json` exists; R6 `StructureDefinition-ManufacturedItemDefinition.json` defines the same manufactured-item concept.",
+          "R6 `CodeSystem-fhir-old-types` lists `MedicinalProductManufactured` as an old resource name no longer used.",
+          "Targeted relevance check: HL7 Global Core IDMP build at https://build.fhir.org/ig/scc88/idmp-ig/ describes regulator/manufacturer use; CH EPL IDMP overview at https://build.fhir.org/ig/bag-epl/bag-epl-fhir/fhir-idmp.html describes regulatory reporting/adoption use cases. Neither proves broad production deployment of this exact R4 FMM 0 resource."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use substantially softens the stability expectation, so the hard break alone is not enough. The judgment remains Revisit because this is a whole-resource identity break in a regulatory product-data domain and a less-breaking base identity choice appears feasible.",
+        "compatibilityMechanism": "runtime/API/codegen; old-valid/new-invalid also applies because an R4 `resourceType: MedicinalProductManufactured` instance is not an R6 resource, and generated models/routes keyed by the old name fail without a transform.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have kept `MedicinalProductManufactured` as the resourceType/canonical and used title, aliases, definitions, and element changes to express the clearer manufactured-item-definition concept. The tradeoff is carrying a less tidy legacy name in the R6 resource inventory; introducing both names as separate resources would be worse because it would duplicate the same business concept.",
+        "comparisonToExisting": "partially agree with the existing Critical impact and Yes alternative judgment: the technical break and possible compatibility design are real, but FMM 0 means the production blast radius should be stated with more caution than the prior report."
+      }
     },
     {
       "findingId": "MedicinalProductManufactured:ELEMENT_PRESENCE_OR_IDENTITY:ManufacturedItemDefinition.status:9c42e7",
@@ -447,7 +462,21 @@
       "migrationGuidanceMd": "Define a migration policy for status assignment. Prefer deriving `active`, `draft`, or `retired` from authoritative regulatory/product lifecycle data; use `unknown` only when the source truly cannot determine the state. Add tests for omitted status, invalid status codes, and each valid lifecycle state.",
       "backwardCompatibilityAnalysisMd": "The status requirement is understandable for a mature definitional resource, but it is disruptive because R4 did not collect this value. A profile-level requirement or optional base element would have allowed old data to remain valid while encouraging richer lifecycle management.",
       "reviewerNotesMd": "Human review is needed to decide status defaults for historical data; automatically setting all records to `active` would be unsafe.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductManufactured:ELEMENT_PRESENCE_OR_IDENTITY:ManufacturedItemDefinition.status:9c42e7",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "After resource-level migration, R4-derived records need a new `ManufacturedItemDefinition.status` value before they validate in R6. That can require a real lifecycle decision and the modifier flag means consumers must not ignore the value. Even so, requiring lifecycle status on a definitional medicinal-product artifact is a coherent R6 goal, and the required value set includes `unknown` for cases where migration cannot determine draft/active/retired.",
+        "keyEvidence": [
+          "R4 `MedicinalProductManufactured` has no local `status` element.",
+          "R6 `ManufacturedItemDefinition.status` is 1..1 `code`, `isModifier=true`, summary=true, and required-bound to `publication-status`.",
+          "The R6 status definition says it tracks lifecycle and the comment says it supports filtering items appropriate for use."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens objections to adding a required lifecycle field. The R6 successor is more mature and status is central to definition-resource lifecycle management, so the migration burden looks proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid; an otherwise migrated R4 item without status is R6-invalid, with some runtime behavior impact because status is a modifier.",
+        "lessBreakingAlternativeAssessment": "Making `status` optional or profile-required would be less breaking for migrated R4 data, but it would remove the base guarantee that all R6 manufactured item definitions can be lifecycle-filtered. That tradeoff is material enough that the less-breaking alternative is only partial.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment, with the added FMM caveat that this is acceptable for FMM 0 content when the lifecycle goal is clear."
+      }
     },
     {
       "findingId": "MedicinalProductManufactured:ELEMENT_PRESENCE_OR_IDENTITY:MedicinalProductManufactured.quantity:d6e2a4",
@@ -585,7 +614,22 @@
       "migrationGuidanceMd": "Inventory how source systems used R4 `quantity`. If it represented a package count or presentation count, preserve it through a documented extension, profile-specific mapping, or a related packaging structure rather than dropping it. Only map to `component.amount` or `component.constituent.amount` when domain review confirms the semantics are equivalent. Add round-trip tests for common counts, missing source quantities, and multi-component items.",
       "backwardCompatibilityAnalysisMd": "The R6 model may have intentionally moved quantity semantics into richer structures, but removing a mandatory field without a direct replacement is highly disruptive. A deprecated optional element or official extension would have preserved backward compatibility while allowing newer modeling patterns.",
       "reviewerNotesMd": "This is the highest element-level semantic uncertainty. Official narrative guidance would materially improve confidence.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductManufactured:ELEMENT_PRESENCE_OR_IDENTITY:MedicinalProductManufactured.quantity:d6e2a4",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 required `quantity` on every valid `MedicinalProductManufactured`, but R6 has no root `ManufacturedItemDefinition.quantity`. Dropping the value risks losing the manufactured-item count, while blindly mapping it to R6 component or constituent amounts is not semantically safe. Because the field was mandatory and product quantity/count can affect packaging, labeling, and regulatory traceability, this deserves renewed design or migration-guidance attention even with low R4 maturity.",
+        "keyEvidence": [
+          "R4 `MedicinalProductManufactured.quantity` is 1..1 `Quantity` with definition `The quantity or \"count number\" of the manufactured item.`",
+          "R6 selected element list has no `ManufacturedItemDefinition.quantity` root element.",
+          "R6 has `component.amount` and `component.constituent.amount`, but their definitions are scoped to component or constituent quantities, not the old root item count.",
+          "The quick web relevance check found IDMP/FHIR regulatory-reporting relevance in https://build.fhir.org/ig/scc88/idmp-ig/ and https://build.fhir.org/ig/bag-epl/bag-epl-fhir/fhir-idmp.html, but not specific proof of broad production use of the exact R4 resource."
+        ],
+        "fmmEffect": "FMM 0/trial-use reduces the stability concern, but it does not erase the risk from removing a required field whose value may be regulatory or packaging-significant and whose migration is lossy or expert-dependent.",
+        "compatibilityMechanism": "old-valid/new-invalid; retaining `quantity` under the R6 successor creates an unknown element, while dropping it creates possible R6-to-R4 loss because R4 cannot be reconstructed without inventing a mandatory value.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking R6 base design would keep a deprecated optional root `quantity` with clear rules for how it relates to packaging, component, or constituent amounts. The cost is semantic overlap and precedence rules, but that seems more modest than losing a mandatory R4 datum without a direct base replacement.",
+        "comparisonToExisting": "agree with the existing High impact and Yes alternative judgment; the fresh review adds that low FMM tempers prevalence assumptions but not the core concern."
+      }
     },
     {
       "findingId": "MedicinalProductManufactured:TYPE_DOMAIN:MedicinalProductManufactured.ingredient:8a19be",
@@ -773,7 +817,22 @@
       "migrationGuidanceMd": "Do not mechanically copy the old `ingredient` array. For each R4 ingredient reference, decide whether to create an R6 `Ingredient` resource with `Ingredient.for` pointing to the manufactured item, emit a coded `ManufacturedItemDefinition.ingredient`, or use component constituent modeling. Maintain reference identity and strength/substance details from the old ingredient resource in the separate Ingredient migration. Test products with active ingredients, excipients, multiple ingredients, and missing referenced resources.",
       "backwardCompatibilityAnalysisMd": "The R6 pattern is likely justified by a more expressive ingredient model, but replacing a reference field with a CodeableConcept is a hard compatibility break. A root `CodeableReference(Ingredient)` could have supported both codes and references with less disruption.",
       "reviewerNotesMd": "Coordinate this finding with the separate `MedicinalProductIngredient`/`Ingredient` analysis; that resource owns many details needed for safe migration.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductManufactured:TYPE_DOMAIN:MedicinalProductManufactured.ingredient:8a19be",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The same-named `ingredient` path changes from a list of references to a coded summary. That is a real validation and model break, and ingredient migration is safety- and regulatory-relevant. The R6 design, however, appears to separate lightweight coded ingredient summaries from detailed `Ingredient` resources that link back to the manufactured item, so preserving the old outward reference list in the base resource would create duplicate or conflicting composition representations.",
+        "keyEvidence": [
+          "R4 `MedicinalProductManufactured.ingredient` is 0..* `Reference` targeting `MedicinalProductIngredient`.",
+          "R6 `ManufacturedItemDefinition.ingredient` is 0..* `CodeableConcept` with definition saying it is only needed if ingredients are not specified by incoming references from `Ingredient`.",
+          "R6 `Ingredient.for` can reference `ManufacturedItemDefinition`; `ManufacturedItemDefinition.component.constituent.hasIngredient` is `CodeableReference(Ingredient)`.",
+          "IDMP FHIR materials checked at https://build.fhir.org/ig/scc88/idmp-ig/ and https://build.fhir.org/ig/bag-epl/bag-epl-fhir/fhir-idmp.html describe product composition and ingredients as core regulatory/product-safety content, but the R4 source artifact remains FMM 0."
+        ],
+        "fmmEffect": "Low R4 maturity softens the compatibility burden and supports a more substantial model redesign. Ingredient content is central enough that the break matters, but the R6 graph model gives a plausible reason for the disruption.",
+        "compatibilityMechanism": "old-valid/new-invalid; an R4 `ingredient.reference` object is not a valid R6 `CodeableConcept`, and R6 coded or inbound ingredient relationships are not mechanically R4-representable.",
+        "lessBreakingAlternativeAssessment": "A root `CodeableReference(Ingredient)` or deprecated root reference would reduce disruption for reference-shaped data, but only partially: the old target resource is also replaced, and supporting root references, root codes, inbound `Ingredient.for`, and component constituents would need consistency rules for clinically important composition facts.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment; the break is serious, but the less-breaking alternatives have enough duplication and graph-consistency cost that the R6 change is probably proportionate."
+      }
     },
     {
       "findingId": "MedicinalProductManufactured:SLICING_AND_CONTENT_MODEL:physicalCharacteristics-property:42b8dd",
@@ -982,7 +1041,22 @@
       "migrationGuidanceMd": "Create a mapping table from each R4 `ProdCharacteristic` child and each `otherCharacteristics` code to an R6 `property.type` code and value type. Preserve unmapped values in extensions or flag them for manual review. Test dimensions, repeated colors/imprints, images, scoring, and arbitrary other characteristics.",
       "backwardCompatibilityAnalysisMd": "The generic property model is flexible and likely easier to extend, but the change could have been less disruptive with deprecated named aliases or official property-type mappings. Without them, implementers must create local conventions that may not interoperate.",
       "reviewerNotesMd": "Terminology expansion and narrative examples would improve confidence in the exact property-type coding strategy.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductManufactured:SLICING_AND_CONTENT_MODEL:physicalCharacteristics-property:42b8dd",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 named characteristic fields and `otherCharacteristics` cannot be copied into R6 because the successor uses generic `property` entries with a mandatory type code and choice-valued value. This breaks generated accessors and requires a mapping table for dimensions, color, imprint, image, scoring, and miscellaneous characteristics. Still, for FMM 0 content the move from a fixed small set of named fields to a generic property model is a reasonable maturation path, and retaining both forms would duplicate the same facts.",
+        "keyEvidence": [
+          "R4 has `physicalCharacteristics` 0..1 `ProdCharacteristic` and `otherCharacteristics` 0..* `CodeableConcept`.",
+          "R4 `ProdCharacteristic` contains named fields including height, width, depth, weight, nominalVolume, externalDiameter, shape, color, imprint, image, and scoring.",
+          "R6 `ManufacturedItemDefinition.property` is 0..* with `property.type` 1..1 `CodeableConcept` and `property.value[x]` choices including CodeableConcept, Quantity, Range, date, boolean, markdown, Attachment, and Reference(Binary).",
+          "No official local ConceptMap/property-type mapping was found for the specific R4 named fields."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the concern about changing the content model. The absence of official mappings is a migration risk, but not enough by itself to make a flexible property model disproportionate for low-maturity content.",
+        "compatibilityMechanism": "old-valid/new-invalid; old `physicalCharacteristics` or `otherCharacteristics` element names are invalid in R6, plus runtime/API/codegen break because typed named fields become repeated typed properties.",
+        "lessBreakingAlternativeAssessment": "R6 could retain deprecated named fields or define compatibility slices, but that would allow color, imprint, dimension, image, or scoring facts to appear in both old slots and generic properties. The duplicate-representation and precedence burden makes the alternative only partial.",
+        "comparisonToExisting": "agree with the existing Medium impact and Partial alternative judgment, while emphasizing that low FMM makes this remodel more acceptable if implementers get adequate mapping guidance."
+      }
     },
     {
       "findingId": "MedicinalProductManufactured:ELEMENT_PRESENCE_OR_IDENTITY:ManufacturedItemDefinition.optional-additions:73fa91",
@@ -1120,7 +1194,21 @@
       "migrationGuidanceMd": "For R6-to-R4 paths, decide which new fields are essential and preserve them through extensions, sidecar records, related resources, or implementation-guide-specific profiles. For R4-to-R6 paths, consider whether identifiers, names, marketing status, or components can be populated from source systems rather than left empty.",
       "backwardCompatibilityAnalysisMd": "Optional additions are a normal, mostly backward-compatible way to evolve a model. The main avoidable gap is lack of local down-conversion guidance; official cross-version extensions would reduce information loss for mixed-version ecosystems.",
       "reviewerNotesMd": "This finding is primarily an R6-to-R4 representability issue and should be triaged with actual exchange-direction requirements.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductManufactured:ELEMENT_PRESENCE_OR_IDENTITY:ManufacturedItemDefinition.optional-additions:73fa91",
+        "judgment": "No problem",
+        "narrativeMd": "The added R6 `identifier`, `name`, `marketingStatus`, and `component` elements are optional. They may matter for down-conversion or round trips, but they do not make an R4-derived instance invalid and they are ordinary model enrichment in the forward R4-to-R6 direction.",
+        "keyEvidence": [
+          "R6 `ManufacturedItemDefinition.identifier` is 0..* `Identifier`; `name` is 0..1 `string`; `marketingStatus` is 0..* `MarketingStatus`; `component` is 0..* `BackboneElement`.",
+          "R4 `MedicinalProductManufactured` has no local identifier, name, marketingStatus, or component hierarchy.",
+          "All affected additions are optional, so no old-valid/new-invalid R4-to-R6 mechanism is present for this finding."
+        ],
+        "fmmEffect": "FMM 0/trial-use does not need to soften this finding because optional additions are already forward-compatible. Low maturity further reduces concern about reverse-only round-trip gaps.",
+        "compatibilityMechanism": "R6-to-R4 loss; R6 instances that use the new optional fields cannot be fully represented in the R4 resource, but there is no R4-to-R6 validation or runtime break from the additions themselves.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for forward compatibility. Cross-version extensions or sidecar mappings could mitigate reverse conversion loss, but those are migration mechanisms rather than a better base design for optional additions.",
+        "comparisonToExisting": "partially agree with the existing reverse-conversion concern, but disagree with treating this as a Medium R4-to-R6 compatibility problem; as an optional additive change it is No problem for the requested direction."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1293,5 +1381,19 @@
       "R4 named characteristic datatypes replaced by generic property/value[x] backbones",
       "New mandatory modifier status on definitional resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicinalProductManufactured.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 3,
+      "No problem": 1
+    }
   }
 }

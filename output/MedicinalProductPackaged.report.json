@@ -237,7 +237,22 @@
       "validationAndCompatibilityMd": "R4-valid `MedicinalProductPackaged` JSON is not R6-valid. R6 `PackagedProductDefinition` JSON is not R4-valid. This is a hard validation and runtime dispatch break, not just a semantic difference.",
       "migrationGuidanceMd": "Convert resource type and canonical references first, then apply element-level transforms. Update generated models, endpoints, profile URLs, search names, and fixtures.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition would have required keeping the old resource/element shape or publishing a normative conversion map. That would lower migration cost but preserve duplicated or ambiguous representations during the transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPackaged:ARTIFACT_IDENTITY:root:8b4d2a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 does not carry forward the `MedicinalProductPackaged` resource identity; the plausible successor is `PackagedProductDefinition`. That is a real root-level break for parsers, REST type routes, generated classes, profile URLs, and FHIRPath roots. On a fresh review, the break looks proportionate because the R4 resource was FMM 0 trial-use and R6 broadened the concept from a medicinal-product package to a more general packaged medically related item in the Definition resource family. I found regulatory relevance for IDMP packaging, but not quick evidence that the exact R4 resource identity was broadly deployed enough to overcome the low-FMM stability expectation.",
+        "keyEvidence": [
+          "R6 package index and filesystem: `StructureDefinition-MedicinalProductPackaged.json` is absent; `StructureDefinition-PackagedProductDefinition.json` is present.",
+          "R4 StructureDefinition: id/type/url are `MedicinalProductPackaged`; R6 successor: id/type/url are `PackagedProductDefinition`.",
+          "R4 maturity map and StructureDefinition extensions: MedicinalProductPackaged is trial-use, FMM 0, BRR.",
+          "HL7 Global Core IDMP IG continuous build checked: IDMP work covers packaging layers and supply-chain integrity (https://build.fhir.org/ig/scc88/idmp-ig/)."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use substantially softens the stability claim for the old resource identity. The IDMP domain is important, but I did not find quick evidence that the R4 wire-level resource name itself has broad production reliance.",
+        "compatibilityMechanism": "runtime/API/codegen: changing `resourceType` and canonical URL means old instances are new-invalid and servers/SDKs/profiles rooted at the old resource need explicit conversion.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have retained `MedicinalProductPackaged` as the R6 resource name or as a deprecated transition resource, but that would preserve a medicinal-only legacy name for a broader packaged-product model and risks duplicate resource identities for the same concept. This is a plausible alternative, not a clearly low-cost one.",
+        "comparisonToExisting": "partially agree with the existing high-impact mechanism, but disagree that the less-breaking alternative is simply `Yes`; the FMM 0 status and duplicate-identity tradeoff make the R6 break probably acceptable."
+      }
     },
     {
       "findingId": "MedicinalProductPackaged:REFERENCE_TARGET:subject-packageFor:63f1ab",
@@ -349,7 +364,21 @@
       "validationAndCompatibilityMd": "Old `subject` content is invalid on the R6 successor. Reverse conversion requires changing `packageFor` back to `subject` and converting referenced resources back to `MedicinalProduct`.",
       "migrationGuidanceMd": "Map `subject[]` to `packageFor[]` and rewrite reference resource types only when the referenced resources have also been migrated.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition would have required keeping the old resource/element shape or publishing a normative conversion map. That would lower migration cost but preserve duplicated or ambiguous representations during the transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPackaged:REFERENCE_TARGET:subject-packageFor:63f1ab",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`subject` survives in meaning but not in wire shape: R4 used `MedicinalProductPackaged.subject` as a repeatable reference to `MedicinalProduct`, while R6 uses `PackagedProductDefinition.packageFor` pointing to `MedicinalProductDefinition`. Old instances and client code need a path rename and companion product-resource conversion. The change is breaking, but it tracks the broader product-definition rename and gives the relationship a more explicit name, so for FMM 0 content it does not look disproportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition element `MedicinalProductPackaged.subject`: 0..*, Reference(MedicinalProduct), summary=true.",
+          "R6 StructureDefinition element `PackagedProductDefinition.packageFor`: 0..*, Reference(MedicinalProductDefinition), definition says it is the product this package model relates to.",
+          "R4 maturity map and StructureDefinition extensions: MedicinalProductPackaged is trial-use, FMM 0."
+        ],
+        "fmmEffect": "The old path is from FMM 0 trial-use content, so a same-meaning rename does not carry the same stability burden as it would on mature or normative content. Regulatory domain relevance keeps it a real migration concern rather than `No problem`.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old `subject` element name and `MedicinalProduct` target are not valid at the R6 successor path without a rename and referenced-resource migration.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `subject` and retargeted it, but that would retain a generic name for a relationship R6 makes more explicit; allowing both `subject` and `packageFor` would duplicate the same relationship and require consistency rules.",
+        "comparisonToExisting": "partially agree with the hard-break assessment, but the existing `Yes` alternative judgment overstates how cheap the old name would be once the product resource family also changed."
+      }
     },
     {
       "findingId": "MedicinalProductPackaged:ELEMENT_PRESENCE_OR_IDENTITY:legalStatusOfSupply:1e7c90",
@@ -462,7 +491,21 @@
       "validationAndCompatibilityMd": "R4 instances with `legalStatusOfSupply.coding` directly under the resource are R6-invalid. R6 multiple jurisdiction entries are not cleanly R4-representable.",
       "migrationGuidanceMd": "Wrap an R4 value as `legalStatusOfSupply[0].code`; populate jurisdiction only if known. Use extensions or manual review for multiple R6 jurisdictions when mapping back.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition would have required keeping the old resource/element shape or publishing a normative conversion map. That would lower migration cost but preserve duplicated or ambiguous representations during the transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPackaged:ELEMENT_PRESENCE_OR_IDENTITY:legalStatusOfSupply:1e7c90",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The legal supply status changes from one CodeableConcept to a repeatable backbone with separate `code` and `jurisdiction`. That invalidates R4-shaped JSON and can make R6-to-R4 conversion lossy when more than one jurisdiction is present. Still, jurisdiction-specific legal status is a strong regulatory modeling goal, and the old scalar could not represent that cleanly. Given FMM 0 trial-use status, the migration burden appears proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition element `MedicinalProductPackaged.legalStatusOfSupply`: 0..1 CodeableConcept.",
+          "R6 StructureDefinition element `PackagedProductDefinition.legalStatusOfSupply`: 0..*, BackboneElement with `code` 0..1 CodeableConcept and `jurisdiction` 0..1 CodeableConcept.",
+          "EMA ISO IDMP standards overview checked: ISO IDMP covers medicinal product lifecycle, marketing authorization, packaging, and manufacturing (https://www.ema.europa.eu/en/human-regulatory-overview/research-development/data-medicines-iso-idmp-standards-overview)."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the compatibility objection, but legal supply status is regulatory content, so the break remains meaningful and requires migration care.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 CodeableConcept at the old path is not the R6 backbone-array shape; R6 jurisdiction-specific repeats are also lossy back to the old scalar.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would keep the old scalar as a default or unknown-jurisdiction status and add a new jurisdiction-scoped repeat. That preserves old data, but creates two places for legal status and ambiguous precedence when both are present.",
+        "comparisonToExisting": "agree with the existing view that this is a hard shape break with only a partial less-breaking alternative; the fresh judgment is that the break is probably acceptable under the low-FMM context."
+      }
     },
     {
       "findingId": "MedicinalProductPackaged:ELEMENT_PRESENCE_OR_IDENTITY:marketingAuthorization:74ac31",
@@ -563,7 +606,22 @@
       "validationAndCompatibilityMd": "R4 local authorization references are R6-invalid. R6 packages may not carry enough local information to reconstruct R4 `marketingAuthorization` without querying related resources.",
       "migrationGuidanceMd": "Convert `MedicinalProductAuthorization` to `RegulatedAuthorization` and ensure it references the migrated package in `subject`. Test bundle and non-bundle migrations.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition would have required keeping the old resource/element shape or publishing a normative conversion map. That would lower migration cost but preserve duplicated or ambiguous representations during the transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPackaged:ELEMENT_PRESENCE_OR_IDENTITY:marketingAuthorization:74ac31",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 stored a direct `marketingAuthorization` reference on the package; R6 appears to externalize that relationship through `RegulatedAuthorization.subject`, which can point at `PackagedProductDefinition`. This is more than a local rename because preserving the link may require bundle- or repository-level lookup. The break is real and regulatory-relevant, but a separate authorization resource is a reasonable normalized R6 design, and retaining a local shortcut would create competing authoritative relationship paths.",
+        "keyEvidence": [
+          "R4 StructureDefinition element `MedicinalProductPackaged.marketingAuthorization`: 0..1 Reference(MedicinalProductAuthorization).",
+          "R6 `PackagedProductDefinition` StructureDefinition checked: no local `marketingAuthorization` element found.",
+          "R6 `RegulatedAuthorization.subject`: 0..*, includes Reference(PackagedProductDefinition).",
+          "EMA ISO IDMP standards overview checked: regulated medicinal product information includes marketing authorization."
+        ],
+        "fmmEffect": "R4 FMM 0 lowers the bar for redesign. Marketing authorization is important regulatory data, so the change is still a substantive migration issue, but the maturity context supports accepting a normalized model.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old local field is not valid on PackagedProductDefinition, and preserving the relationship requires creating or finding a related RegulatedAuthorization.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would keep a deprecated local `marketingAuthorization` reference, perhaps retargeted to `RegulatedAuthorization`. That would ease R4 instance migration but duplicates the external relationship and raises consistency problems when local and inverse links disagree.",
+        "comparisonToExisting": "agree with the existing high-impact and partial-alternative assessment, while weighting the low-FMM redesign latitude more heavily in the final judgment."
+      }
     },
     {
       "findingId": "MedicinalProductPackaged:ELEMENT_PRESENCE_OR_IDENTITY:batchIdentifier:9b3d02",
@@ -664,7 +722,22 @@
       "validationAndCompatibilityMd": "R4 `batchIdentifier` content is invalid on R6. R6 cannot round-trip this local structure because no corresponding local element exists.",
       "migrationGuidanceMd": "Inventory use of batch identifiers before migration. Preserve through an agreed extension, related lot/batch artifact, or typed identifier only if local policy makes the semantics explicit.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition would have required keeping the old resource/element shape or publishing a normative conversion map. That would lower migration cost but preserve duplicated or ambiguous representations during the transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPackaged:ELEMENT_PRESENCE_OR_IDENTITY:batchIdentifier:9b3d02",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had a repeatable `batchIdentifier` backbone with a required outer-packaging identifier and optional immediate-packaging identifier. I could not find a same-purpose local successor on `PackagedProductDefinition`; generic package identifiers and the informative `Product.instance.lotNumber` pattern do not preserve the same outer/immediate package batch distinction on the packaged-product resource. Even though batch data may belong more naturally to product instances than definitions, removing the field without an evident concrete successor is risky for traceability in a regulated packaging domain.",
+        "keyEvidence": [
+          "R4 StructureDefinition elements: `batchIdentifier` 0..*, `outerPackaging` 1..1 Identifier, `immediatePackaging` 0..1 Identifier.",
+          "R6 `PackagedProductDefinition` StructureDefinition checked: no local `batchIdentifier`, `outerPackaging`, or `immediatePackaging` element found.",
+          "R6 product-related StructureDefinitions searched for batch/lot: only `NutritionProduct.instance.lotNumber` and informative `Product.instance.lotNumber` appeared, not a PackagedProductDefinition successor.",
+          "HL7 Global Core IDMP IG continuous build checked: packaging layers and supply-chain traceability are in scope; EMA PMS guidance references package submissions for critical medicines."
+        ],
+        "fmmEffect": "FMM 0/trial-use normally softens breaks, but batch/package identifiers are traceability- and regulatory-relevant. The low maturity does not fully offset the lack of an obvious successor for this specific data.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 batchIdentifier content is invalid in the R6 successor, and the stronger concern is R6-to-R4/data-loss risk because there is no direct local field to receive or round-trip the identifiers.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could retain `batchIdentifier` as deprecated until a concrete batch/lot resource or relationship is available, or add an explicit package-batch relationship. The tradeoff is real: it may perpetuate instance-level data on a definition resource. But a transitional or explicit successor seems worth standards review because silent remapping to generic identifiers weakens semantics.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative assessment; the fresh review elevates this to `Revisit` because the local evidence still lacks a concrete traceability-preserving successor."
+      }
     },
     {
       "findingId": "MedicinalProductPackaged:SLICING_AND_CONTENT_MODEL:packageItem-packaging:f0a612",
@@ -779,7 +852,21 @@
       "validationAndCompatibilityMd": "R4 data with `packageItem` is R6-invalid. R6 can omit packaging, which cannot satisfy the R4 required package item when converting back.",
       "migrationGuidanceMd": "Map one primary R4 package item to `packaging`; map nested package items to `packaging.packaging`. Define policy for multiple top-level R4 package items.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition would have required keeping the old resource/element shape or publishing a normative conversion map. That would lower migration cost but preserve duplicated or ambiguous representations during the transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPackaged:SLICING_AND_CONTENT_MODEL:packageItem-packaging:f0a612",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The central packaging tree changes from required, repeatable top-level `packageItem` entries to one optional `packaging` root with recursive nested `packaging`. This invalidates R4 data and requires policy for multiple old top-level package items. The R6 single-root tree is nevertheless a coherent packaging model, especially because it distinguishes packaging containers from contained items. With FMM 0 R4 content, preserving the old multi-root shape in base R6 would likely be a worse long-term design.",
+        "keyEvidence": [
+          "R4 StructureDefinition element `MedicinalProductPackaged.packageItem`: 1..*, BackboneElement; recursive child `packageItem.packageItem`.",
+          "R6 StructureDefinition element `PackagedProductDefinition.packaging`: 0..1, BackboneElement; recursive child `packaging.packaging` uses contentReference.",
+          "HL7 Global Core IDMP IG continuous build checked: packaging layers are central to IDMP modeling."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability concern for a central content-model redesign. Packaging is regulatory-relevant, so the break is not dismissed, but the maturity level supports accepting a cleaner model.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `packageItem` arrays are not valid at the R6 path, and multiple old roots require a conversion policy into one packaging tree.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain `packageItem` as deprecated or accept both tree shapes during transition. That would preserve old JSON but duplicate recursive structures and leave ambiguous handling of multiple top-level package roots.",
+        "comparisonToExisting": "agree with the existing hard-break and partial-alternative characterization; the final judgment is softened by the low FMM and the plausible R6 modeling benefit."
+      }
     },
     {
       "findingId": "MedicinalProductPackaged:TYPE_DOMAIN:packageItem.quantity:2c6e45",
@@ -884,7 +971,21 @@
       "validationAndCompatibilityMd": "R4 Quantity JSON is invalid for R6 `integer`. R6 omitted quantity cannot satisfy R4 required quantity if reconstructing R4.",
       "migrationGuidanceMd": "Convert only whole-number package counts to integer. Preserve or review units/comparators; use `containedItem.amount` for actual item quantity when appropriate.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition would have required keeping the old resource/element shape or publishing a normative conversion map. That would lower migration cost but preserve duplicated or ambiguous representations during the transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPackaged:TYPE_DOMAIN:packageItem.quantity:2c6e45",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`packageItem.quantity` changes from a required `Quantity` object to an optional integer on `packaging.quantity`. That is a clear serialization and code-generation break, and R4 unit-bearing, decimal, comparator, or missing values need migration policy. The R6 definition narrows the field to the count of packaging items at a layer and moves actual contained-item amounts to a separate Quantity field, which is a reasonable computability goal. For FMM 0 content, the break appears proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition element `MedicinalProductPackaged.packageItem.quantity`: 1..1 Quantity; definition says the outermost package quantity is always 1.",
+          "R6 StructureDefinition element `PackagedProductDefinition.packaging.quantity`: 0..1 integer; definition says it is only the count of packaging items at this layer.",
+          "R6 StructureDefinition element `PackagedProductDefinition.packaging.containedItem.amount`: 0..1 Quantity for quantities such as tablets or milliliters."
+        ],
+        "fmmEffect": "The required R4 field is from FMM 0/trial-use content, so the datatype break carries less standards-stability weight. Packaging quantities are still business-relevant, which is why this remains a real migration issue rather than `No problem`.",
+        "compatibilityMechanism": "old-valid/new-invalid: a JSON Quantity object is invalid where R6 expects an integer primitive; non-whole or unit-qualified R4 quantities require review.",
+        "lessBreakingAlternativeAssessment": "Keeping `Quantity` and constraining it to whole-number count semantics would be less breaking, but it would preserve units, comparators, and decimal forms that R6 is trying to exclude from package-layer counts. That alternative is partial, not clearly superior.",
+        "comparisonToExisting": "partially agree with the high-impact mechanism, but disagree with the existing `Yes` alternative judgment; the less-breaking Quantity design weakens the R6 integer-count goal."
+      }
     },
     {
       "findingId": "MedicinalProductPackaged:SLICING_AND_CONTENT_MODEL:containedItem:5d19b8",
@@ -1011,7 +1112,22 @@
       "validationAndCompatibilityMd": "R4 fields are invalid in R6. R6 CodeableReference concepts or added targets have no direct R4 equivalent.",
       "migrationGuidanceMd": "Create one `containedItem` per old device/manufactured item. Convert `MedicinalProductManufactured` references to `ManufacturedItemDefinition`; handle concept-only or new target types with extensions/manual review.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition would have required keeping the old resource/element shape or publishing a normative conversion map. That would lower migration cost but preserve duplicated or ambiguous representations during the transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPackaged:SLICING_AND_CONTENT_MODEL:containedItem:5d19b8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 represented contained package contents through separate `device` and `manufacturedItem` reference arrays. R6 replaces that with repeatable `containedItem.item` CodeableReference entries that can point to manufactured items, devices, packaged products, biologically derived products, nutrition products, or a concept. This is a real wire and SDK break, and R6-only targets or concept-only entries do not round-trip to R4. The R6 design is more expressive and gives one canonical contained-item pattern, so the break is probably acceptable for FMM 0 trial-use content.",
+        "keyEvidence": [
+          "R4 StructureDefinition element `MedicinalProductPackaged.packageItem.device`: 0..* Reference(DeviceDefinition).",
+          "R4 StructureDefinition element `MedicinalProductPackaged.packageItem.manufacturedItem`: 0..* Reference(MedicinalProductManufactured).",
+          "R6 StructureDefinition element `PackagedProductDefinition.packaging.containedItem.item`: 1..1 CodeableReference with targets ManufacturedItemDefinition, DeviceDefinition, PackagedProductDefinition, BiologicallyDerivedProduct, and NutritionProduct.",
+          "R6 `containedItem.amount` is a separate Quantity, supporting the new unified contained-item model."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the expected compatibility burden for replacing two early package-content arrays. Regulatory and supply-chain relevance keeps the migration material, but does not by itself require preserving the old split arrays.",
+        "compatibilityMechanism": "old-valid/new-invalid: old direct arrays are not valid in R6; R6 CodeableReference concepts and additional target types are lossy when converting back to R4.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would keep deprecated `device` and `manufacturedItem` arrays while adding `containedItem`. That preserves common R4 data but creates duplicate content channels and reconciliation rules, and it still cannot cover R6 concept-only or new-target content through the old paths.",
+        "comparisonToExisting": "agree with the existing hard-break and partial-alternative analysis; the final judgment is that the R6 unification is proportionate."
+      }
     },
     {
       "findingId": "MedicinalProductPackaged:FLAGS_AND_MODIFIERS:status:f64c10",
@@ -1105,7 +1221,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 instances are not broken by absence of status. R6-to-R4 loses lifecycle validity unless preserved in an extension or sidecar metadata.",
       "migrationGuidanceMd": "Update generated models and business rules to process `status`; do not treat it as ignorable descriptive text.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible transition would have required keeping the old resource/element shape or publishing a normative conversion map. That would lower migration cost but preserve duplicated or ambiguous representations during the transition.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPackaged:FLAGS_AND_MODIFIERS:status:f64c10",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds an optional `status` modifier element; R4 had no corresponding local field. This does not make any R4 package content invalid by absence of `status`. R6 processors must respect the modifier when it is present, and R6-to-R4 conversion may need an extension or sidecar to preserve it, but that is an additive R6 processing concern rather than a R4-to-R6 compatibility problem for this path.",
+        "keyEvidence": [
+          "R6 StructureDefinition element `PackagedProductDefinition.status`: 0..1 CodeableConcept, isModifier=true, preferred binding to publication-status.",
+          "R4 `MedicinalProductPackaged` local element set checked: no local lifecycle status modifier.",
+          "Existing report itself marks hardInstanceBreaking as `No` for this finding."
+        ],
+        "fmmEffect": "FMM 0/trial-use further reduces concern because no old field is invalidated. The R6 modifier status is important for R6 consumers, but it does not create an old-valid/new-invalid break.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 status has no local R4 field, but the change is optional and additive for R4-to-R6 migration.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for preserving R4 instances. A non-modifier status would be easier to ignore but would undermine the stated R6 safety rule that status can indicate the record should not be treated as valid.",
+        "comparisonToExisting": "disagree with the existing high overall impact as a R4-to-R6 compatibility finding; the existing report correctly noted it is not a hard instance break, but treated the additive modifier as too severe."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1241,5 +1371,19 @@
       "CodeableReference replacing separate Reference arrays",
       "Modifier status added to definition resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicinalProductPackaged.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 7,
+      "No problem": 1
+    }
   }
 }

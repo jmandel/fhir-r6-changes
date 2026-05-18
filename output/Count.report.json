@@ -317,7 +317,21 @@
       "migrationGuidanceMd": "Scan all migrated `Count` occurrences for negative primitive values before R6 validation. If negative values exist, do not blindly clamp them to zero unless the business meaning is clear. Prefer a data-quality remediation workflow: identify source system, determine whether the value was an error or sentinel, correct where authoritative, or preserve the exceptional meaning with a profile/extension outside base `Count` semantics. Add regression tests for `-1`, `0`, positive integers, decimal values, missing `code`, non-UCUM systems, and extension-only primitive values.",
       "backwardCompatibilityAnalysisMd": "The base datatype could have remained backward compatible by using a warning invariant or requiring non-negativity only in profiles that need it. That alternative would avoid invalidating old records but would leave base R6 `Count` unable to enforce a fundamental semantic expectation. Given the datatype name and likely intent, the stricter rule is probably justified despite the migration break.",
       "reviewerNotesMd": "The R6 human text for `cnt-3` still says only that the value must be a whole number. Reviewers may want to confirm whether the rendered specification text elsewhere documents the non-negative requirement.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Count:VALUE_CONSTRAINT:Count.cnt-3:nonnegative",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 tightens the local `cnt-3` invariant so a `Count` with a primitive negative value, otherwise satisfying the R4 code/system/whole-number requirements, is no longer valid. That is an old-valid/new-invalid validation break, but it affects the narrow case of negative counts, which are semantically suspect for a type named `Count`. A concrete migration case is historical data or a local integration that used `Count.value = -1` as a sentinel or delta; it would need remapping before R6 validation. The tightening appears proportionate because accepting negative counts would weaken the computable meaning of the datatype, although the unchanged human text would be clearer if it explicitly mentioned non-negative values.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-Count.json` `snapshot.element[id=Count].constraint[key=cnt-3].expression` checks code/system and whole-number string form but has no `value >= 0` test.",
+          "R6 `StructureDefinition-Count.json` `snapshot.element[id=Count].constraint[key=cnt-3].expression` appends `(value.empty() or value.hasValue().not() or value >= 0)` with source `StructureDefinition/Count`.",
+          "R4 `StructureDefinition-Count.json` marks Count standards status as `trial-use`; local maturity data for Count also reports `standardsStatus: trial-use` and no numeric FMM."
+        ],
+        "fmmEffect": "The R4 baseline is trial-use rather than normative/FMM 5, and no numeric FMM was available locally. That softens the stability concern for a narrow semantic tightening; R6 becoming normative does not by itself increase the compatibility burden for R4 consumers.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4-valid negative whole-number Count instance can fail R6 validation because the R6 invariant now requires `value >= 0` when a primitive value is present.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep negative values valid and make non-negativity a warning or profile requirement, preserving sentinel/delta uses. That would undercut the core R6 goal of making Count computably non-negative in the base datatype, so the alternative has a real semantic and validation tradeoff rather than being an obviously better design.",
+        "comparisonToExisting": "agree with the existing hard-instance-breaking and no-less-breaking-alternative direction; the prior medium impact seems reasonable, with the added caveat that the unchanged invariant human text should ideally mention non-negativity."
+      }
     },
     {
       "findingId": "Count:SERIALIZATION_OR_CODEGEN:Count.cnt-3:xpath-removed",
@@ -421,7 +435,21 @@
       "migrationGuidanceMd": "Update validation and code-generation pipelines to treat FHIRPath as the authoritative constraint source. If XML-only validation is required, derive and test a local XPath equivalent for `cnt-3`, including the added non-negative clause, rather than reusing the R4 XPath expression.",
       "backwardCompatibilityAnalysisMd": "The backward-compatible alternative would be to keep the XPath field for this invariant. That would ease legacy XML validator migration but would also risk divergence because the R4 XPath did not include the new non-negative test.",
       "reviewerNotesMd": "This likely reflects a broader R6 StructureDefinition representation change. It is included here only because the omitted XPath belonged to Count's own local `cnt-3` invariant.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Count:SERIALIZATION_OR_CODEGEN:Count.cnt-3:xpath-removed",
+        "judgment": "No problem",
+        "narrativeMd": "The R4 `cnt-3` constraint carried an XPath expression, while the R6 constraint carries the FHIRPath expression and source but no XPath metadata. This does not make any Count instance valid or invalid on its own and does not alter the wire path, cardinality, type, or binding. The plausible affected scenario is an old XML/XPath-based validator or generator that depends on `ElementDefinition.constraint.xpath`; that tool must rely on FHIRPath or update its R6 support. That is tooling metadata churn rather than a path-level compatibility break in exchanged Count data.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-Count.json` `differential.element[id=Count].constraint[key=cnt-3]` includes an `xpath` expression.",
+          "R6 `StructureDefinition-Count.json` `differential.element[id=Count].constraint[key=cnt-3]` includes `expression` and `source` and has no `xpath` property.",
+          "The structural Count elements and the `cnt-3` FHIRPath constraint remain present in R6; only the XPath metadata is absent for this finding."
+        ],
+        "fmmEffect": "The R4 baseline is trial-use, which further softens concern for metadata/tooling churn. Even under higher maturity this would not be an instance-level break because it is not a data model change.",
+        "compatibilityMechanism": "metadata/tooling: legacy tooling that consumed XPath metadata may need updates, but exchanged instances are unaffected by the metadata field's absence.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained a non-normative XPath companion for legacy XML validators, but doing so would preserve obsolete duplicate constraint metadata and risk divergence from FHIRPath. Because the compatibility issue is only tooling metadata, a less-breaking base design is not necessary.",
+        "comparisonToExisting": "partially agree with the existing low-impact/runtime-tooling assessment, but the fresh judgment treats this as metadata/tooling churn with no meaningful compatibility problem rather than a substantive break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -593,5 +621,18 @@
       "R6 StructureDefinitions that omit R4 XPath constraint metadata",
       "Inherited Quantity comparator code `ad` effects across Age, Count, Distance, Duration, MoneyQuantity, SimpleQuantity, and Quantity"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Count.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

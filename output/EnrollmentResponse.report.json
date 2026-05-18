@@ -322,7 +322,22 @@
       "validationAndCompatibilityMd": "R4-valid instances do not become invalid merely because `candidate` was added. R6 instances containing `candidate` are not valid base R4 instances and will be rejected by strict R4 validation as containing an unknown element. A lossy R6-to-R4 transform could drop the element, but that changes business semantics and prevents lossless round-trip.",
       "migrationGuidanceMd": "For R4-to-R6 migration, no backfill is required unless local policy wants candidate populated. For R6-to-R4 migration, define a cross-version extension or profile-specific mapping for `candidate`, and test downgrade/upgrade round trips for both Patient and Group references. If omission is allowed, make the data loss explicit in mapping documentation.",
       "backwardCompatibilityAnalysisMd": "The optional addition was a relatively compatible way to improve the base model. The remaining incompatibility is unavoidable once base R6 exposes information that base R4 lacks. A standard extension could have provided better cross-version compatibility, but at the cost of weaker base-model visibility.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EnrollmentResponse:ELEMENT_PRESENCE_OR_IDENTITY:EnrollmentResponse.candidate:6b1c2a",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds EnrollmentResponse.candidate as an optional 0..1 Reference(Patient|Group), while R4 has no such element. That creates a downgrade or round-trip gap if new R6 data populates candidate, but it does not make any R4 EnrollmentResponse instance invalid in R6 and does not force R4 senders to backfill a new required field. At path level this is an additive modeling improvement rather than a forward compatibility problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot contains no EnrollmentResponse.candidate element.",
+          "R6 StructureDefinition defines EnrollmentResponse.candidate with min 0, max 1, type Reference(Patient|Group), mustSupport false, isModifier false, and isSummary false.",
+          "R4 EnrollmentResponse carries FMM 0 and standards-status trial-use.",
+          "Lightweight production-use check: the Genentech Universal API enrollment page documents FHIR R4 enrollment bundles but does not list EnrollmentResponse among the enrollment-bundle resources."
+        ],
+        "fmmEffect": "R4 content is FMM 0/trial-use, so an additive reverse-only gap should not be elevated absent stronger evidence of broad deployed reliance; no path-specific production evidence was found in the quick check.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 candidate reference has no native R4 element, but the R4-to-R6 direction has no old-valid/new-invalid effect because the element is optional.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for forward compatibility. A standard cross-version extension could help downgrades, but that is a migration/backport mechanism; omitting candidate would preserve R4 shape only by failing the R6 goal of representing the subject or group directly.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies no hard R4-to-R6 instance break and no applicable less-breaking base alternative, but its Medium impact framing overstates the fresh path-level concern for an optional additive element on FMM 0 content."
+      }
     },
     {
       "findingId": "EnrollmentResponse:TERMINOLOGY_BINDING:EnrollmentResponse.outcome:9f3e21",
@@ -505,7 +520,23 @@
       "migrationGuidanceMd": "Update terminology configuration from `ValueSet/remittance-outcome|4.0.1` to `ValueSet/enrollment-outcome|6.0.0-ballot4` for R6. Regenerate code and enum bindings if they use ValueSet or CodeSystem canonical URLs. Add regression tests for all four code strings and for terminology-service validation using both old and new ValueSet URLs. If downgrading R6 to R4, map the same code string but document that the binding canonical changes back to remittance outcome.",
       "backwardCompatibilityAnalysisMd": "The change appears aimed at better domain specificity, but canonical replacement is more disruptive than a pure description or binding-name update. A compatible transition would publish an explicit ConceptMap or alias and preserve the old binding as an additional or legacy-compatible binding where tooling can discover it.",
       "reviewerNotesMd": "Terminology equivalence is based on local complete CodeSystem concept lists, not on an official expansion or ConceptMap. Human review should confirm whether the R6 `enrollment-outcome` CodeSystem intentionally inherits the R4 remittance semantics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EnrollmentResponse:TERMINOLOGY_BINDING:EnrollmentResponse.outcome:9f3e21",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 and R6 keep EnrollmentResponse.outcome as an optional code at the same path with the same cardinality and the same four lexical codes. The material change is that R6 replaces the required remittance-outcome ValueSet and binding identity with enrollment-outcome. Ordinary JSON values such as \"complete\" should usually migrate unchanged, but terminology-aware validators, generated enum types, terminology caches, and rules keyed to the old canonical need migration. The enrollment-specific canonical is a reasonable cleanup of a remittance-named binding, so the break appears proportionate.",
+        "keyEvidence": [
+          "R4 EnrollmentResponse.outcome is 0..1 code with required binding http://hl7.org/fhir/ValueSet/remittance-outcome|4.0.1 and bindingName RemittanceOutcome.",
+          "R6 EnrollmentResponse.outcome is 0..1 code with required binding http://hl7.org/fhir/ValueSet/enrollment-outcome|6.0.0-ballot4 and bindingName EnrollmentOutcome.",
+          "The local R4 remittance-outcome and R6 enrollment-outcome complete CodeSystems both contain queued, complete, error, and partial.",
+          "No local ConceptMap file in the R4 or R6 packages was found mapping remittance-outcome to enrollment-outcome.",
+          "R4 EnrollmentResponse carries FMM 0 and standards-status trial-use."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability concern. Because the path keeps the same wire element and code strings, and the impact is mainly terminology identity and generated tooling migration rather than base instance invalidity, low maturity supports accepting the change rather than revisiting it.",
+        "compatibilityMechanism": "runtime/API/codegen: generated enum names, terminology-service configuration, validator caches, or business rules keyed to the ValueSet or CodeSystem canonical can break; it is not meaningfully old-valid/new-invalid for ordinary code strings because the compared code lists are unchanged.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have retained remittance-outcome as the required binding, or published an alias/additional binding/ConceptMap during transition. That would reduce canonical churn, but it would preserve a misleading remittance terminology identity for enrollment semantics and could create duplicate terminology identities if the code systems later diverge.",
+        "comparisonToExisting": "agree: the existing report's no hard instance break, medium runtime risk, and partial alternative with material tradeoffs match the fresh assessment, with FMM 0 making the disruption acceptable rather than a reason to revisit."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -684,5 +715,18 @@
       "Financial Management resources whose outcome bindings moved from `remittance-outcome` to domain-specific outcome ValueSets",
       "Optional R6 subject or candidate additions that are not natively representable in R4"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/EnrollmentResponse.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

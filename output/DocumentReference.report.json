@@ -253,7 +253,21 @@
       "migrationGuidanceMd": "Inventory `masterIdentifier` usage and define whether each value maps to `identifier`, `version`, both, or an extension. Test document lookup and duplicate detection after migration.",
       "backwardCompatibilityAnalysisMd": "A deprecated field or official slice would have been less disruptive but would preserve ambiguity between version-specific and general identifiers.",
       "reviewerNotesMd": "Human review is needed because local identity conventions determine the correct target.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.masterIdentifier:7b1f9c",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `masterIdentifier` was a distinct version-specific Identifier, and R6 removes that wire path rather than renaming it. A strict R6 validator or generated model will reject or ignore an R4 instance carrying it, and migration cannot always collapse Identifier.system/type/assigner/period into either `identifier` or the new string `version` without policy. Because this is document identity metadata, the deletion looks more disruptive than necessary.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DocumentReference.masterIdentifier` is 0..1 Identifier with version-specific source identifier text.",
+          "R6 StructureDefinition: no `DocumentReference.masterIdentifier`; nearest carriers are 0..* `identifier` and 0..1 string `version`.",
+          "R4 maturity map: DocumentReference is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3 trial-use raises the burden for removing central identity data, though not to a normative level.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 resources with `masterIdentifier` contain an undefined R6 element, with possible identifier metadata loss during migration.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have kept `masterIdentifier` as deprecated while adding R6 guidance for `identifier` and `version`. The tradeoff is some continued identity-model ambiguity, but that seems modest compared with deleting a version-specific Identifier.",
+        "comparisonToExisting": "agree with the existing high impact and Yes alternative judgment; the fresh review also finds this worth revisiting."
+      }
     },
     {
       "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.authenticator:2c8a91",
@@ -388,7 +402,21 @@
       "migrationGuidanceMd": "Map `authenticator` to `attester.party` and define rules for `attester.mode`. Review legal/professional attestation semantics.",
       "backwardCompatibilityAnalysisMd": "Retaining a deprecated `authenticator` would have reduced validation breakage but left two representations of attestation.",
       "reviewerNotesMd": "Manual review is recommended where attestation mode is not obvious from source data.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.authenticator:2c8a91",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The old `authenticator` Reference does not survive as an R6 path; R6 uses repeatable `attester` components and requires `attester.mode`. That is a real wire and codegen break, and old data needs a policy-supplied mode. Still, the R6 model captures multiple attesters and explicit attestation roles, which the old shortcut could not represent safely.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `authenticator` is 0..1 Reference to Practitioner, PractitionerRole, or Organization.",
+          "R6 StructureDefinition: `attester` is 0..* BackboneElement; `attester.mode` is 1..1 CodeableConcept and `attester.party` carries the participant reference.",
+          "R4 maturity map: DocumentReference is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3 makes legal/professional attestation breaks important to justify, but the old model was less expressive and trial-use can still evolve.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `authenticator` payloads are undefined in R6, and migration to `attester.party` also needs `attester.mode`.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained a deprecated `authenticator`, but that would split trust and legal attestation facts across two same-resource representations and still would not supply the required mode. The alternative is only partial and has material safety/consistency tradeoffs.",
+        "comparisonToExisting": "agree with the existing high impact and Partial alternative judgment, while judging the break proportionate."
+      }
     },
     {
       "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.content.format:4e6d20",
@@ -547,7 +575,21 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid for `content.format`. R6 `content.profile` is new-valid/old-invalid; URI and canonical values have no direct R4 base representation.",
       "migrationGuidanceMd": "Map old `format` to `profile.valueCoding`. Define downgrade handling for URI/canonical values, typically extension, local Coding, or rejection.",
       "backwardCompatibilityAnalysisMd": "Keeping `content.format` deprecated would have been less disruptive but would create duplicate format/profile representations.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.content.format:4e6d20",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`content.format` changed from a single Coding at the content item to repeatable `content.profile.value[x]` entries. R4 instances with `format` are not R6-shaped, and R6 can carry uri or canonical profile values that R4 cannot express as a Coding. The break is real, but the R6 goal of representing implementation guides, templates, and FHIR profiles more flexibly is coherent.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `content.format` is 0..1 Coding with preferred `formatcodes` binding.",
+          "R6 StructureDefinition: `content.profile` is 0..* and `content.profile.value[x]` is required Coding, uri, or canonical.",
+          "R6 binding for profile valueCoding points to `http://terminology.hl7.org/ValueSet/v3-HL7FormatCodes`."
+        ],
+        "fmmEffect": "FMM 3 raises concern because format/profile metadata is common in document exchange, but it does not preclude a proportionate structural redesign.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `content.format` is undefined in R6; R6-to-R4 loss also occurs for uri and canonical profile values.",
+        "lessBreakingAlternativeAssessment": "Keeping deprecated `content.format` alongside `content.profile` would preserve old Coding cases, but it would create duplicate format/profile carriers and still would not cover uri or canonical values. That is a meaningful tradeoff.",
+        "comparisonToExisting": "agree with the existing high impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context:6f42aa",
@@ -678,7 +720,21 @@
       "migrationGuidanceMd": "Move R4 `context.encounter` references to root `context`; handle other children according to their specific findings. Update generated model code from component to reference list.",
       "backwardCompatibilityAnalysisMd": "A new path would have been safer for mixed-version clients but less tidy for the R6 model.",
       "reviewerNotesMd": "Because the path name is unchanged, automated diffs may understate this break.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context:6f42aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The path `DocumentReference.context` keeps its name but changes from a 0..1 BackboneElement to a 0..* Reference list for Appointment, Encounter, or EpisodeOfCare. That is a high-friction generated-model and JSON-shape break, especially because name-based migration is unsafe. The broader R6 context flattening is nonetheless internally coherent, and preserving the full old backbone would duplicate many root fields.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `context` is 0..1 BackboneElement with children such as encounter, event, period, facilityType, practiceSetting, sourcePatientInfo, and related.",
+          "R6 StructureDefinition: `context` is 0..* Reference(Appointment, Encounter, EpisodeOfCare).",
+          "R4 maturity map: DocumentReference is FMM 3 and trial-use."
+        ],
+        "fmmEffect": "FMM 3 heightens the migration concern for a central clinical context path, but the trial-use status leaves room for a model-level refactor with strong rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 object-valued `context` is not valid where R6 expects an array of References; generated code also changes from component to reference collection.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have introduced a new encounter-context path and left the old context backbone deprecated. That would avoid same-name/different-type breakage, but it would preserve a large duplicate context model and require reconciliation with root `event`, `period`, `facilityType`, `practiceSetting`, and `related` fields.",
+        "comparisonToExisting": "agree with the existing high impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context.event:23ed5b",
@@ -801,7 +857,21 @@
       "validationAndCompatibilityMd": "Old `context.event` is invalid in R6. R6 `event.reference` is not R4-representable unless converted to a code, extension, or related resource.",
       "migrationGuidanceMd": "Map R4 values to `event.concept`; define a downgrade rule for R6 references.",
       "backwardCompatibilityAnalysisMd": "The change could be staged with an alias but would preserve the old context wrapper.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context.event:23ed5b",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `context.event` moved to root `event` and widened from CodeableConcept to CodeableReference(Resource). Code-only R4 data can be mechanically wrapped as `event.concept`, but the old path is invalid and R6 reference-valued events have no direct R4 equivalent. The added ability to point at an event resource is a reasonable expressiveness gain.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `context.event` is 0..* CodeableConcept with example v3-ActCode binding.",
+          "R6 StructureDefinition: root `event` is 0..* CodeableReference(Resource) with the same example binding.",
+          "The change is tied to the verified context backbone flattening."
+        ],
+        "fmmEffect": "FMM 3 means existing event classifiers matter, but the migration for coded values is straightforward and the richer target has a clear purpose.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `context.event` is not an R6 path; R6-to-R4 loss occurs when `event.reference` is used.",
+        "lessBreakingAlternativeAssessment": "Retaining deprecated `context.event` while adding root `event` would preserve coded R4 data, but it would duplicate event representation and would not represent reference-valued events on the old path.",
+        "comparisonToExisting": "agree with the existing medium impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context.related:8c0f31",
@@ -906,7 +976,21 @@
       "validationAndCompatibilityMd": "Old `context.related` is invalid in R6; R6 `related` is invalid in R4 unless projected back to `context.related` with loss of `code`.",
       "migrationGuidanceMd": "Wrap each old reference as `related.target`; preserve R6 `related.code` in an extension when downgrading.",
       "backwardCompatibilityAnalysisMd": "A transitional shorthand would reduce parser breaks but duplicate representation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context.related:8c0f31",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 had a flat list of related Resource references under `context.related`; R6 moves this to root `related` and wraps each target in a backbone with an optional relationship code and required `target`. Old simple references need wrapping, and R6 relationship codes cannot round-trip to the R4 base element. The new typed relationship structure is a plausible improvement.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `context.related` is 0..* Reference(Resource).",
+          "R6 StructureDefinition: root `related` is 0..* BackboneElement with `related.target` 1..1 Reference(Resource) and optional `related.code`.",
+          "R6 `related.code` has example binding to document-related-artifact-type."
+        ],
+        "fmmEffect": "FMM 3 raises the burden for moving existing relationship data, but the old flat reference lacked relationship semantics.",
+        "compatibilityMechanism": "old-valid/new-invalid: old `context.related` references are invalid on the R6 path; R6-to-R4 loss occurs for `related.code`.",
+        "lessBreakingAlternativeAssessment": "A deprecated old path or direct Reference shorthand could preserve simple references, but either would duplicate the related-resource representation and need conflict rules with `related.target` and `related.code`.",
+        "comparisonToExisting": "agree with the existing medium impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.context.sourcePatientInfo:aa0d77",
@@ -1006,7 +1090,21 @@
       "migrationGuidanceMd": "Do not automatically map to `subject`. Preserve in an extension, Provenance, contained Patient, or IG-specific profile if needed.",
       "backwardCompatibilityAnalysisMd": "An official extension or deprecated field would have preserved data without complicating common cases.",
       "reviewerNotesMd": "Human review is important where source demographics differ from current Patient demographics.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.context.sourcePatientInfo:aa0d77",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `context.sourcePatientInfo` carried patient information as known when the document was published, and R6 has no direct replacement. Mapping this to `subject` is not equivalent because it can represent historical or contained source demographics rather than the document subject. The change is old-valid/new-invalid and potentially lossy in audit and patient-matching workflows.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `context.sourcePatientInfo` is 0..1 Reference(Patient) with definition about patient information known when the document was published.",
+          "R6 StructureDefinition: no `DocumentReference.context.sourcePatientInfo` element exists.",
+          "R6 `subject` remains a separate subject-of-document reference and does not carry the source snapshot semantics."
+        ],
+        "fmmEffect": "FMM 3 trial-use still gives meaningful stability weight to source-patient audit data, especially because migration may require expert judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances using `sourcePatientInfo` are invalid in R6, and no base R6 path preserves the same historical-patient meaning.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained a deprecated source-patient field, either under a transitional context backbone or as an explicit root field. The cost is a narrow legacy provenance element, which seems lower than losing distinguishable source-patient snapshot semantics.",
+        "comparisonToExisting": "agree with the existing high impact and Yes alternative judgment."
+      }
     },
     {
       "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.relatesTo.code:b3146e",
@@ -1186,7 +1284,21 @@
       "migrationGuidanceMd": "Wrap old values in a Coding with the HL7 relationship system. Update enum switches and define downgrade mappings for `incorporates` and `summarizes`.",
       "backwardCompatibilityAnalysisMd": "An alias would reduce breakage but conflicts with FHIR's normal single representation for coded concepts.",
       "reviewerNotesMd": "Lifecycle semantics are business-sensitive; avoid collapsing all new codes into a generic relation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.relatesTo.code:b3146e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`relatesTo.code` changes JSON shape from a required primitive code to a required CodeableConcept. Existing R4 lifecycle relationships must be wrapped, and R6 adds relationship codes that cannot be represented by the R4 required enum without mapping. The change affects important supersession and transformation logic, but the richer coded representation and extensible relationship semantics are a reasonable R6 direction.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `relatesTo.code` is 1..1 primitive code with required document-relationship-type binding.",
+          "R6 StructureDefinition: `relatesTo.code` is 1..1 CodeableConcept with extensible document-relationship-type binding.",
+          "Local CodeSystems: R6 retains replaces/transforms/signs/appends and adds incorporates and summarizes."
+        ],
+        "fmmEffect": "FMM 3 raises concern because document lifecycle relationships are business-sensitive, but the trial-use artifact can absorb a justified coding-model modernization.",
+        "compatibilityMechanism": "old-valid/new-invalid: the old string value is not the R6 object shape; R6-to-R4 loss occurs for new codes, text-only concepts, or multiple codings.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the primitive and added a separate CodeableConcept, but that would split a single lifecycle fact between two fields and require precedence rules. The less-breaking option is partial and carries material consistency risk.",
+        "comparisonToExisting": "agree with the existing high impact and Partial alternative judgment."
+      }
     },
     {
       "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.date:1dd80f",
@@ -1273,7 +1385,21 @@
       "validationAndCompatibilityMd": "Old R4 instants remain syntactically valid. R6 partial dateTimes are new-valid/old-invalid.",
       "migrationGuidanceMd": "Copy R4 instants forward. For downgrade, reject partial precision, preserve it in an extension, or apply a documented normalization rule.",
       "backwardCompatibilityAnalysisMd": "A new approximate date element would have preserved compatibility but split search semantics.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.date:1dd80f",
+        "judgment": "No problem",
+        "narrativeMd": "Changing `date` from instant to dateTime is a widening for R4-to-R6 validation: R4 instant values are valid dateTime values. R6 can now carry reduced precision dates that cannot be downgraded to an R4 instant without inventing time or timezone data, but that is a reverse-conversion policy issue rather than a forward compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `DocumentReference.date` is 0..1 instant.",
+          "R6 StructureDefinition: `DocumentReference.date` is 0..1 dateTime with comment to provide the most precise timestamp available.",
+          "No cardinality increase or new invariant applies to this element."
+        ],
+        "fmmEffect": "FMM 3 was considered, but maturity does not turn a type widening into an R4-to-R6 instance break.",
+        "compatibilityMechanism": "R6-to-R4 loss: partial R6 dateTime values cannot always be represented as R4 instant; old R4 instants remain valid forward.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R4-to-R6 base design is needed. Keeping instant would avoid downgrade policy but would block the R6 ability to represent less precise dates when that is all that is known.",
+        "comparisonToExisting": "disagree with the existing medium impact framing; the downgrade caveat is real but the forward change is not a meaningful break."
+      }
     },
     {
       "findingId": "DocumentReference:REFERENCE_TARGET:DocumentReference.subject-author:dc2bb4",
@@ -1375,7 +1501,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 instances remain valid for target profiles. R6 values outside the R4 sets are not R4-representable.",
       "migrationGuidanceMd": "Detect unsupported target types before downgrade and preserve them using extensions or profile-specific rules.",
       "backwardCompatibilityAnalysisMd": "The only fully compatible alternative would avoid the useful R6 widening.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DocumentReference:REFERENCE_TARGET:DocumentReference.subject-author:dc2bb4",
+        "judgment": "No problem",
+        "narrativeMd": "The subject and author target lists were widened. All R4 target types remain allowed in R6, so old instances are not made invalid by this change. R6 instances using new target types may not validate in R4, but that is expected for additive expressiveness.",
+        "keyEvidence": [
+          "R4 StructureDefinition: subject targets Patient, Practitioner, Group, and Device; author targets Practitioner, PractitionerRole, Organization, Device, Patient, and RelatedPerson.",
+          "R6 StructureDefinition: subject targets Resource; author additionally includes CareTeam and Group.",
+          "No R4 target type was removed."
+        ],
+        "fmmEffect": "FMM 3 does not create a stability concern because the target profiles were widened rather than narrowed.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 references to target types outside the R4 list are not R4-representable; there is no R4-to-R6 invalidation.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R4-to-R6 base alternative is needed. Keeping the R4 target lists would reduce R6 expressiveness rather than preserve old instances.",
+        "comparisonToExisting": "partially agree with the existing downgrade observation, but disagree that it should be treated as medium impact for forward compatibility."
+      }
     },
     {
       "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.docStatus:cd0e9a",
@@ -1541,7 +1681,21 @@
       "migrationGuidanceMd": "Update enums and status logic. Define clinically approved downgrade mappings for new statuses rather than silently collapsing them.",
       "backwardCompatibilityAnalysisMd": "An official ConceptMap would mitigate the otherwise unavoidable semantic downgrade problem.",
       "reviewerNotesMd": "Human review is needed for lossy lifecycle-status mappings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.docStatus:cd0e9a",
+        "judgment": "Revisit",
+        "narrativeMd": "`docStatus` keeps the same primitive path and required binding, but the required code system is materially reorganized. R6 adds lifecycle states and narrows `preliminary` from the broad R4 incomplete or unverified meaning to verified early results with not all results final. Existing R4 `preliminary` data can remain code-valid while being interpreted differently, which is a semantic compatibility risk on document finality.",
+        "keyEvidence": [
+          "R4 CodeSystem composition-status: `preliminary` means content may be incomplete or unverified.",
+          "R6 CodeSystem composition-status: `partial` carries the broad partial meaning; child `preliminary` means verified early results are available but not all results are final.",
+          "R6 CodeSystem also adds registered, corrected, appended, cancelled, deprecated, and unknown in the required lifecycle set."
+        ],
+        "fmmEffect": "FMM 3 trial-use raises the burden for changing status semantics because document lifecycle states influence clinical and business handling.",
+        "compatibilityMechanism": "semantic/documentation: old codes are retained, but the meaning of an existing required-bound code changes; R6-to-R4 loss also exists for new statuses.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have kept the R4 meaning of `preliminary` and added narrower R6 codes for early verified or partial states. That would add terminology complexity, but it would better preserve old data semantics.",
+        "comparisonToExisting": "partially agree with the existing medium impact and Yes alternative judgment; the fresh review places more weight on the legacy-code semantic narrowing."
+      }
     },
     {
       "findingId": "DocumentReference:SEMANTIC_OR_CONFORMANCE_TEXT:DocumentReference.content:d81a55",
@@ -1639,7 +1793,21 @@
       "migrationGuidanceMd": "Audit multi-content resources. Split different versions into separate DocumentReferences connected with `relatesTo`.",
       "backwardCompatibilityAnalysisMd": "A warning invariant would have made the migration signal clearer and more toolable.",
       "reviewerNotesMd": "Human review is needed where content URLs/hashes suggest different document versions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:SEMANTIC_OR_CONFORMANCE_TEXT:DocumentReference.content:d81a55",
+        "judgment": "No problem",
+        "narrativeMd": "R6 makes explicit that repeated `content` entries are alternate forms or metadata for the same document and not different versions. The element cardinality and type do not change, and the R4 wording already described multiple repetitions as different formats of the document. Without a new computable invariant, this reads more like clarification than a material R4-to-R6 compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `content` is 1..* BackboneElement and says repetitions may each have a different format.",
+          "R6 StructureDefinition: `content` remains 1..* BackboneElement and says repetitions must represent the same document and not different versions.",
+          "No R6 error or warning invariant was found on `content` for this rule."
+        ],
+        "fmmEffect": "FMM 3 supports paying attention to document-content semantics, but the actual mechanism is non-computable clarification with limited compatibility force.",
+        "compatibilityMechanism": "semantic/documentation: stricter prose may affect conformance interpretation, but base structural validation of old content repetitions is unchanged.",
+        "lessBreakingAlternativeAssessment": "R6 could have left the prose less explicit, but the current wording is already a non-error clarification. A weaker statement would not materially improve instance compatibility.",
+        "comparisonToExisting": "disagree with the existing potential hard-break and medium-impact framing; this is useful guidance but not a meaningful base compatibility problem."
+      }
     },
     {
       "findingId": "DocumentReference:VALUE_CONSTRAINT:DocumentReference.docRef-constraints:928a2d",
@@ -1743,7 +1911,21 @@
       "migrationGuidanceMd": "When moving R4 `context.facilityType` and `context.practiceSetting` to root, check whether Encounter already conveys those concepts.",
       "backwardCompatibilityAnalysisMd": "The same rule could be introduced as clearer best-practice guidance to reduce ambiguity.",
       "reviewerNotesMd": "The docRef-2 human text says context not present, while the expression tests no Encounter in context; verify intended ballot wording.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:VALUE_CONSTRAINT:DocumentReference.docRef-constraints:928a2d",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds docRef-1 and docRef-2 as warning constraints involving Encounter context with facilityType and practiceSetting. Warning-as-error pipelines may need configuration, and the docRef-2 human text is broader than its Encounter-focused expression. Still, warning severity is the compatibility-preserving form of such guidance and does not make migrated base instances invalid.",
+        "keyEvidence": [
+          "R6 StructureDefinition root constraint docRef-1: severity warning; facilityType SHALL only be present if context is not an encounter.",
+          "R6 StructureDefinition root constraint docRef-2: severity warning; expression checks absence of Encounter context for practiceSetting.",
+          "No corresponding local R4 docRef-1 or docRef-2 constraint exists."
+        ],
+        "fmmEffect": "FMM 3 warrants checking whether warnings could disrupt migration, but warning-level conformance pressure is normally a local quality-gate issue.",
+        "compatibilityMechanism": "warning-level: validators may emit warnings, but base R6 validation should not fail solely because of these constraints.",
+        "lessBreakingAlternativeAssessment": "Prose-only guidance or profile-specific warnings would be slightly less noisy, but R6 already chose warning severity rather than cardinality or error constraints. That is sufficiently compatibility-preserving.",
+        "comparisonToExisting": "partially agree that warning-as-error pipelines may be affected, but disagree with treating this as a medium base compatibility problem."
+      }
     },
     {
       "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.securityLabel:35aa7e",
@@ -1829,7 +2011,21 @@
       "migrationGuidanceMd": "Review access-control logic. Put metadata-level labels in `meta.security` and underlying document labels in `securityLabel`; keep local value-set validation if required.",
       "backwardCompatibilityAnalysisMd": "R6 could have preserved the extensible binding while clarifying semantics, but may have intended more flexibility for document-content labels.",
       "reviewerNotesMd": "Full value-set expansion was not performed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.securityLabel:35aa7e",
+        "judgment": "No problem",
+        "narrativeMd": "`securityLabel` keeps the same path, cardinality, and CodeableConcept type while its binding weakens from extensible to example and the definition more clearly distinguishes document-content labels from metadata labels in `meta.security`. Old codes remain structurally and terminologically acceptable under the weaker binding. Security policy engines should review the clarified meaning, but the base change does not break R4 instances.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `securityLabel` is 0..* CodeableConcept with extensible `security-labels` binding.",
+          "R6 StructureDefinition: `securityLabel` is 0..* CodeableConcept with example `security-label-example` binding.",
+          "R6 definition explicitly labels the document at `content.attachment.url` while `meta.security` labels the DocumentReference data elements."
+        ],
+        "fmmEffect": "FMM 3 and security relevance increase review importance, but the actual binding change is looser and does not invalidate old data.",
+        "compatibilityMechanism": "semantic/documentation: policy interpretation may need review; no old-valid/new-invalid instance break is introduced.",
+        "lessBreakingAlternativeAssessment": "Keeping the extensible binding while clarifying the definition would preserve stronger guidance, but that is not a less-breaking alternative for old instances because weakening the binding is already compatibility-preserving.",
+        "comparisonToExisting": "partially agree that policy implications matter, but disagree with the existing medium-impact framing for base R4-to-R6 compatibility."
+      }
     },
     {
       "findingId": "DocumentReference:SEMANTIC_OR_CONFORMANCE_TEXT:DocumentReference.status:0c5d66",
@@ -1943,7 +2139,21 @@
       "migrationGuidanceMd": "Generate status enums and validators from the required ValueSet/CodeSystem, not the short text. Re-check in a later R6 build.",
       "backwardCompatibilityAnalysisMd": "The compatible fix is editorial unless R6 intended a real code addition.",
       "reviewerNotesMd": "Verify against official ballot notes or later package versions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:SEMANTIC_OR_CONFORMANCE_TEXT:DocumentReference.status:0c5d66",
+        "judgment": "Unclear",
+        "narrativeMd": "The R6 `status` short text lists `unknown`, but the local required CodeSystem and ValueSet evidence still only supports current, superseded, and entered-in-error. That means there is no confirmed R4-to-R6 code addition, but there is a real ballot-artifact inconsistency that could mislead documentation-driven enum or UI generation. The intended R6 design cannot be determined from the supplied package alone.",
+        "keyEvidence": [
+          "R6 StructureDefinition: `DocumentReference.status.short` is current | superseded | entered-in-error | unknown.",
+          "R6 CodeSystem document-reference-status: concepts are current, superseded, and entered-in-error only.",
+          "R4 and R6 `status` both have required document-reference-status bindings and the old three codes are retained."
+        ],
+        "fmmEffect": "FMM 3 makes ambiguity in a modifier status field worth resolving, but it does not prove whether `unknown` was intended or editorial.",
+        "compatibilityMechanism": "metadata/tooling: short-text-driven generators might expose an invalid `unknown` code; binding-aware validation should reject it.",
+        "lessBreakingAlternativeAssessment": "If `unknown` was accidental, the compatible fix is to remove it from the short text. If intended, R6 needs the CodeSystem/ValueSet updated and a downgrade policy. The supplied evidence is insufficient to choose between those base designs.",
+        "comparisonToExisting": "partially agree with the existing low-impact inconsistency assessment; the fresh review uses Unclear because intended R6 behavior is not knowable from local evidence."
+      }
     },
     {
       "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.category-type:91e3ba",
@@ -2032,7 +2242,21 @@
       "migrationGuidanceMd": "Review UI picklists, analytic groupers, and IG bindings for `type` and `category`.",
       "backwardCompatibilityAnalysisMd": "Non-required binding changes are intentionally lower-risk; old terminology can remain in profiles if needed.",
       "reviewerNotesMd": "Full LOINC/filter expansions were not compared.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.category-type:91e3ba",
+        "judgment": "No problem",
+        "narrativeMd": "The value set guidance for `type` and `category` changed, but the binding strengths remain preferred and example. Base R6 validators should not reject old CodeableConcept codings merely because the suggested value sets changed. This is migration awareness for picklists, profiles, and analytics rather than a base compatibility problem.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `type` preferred binding is `c80-doc-typecodes`; `category` example binding is `document-classcodes`.",
+          "R6 StructureDefinition: `type` preferred binding is `doc-typecodes`; `category` example binding is `referenced-item-category`.",
+          "R6 `referenced-item-category` includes media-category and LOINC DOC-scale guidance; bindings are not required."
+        ],
+        "fmmEffect": "FMM 3 encourages checking common UI and analytics use, but non-required binding churn does not create a base instance break.",
+        "compatibilityMechanism": "metadata/tooling: terminology guidance, picklists, and copied profile bindings may need updates; base instances remain valid.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R4-to-R6 base alternative is needed. Keeping old preferred/example value set URLs would reduce tooling churn but would not preserve any otherwise invalid old instance.",
+        "comparisonToExisting": "agree with the existing low impact and Not applicable alternative judgment."
+      }
     },
     {
       "findingId": "DocumentReference:CONVERSION_OR_MAPPING:DocumentReference.root-r6-additions:bb5a01",
@@ -2142,7 +2366,21 @@
       "migrationGuidanceMd": "Define downgrade extensions for locally used R6 fields and avoid silent data loss in R4 APIs or stores.",
       "backwardCompatibilityAnalysisMd": "Additive optional fields are the least disruptive forward path, but they cannot be fully backward-compatible with R4.",
       "reviewerNotesMd": "This grouped finding is for downgrade planning; dedicated findings cover the largest individual reshaped elements.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DocumentReference:CONVERSION_OR_MAPPING:DocumentReference.root-r6-additions:bb5a01",
+        "judgment": "No problem",
+        "narrativeMd": "The grouped R6 fields are optional additions or richer replacements considered elsewhere. They do create R6-to-R4 downgrade and round-trip decisions when used, especially for workflow, modality, body structure, attestation, and profile metadata. But optional R6 expressiveness does not invalidate R4 instances and is not itself a standards-design problem.",
+        "keyEvidence": [
+          "R6 StructureDefinition adds optional `basedOn`, `version`, `modality`, `bodyStructure`, `attester`, and `content.profile`.",
+          "R6 also moves or reshapes context-related `period`, `facilityType`, `practiceSetting`, and `related` fields.",
+          "Individual hard reshapes are covered by separate findings in this same review."
+        ],
+        "fmmEffect": "FMM 3 supports documenting downgrade risks, but maturity does not require R6 optional additions to be directly representable in R4.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using optional new metadata may need extensions, projection, or data loss when served as R4; no R4-to-R6 break occurs.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R4-to-R6 base alternative is applicable. Avoiding the optional fields would block useful R6 metadata; downgrade mechanisms are implementation mitigations rather than base R6 design alternatives.",
+        "comparisonToExisting": "partially agree that downgrade loss exists, but disagree that the grouped optional additions should be treated as a medium forward compatibility issue."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2325,5 +2563,20 @@
       "Format Coding replaced by profile value[x]",
       "Required binding short-text mismatch"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DocumentReference.fresh-review.json",
+    "findingDecisionCount": 17,
+    "matchedFindingDecisionCount": 17,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Unclear": 1,
+      "Breaking but probably OK": 6,
+      "No problem": 7
+    }
   }
 }

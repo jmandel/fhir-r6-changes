@@ -300,7 +300,22 @@
       "migrationGuidanceMd": "Inventory Tasks using either instantiates field. For canonical FHIR definitions, consider mapping to `focus[0].valueCanonical` and setting `Task.code` to an action code such as `instantiate` when semantically correct. For external URIs, use a documented extension, a local profile rule, or an input parameter; do not silently drop the URI. Test both canonical and non-canonical examples.",
       "backwardCompatibilityAnalysisMd": "The change could have been made less disruptive by retaining deprecated aliases or adding `focus.valueUri`. The tradeoff is that R6 would preserve duplicate modeling paths for formal definitions, while the chosen design makes `focus` the focal target for task action.",
       "reviewerNotesMd": "The canonical migration path is inferred from the R6 shape and task-code additions; an official diff or narrative migration note would improve confidence.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:ELEMENT_PRESENCE_OR_IDENTITY:Task.instantiates:8b2f1a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed two optional formal-definition links on Task. R6 removes both; `instantiatesCanonical` has a plausible but shape-changing migration to `focus.valueCanonical` plus an instantiate code, while `instantiatesUri` has no native R6 URI-valued replacement. A strict R6 validator would reject an R4 Task that identifies an external BPMN/BPEL/workflow definition, and migration can lose a computable automation target unless an extension or out-of-band convention is invented.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json defines Task.instantiatesCanonical as 0..1 canonical(ActivityDefinition) and Task.instantiatesUri as 0..1 uri.",
+          "R6 StructureDefinition-Task.json has no Task.instantiatesCanonical or Task.instantiatesUri element.",
+          "R6 Task.focus.value[x] is limited to Reference(Resource) or canonical(CanonicalResource), not uri.",
+          "R4 Task.instantiatesUri requirements mention BPMN, BPEL, XPDL, or other formal notation enabling automation."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use. That is neutral rather than a strong stability guarantee, but this path carried formal automation semantics and the URI case is lossy, so FMM did not soften it to harmless churn.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances containing either removed instantiates element have unknown elements in R6; the URI case also creates lossy migration because R6 lacks a native URI slot.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists in part: retain deprecated instantiatesCanonical and instantiatesUri, or add a URI-capable focus representation, while introducing the R6 focus-based canonical model. The tradeoff is duplicate formal-definition locations and conflict/precedence rules.",
+        "comparisonToExisting": "partially agree: I agree with the hard-break assessment and with only a partial alternative, but I rate the unreplaced external URI semantics as concerning enough to revisit."
+      }
     },
     {
       "findingId": "Task:TYPE_DOMAIN:Task.focus:1c4d72",
@@ -459,7 +474,22 @@
       "validationAndCompatibilityMd": "R4 instances with `focus` are old-valid/new-invalid until transformed. R6 instances with multiple foci or a canonical focus are not cleanly R4-representable. The change affects strict validators, generated classes, FHIRPath expressions, search implementations, XML element ordering, and business rules that assumed one direct reference.",
       "migrationGuidanceMd": "Map an R4 direct focus reference to a single R6 `focus` repetition with `valueReference`. For R6-to-R4 downgrade, reject or extension-map canonical foci and decide how to handle multiple foci; flattening to the first value is unsafe unless a profile guarantees equivalence. Regression tests should cover no focus, one reference focus, multiple R6 foci, and canonical focus.",
       "backwardCompatibilityAnalysisMd": "A new `focusCanonical` or `definition` element would have been less disruptive, but would split focal-target semantics. The R6 wrapper is coherent but requires every focused R4 Task to be transformed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:TYPE_DOMAIN:Task.focus:1c4d72",
+        "judgment": "Revisit",
+        "narrativeMd": "`Task.focus` is a central navigation field for what work a Task is acting on. R4 encoded it directly as a single Reference; R6 turns the same path into a repeating BackboneElement whose value must be nested as `valueReference` or `valueCanonical`. Simple reference migrations are mechanical, but every strict validator, generated model, search/extraction routine, and client that reads `task.focus.reference` has to change. The R6 goal is reasonable, but this is a high-blast-radius remodel of a common path.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json: Task.focus is 0..1 Reference(Resource).",
+          "R6 StructureDefinition-Task.json: Task.focus is 0..* BackboneElement.",
+          "R6 StructureDefinition-Task.json: Task.focus.value[x] is 1..1 Reference(Resource) or canonical(CanonicalResource).",
+          "R6 comment says multiple focuses must be acted on as a complete set."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use, so the maturity level is neutral. The centrality and expected implementation prevalence of focus, not the FMM alone, drives the concern.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: old `focus.reference` JSON is structurally invalid in R6, and generated/client APIs must change from a direct Reference to an array of wrapper objects.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design would retain `Task.focus` as the direct R4 Reference and add separate optional support for canonical and additional foci. That preserves common R4 instances but splits focal-target semantics across multiple fields and weakens the single normalized R6 model.",
+        "comparisonToExisting": "partially agree: I agree the break and bidirectional burden are high and that alternatives have tradeoffs, but I judge the common central path deserving renewed design attention."
+      }
     },
     {
       "findingId": "Task:TYPE_DOMAIN:Task.statusReason:59a0de",
@@ -631,7 +661,21 @@
       "validationAndCompatibilityMd": "R4 Tasks with `statusReason` can fail R6 validation due to both the type wrapper and array shape. R6 Tasks with multiple reasons or a resource reference reason cannot be faithfully downgraded into R4 `Task.statusReason`, which was a single CodeableConcept.",
       "migrationGuidanceMd": "Wrap R4 `statusReason` as `statusReason[0].concept`. For downgrade, only map a single R6 `concept`; reference-only or multiple reasons require an extension, profile-specific rule, or manual review. Update codegen and FHIRPath expressions that access `statusReason.coding` directly.",
       "backwardCompatibilityAnalysisMd": "A parallel `statusReasonReference` would have preserved R4 coded content and avoided a same-name type replacement. R6 instead chooses the common CodeableReference pattern, which is cleaner but not wire-compatible.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:TYPE_DOMAIN:Task.statusReason:59a0de",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes `statusReason` from a single CodeableConcept to repeating CodeableReference. Existing coded/text reasons must be wrapped under `concept`, and R6 reference-only or multiple reasons cannot round-trip cleanly to R4. For R4-to-R6, however, the coded case has a straightforward transform and the R6 design gives a coherent way to attach richer evidence for a status reason.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json: Task.statusReason is 0..1 CodeableConcept with example binding.",
+          "R6 StructureDefinition-Task.json: Task.statusReason is 0..* CodeableReference(Resource).",
+          "R6 binding points to ValueSet/task-status-reason while preserving example binding strength."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use. The neutral maturity level lets the concrete mechanism and migration feasibility dominate; this path is meaningful but not so central that the break is disproportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 CodeableConcept-shaped statusReason is not the R6 CodeableReference wire shape; R6 reference-only and repeated reasons also create R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could keep `statusReason` as repeatable CodeableConcept and add a reference-capable companion field. That avoids breaking coded R4 payloads but reintroduces code/reference pairing ambiguity that CodeableReference is meant to avoid.",
+        "comparisonToExisting": "agree: the existing Medium impact and partial-alternative characterization match the path-level assessment."
+      }
     },
     {
       "findingId": "Task:ELEMENT_PRESENCE_OR_IDENTITY:Task.performerType-requestedPerformer:f47b9c",
@@ -800,7 +844,22 @@
       "validationAndCompatibilityMd": "R4 Tasks with `performerType` are new-invalid in R6 until renamed and wrapped. R6 Tasks that name a specific requested performer reference cannot be represented in R4 `performerType`, except by extension or by deriving a less-specific role concept.",
       "migrationGuidanceMd": "Map each R4 `performerType` CodeableConcept to `requestedPerformer[].concept`. For R6-to-R4, only downgrade concept values automatically. Reference values need manual policy: preserve as extension, map to a role, or reject downgrade. Update queueing/routing code and search parameter assumptions.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias would have been less disruptive, but the richer CodeableReference design more accurately captures assignment to either a class or a specific participant.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:ELEMENT_PRESENCE_OR_IDENTITY:Task.performerType-requestedPerformer:f47b9c",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `performerType` represented the kind of participant that should perform the task and was explicitly useful for activity queues. R6 removes that element and replaces it with `requestedPerformer`, a CodeableReference that can carry either the same kind of concept or a specific actor reference. The new capability is useful, but renaming/removing the existing role field forces avoidable validator, mapping, and API churn for role-based task routing.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json: Task.performerType is 0..* CodeableConcept with preferred performer-role binding.",
+          "R4 requirements for Task.performerType say it is used to distinguish tasks on different activity queues.",
+          "R6 StructureDefinition-Task.json has no Task.performerType element.",
+          "R6 StructureDefinition-Task.json: Task.requestedPerformer is 0..* CodeableReference with the same preferred performer-role binding and actor target profiles."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use, so the stability expectation is moderate. Because this path affects queueing/assignment behavior and has a low-cost compatibility option, FMM 2 does not make the break probably OK.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: R4 `performerType` elements are unknown in R6, while R6 requestedPerformer.reference values have no R4 performerType representation.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: keep `performerType` for role/kind concepts and add a separate reference-oriented requested performer field for specific actors. This sacrifices some CodeableReference uniformity but avoids duplicate concept paths if the new field is reference-only.",
+        "comparisonToExisting": "agree: the existing report's high impact and Yes less-breaking-alternative judgment are consistent with the fresh assessment."
+      }
     },
     {
       "findingId": "Task:REFERENCE_TARGET:Task.owner-performer:6db342",
@@ -986,7 +1045,22 @@
       "validationAndCompatibilityMd": "R4 owner references to Device or HealthcareService are potential old-valid/new-invalid cases. R6 owner Group and any `performer` data are R6-to-R4 representability risks. Runtime code that treated owner as the performer must be reviewed.",
       "migrationGuidanceMd": "Classify each R4 owner value: if it was the managing party and still uses an allowed target, keep it as owner; if it was the actor that performed work, migrate to `performer.actor`; if it is HealthcareService, define a local mapping to Organization/CareTeam, requestedPerformer, performer extension, or reject. Test Device, HealthcareService, Group, and ordinary practitioner/organization cases.",
       "backwardCompatibilityAnalysisMd": "Keeping R4 targets while adding `performer` would have avoided validation breaks but preserved ambiguous owner semantics. R6 chooses a cleaner separation with target narrowing.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:REFERENCE_TARGET:Task.owner-performer:6db342",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 narrows `owner` by removing Device and HealthcareService targets, changes its meaning toward management responsibility, and adds `Task.performer` for actual actors. R4 Tasks that used a device or healthcare service as the execution owner can become invalid, and deciding whether an old owner should remain a manager or move to performer may require workflow knowledge. The separation of manager and performer is sound, but narrowing old owner targets was not necessary to add the new performer backbone.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json: Task.owner targets include HealthcareService and Device.",
+          "R4 Task.owner definition: individual, organization, or Device currently responsible for task execution.",
+          "R6 StructureDefinition-Task.json: Task.owner targets omit HealthcareService and Device and add Group.",
+          "R6 StructureDefinition-Task.json adds Task.performer.actor as 1..1 Reference including Device and Group."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use, a neutral maturity level. The concern comes from assignment/execution semantics and possible human judgment during migration rather than from high FMM stability pressure.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: Device or HealthcareService owners valid in R4 can fail R6 target validation, and code that treats owner as actual performer must be redesigned around owner versus performer.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: add `Task.performer` while retaining the full R4 owner target list, with clarified definitions or deprecation guidance discouraging owner-as-performer use. The tradeoff is that older ambiguous owner usage can persist longer.",
+        "comparisonToExisting": "agree: the existing high/potential-hard-break impact and Yes alternative judgment are supported."
+      }
     },
     {
       "findingId": "Task:ELEMENT_PRESENCE_OR_IDENTITY:Task.reason:0a73e8",
@@ -1180,7 +1254,22 @@
       "migrationGuidanceMd": "Map `reasonCode` to `reason[].concept` and `reasonReference` to `reason[].reference`. If both are present, preserve both and flag for review if local semantics implied that the reference justified the code rather than being an independent reason. For downgrade, allow only profiles that restrict R6 to at most one concept and one reference.",
       "backwardCompatibilityAnalysisMd": "Keeping deprecated aliases would have protected R4 payloads but perpetuated paired reason fields. CodeableReference is coherent and less duplicative, but not wire-compatible.",
       "reviewerNotesMd": "The R6 example value set is example strength; the break is structural, not a required terminology rejection.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:ELEMENT_PRESENCE_OR_IDENTITY:Task.reason:0a73e8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 consolidates R4 `reasonCode` and `reasonReference` into repeating `reason` CodeableReference. Strict R6 validators reject the old element names, but the R4-to-R6 data transform is direct: coded reasons become `reason.concept`, referenced reasons become `reason.reference`, and if both R4 fields are present they can be represented as separate R6 repetitions. The main cost is wire/API churn and duplicate-field migration, not loss of the R4 reason content.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json: Task.reasonCode is 0..1 CodeableConcept.",
+          "R4 StructureDefinition-Task.json: Task.reasonReference is 0..1 Reference(Resource).",
+          "R6 StructureDefinition-Task.json: Task.reason is 0..* CodeableReference(Resource).",
+          "R6 Task.reason comment explains when reason is typically present relative to Task.focus."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use. With neutral maturity and a straightforward R4-to-R6 mapping, the structural break appears proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 reasonCode/reasonReference element names are absent in R6; R6 multiple or reference/concept combinations can also lose structure when downgraded to R4.",
+        "lessBreakingAlternativeAssessment": "A partial alternative would retain deprecated `reasonCode` and `reasonReference` aliases while adding R6 `reason`. That preserves R4 instances but creates duplicate same-resource reason representations and precedence rules when both old and new forms appear.",
+        "comparisonToExisting": "partially agree: I agree with the hard break and partial alternative, but the existing High impact feels overstated for R4-to-R6 because the content maps cleanly into CodeableReference."
+      }
     },
     {
       "findingId": "Task:VALUE_CONSTRAINT:Task.restriction:aa0e61",
@@ -1342,7 +1431,22 @@
       "validationAndCompatibilityMd": "An R4-valid Task with `restriction` and no matching fulfill code plus Reference focus can become R6-invalid. The invariant also rejects restriction with only `focus.valueCanonical`, even though canonical focus is otherwise allowed. Runtime validators and test fixtures need to distinguish the preserved `tsk-0` rule from new `tsk-1`.",
       "migrationGuidanceMd": "For every Task with `restriction`, verify that it is truly a fulfillment task. Add or correct `Task.code` and `focus.valueReference` only when that is semantically true. Otherwise move the data to `requestedPeriod`, input parameters, an extension, or a profile-specific field and review the business meaning.",
       "backwardCompatibilityAnalysisMd": "A warning-first approach would have been easier for migration, but the error invariant provides stronger interoperability by preventing restrictions that cannot be interpreted consistently.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:VALUE_CONSTRAINT:Task.restriction:aa0e61",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds an error invariant that permits `restriction` only when the Task has the standard `fulfill` code and a Reference-valued focus. That can invalidate R4 instances that used restriction more loosely or omitted the standard code. The rule is still proportionate because R4 already described restriction as applying when a Task seeks fulfillment of a request, and enforcing the precondition makes the restriction interoperable rather than an ambiguous scheduling/scoping fragment.",
+        "keyEvidence": [
+          "R4 root Task constraints include the authoredOn/lastModified invariant but no restriction invariant.",
+          "R4 Task.restriction definition says it applies if Task.focus is a request resource and the task is seeking fulfillment.",
+          "R6 root Task constraint tsk-1 is severity error.",
+          "R6 tsk-1 expression requires restriction implies code.coding code fulfill from http://hl7.org/fhir/CodeSystem/task-code and focus.value.ofType(Reference).exists()."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use. That neutral status allows a semantic tightening when it enforces a meaningful interoperability precondition, especially for a relatively specialized substructure.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 Task with restriction but without the exact fulfill code or Reference focus becomes invalid under the new R6 error invariant.",
+        "lessBreakingAlternativeAssessment": "A less-breaking warning-level or profile-level invariant could preserve old loose usage for a transition. The tradeoff is material: base R6 would still allow restriction without the referenced fulfillment context needed to interpret it safely.",
+        "comparisonToExisting": "partially agree: I agree with the hard-break and partial-alternative findings, but I view the High overall impact as somewhat broad given the rarity/specialization of restriction and the strong semantic rationale."
+      }
     },
     {
       "findingId": "Task:FLAGS_AND_MODIFIERS:Task.doNotPerform:df5019",
@@ -1478,7 +1582,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 is not broken by the addition because old instances simply omit it. R6-to-R4 is high risk: strict R4 validators reject the unknown element, while permissive or lossy adapters that drop it can create unsafe behavior. Generated R6 code must treat the element as modifier content.",
       "migrationGuidanceMd": "Never silently drop `doNotPerform`. Downgrade only if a receiving R4 profile defines a modifier extension or other explicit prohibition representation. Add safety tests where `doNotPerform=true` and verify that legacy adapters reject or preserve the modifier semantics.",
       "backwardCompatibilityAnalysisMd": "A modifier extension would have been less disruptive to the base model but less reliable. Because negation is semantically critical, a base modifier is defensible despite cross-version risk.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:FLAGS_AND_MODIFIERS:Task.doNotPerform:df5019",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Task.doNotPerform` is additive for R4-to-R6, so existing R4 Tasks are not made invalid. The compatibility issue is reverse-direction safety: an R4 consumer or downgrade transform that ignores the new R6 modifier can invert the practical meaning of a Task from do not perform to perform. The R6 design is justified because making negation explicit and marking it as a modifier is safer than burying prohibition semantics in local codes or profiles.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json has no Task.doNotPerform element.",
+          "R6 StructureDefinition-Task.json defines Task.doNotPerform as 0..1 boolean.",
+          "R6 Task.doNotPerform isModifier=true and isSummary=true.",
+          "R6 isModifierReason says true negates the Task."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use. The neutral maturity level does not require avoiding an additive element, and the safety value of explicit negation outweighs downgrade inconvenience.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 modifier content has no native R4 field, and dropping it can reverse task meaning; there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base alternative is needed for R4 preservation because the element is optional and additive. Encoding negation only through code/profile conventions or extensions would be less explicit and less discoverable; R4 downgrade extensions are mitigation, not a better R6 base design.",
+        "comparisonToExisting": "partially agree: I agree with the high safety risk for R6-to-R4 handling and with no applicable base alternative, while emphasizing that this is not an R4-to-R6 hard break."
+      }
     },
     {
       "findingId": "Task:TYPE_DOMAIN:Task.input-output-value:42cbe0",
@@ -1653,7 +1772,22 @@
       "validationAndCompatibilityMd": "`valueContributor` is old-valid/new-invalid. R6 choices such as `valueInteger64`, `valueCodeableReference`, `valueRatioRange`, `valueAvailability`, `valueExtendedContactDetail`, and `valueVirtualServiceDetail` are not R4-representable as native Task value choices. Generated models and serializers must update their choice unions.",
       "migrationGuidanceMd": "Search for `valueContributor` in Task input/output. Decide whether to map to an extension, a text/coding representation, ContactDetail/ExtendedContactDetail with loss, or reject. For R6-to-R4, use explicit extension policies for added datatypes and test every choice name in serialization.",
       "backwardCompatibilityAnalysisMd": "The least disruptive alternative would be retaining Contributor as deprecated. Because Contributor is absent from R6 core, that would create a legacy exception in Task and require additional datatype support.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:TYPE_DOMAIN:Task.input-output-value:42cbe0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 Task input and output value choices included `Contributor`; R6 removes that datatype while adding several newer R6 datatypes. An R4 Task carrying `valueContributor` becomes invalid, and some R6 values cannot be represented in R4. The break appears proportionate because the removed choice is a broad datatype-set cleanup rather than a Task-specific semantic removal, and `valueContributor` use is likely uncommon compared with ordinary scalar, CodeableConcept, Reference, Attachment, or DataRequirement values.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json: Task.input.value[x] and Task.output.value[x] include Contributor.",
+          "R6 StructureDefinition-Task.json: Task.input.value[x] and Task.output.value[x] omit Contributor.",
+          "R6 value[x] choices add integer64, CodeableReference, RatioRange, Availability, ExtendedContactDetail, and VirtualServiceDetail.",
+          "Task.output requirements say outputs can take any form, explaining the broad choice list."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use. The neutral maturity and likely rare use of this particular datatype reduce concern, though the old-valid/new-invalid mechanism is real.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: R4 `valueContributor` is not allowed in R6, while new R6-only datatype choices do not have native R4 representations.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design would retain Contributor as a deprecated Task value choice. That would likely require retaining broader R6 datatype support for an otherwise removed datatype, adding validator, serializer, and codegen maintenance burden.",
+        "comparisonToExisting": "agree: the Medium impact and partial alternative are appropriate for a real but probably uncommon datatype-choice break."
+      }
     },
     {
       "findingId": "Task:TERMINOLOGY_BINDING:Task.status-code:9e7164",
@@ -1810,7 +1944,22 @@
       "migrationGuidanceMd": "Map common local task action codes to R6 task-code where possible, especially `instantiate`, `fulfill`, and `data-request`. Preserve local codings as additional codings when needed. Downgrade `status=unknown` using a profile-approved extension or reject if R4 consumers require the R4 code set.",
       "backwardCompatibilityAnalysisMd": "The status code addition is additive for R6 but not downgrade-compatible. The Task.code binding could have stayed example strength; strengthening is likely intended to improve semantic interoperability for standardized task actions.",
       "reviewerNotesMd": "No external terminology expansion was performed; conclusions are based on local ValueSet compose and CodeSystem concept lists.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Task:TERMINOLOGY_BINDING:Task.status-code:9e7164",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Existing R4 Task.status codes remain in the R6 required status value set; the new `unknown` code mainly creates an R6-to-R4 downgrade gap. The R4-to-R6 pressure is on `Task.code`, whose binding changes from example to extensible. Local task-action codes are still possible, but validators and governance processes can now expect standard task-code concepts when they fit. That is a real conformance burden, but it is a proportionate interoperability move rather than a hard instance break.",
+        "keyEvidence": [
+          "R4 and R6 CodeSystem-task-status both include draft, requested, received, accepted, rejected, ready, cancelled, in-progress, on-hold, failed, completed, and entered-in-error.",
+          "R6 CodeSystem-task-status adds unknown.",
+          "R4 StructureDefinition-Task.json: Task.code binding strength is example.",
+          "R6 StructureDefinition-Task.json: Task.code binding strength is extensible and CodeSystem-task-code adds instantiate and data-request."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use. Neutral maturity means warning-level conformance pressure is acceptable when it supports cross-system task semantics, but it should not be overstated as a hard break.",
+        "compatibilityMechanism": "warning-level: R4 status values remain valid, but Task.code extensible binding can create warnings or policy failures for local codes when a standard task-code applies; R6 status unknown is R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design would keep Task.code at example binding while adding new standard codes and narrative guidance. That preserves maximum local-code freedom but weakens validator-supported interoperability for common task actions.",
+        "comparisonToExisting": "partially agree: I agree with Medium-level conformance/downgrade risk and a partial alternative, but the fresh assessment separates it from a hard validation break."
+      }
     },
     {
       "findingId": "Task:REFERENCE_TARGET:Task.requester-restrictionRecipient:b22510",
@@ -1957,7 +2106,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is safe for these two paths. R6-to-R4 validation fails when requester is Group or restriction.recipient is Device. Semantically, requester Group also has an R6 narrative caveat: it is intended for family/household groups, not generic practitioner groups.",
       "migrationGuidanceMd": "For downgrade, either reject these targets, map through extensions, or apply local business rules. Do not coerce Group requester to Organization or RelatedPerson unless a profile guarantees equivalence.",
       "backwardCompatibilityAnalysisMd": "Keeping the R4 target lists and using extensions would avoid downgrade gaps but make R6-supported scenarios less interoperable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Task:REFERENCE_TARGET:Task.requester-restrictionRecipient:b22510",
+        "judgment": "No problem",
+        "narrativeMd": "This finding is target-domain widening: R6 adds Group as a requester target and Device as a restriction.recipient target. Existing R4-valid references remain valid in R6. New R6 instances using the added targets need downgrade policy for R4, but that is not an R4-to-R6 compatibility problem and the R6 comments narrowly explain the added cases.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json: Task.requester targets omit Group.",
+          "R6 StructureDefinition-Task.json: Task.requester targets include Group with a family/household caution.",
+          "R4 StructureDefinition-Task.json: Task.restriction.recipient targets omit Device.",
+          "R6 StructureDefinition-Task.json: Task.restriction.recipient targets include Device and comments describe ServiceRequest device-group fulfillment."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use. Because the change is additive for R4-to-R6, the neutral FMM status does not create a reason to revisit it.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using the newly allowed Group requester or Device restriction recipient cannot be represented as valid base R4 references, but no R4 instance is invalidated.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base alternative is needed for existing R4 compatibility. Keeping the R4 target lists would reduce downgrade gaps but would block explicit R6 scenarios that the target widening is meant to support.",
+        "comparisonToExisting": "partially agree: I agree with no applicable less-breaking alternative and the downgrade gap, but I disagree that this should remain a Medium concern for the fresh R4-to-R6 review."
+      }
     },
     {
       "findingId": "Task:TYPE_DOMAIN:Task.description:ab92c4",
@@ -2080,7 +2244,22 @@
       "validationAndCompatibilityMd": "No ordinary R4 JSON string was identified that becomes invalid solely because of this Task-local type change. Runtime and codegen breaks are plausible for libraries that distinguish `string` and `markdown`, and UI behavior can change if descriptions are rendered as Markdown.",
       "migrationGuidanceMd": "Update generated models and rendering code. If existing descriptions must remain literal, escape or sanitize Markdown-sensitive characters before enabling Markdown rendering. Add tests for descriptions containing `*`, `_`, `#`, links, and raw HTML policies.",
       "backwardCompatibilityAnalysisMd": "The same goal could have been achieved by keeping `string` and documenting optional Markdown convention, but that would be less machine-readable for tooling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Task:TYPE_DOMAIN:Task.description:ab92c4",
+        "judgment": "No problem",
+        "narrativeMd": "R6 changes `Task.description` from string to markdown, but both are primitive string-like wire values. Ordinary R4 JSON descriptions remain representable in R6. Implementers may need to adjust generated types or rendering/sanitization policy if they choose to render Markdown, but that is tooling and UI behavior rather than an instance-compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Task.json: Task.description is 0..1 string.",
+          "R6 StructureDefinition-Task.json: Task.description is 0..1 markdown.",
+          "R6 StructureDefinition-markdown.json describes markdown as a primitive value serialized as a string-like primitive.",
+          "The existing report's structured delta notes no direct JSON wire-shape break."
+        ],
+        "fmmEffect": "Task is FMM 2 / trial-use. Since the wire shape is preserved, the neutral FMM status is enough to treat this as low-risk tooling churn.",
+        "compatibilityMechanism": "runtime/API/codegen: generated model types and renderers may change, but there is no meaningful old-valid/new-invalid JSON instance break for ordinary descriptions.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base alternative is needed for R4 instance preservation. R6 could have kept string and documented Markdown by convention, but that would only reduce codegen/rendering churn while hiding the intended presentation semantics from tooling.",
+        "comparisonToExisting": "partially agree: I agree there is no hard break and no applicable base alternative, but I disagree with treating the impact as Medium beyond localized tooling/rendering concerns."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -2277,5 +2456,19 @@
       "New modifier elements that alter request semantics",
       "Choice type lists dropping datatypes removed from R6 core"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Task.fresh-review.json",
+    "findingDecisionCount": 12,
+    "matchedFindingDecisionCount": 12,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 4,
+      "Breaking but probably OK": 6,
+      "No problem": 2
+    }
   }
 }

@@ -310,7 +310,22 @@
       "migrationGuidanceMd": "Keep the `low`/`high` structure unchanged, but update validation test cases and any hand-coded Range ordering logic. Include tests for absent `low.value` or `high.value`, non-comparable UCUM units, equal values with different decimal precision, and near-overlap cases such as `2.1` to `2.0`. For R6-to-R4 export, consider normalizing or flagging ranges whose validity depends on the R6-specific expression; some cases may need manual review rather than a lossless transform.",
       "backwardCompatibilityAnalysisMd": "The change is mostly backward-compatible for R4-to-R6 data because it does not narrow the local content model. It could have been made less behavior-changing by preserving the R4 expression and adding a new warning-level invariant for the precision-aware logic, but that would retain known ambiguity around Quantity comparability and precision.",
       "reviewerNotesMd": "Review impact with the actual validators in use. FHIRPath comparison behavior for Quantity, empty results, and the exact semantics of `lowBoundary()`/`highBoundary()` can determine whether a particular instance is accepted or rejected.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Range:VALUE_CONSTRAINT:Range.rng-2:0d2f6c",
+        "judgment": "No problem",
+        "narrativeMd": "The actual R4-to-R6 change is limited to the computable expression for the existing `rng-2` invariant on `Range`; the invariant key, severity, human text, and the `Range.low`/`Range.high` cardinalities and SimpleQuantity types remain stable. In the primary R4-to-R6 direction, I do not see a meaningful old-valid/new-invalid break: the R6 expression checks missing numeric values, skips ordering when quantity boundaries are not comparable, and compares precision-aware boundaries, which is a clarification/broadening of validation behavior rather than a narrowed content model. Some R6-valid edge cases may not round-trip to R4-era validators, but that is reverse-direction validator behavior rather than a reason to reopen the R6 base design.",
+        "keyEvidence": [
+          "R4 StructureDefinition Range.rng-2 expression: `low.empty() or high.empty() or (low <= high)`.",
+          "R6 StructureDefinition Range.rng-2 expression: `low.value.empty() or high.value.empty() or low.lowBoundary().comparable(high.highBoundary()).not() or (low.lowBoundary() <= high.highBoundary())`.",
+          "R4 and R6 `Range.low` and `Range.high` remain 0..1 SimpleQuantity summary elements.",
+          "R4 maturity map lists Range as normative with normativeVersion 4.0.0."
+        ],
+        "fmmEffect": "Range is normative in R4, so a true direct compatibility break would need strong justification. Here that maturity mainly prompted closer scrutiny; because the element shape is unchanged and the new invariant appears non-narrowing for R4-to-R6 instances, normative status does not turn this into a compatibility concern.",
+        "compatibilityMechanism": "none: no old-valid/new-invalid R4-to-R6 structural or validation break was identified for the affected Range path; the remaining concern is reverse-direction or validator-engine behavior for edge cases.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed for the primary direction. Keeping the R4 direct comparison or demoting the R6 expression to a warning would preserve legacy validator behavior, but it would also keep the less precise handling of missing values, incomparability, and decimal precision boundaries without preserving additional R4-valid instances.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that this is not a hard R4-to-R6 instance break and that no less-breaking alternative is needed, but I judge the primary compatibility impact lower than its medium runtime/R6-to-R4 concern because the meaningful risk is mostly reverse-direction or validator-specific edge behavior."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -469,5 +484,17 @@
       "R6 StructureDefinitions without XPath constraint expressions",
       "Datatypes deriving through the new R6 DataType base"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Range.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

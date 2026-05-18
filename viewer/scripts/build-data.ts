@@ -6,6 +6,15 @@ const dataDir = process.env.DATA_DIR
   ? resolve(process.env.DATA_DIR)
   : join(root, "output");
 const targetFile = resolve(import.meta.dir, "..", "data-bundle.ts");
+const reviewDirSetting = process.env.REVIEW_DIR;
+const reviewDir = reviewDirSetting && ["none", "off", "false", "0"].includes(reviewDirSetting.toLowerCase())
+  ? null
+  : reviewDirSetting
+    ? resolve(reviewDirSetting)
+    : join(root, "batch", "fresh-review", "reviews");
+const behaviorDir = process.env.BEHAVIOR_DATA_DIR
+  ? resolve(process.env.BEHAVIOR_DATA_DIR)
+  : join(dataDir, "behavior");
 
 const baseTsvPath = join(root, "agent-inputs", "r4-base-resources-and-datatypes.tsv");
 let baseArtifacts: { name: string; kind: string; abstract: boolean }[] = [];
@@ -34,6 +43,7 @@ try {
 
 const files = (await readdir(dataDir)).filter((f) => f.endsWith(".report.json"));
 const reports: any[] = [];
+const behaviorReports: any[] = [];
 const parseFailures: { file: string; error: string }[] = [];
 for (const f of files) {
   try {
@@ -41,7 +51,13 @@ for (const f of files) {
     const [txt, st] = await Promise.all([readFile(p, "utf8"), stat(p)]);
     const parsed = JSON.parse(txt);
     parsed._mtimeMs = st.mtimeMs;
-    reports.push(parsed);
+    parsed._sourcePath = p;
+    if (isBehaviorReport(parsed)) {
+      parsed._reportKey = behaviorReportKey(parsed, f);
+      behaviorReports.push(parsed);
+    } else {
+      reports.push(parsed);
+    }
   } catch (e) {
     parseFailures.push({ file: f, error: (e as Error).message });
     console.error(`failed to parse ${f}:`, (e as Error).message);
@@ -49,13 +65,78 @@ for (const f of files) {
 }
 reports.sort((a, b) => (a.artifactName ?? "").localeCompare(b.artifactName ?? ""));
 
+const behaviorParseFailures: { file: string; error: string }[] = [];
+const hasReducedOperationReport = behaviorReports.some((r) => r.behaviorName === "OperationDefinitions");
+try {
+  const nestedBehaviorFiles = await collectReportFiles(behaviorDir);
+  for (const p of nestedBehaviorFiles) {
+    try {
+      const [txt, st] = await Promise.all([readFile(p, "utf8"), stat(p)]);
+      const parsed = JSON.parse(txt);
+      if (!isBehaviorReport(parsed)) continue;
+      if (hasReducedOperationReport && parsed.behaviorName === "OperationDefinitions") continue;
+      parsed._mtimeMs = st.mtimeMs;
+      parsed._sourcePath = p;
+      parsed._reportKey = behaviorReportKey(parsed, p);
+      behaviorReports.push(parsed);
+    } catch (e) {
+      behaviorParseFailures.push({ file: p, error: (e as Error).message });
+      console.error(`failed to parse behavior report ${p}:`, (e as Error).message);
+    }
+  }
+  console.log(`loaded ${behaviorReports.length} behavior report(s)`);
+} catch {
+  console.warn(`No behavior report directory at ${behaviorDir}; behavior view will be empty until reports are generated.`);
+}
+behaviorReports.sort((a, b) => String(a._reportKey ?? "").localeCompare(String(b._reportKey ?? "")));
+
+const freshReviewParseFailures: { file: string; error: string }[] = [];
+const freshReviewByFindingId: Record<string, any> = {};
+if (reviewDir) {
+  try {
+    const reviewFiles = (await readdir(reviewDir)).filter((f) => f.endsWith(".fresh-review.json"));
+    for (const f of reviewFiles) {
+      try {
+        const review = JSON.parse(await readFile(join(reviewDir, f), "utf8"));
+        if (review.schemaVersion !== "fresh-review-decisions-v1") {
+          freshReviewParseFailures.push({ file: f, error: `unexpected schemaVersion ${JSON.stringify(review.schemaVersion)}` });
+          continue;
+        }
+        for (const decision of review.decisions ?? []) {
+          if (decision?.findingId) freshReviewByFindingId[decision.findingId] = decision;
+        }
+      } catch (e) {
+        freshReviewParseFailures.push({ file: f, error: (e as Error).message });
+        console.error(`failed to parse fresh review ${f}:`, (e as Error).message);
+      }
+    }
+    console.log(`loaded ${Object.keys(freshReviewByFindingId).length} fresh review decision(s) from ${reviewDir}`);
+  } catch {
+    console.warn(`No fresh review directory at ${reviewDir}; fresh review overlay will be empty.`);
+  }
+} else {
+  console.log("fresh review overlay disabled by REVIEW_DIR=none; using embedded report data only");
+}
+
+for (const report of reports) {
+  for (const finding of report.findings ?? []) {
+    const decision = freshReviewByFindingId[finding.findingId];
+    if (decision) finding.freshReview = decision;
+  }
+}
+
 const payload = {
   generatedAt: new Date().toISOString(),
   sourceDir: dataDir,
+  behaviorSourceDir: behaviorDir,
+  freshReviewSourceDir: reviewDir ?? "embedded",
   baseArtifacts,
   r4Maturity,
   parseFailures,
+  behaviorParseFailures,
+  freshReviewParseFailures,
   reports,
+  behaviorReports,
 };
 
 await mkdir(dirname(targetFile), { recursive: true });
@@ -65,3 +146,28 @@ export const bundle: BundleData = ${JSON.stringify(payload, null, 2)} as unknown
 `;
 await writeFile(targetFile, ts);
 console.log(`bundled ${reports.length} report(s) from ${dataDir} → ${targetFile}`);
+
+function isBehaviorReport(report: any): boolean {
+  return typeof report?.schemaVersion === "string" && report.schemaVersion.startsWith("fhir-r4-r6-") && report.schemaVersion.endsWith("-behavior/v1");
+}
+
+function behaviorReportKey(report: any, fallbackPath: string): string {
+  const assigned = report?.scope?.assignedBehavior;
+  if (assigned) return String(assigned);
+  if (report?.behaviorName) return String(report.behaviorName);
+  return fallbackPath.split(/[\\/]/).pop()?.replace(/\.report\.json$/, "") ?? fallbackPath;
+}
+
+async function collectReportFiles(dir: string): Promise<string[]> {
+  const out: string[] = [];
+  async function walk(cur: string) {
+    const entries = await readdir(cur, { withFileTypes: true });
+    for (const entry of entries) {
+      const p = join(cur, entry.name);
+      if (entry.isDirectory()) await walk(p);
+      else if (entry.isFile() && entry.name.endsWith(".report.json")) out.push(p);
+    }
+  }
+  await walk(dir);
+  return out.sort();
+}

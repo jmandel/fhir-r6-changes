@@ -270,7 +270,22 @@
       "validationAndCompatibilityMd": "An R4-valid fragment containing `url` can become R6-invalid because the element is unknown in the R6 datatype. This is not merely a code-generation rename: R6 does not offer a primitive URL choice under `artifact[x]`, so strict round-trip transformation can lose the distinction between a generic access URL, an attachment URL, and a canonical FHIR artifact reference.",
       "migrationGuidanceMd": "Inventory all R4 `RelatedArtifact.url` occurrences. Map document downloads to `artifactAttachment.url`, canonical FHIR artifact URLs to `artifactCanonical` only when they are truly canonical references, and leave ambiguous generic URLs for manual review or an agreed extension. Add regression tests for documentation, citation, and resource-link cases.",
       "backwardCompatibilityAnalysisMd": "The consolidation goal could have been met less disruptively by retaining `url` as deprecated or by adding `url` to `artifact[x]`. Removing it forces every producer to classify old URLs more specifically, which improves semantics but creates avoidable conversion risk.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "RelatedArtifact:ELEMENT_PRESENCE_OR_IDENTITY:RelatedArtifact.url:6df0c1",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed `RelatedArtifact.url` as an optional primitive URL carrier, while R6 has no `RelatedArtifact.url` and `artifact[x]` does not include a primitive `url` choice. An R4 instance that used this field is therefore old-valid/new-invalid under the R6 datatype unless transformed. The break is path-local, but the migration is not purely mechanical because the same R4 URL might need to become an `Attachment.url`, a canonical artifact reference, a non-canonical reference, markdown citation text, or an extension depending on what the URL meant. That ambiguity makes the hard removal disproportionate enough to merit renewed review even though the R4 datatype was low maturity.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot has `RelatedArtifact.url` 0..1, type `url`, summary=true.",
+          "R6 StructureDefinition snapshot has no `RelatedArtifact.url` element.",
+          "R6 `RelatedArtifact.artifact[x]` choices are `markdown`, `Attachment`, `canonical`, and `Reference`, not primitive `url`.",
+          "R4 core package search found RelatedArtifact used across many knowledge-resource paths, but no quick evidence proving broad production use of this specific `url` path."
+        ],
+        "fmmEffect": "R4 RelatedArtifact is FMM 1/trial-use in the local maturity/status inputs, which lowers the stability expectation and prevents assuming broad production impact from the break alone. The judgment remains Revisit because this specific removal creates a direct old-valid/new-invalid failure and a potentially lossy, expert-dependent URL classification step.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 JSON containing `url` has an element that is absent from the R6 datatype, and there is no same-type primitive URL replacement.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design plausibly exists: retain `url` as deprecated for one release, or include `url` as an `artifact[x]` choice with guidance preferring richer carriers. That would preserve most R4 instances while allowing R6 to steer new content. The tradeoff is duplicate/overlapping representations and receiver precedence rules, but that seems lower cost than forcing ambiguous URL reclassification at the base boundary.",
+        "comparisonToExisting": "agree with the existing hard-break and less-breaking-alternative judgment, but the fresh assessment gives more weight to low FMM and therefore relies on the direct validation break plus lossy migration ambiguity rather than assuming broad production impact."
+      }
     },
     {
       "findingId": "RelatedArtifact:SERIALIZATION_OR_CODEGEN:RelatedArtifact.artifact_x:9a31be",
@@ -441,7 +456,22 @@
       "migrationGuidanceMd": "Update serializers, parsers, search/indexing logic, and generated model bindings to read both legacy and `artifact[x]` fields. When producing R4, map `artifactMarkdown` to `citation`, `artifactAttachment` to `document`, and canonical artifacts to `resource` where safe. Treat non-canonical references as lossy and use extensions or manual review if R4 output is required.",
       "backwardCompatibilityAnalysisMd": "The Reference support addresses a real expressivity gap in R4. However, deprecating legacy fields at the same time increases risk for consumers that only look at the old locations. A transition period with normative dual-write guidance would have been more backward compatible.",
       "reviewerNotesMd": "Confirm whether the final R6 specification supplies official cross-version extensions for `artifactReference` or `resourceReference`; none was identified in the supplied local inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RelatedArtifact:SERIALIZATION_OR_CODEGEN:RelatedArtifact.artifact_x:9a31be",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds `artifact[x]` and `resourceReference` while retaining the R4 `citation`, `document`, and `resource` carriers, now marked deprecated in favor of `artifact[x]`. This is not a hard R4-to-R6 instance break for those retained fields. The real issue is runtime and down-conversion behavior: R6 producers can put related-artifact content in new choice properties that R4 parsers do not know, and `artifactReference` or `resourceReference` can carry non-canonical references that R4's canonical-only `resource` field cannot represent. That is real migration work, but the added expressivity and unified carrier model are reasonable, and the base design already preserves the old non-URL carriers.",
+        "keyEvidence": [
+          "R6 snapshot adds `RelatedArtifact.artifact[x]` with `markdown`, `Attachment`, `canonical`, and `Reference` choices.",
+          "R6 snapshot adds `RelatedArtifact.resourceReference` as `Reference(Resource)`.",
+          "R4 snapshot has no `artifact[x]` or `resourceReference` and uses separate `citation`, `document`, `url`, and canonical `resource` carriers.",
+          "R6 definitions for `citation`, `document`, and `resource` say they are deprecated in favor of `artifact[x]` but the elements remain present."
+        ],
+        "fmmEffect": "Low R4 FMM softens the compatibility concern, especially because the change is mostly additive for R4-to-R6 validation. It does not erase the real R6-to-R4 and generated-client update burden, so the result is Breaking but probably OK rather than Revisit.",
+        "compatibilityMechanism": "R6-to-R4 loss and runtime/API/codegen: R6 `artifact[x]` choice names and `resourceReference` are unknown to R4 models, and Reference-valued artifacts are not always convertible to R4 canonical `resource`.",
+        "lessBreakingAlternativeAssessment": "There is no clearly better base R6 design that both preserves R4 and meets the goal. R6 already keeps the legacy `citation`, `document`, and `resource` fields, and avoiding `Reference` support would leave an expressivity gap. Stronger dual-read/dual-write guidance or slower deprecation could reduce operational friction, but those are transition mitigations more than less-breaking base structure alternatives.",
+        "comparisonToExisting": "partially agree with the existing high runtime/conversion concern, but the fresh judgment treats the change as proportionate because it is additive for R4-to-R6 validation and retains the legacy non-URL fields."
+      }
     },
     {
       "findingId": "RelatedArtifact:TERMINOLOGY_BINDING:RelatedArtifact.type:4f22aa",
@@ -624,7 +654,22 @@
       "migrationGuidanceMd": "Update R6 enum/code handling to include `part-of`. When producing R4, do not blindly map `part-of` to `composed-of`; either move the relationship to the opposite artifact if available, use an extension, or flag the record for manual review. Test unknown-code handling in parsers generated from R4 definitions.",
       "backwardCompatibilityAnalysisMd": "A new required code is the normal interoperable way to add a relationship. It is not backward compatible with R4's closed binding, but using only extensions would have made the R6 relationship less discoverable and less consistently supported.",
       "reviewerNotesMd": "The local CodeSystems are complete, so the added-code finding is strong. The practical mapping policy still needs human decision because relationship direction matters.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RelatedArtifact:TERMINOLOGY_BINDING:RelatedArtifact.type:4f22aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`RelatedArtifact.type` keeps the same path, cardinality, type, and required binding strength, but the R6 required value set adds `part-of` and refines several relationship definitions. No R4 code is removed, so existing R4 instances remain valid for this path when moving to R6. The compatibility issue is reverse-direction and enum-based: R6 content using `part-of` is outside the R4 required binding and may be rejected by R4 validators or generated R4 enum code. Adding an inverse relationship code is a normal and useful terminology evolution, and avoiding the code would weaken the R6 relationship model.",
+        "keyEvidence": [
+          "R4 `RelatedArtifact.type` is 1..1 code with required binding to `ValueSet/related-artifact-type|4.0.1`.",
+          "R6 `RelatedArtifact.type` is still 1..1 code with required binding to `ValueSet/related-artifact-type|6.0.0-ballot4`.",
+          "R6 CodeSystem adds `part-of`; the R4 complete CodeSystem does not contain it.",
+          "R6 element comment adds directional guidance warning against bidirectional resource links."
+        ],
+        "fmmEffect": "Because the R4 content is FMM 1/trial-use, the reverse-direction enum incompatibility carries less standards-stability weight. The low maturity supports accepting a proportionate terminology expansion rather than revisiting it.",
+        "compatibilityMechanism": "R6-to-R4 loss: `type = part-of` is valid in R6 but invalid against the R4 required binding and may fail R4 generated enum parsing; existing R4 codes remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base alternative would be to avoid adding `part-of` or make it extension-only, but that would not meet the goal of a shared, required-bound inverse relationship code. Mapping to `composed-of` is not generally safe unless the relationship direction is reversed, so conversion guidance helps but is not a better base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies the R6-to-R4 required-binding and enum issue, but the fresh assessment downgrades the concern from a high-impact design problem because this is a widening R4-to-R6 change with a reasonable interoperability goal."
+      }
     },
     {
       "findingId": "RelatedArtifact:VALUE_CONSTRAINT:RelatedArtifact.root:rla123",
@@ -775,7 +820,23 @@
       "migrationGuidanceMd": "Review `type = citation`, `documentation`, and `justification` instances and align their carriers with the R6 warnings. Use `artifactMarkdown` or canonical citation references for citations, `artifactAttachment` or `document` for documentation, and Attachment or Reference forms for justifications. Add tests that assert expected warning behavior rather than treating all warnings as fatal.",
       "backwardCompatibilityAnalysisMd": "Because the new constraints are warnings, the specification chose a relatively backward-compatible mechanism. The remaining disruption comes from local operational policy, not from base FHIR validity.",
       "reviewerNotesMd": "The human text for `rla-3` mentions ArtifactAssessment, but the computable expression only tests for Reference/Attachment shapes. A reviewer should confirm intended target typing in final R6 materials.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "RelatedArtifact:VALUE_CONSTRAINT:RelatedArtifact.root:rla123",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds three local warning constraints linking selected `type` values to expected representation carriers: citation should be inline or canonical citation-related content, documentation should be an attachment, and justification should be an attachment or reference. These warnings can change validator output and can disrupt CI or publication processes that fail on warnings, but they do not make an instance structurally invalid under ordinary FHIR validation. The constraints also appear aimed at improving consistent rendering and data quality for the newly unified carrier model. Given warning severity and low R4 maturity, this is a proportionate compatibility pressure rather than a change that needs renewed base-design review.",
+        "keyEvidence": [
+          "R4 root `RelatedArtifact` constraint list contains inherited `ele-1` but no `rla-*` local constraints.",
+          "R6 adds warning `rla-1`: citation must be inline or a canonical reference to a Citation.",
+          "R6 adds warning `rla-2`: documentation must be an attachment.",
+          "R6 adds warning `rla-3`: justification must be an attachment or a reference to an ArtifactAssessment.",
+          "All three new `rla-*` constraints have severity `warning`, not `error`."
+        ],
+        "fmmEffect": "FMM 1/trial-use substantially softens the stability concern. Because the new constraints are warning-level, low FMM makes it inappropriate to infer major production breakage from changed validation output alone.",
+        "compatibilityMechanism": "warning-level: R4-valid combinations can produce new R6 warnings, and warning-as-error pipelines may fail, but base R6 validity is not lost solely because these constraints warn.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design would leave the carrier/type guidance as prose or implementation guidance only. That would preserve R4-like warning output, but it would also remove a computable, uniform data-quality signal. Warning severity is already a compromise compared with error constraints, so the less-breaking alternative has a material interoperability tradeoff.",
+        "comparisonToExisting": "partially agree with the existing warning-level operational concern, but the fresh review treats the impact as proportionate and not a high base-spec break because the constraints are warnings and low-FMM content has weaker stability expectations."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -930,5 +991,18 @@
       "Required value set code additions that break R6-to-R4 conversion",
       "Warning constraints that CI pipelines may treat as fatal"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/RelatedArtifact.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3
+    }
   }
 }

@@ -291,7 +291,22 @@
       "migrationGuidanceMd": "Inventory existing Linkage records before upgrade. Decide whether to archive them as R4 resources, expose them through a compatibility layer, transform them into a governed local extension/profile, or replace them with resource-specific relationships. Test R6 validators and parsers explicitly with historical Bundles containing `Linkage` resources, because failure mode may vary between rejection, unknown-resource preservation, or data loss.",
       "backwardCompatibilityAnalysisMd": "The backward-compatible alternative would have been to retain Linkage in R6, possibly marked deprecated/retired, so old data could still validate and round-trip. That alternative would reduce migration breakage but keep a low-maturity resource in the core package. Without official rationale, the necessity of complete removal cannot be confirmed from local inputs alone.",
       "reviewerNotesMd": "Confirm against official R6 narrative/change notes before making production policy. A successor might exist outside the supplied core package or as non-core guidance, but no direct local counterpart was found.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Linkage:ARTIFACT_IDENTITY:root:7b93fd",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 defines `Linkage` as a concrete resource, while the supplied R6 package has no `StructureDefinition-Linkage.json` and no package-index entry for the resource. That makes a valid R4 `resourceType: Linkage` instance unknown to an R6-only validator, parser, generated model, or resource-type route. This is a real top-level compatibility break. However, the artifact was trial-use/FMM 0 in R4, so the removal does not carry a strong stability expectation by itself. A quick public-use check found some implementation relevance, including public GitHub matches and a Microsoft FHIR-Converter template, but no clear official production IG dependency in the quick search. Given the low maturity and the likely R6 goal of removing a broad, low-maturity arbitrary-resource linkage model, the break looks proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Linkage.json: id=Linkage, kind=resource, type=Linkage, abstract=false.",
+          "R6 package: StructureDefinition-Linkage.json is absent and .index.json has no Linkage StructureDefinition entry.",
+          "R4 maturity/status supplied and confirmed by StructureDefinition extensions: FMM 0, trial-use.",
+          "Public-use check: GitHub code search found 186 public matches for resourceType Linkage excluding HL7 core and HAPI, including microsoft/FHIR-Converter data/Templates/Hl7v2/Resource/_Linkage.liquid; targeted web search did not surface a clear official production IG profile dependency."
+        ],
+        "fmmEffect": "FMM 0/trial-use substantially softens the stability concern. The break is hard, but low maturity means it should not be escalated solely because old instances become invalid; the limited public-use evidence prevents treating impact as zero.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with resourceType Linkage has no R6 core StructureDefinition, so R6-only validation and resource factories cannot treat it as a known core resource.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have retained Linkage as deprecated or retired. That would preserve R4 wire compatibility, but it would also keep generated classes, validator metadata, and possible API/search expectations for an FMM 0 arbitrary-resource linkage model. That tradeoff makes the alternative only partial, not an obvious low-cost requirement.",
+        "comparisonToExisting": "agree with the existing report that this is a hard, high-confidence R4-to-R6 break and that a deprecated-retention alternative exists only partially; the fresh judgment gives more explicit weight to FMM 0."
+      }
     },
     {
       "findingId": "Linkage:CONVERSION_OR_MAPPING:Linkage.item:18c2a9",
@@ -462,7 +477,23 @@
       "migrationGuidanceMd": "Do not automatically discard Linkage records. Classify existing records by target resource type and business purpose. For each class, decide whether a domain-specific R6 relationship is semantically equivalent; if not, preserve the assertion in an archival R4 store or a local R6 extension/profile with explicit definitions for `active`, `author`, role, and target reference. Include tests for inactive linkages, multiple alternate records, and historical records.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible approach could have preserved the model as a deprecated resource or provided a standard extension and transform. Complete removal may simplify the core specification, but it pushes migration design to implementers and increases the chance of incompatible local representations.",
       "reviewerNotesMd": "This finding intentionally does not claim that any specific R6 resource is an adequate replacement. The local search found only unrelated uses of the word linkage or source-of-truth concepts.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Linkage:CONVERSION_OR_MAPPING:Linkage.item:18c2a9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 `Linkage` content model includes `active`, `author`, and repeating `item` entries, with each item requiring a role and a reference to any FHIR Resource. R6 has no standard Linkage destination, so preserving those assertions in an R6-only system requires a local model or a domain-specific reinterpretation. That can be lossy, especially for source-of-truth and historical-record semantics. Still, this finding is largely the direct consequence of the resource removal rather than a separate mature element change. Because the R4 resource was FMM 0/trial-use and no quick official production dependency was found, carrying the whole arbitrary-resource assertion model forward in base R6 does not appear clearly required.",
+        "keyEvidence": [
+          "R4 Linkage.active: optional boolean, false means the asserted linkages should not be considered current/relevant/applicable; missing generally means active.",
+          "R4 Linkage.author: optional Reference to Practitioner, PractitionerRole, or Organization responsible for asserting the linkage.",
+          "R4 Linkage.item: min 1, max *, with invariant lnk-1 requiring item.count()>1.",
+          "R4 Linkage.item.resource: required Reference to Resource, allowing arbitrary-resource linkage.",
+          "R6 package and index searches found no Linkage StructureDefinition or direct arbitrary-resource replacement; R6 Patient.link exists but only links Patient/RelatedPerson and does not carry the same general model."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the concern even though migration can require judgment. The domain can matter for record reconciliation, but the low maturity and lack of clear official production-use evidence argue against treating this as disproportionate on its own.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 generated models and APIs have no standard fields corresponding to Linkage.active, Linkage.author, Linkage.item.type, or Linkage.item.resource, so migration must use local or domain-specific representations.",
+        "lessBreakingAlternativeAssessment": "The main less-breaking base design is to retain the R4 Linkage content model inside a deprecated R6 Linkage resource. Patient.link or other resource-specific links may cover some patient identity cases but do not preserve arbitrary-resource sets, author, active status, or the old role semantics. Retaining Linkage would avoid data loss but would continue a broad FMM 0 model and duplicate more specific relationship mechanisms.",
+        "comparisonToExisting": "agree with the existing report that the migration risk is real and that the less-breaking alternative is partial. The fresh review treats the finding as downstream of resource removal and therefore probably acceptable under FMM 0."
+      }
     },
     {
       "findingId": "Linkage:TERMINOLOGY_BINDING:Linkage.item.type:a4f1c2",
@@ -627,7 +658,23 @@
       "validationAndCompatibilityMd": "R4 validation required one of the LinkageType codes for every item. R6 core validation has no Linkage element or binding, so the old code field is not directly valid. If a migration uses an extension, validators will need the R4 terminology package or a local terminology definition to validate the preserved codes.",
       "migrationGuidanceMd": "Carry the three role codes explicitly in any custom migration model and document their original R4 definitions. If using a local extension, bind it to a retained copy of `http://hl7.org/fhir/linkage-type` or to a well-documented local code system with a ConceptMap from the R4 codes. Test all three roles, especially `historical`, because it can affect whether downstream systems continue to update a record.",
       "backwardCompatibilityAnalysisMd": "Retaining the terminology as historical would have avoided enum and terminology-resolution churn even if the resource was retired. Because the supplied R6 package removes both the resource and the local terminology artifacts, migration tooling must supply its own terminology context.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Linkage:TERMINOLOGY_BINDING:Linkage.item.type:a4f1c2",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 required `Linkage.item.type` to use the LinkageType value set, with the small code system `source`, `alternate`, and `historical`. R6 no longer includes the Linkage resource and also omits the LinkageType CodeSystem and ValueSet from the core package. Unlike restoring the whole resource, retaining retired or historical terminology would be a narrow compatibility measure: it would help validators, generated enums, extensions, and migration tooling preserve the meaning of legacy Linkage records without requiring an R6 Linkage endpoint or content model. Because the codes distinguish source-of-truth from alternate or obsolete records, dropping the canonical terminology seems more avoidable than the resource removal itself.",
+        "keyEvidence": [
+          "R4 Linkage.item.type: min 1, max 1, code, required binding to http://hl7.org/fhir/ValueSet/linkage-type|4.0.1.",
+          "R4 CodeSystem-linkage-type.json defines source, alternate, and historical.",
+          "R4 ValueSet-linkage-type.json includes system http://hl7.org/fhir/linkage-type.",
+          "R6 .index.json search found no CodeSystem-linkage-type.json or ValueSet-linkage-type.json entry.",
+          "Public-use check found some implementation relevance for Linkage generally, but not strong official IG evidence; this mainly affects migration and terminology/tooling surfaces."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the need to preserve the removed element, but the alternative here is much narrower than preserving the resource. Low maturity does not strongly justify removing a small legacy code system when retaining it would reduce migration ambiguity.",
+        "compatibilityMechanism": "metadata/tooling: the direct hard instance break comes from resource removal, but absence of the canonical CodeSystem/ValueSet affects terminology resolution, generated enums, and semantic preservation for legacy Linkage data.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists: keep http://hl7.org/fhir/linkage-type and http://hl7.org/fhir/ValueSet/linkage-type in R6 with retired or historical status and guidance that no active R6 base element binds to them. The tradeoff is minor package/terminology clutter, while the benefit is preserving canonical role-code meaning for migration and compatibility layers.",
+        "comparisonToExisting": "partially agree with the existing report: the impact is better characterized as tooling/semantic migration risk rather than a standalone hard break, but I agree that a less-breaking alternative is available and worth revisiting."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -768,5 +815,18 @@
       "Search parameters attached to resources removed from R6",
       "Terminology artifacts removed because their only bound element was removed"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Linkage.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 2
+    }
   }
 }

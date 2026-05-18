@@ -344,7 +344,21 @@
       "validationAndCompatibilityMd": "R4 instances containing direct DataRequirement fields under `action.input[]` or `action.output[]` can become R6-invalid because those fields are not defined on the R6 wrapper. Valid R6 instances using `relatedData` are not cleanly representable in R4. R6 wrapper items with both `requirement` and `relatedData`, or neither, fail new error-level invariants.",
       "migrationGuidanceMd": "Transform each R4 input/output DataRequirement into an R6 wrapper item with `requirement` containing the original DataRequirement. Preserve ordering. If migrating R6 back to R4, unwrap `requirement` losslessly but flag `title` and `relatedData` for extension mapping or manual review. Add tests for direct requirements, related-data links, and invalid items containing both alternatives.",
       "backwardCompatibilityAnalysisMd": "The R6 design likely needed an explicit wrapper to model data-flow labels and references. A backward-compatible alternative would have kept the R4 direct DataRequirement element and added optional extensions, but that would make core validation of the new relationship semantics difficult and less discoverable.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PlanDefinition:TYPE_DOMAIN:PlanDefinition.action.input-output:6b7e21",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 put each action input/output DataRequirement directly under `action.input[]` or `action.output[]`; R6 changes those entries into backbone wrappers that carry either `requirement` or `relatedData`. That is a real wire-format and generated-model break for any converter, validator, or CDS prefetch logic reading `input.type` directly. The R6 goal is also concrete: a wrapper is the natural way to name data-flow items and express related-data links without pretending every item is itself a DataRequirement. The migration from R4 to R6 is mechanical for ordinary requirements, while R6-only `relatedData` needs explicit reverse-conversion policy.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `PlanDefinition.action.input` and `.output` are 0..* `DataRequirement`.",
+          "R6 StructureDefinition: `PlanDefinition.action.input` and `.output` are 0..* `BackboneElement` with nested `requirement` DataRequirement and `relatedData` id.",
+          "R6 constraints `pld-0` and `pld-1` require exactly one of `requirement` or `relatedData` on present wrapper entries."
+        ],
+        "fmmEffect": "R4 PlanDefinition is FMM 2/trial-use, so I treated maturity as neutral: the hard break matters, but the content does not have normative-level stability pressure.",
+        "compatibilityMechanism": "old-valid/new-invalid: direct R4 DataRequirement properties at `action.input[]` or `action.output[]` are not R6 wrapper children; R6-to-R4 loss also exists for `title` and `relatedData`.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have kept direct DataRequirement arrays and added separate sibling/wrapper elements for titled or related data, but that would create two same-purpose input/output representations and conflict rules. The wrapper design is disruptive but proportionate.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial-alternative assessment; the break is real, but I would not escalate it to Revisit because the less-breaking design has material duplicate-representation costs."
+      }
     },
     {
       "findingId": "PlanDefinition:ELEMENT_PRESENCE_OR_IDENTITY:PlanDefinition.action.relatedAction:0a84ce",
@@ -527,7 +541,22 @@
       "validationAndCompatibilityMd": "An R4 instance with `relatedAction.actionId` can be R6-invalid because `targetId` is absent. A strict R6 parser may also reject the unknown `actionId` member. R6 instances with `endRelationship` can only be represented in R4 by dropping, extending, or otherwise externalizing that end-bound timing detail.",
       "migrationGuidanceMd": "Rename `actionId` to `targetId` during R4-to-R6 conversion and validate that the target references an action `id`. For R6-to-R4, rename `targetId` back to `actionId` only when the value is a valid R4 `id`, and preserve `endRelationship` in an extension or manual migration note.",
       "backwardCompatibilityAnalysisMd": "The semantic addition is understandable, but the field rename could have been made less disruptive through a deprecated alias or transitional conversion rule. The main tradeoff is avoiding two competing target fields that could conflict.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PlanDefinition:ELEMENT_PRESENCE_OR_IDENTITY:PlanDefinition.action.relatedAction:0a84ce",
+        "judgment": "Revisit",
+        "narrativeMd": "The required related-action pointer was renamed from `actionId` to `targetId`. An R4 instance with `relatedAction.actionId` fails to populate the required R6 field even though the semantic role is essentially the same target action reference. The `id` to `string` type change is not a narrowing for normal R4 ids, and adding `endRelationship` is independently useful, so the hard break is driven mostly by a wire-name cleanup.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `PlanDefinition.action.relatedAction.actionId` is 1..1 `id`.",
+          "R6 StructureDefinition: `PlanDefinition.action.relatedAction.targetId` is 1..1 `string`.",
+          "R6 StructureDefinition: `PlanDefinition.action.relatedAction.endRelationship` is an added optional element.",
+          "R6 warning `pld-4` checks that `targetId` references an action id."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral, but it does not excuse a required element rename when the old name could plausibly have been retained.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `actionId` is unknown to the R6 shape and leaves required `targetId` absent; R6-to-R4 loss applies only to the added `endRelationship`.",
+        "lessBreakingAlternativeAssessment": "Yes: keep `actionId` as the required wire name, clarify its definition as the target action id, widen its primitive type if needed, and add `endRelationship`. The tradeoff is living with a less precise legacy name, not a substantive modeling conflict.",
+        "comparisonToExisting": "agree with the existing high-impact and less-breaking-alternative-available assessment; this looks like a low-cost avoidable rename."
+      }
     },
     {
       "findingId": "PlanDefinition:CARDINALITY:PlanDefinition.action.code:4dbf19",
@@ -664,7 +693,21 @@
       "validationAndCompatibilityMd": "An R4 action with multiple `code` repetitions can be invalid in R6 because it violates `max=1`. R6-to-R4 is not a problem for this field because one code is allowed in R4. The migration problem is semantic: multiple old concepts may not have a single equivalent R6 CodeableConcept.",
       "migrationGuidanceMd": "Inventory actions with more than one `code`. If repeated codings express the same concept in different systems, merge them into one CodeableConcept. If they express distinct classifications, choose a primary code and move secondary classifications to extensions, profiles, or downstream metadata with human review.",
       "backwardCompatibilityAnalysisMd": "The change could have been avoided by keeping `0..*`; however, if the intent is to ensure `code` is a single action classification, a base cardinality change is the strongest enforcement mechanism. A warning invariant would have been less disruptive but less interoperable.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PlanDefinition:CARDINALITY:PlanDefinition.action.code:4dbf19",
+        "judgment": "Revisit",
+        "narrativeMd": "`PlanDefinition.action.code` changed from repeatable to single-valued. That is a direct validation break for R4 actions that used multiple CodeableConcepts to classify an action. Some repeated codings can be collapsed into one CodeableConcept, but distinct classifications require a primary/secondary decision or an extension, which is expert-dependent and potentially changes filtering or grouping behavior.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `PlanDefinition.action.code` has cardinality 0..* and type `CodeableConcept`.",
+          "R6 StructureDefinition: `PlanDefinition.action.code` has cardinality 0..1 and type `CodeableConcept`.",
+          "R6 keeps only an example binding, so the material change is cardinality rather than terminology strength."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use does not create a high stability burden by itself, but the path-level narrowing and potentially lossy consolidation drive the judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 action with two or more `code` repetitions violates R6 `max=1`; migration may also lose meaning when repetitions are distinct concepts.",
+        "lessBreakingAlternativeAssessment": "Yes: keep `action.code` at 0..* in the base resource and use definition text, warnings, profiles, or IG rules to prefer one conceptual CodeableConcept. This preserves old instances with modest cost.",
+        "comparisonToExisting": "agree with the existing hard-break and less-breaking-alternative-available assessment, even though prevalence remains uncertain."
+      }
     },
     {
       "findingId": "PlanDefinition:TYPE_DOMAIN:PlanDefinition.action.timing:38e58f",
@@ -839,7 +882,21 @@
       "validationAndCompatibilityMd": "R4 `timingDateTime` and `timingPeriod` elements are old-valid/new-invalid at the PlanDefinition level. Some values can be converted to `timingTiming`, but conversion should be tested because a direct choice element becomes a nested datatype representation. R6 `timingRelativeTime` is not R4-representable without extension or loss of precision.",
       "migrationGuidanceMd": "Map absolute dateTime values to `Timing.event` where that preserves intent. Map Period values to `Timing.repeat.boundsPeriod` when appropriate. Treat `RelativeTime` as an R6-only feature for R4 conversion unless a project-specific extension or approximation is defined. Include action scheduling tests around point-in-time, interval, repeat, and relative cases.",
       "backwardCompatibilityAnalysisMd": "Keeping dateTime and Period while adding RelativeTime would have been the least disruptive path. If R6 intended to reduce ambiguous timing forms, removal gives stronger consistency but shifts conversion burden to implementers.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PlanDefinition:TYPE_DOMAIN:PlanDefinition.action.timing:38e58f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 removes the direct `timingDateTime` and `timingPeriod` choices while adding `RelativeTime`. R4 instances using those removed choice names require transformation, and R6 `RelativeTime` cannot be represented in base R4 without an extension or approximation. For forward migration, however, the removed R4 cases have natural R6 `Timing` encodings (`Timing.event` and `Timing.repeat.boundsPeriod`), and the R6 model appears to favor schedulable or relative timing forms for a reusable definition.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `PlanDefinition.action.timing[x]` includes `dateTime`, `Age`, `Period`, `Duration`, `Range`, and `Timing`.",
+          "R6 StructureDefinition: `PlanDefinition.action.timing[x]` includes `Age`, `Duration`, `Range`, `Timing`, and `RelativeTime`.",
+          "The affected path is an action scheduling field, so transforms should be tested rather than silently dropped."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; it keeps attention on the concrete scheduling mechanism and on whether the old choices are reasonably transformable.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `timingDateTime` and `timingPeriod` choice names are outside the R6 choice set; R6-to-R4 loss exists for `timingRelativeTime`.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have retained `dateTime` and `Period` as deprecated choices while adding `RelativeTime`, but that would leave overlapping timing representations that duplicate `Timing.event` and `Timing.repeat.boundsPeriod` in a definitional apply context.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative assessment; I agree the break is real but judge the design proportionate because old forward cases can usually be transformed into `Timing`."
+      }
     },
     {
       "findingId": "PlanDefinition:TERMINOLOGY_BINDING:PlanDefinition.action.participant:bc41d0",
@@ -1084,7 +1141,21 @@
       "validationAndCompatibilityMd": "R4 instances with `participant.type = related-person` fail R6 required-binding validation. Other R4 codes such as `patient`, `practitioner`, and `device` remain present in the local R6 CodeSystem. R6 actor-based or reference-based participants do not fit the R4 participant shape without flattening and information loss.",
       "migrationGuidanceMd": "Map known old participant codes to R6 codes, especially `related-person` to `relatedperson`, but treat that as a terminology migration requiring review because no local ConceptMap was found. For R6 actor-based participants, decide whether to inline an approximate R4 `type`, preserve actor details in extensions, or block down-conversion.",
       "backwardCompatibilityAnalysisMd": "The actor model is a reasonable structural enhancement, but the required code spelling change could have been softened by retaining aliases or publishing a ConceptMap. Without that, implementations must hard-code cross-version terminology logic.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PlanDefinition:TERMINOLOGY_BINDING:PlanDefinition.action.participant:bc41d0",
+        "judgment": "Revisit",
+        "narrativeMd": "Most of the R6 participant model is additive or relaxing for R4-to-R6 migration: `participant.type` becomes optional, top-level actors are added, and canonical/reference/function alternatives increase expressivity. The hard forward break is the required-bound code spelling change from `related-person` to `relatedperson`. An R4 participant using the old valid code becomes invalid under the R6 required binding even though the concept is the same RelatedPerson role.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `PlanDefinition.action.participant.type` is 1..1 `code` with required action-participant-type binding.",
+          "R6 StructureDefinition: `PlanDefinition.action.participant.type` is 0..1 `code` with required action-participant-type binding, with actor/canonical/reference alternatives added.",
+          "R4 CodeSystem action-participant-type includes `related-person`; R6 CodeSystem includes `relatedperson` and not `related-person`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the Revisit judgment comes from the avoidable required-code removal, not from a mature-artifact stability presumption.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `participant.type = related-person` fails the R6 required code set; R6-to-R4 loss also exists for actor-based participants.",
+        "lessBreakingAlternativeAssessment": "Yes: include `related-person` as a deprecated alias while adding `relatedperson` and the richer actor model. The tradeoff is a normalization burden and two spellings for one concept, but it preserves R4 instances without blocking the new model.",
+        "comparisonToExisting": "agree with the existing high-impact and less-breaking-alternative-available assessment for the terminology break; the actor additions are useful but do not justify removing the old code from the required set."
+      }
     },
     {
       "findingId": "PlanDefinition:REFERENCE_TARGET:PlanDefinition.subject-definition-detail:9d2a66",
@@ -1286,7 +1357,21 @@
       "validationAndCompatibilityMd": "R4 content remains valid for the shared choices. R6 content using the new choices is not cleanly R4-representable: choice element names differ, target profiles are outside R4's declared domain, and strict R4 validators/code generators will reject or ignore them.",
       "migrationGuidanceMd": "For R6-to-R4 conversion, detect these R6-only choices and either preserve them in extensions, map them to project-specific R4 profiles, or reject down-conversion. For R4-to-R6, no transform is needed for existing shared choices, but applications should update model classes and FHIRPath to handle the new choice names.",
       "backwardCompatibilityAnalysisMd": "These widenings appear to reflect real new scope in R6. R4 cannot express them without extensions, so a fully backward-compatible base representation was not available once the new domains were accepted.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PlanDefinition:REFERENCE_TARGET:PlanDefinition.subject-definition-detail:9d2a66",
+        "judgment": "No problem",
+        "narrativeMd": "This finding is mainly a set of R6 widenings: added subject choices/targets, added action definition targets, and added goal target detail datatypes. The R4 shapes remain available, so existing R4 instances do not become invalid on these paths. A converter exporting newer R6 content back to R4 needs policy for the new choices, but that reverse-direction limitation is inherent in adding expressivity and does not indicate a problematic R6 base design.",
+        "keyEvidence": [
+          "R4 `PlanDefinition.subject[x]` supports CodeableConcept and Reference(Group); R6 adds canonical(EvidenceVariable) and product/substance-related reference targets.",
+          "R4 `PlanDefinition.action.definition[x]` targets ActivityDefinition, PlanDefinition, and Questionnaire; R6 adds Measure, MessageDefinition, ObservationDefinition, OperationDefinition, and SpecimenDefinition targets.",
+          "R6 `PlanDefinition.goal.target.detail[x]` adds string, boolean, integer, and Ratio while retaining the R4-compatible forms."
+        ],
+        "fmmEffect": "FMM 2/trial-use did not amplify this because there is no forward compatibility break; additive widening is acceptable under this maturity level.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6-only choices and targets cannot be represented in base R4, but there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable: R6 retained the R4-valid forms and only widened the domains. Extensions or rejection policies for down-conversion are migration mitigations, not less-breaking base R6 designs.",
+        "comparisonToExisting": "partially agree with the existing representability-risk observation, but disagree that this should be treated as a material breaking-change concern; it is reverse-only additive expressivity."
+      }
     },
     {
       "findingId": "PlanDefinition:SERIALIZATION_OR_CODEGEN:PlanDefinition.markdown-fields:41b930",
@@ -1413,7 +1498,21 @@
       "validationAndCompatibilityMd": "Plain R4 strings should generally remain acceptable as R6 markdown values, so old-valid/new-invalid risk is low. The main compatibility issue is behavioral: typed SDKs may expose a different primitive class, and UIs must avoid unsafe markdown rendering assumptions. R6 markdown content can be copied into R4 string fields but may lose declared formatting semantics.",
       "migrationGuidanceMd": "Update generated models and serializers for the primitive type change. Review UI rendering and sanitization paths. If down-converting to R4, either preserve markdown as literal text or strip/escape formatting according to local display policy.",
       "backwardCompatibilityAnalysisMd": "Using markdown directly is more expressive and consistent with other FHIR narrative fields. A string-plus-guidance approach would reduce codegen churn but would hide formatting expectations from conformance tooling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "PlanDefinition:SERIALIZATION_OR_CODEGEN:PlanDefinition.markdown-fields:41b930",
+        "judgment": "No problem",
+        "narrativeMd": "`usage`, `action.description`, and `action.textEquivalent` changed from FHIR `string` to FHIR `markdown`, but the JSON member names and primitive wire representation remain string values. Typed SDKs, renderers, and sanitizers may need to recognize markdown semantics, yet ordinary R4 string payloads are not made invalid by this change. The main risk is local display policy, not a base compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `PlanDefinition.usage`, `PlanDefinition.action.description`, and `PlanDefinition.action.textEquivalent` are type `string`.",
+          "R6 StructureDefinition: the same three paths are type `markdown` with unchanged element names.",
+          "FHIR JSON serializes both primitives as JSON strings, with any primitive extensions still carried through the same underscore companion pattern."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; because the wire shape stays compatible, maturity did not push this beyond migration awareness.",
+        "compatibilityMechanism": "runtime/API/codegen: generated primitive classes or UI rendering behavior can change, but there is no ordinary old-valid/new-invalid instance break.",
+        "lessBreakingAlternativeAssessment": "Partial but unnecessary: keeping `string` with prose guidance would reduce primitive-type churn, but it would hide the computable markdown signal needed by validators and safe renderers.",
+        "comparisonToExisting": "partially agree that codegen/runtime awareness is useful, but disagree with treating the impact as more than low practical concern because the wire value remains a string."
+      }
     },
     {
       "findingId": "PlanDefinition:VALUE_CONSTRAINT:PlanDefinition.local-invariants:df46a7",
@@ -1568,7 +1667,22 @@
       "validationAndCompatibilityMd": "Under standard severity handling these are not hard breaking: R4-valid content becomes R6-valid-with-warnings rather than invalid. Environments that escalate warnings can experience operational breaks. The stricter `cnl-0` name pattern also means a one-character uppercase name that satisfied R4 `pdf-0` no longer satisfies the R6 warning expression.",
       "migrationGuidanceMd": "Run R6 validation and triage warning output. Normalize canonical URLs, ensure `goalId` and `targetId` values resolve internally, avoid `relatedArtifact.type = composed-of` on PlanDefinition, and review dependency relatedArtifact representations. Decide explicitly whether migration tooling treats these warnings as blocking.",
       "backwardCompatibilityAnalysisMd": "Warnings are a relatively backward-compatible way to introduce stricter expectations. The avoidable part is warning churn for existing artifacts, but the severity choice avoids making old instances structurally invalid.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PlanDefinition:VALUE_CONSTRAINT:PlanDefinition.local-invariants:df46a7",
+        "judgment": "No problem",
+        "narrativeMd": "The added R6 constraints are warning-level checks for canonical hygiene, internal goal/action references, and relatedArtifact usage. They can create new QA findings or fail a local pipeline that treats warnings as fatal, but the base StructureDefinition does not turn matching R4 content into an error-level invalid instance. This is the compatibility-preserving way to introduce stronger guidance.",
+        "keyEvidence": [
+          "R4 root constraint includes the local `pdf-0` name warning.",
+          "R6 root and URL constraints include warning-level `cnl-0`, `cnl-1`, `pld-3`, and `pld-4`.",
+          "R6 `PlanDefinition.relatedArtifact` adds warning-level `pld-6` and `pld-7`.",
+          "All material local constraints in this finding are severity `warning`, not `error`."
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; warning severity keeps the change below a material base-breaking threshold.",
+        "compatibilityMechanism": "warning-level: R4-era content may produce new R6 warnings, especially in warning-as-error publication pipelines, but remains structurally valid under normal severity handling.",
+        "lessBreakingAlternativeAssessment": "Not applicable: warning-level invariants are already the less-breaking alternative to hard cardinality, type, or error-level constraints. Prose-only guidance would be weaker but not meaningfully more compatible at the base-validation level.",
+        "comparisonToExisting": "partially agree with the existing warning-level mechanism, but disagree with elevating it to a medium breaking concern; local warning escalation is an implementation policy."
+      }
     },
     {
       "findingId": "PlanDefinition:CONVERSION_OR_MAPPING:PlanDefinition.r6-new-elements:fd093b",
@@ -1736,7 +1850,21 @@
       "validationAndCompatibilityMd": "R4 instances are not invalidated by these additions. Valid R6 instances using them are not base-R4-representable without extensions or external metadata. Strict R4 parsers will reject the unknown elements if they appear directly in R4-shaped JSON.",
       "migrationGuidanceMd": "For R4-to-R6, no default population is required. For R6-to-R4, define extensions for fields that must survive, and document any fields intentionally dropped. Pay special attention to `applicabilityBehavior` and `location` because they may affect execution semantics rather than only publication metadata.",
       "backwardCompatibilityAnalysisMd": "Optional additions are the most compatible way to add R6 features. The remaining incompatibility is inherent to trying to represent newer R6 semantics in the older R4 base resource.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "PlanDefinition:CONVERSION_OR_MAPPING:PlanDefinition.r6-new-elements:fd093b",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 elements are optional additions: version algorithm, copyright label, plan-level as-needed, action linkId, action location, and applicability behavior. They do not invalidate any R4 PlanDefinition moving forward. Some have real execution or publication semantics, so R6-to-R4 exporters should preserve them in extensions or reject lossy conversion when needed, but that is a normal consequence of optional new R6 expressivity.",
+        "keyEvidence": [
+          "R6 StructureDefinition adds optional `PlanDefinition.versionAlgorithm[x]`, `copyrightLabel`, and `asNeeded[x]`.",
+          "R6 StructureDefinition adds optional `PlanDefinition.action.linkId`, `action.location`, and `action.applicabilityBehavior`.",
+          "No corresponding required R6 element is introduced for existing R4 instances to populate."
+        ],
+        "fmmEffect": "FMM 2/trial-use did not increase concern because the changes are additive and optional for R4-to-R6 migration.",
+        "compatibilityMechanism": "R6-to-R4 loss: direct base-R4 representation is missing for the new optional fields, but there is no R4-to-R6 invalidation mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable: adding optional base elements is already the compatibility-preserving design. R4 extensions or external metadata are down-conversion mitigations, not less-breaking R6 base alternatives.",
+        "comparisonToExisting": "partially agree with the existing R6-to-R4 representability warning, but disagree that this is a breaking-design problem because the additions are optional and forward-compatible."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1916,5 +2044,19 @@
       "Timing choice removal/addition patterns involving RelativeTime",
       "Participant type code spelling changes from hyphenated to unhyphenated codes"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/PlanDefinition.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 2,
+      "No problem": 4
+    }
   }
 }

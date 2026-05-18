@@ -246,7 +246,22 @@
       "validationAndCompatibilityMd": "An R4-valid `ResearchDefinition` instance becomes R6-invalid at the resource-type level. This affects JSON, XML, RDF, validator schemas, generated POJOs/classes/interfaces, and server metadata. There is no R6 `ResearchDefinition` instance to round-trip back to R4, so the direct R6-to-R4 question is not applicable for same-identity artifacts.",
       "migrationGuidanceMd": "Inventory all persisted instances, profiles, references, search parameters, subscriptions, CapabilityStatements, and generated-code references to `ResearchDefinition`. Choose an explicit target representation, likely involving `Evidence` and/or `EvidenceVariable`, then write migration tests that include a minimal instance, an instance with all PICO fields, and instances using canonical `library` logic and metadata.",
       "backwardCompatibilityAnalysisMd": "Because R4 `ResearchDefinition` was draft, a breaking removal may be acceptable for ballot evolution. Still, a backward-compatible deprecation period or bundled ConceptMap would have reduced implementation risk. Without that, each implementation must infer mapping rules from surrounding evidence resources.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ResearchDefinition:ARTIFACT_IDENTITY:root:5b2a1c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `ResearchDefinition` instances have no same-name R6 base resource, so this is a genuine resource-type compatibility break rather than ordinary metadata churn. A strict R6 validator or generated R6 model cannot accept `resourceType: ResearchDefinition` as a normal R6 instance. However, this was FMM 0 trial-use content, public evidence of production dependence appears sparse, and preserving the old resource in base R6 would keep a duplicate legacy evidence-question model beside `Evidence`/`EvidenceVariable`. On balance, the break is real but proportionate for this maturity level.",
+        "keyEvidence": [
+          "R4 StructureDefinition-ResearchDefinition.json defines a concrete draft/trial-use FMM 0 resource with canonical URL http://hl7.org/fhir/StructureDefinition/ResearchDefinition.",
+          "R6 package has no StructureDefinition-ResearchDefinition.json and the R6 package index has no StructureDefinition entry for ResearchDefinition.",
+          "R6 CodeSystem-fhir-old-types includes ResearchDefinition as an old resource name no longer used in this version of FHIR.",
+          "Lightweight checks of MITRE/NIH FHIR-for-research pages, the HL7 Vulcan RWD IG artifacts page, and GitHub code search found examples/generated library support but no clear public production IG that profiles or requires ResearchDefinition."
+        ],
+        "fmmEffect": "R4 FMM 0 and trial-use status substantially soften the stability concern; I did not treat removal alone as enough for Revisit without stronger production-use evidence.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with resourceType ResearchDefinition has no R6 base StructureDefinition, with downstream runtime/API/codegen effects for validators, model classes, REST resource handling, and CapabilityStatements.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have retained deprecated R6 ResearchDefinition and likely ResearchElementDefinition for one transition release. That would preserve many R4 instances, but it would also require R6 servers, validators, search/codegen, and implementers to carry a duplicate legacy evidence-question representation next to the newer Evidence/EvidenceVariable model. A ConceptMap would help migration but would not by itself preserve base instance validity. The base-compatible alternative is therefore only partial and not clearly low-cost.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: the old report is right that this is a hard resource-type break and that any compatible alternative is only partial, but I temper the action judgment because the artifact is FMM 0 and I found no clear public production-use evidence."
+      }
     },
     {
       "findingId": "ResearchDefinition:CONVERSION_OR_MAPPING:pico:0fd3e9",
@@ -434,7 +449,23 @@
       "migrationGuidanceMd": "Do not perform a blind text substitution from `ResearchDefinition` to `Evidence`. First migrate referenced `ResearchElementDefinition` resources, probably to `EvidenceVariable`, then map each old PICO role intentionally. Preserve old canonical URLs and identifiers where possible, use `relatesTo` or extensions for provenance if needed, and manually review instances with comparator/exposureAlternative semantics or formal `library` logic.",
       "backwardCompatibilityAnalysisMd": "The redesign may be semantically justified, but it would have been less disruptive with an official ConceptMap and explicit extensions for old fields. Without those, different implementers may create incompatible R6 representations for the same R4 ResearchDefinition.",
       "reviewerNotesMd": "Confirm against official R6 narrative/migration material before standardizing a production transform. The supplied package identifies the old type but does not name a successor.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchDefinition:CONVERSION_OR_MAPPING:pico:0fd3e9",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The PICO fields are not just renamed into R6. R4 has role-specific links such as mandatory `population`, optional `exposure`, optional `exposureAlternative`, optional `outcome`, and `library`; the closest R6 structures use repeated `Evidence.variableDefinition` entries and separate `EvidenceVariable` resources. That makes migration policy-dependent, especially for comparator/alternative exposure and formal logic references. Still, this conversion risk is downstream of a draft FMM 0 resource removal, and carrying the old PICO shape in base R6 would create parallel representations of the same evidence-question concepts. The migration burden is real, but the redesign appears proportionate.",
+        "keyEvidence": [
+          "R4 ResearchDefinition.population is 1..1 Reference(ResearchElementDefinition); exposure, exposureAlternative, and outcome are 0..1 references to ResearchElementDefinition; library is 0..* canonical(Library).",
+          "R4 ResearchElementDefinition defines PICO elements and has required type codes population, exposure, or outcome.",
+          "R6 Evidence.variableDefinition is 0..* with required variableRole and observed/intended references to Group or EvidenceVariable; R6 variable-role codes are population, exposure, outcome, and covariate.",
+          "The R6 package contains Evidence and EvidenceVariable StructureDefinitions but no ResearchDefinition or ResearchElementDefinition StructureDefinitions, and local search found ResearchDefinition only in fhir-old-types.",
+          "No supplied R6 ConceptMap or same-identity successor mapping for ResearchDefinition was found in the package evidence."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the expectation that R6 must preserve the old PICO wire model; it does not eliminate the need for careful migration, but it makes a breaking remodel more acceptable absent clear production dependence.",
+        "compatibilityMechanism": "R6-to-R4 loss: the strongest independent issue is semantic/conversion loss rather than a separate validation break, because mapping between R4 role-specific PICO fields and R6 Evidence/EvidenceVariable variable definitions can require implementation policy and may not round-trip.",
+        "lessBreakingAlternativeAssessment": "A base-compatible option would be to keep the old PICO fields in a deprecated ResearchDefinition or transitional R6 structure while recommending Evidence/EvidenceVariable for new content. That would preserve common R4 mappings but would duplicate the canonical R6 evidence model and introduce precedence/interoperability questions between old role-specific fields and new variableDefinition structures. An official ConceptMap or StructureMap would be valuable migration guidance, but it is mitigation rather than a less-breaking base design.",
+        "comparisonToExisting": "partially agree with the existing impact and alternative judgment: I agree there is high semantic migration risk and no lossless same-identity mapping, but I treat it as a downstream conversion issue softened by FMM 0 rather than an additional hard break demanding redesign."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -578,5 +609,17 @@
       "R4 resources whose local elements reference ResearchElementDefinition",
       "R4 knowledge artifacts with relatedArtifact/library metadata moving to R6 relatesTo or evidence-variable patterns"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ResearchDefinition.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2
+    }
   }
 }

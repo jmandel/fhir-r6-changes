@@ -282,7 +282,22 @@
       "validationAndCompatibilityMd": "Old-valid/new-invalid occurs when `date` is present. R6 `creation` is R4-representable only through an explicit rename back to `date`.",
       "migrationGuidanceMd": "Rename `date` to `creation` in transforms, generated models, FHIRPath, mappings, profiles, and tests.",
       "backwardCompatibilityAnalysisMd": "A deprecated alias would have preserved old data but added model redundancy.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Invoice:ELEMENT_PRESENCE_OR_IDENTITY:Invoice.date:0d6f8a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Invoice.date` and R6 `Invoice.creation` have the same cardinality, type, summary flag, and definition, while the old wire name disappears. An R4 invoice carrying a posting date will fail strict R6 structural validation unless transformed, and generated models, FHIRPath, mappings, and profile paths that use `date` must be changed. Even though Invoice is low maturity, this path is central to invoice timing and audit/business workflows, so the rename looks more disruptive than the model goal requires.",
+        "keyEvidence": [
+          "R4 StructureDefinition `Invoice.date`: `0..1 dateTime`, summary, definition `Date/time(s) of when this Invoice was posted.`",
+          "R6 StructureDefinition has no `Invoice.date`; `Invoice.creation` is `0..1 dateTime`, summary, with the same posting-date definition.",
+          "HL7 R4 Invoice scope describes invoices as billing documents and says tracking financial information is vital in patient administration and finance systems: https://hl7.org/fhir/R4/invoice.html",
+          "Quick web check found public R4 Invoice profiling in the ABDM/NRCeS IG, but no prevalence corpus."
+        ],
+        "fmmEffect": "R4 Invoice is FMM 0 and trial-use, which softens the stability concern and prevents assuming broad production blast radius. The low maturity does not fully excuse this rename because posting date is a central billing/audit field and public IG evidence shows implementation relevance.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `date` contain an element not present in the R6 Invoice StructureDefinition; runtime/API/codegen also changes because the generated property name becomes `creation`.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could have kept `Invoice.date` as the posting/creation date, clarified its short text, and added `period[x]` for service/billing periods. That preserves old instances without duplicate date fields; the tradeoff is retaining a less precise legacy name.",
+        "comparisonToExisting": "agree: the existing report correctly identifies a hard rename and a plausible lower-cost alternative. I add more low-FMM caution, but the central billing/audit role still supports `Revisit`."
+      }
     },
     {
       "inheritedOrLocal": "local",
@@ -487,7 +502,22 @@
       "validationAndCompatibilityMd": "Old R4 instances with `deduction` can fail R6 validation. R6 uses only codes R4 also allowed, so reverse code membership is low risk.",
       "migrationGuidanceMd": "Inventory `deduction` uses, define a reviewed mapping to `discount` or an extension, and update generated enums/tests.",
       "backwardCompatibilityAnalysisMd": "A deprecated retained code or ConceptMap would have reduced disruption while still guiding convergence.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Invoice:TERMINOLOGY_BINDING:priceComponent.type:b41c2d",
+        "judgment": "Revisit",
+        "narrativeMd": "The required price-component type binding no longer accepts the R4 `deduction` code. R6 appears to fold that concept into `discount`, but R4 had both `deduction` and `discount`, so migration may require accounting or contract-specific judgment rather than a purely mechanical code rewrite. Because this is a required-bound financial classification used to explain invoice totals, the break deserves renewed review despite the resource's low maturity.",
+        "keyEvidence": [
+          "R4 `Invoice.lineItem.priceComponent.type` is `1..1 code` with required binding to `invoice-priceComponentType|4.0.1`.",
+          "R4 CodeSystem `invoice-priceComponentType` includes `deduction` and separately includes `discount`.",
+          "R6 `MonetaryComponent.type` is `1..1 code` with required binding to `price-component-type|6.0.0-ballot4`; the R6 CodeSystem has no `deduction` code and defines `discount` as sometimes referred to as a deduction.",
+          "HL7 R4 Invoice scope and the ABDM/NRCeS R4 Invoice profile show billing implementation relevance; no quick corpus evidence for deduction frequency was found."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the burden to preserve every code, especially in a newly evolving financial resource. However, required-bound billing terminology directly affects validation, generated enums, and financial interpretation, so low FMM only softens rather than removes the concern.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 price component with `type` = `deduction` is outside the R6 required value set; runtime/API/codegen also changes because generated enum members and switch logic lose that code.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `deduction` in the shared `price-component-type` CodeSystem as deprecated or legacy while making `discount` preferred. That would preserve R4-valid instances and allow gradual convergence, with the real tradeoff of maintaining overlapping reduction codes in a required shared terminology.",
+        "comparisonToExisting": "partially agree: the existing report correctly calls out a hard required-binding break and a partial alternative. I judge the alternative more important than the prior `probably justified` framing because the mapping can be financially semantic, not just lexical."
+      }
     },
     {
       "inheritedOrLocal": "local",
@@ -650,7 +680,22 @@
       "migrationGuidanceMd": "Regenerate models, update profile/FHIRPath references to `MonetaryComponent`, and audit priceComponent modifierExtension use before migration.",
       "backwardCompatibilityAnalysisMd": "Publishing explicit mappings and extension guidance would reduce disruption while preserving R6 normalization.",
       "reviewerNotesMd": "This is a local Invoice type replacement finding, not a duplicate base DataType/BackboneElement report.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Invoice:SERIALIZATION_OR_CODEGEN:priceComponent:7ac9e1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 changes `lineItem.priceComponent` and `totalPriceComponent` from Invoice-owned backbone content to the shared `MonetaryComponent` datatype. This is a real generated-model and profiling change, and R4 modifier extensions on the local backbone no longer have the same valid home. But ordinary price component children such as `type`, `code`, `factor`, and `amount` retain a very similar wire shape, and adopting a shared monetary datatype is a coherent base-model goal.",
+        "keyEvidence": [
+          "R4 `Invoice.lineItem.priceComponent` is a `BackboneElement`; `Invoice.totalPriceComponent` content-references `#Invoice.lineItem.priceComponent`.",
+          "R4 snapshot includes `Invoice.lineItem.priceComponent.modifierExtension` as `0..* Extension`.",
+          "R6 `Invoice.lineItem.priceComponent` and `Invoice.totalPriceComponent` both have type `MonetaryComponent`.",
+          "R6 `MonetaryComponent` has `type`, `code`, `factor`, and `amount`, and its snapshot has no `modifierExtension` element."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability concern substantially. In a low-maturity resource, normalizing a repeated financial modeling pattern into a shared datatype can justify codegen and profile migration, especially when common instance children largely carry forward.",
+        "compatibilityMechanism": "runtime/API/codegen: generated nested classes and profile paths move from an Invoice-owned backbone to `MonetaryComponent`; old-valid/new-invalid occurs for R4 price components that actually use `modifierExtension`.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could keep the Invoice-local backbone for one transition release while aligning its children and terminology with `MonetaryComponent`. That preserves old profile paths and modifierExtension-bearing instances, but it delays the shared datatype goal and creates duplicate definitions for the same monetary concept.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies codegen/profile disruption and modifierExtension loss, and the partial alternative is fair. I would not treat the whole change as uniformly high-impact because common price-component JSON without modifier extensions mostly remains structurally recognizable."
+      }
     },
     {
       "inheritedOrLocal": "local",
@@ -784,7 +829,21 @@
       "validationAndCompatibilityMd": "R4→R6 is safe for Organization issuers; R6→R4 needs mapping, extension, or rejection for Practitioner/PractitionerRole.",
       "migrationGuidanceMd": "Handle all R6 issuer target types and define R4 export policy.",
       "backwardCompatibilityAnalysisMd": "Explicit extension/alternate element would have preserved R4 type expectations but reduced base expressiveness.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Invoice:REFERENCE_TARGET:Invoice.issuer:2f93bc",
+        "judgment": "No problem",
+        "narrativeMd": "The issuer reference target list widens from Organization-only to Organization, Practitioner, and PractitionerRole. Existing R4 Organization issuers remain valid R6 content. R6-to-R4 export and consumers that hard-cast issuer to Organization need policy updates, but the base R6 change is an additive expressiveness improvement rather than an R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 `Invoice.issuer` is `0..1 Reference(Organization)`.",
+          "R6 `Invoice.issuer` is `0..1 Reference(Organization | Practitioner | PractitionerRole)`.",
+          "The element remains optional and non-modifier in both versions."
+        ],
+        "fmmEffect": "FMM 0/trial-use further reduces concern for this additive widening. Low maturity is not needed to justify the change, because R4-valid issuer references are preserved.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 Practitioner or PractitionerRole issuers have no direct R4 base target, but R4 Organization issuers remain valid in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for forward compatibility. Keeping Organization-only would avoid some reverse-conversion policy, but it would block the stated expressiveness gain; an extension would be a down-conversion/backport strategy, not a better R6 base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly notes R6-to-R4 and type-assumption risk. I disagree with treating this as a material problem under the fresh path-level rubric because the target change is widening and preserves R4 instances."
+      }
     },
     {
       "inheritedOrLocal": "local",
@@ -923,7 +982,22 @@
       "migrationGuidanceMd": "Do not assume R6 chargeItemReference is ChargeItem unless a profile states it. For R4 export, map, reject, or convert to CodeableConcept where safe.",
       "backwardCompatibilityAnalysisMd": "The less disruptive option was to retain ChargeItem and add explicit extra targets if needed.",
       "reviewerNotesMd": "Human review should confirm whether missing targetProfile is intentional.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Invoice:REFERENCE_TARGET:Invoice.lineItem.chargeItem:5e7a09",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 removes the computable `ChargeItem` target profile from the required `chargeItem[x]` Reference branch while leaving the narrative text about a ChargeItem unchanged. This does not invalidate R4 ChargeItem references, but it makes base R6 structurally permit references that R4 cannot represent and that billing logic may not know how to process. Because the line-item charge reference is central to invoice pricing and audit, the loss of computable target clarity deserves standards review rather than being dismissed as mere widening.",
+        "keyEvidence": [
+          "R4 `Invoice.lineItem.chargeItem[x]` is `1..1` with `Reference(ChargeItem)` or `CodeableConcept`.",
+          "R6 `Invoice.lineItem.chargeItem[x]` is `1..1` with `Reference` or `CodeableConcept`; the Reference type has no targetProfile in the differential or snapshot.",
+          "R4 and R6 definitions both say the `ChargeItem` contains billing code, date, amount, and related details.",
+          "HL7 R4 Invoice scope describes line items as collected ChargeItems used to calculate invoice prices."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens general stability expectations, but this path is directly tied to the core billing line-item model. The low maturity does not eliminate concern because the change affects validation clarity, downstream dereferencing, and R6-to-R4 representability for central invoice content.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 can now structurally carry non-ChargeItem references that R4 rejects; runtime/API/codegen risk arises when validators and billing code can no longer rely on a computable ChargeItem target.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `Reference(ChargeItem)` or explicitly listed any additional intended targets. That would preserve R4 behavior and validation clarity; the tradeoff is reduced flexibility if R6 intentionally wanted arbitrary reference targets, but that goal is not evident from the unchanged narrative.",
+        "comparisonToExisting": "partially agree: the existing report correctly flags high runtime and R6-to-R4 risk and uncertainty. I disagree with `Not applicable` for alternatives because retaining or explicitly enumerating target profiles is a direct less-risk base design choice."
+      }
     },
     {
       "inheritedOrLocal": "local",
@@ -1051,7 +1125,21 @@
       "validationAndCompatibilityMd": "R4 instances remain valid; R6 `periodDate`/`periodPeriod` is not valid R4 base content.",
       "migrationGuidanceMd": "Use an R4 extension or reject/downgrade when period is business-critical.",
       "backwardCompatibilityAnalysisMd": "A published cross-version extension would be the least disruptive bridge.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Invoice:ELEMENT_PRESENCE_OR_IDENTITY:Invoice.period:8c62af",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `Invoice.period[x]` for the billing or service period. This is a forward-compatible addition: R4 invoices do not become invalid, and R6 gains a native place for information that R4 lacked. Down-conversion can lose information or require an extension, but that is not a reason to revisit the additive R6 base design.",
+        "keyEvidence": [
+          "R4 Invoice snapshot has no `Invoice.period[x]` element.",
+          "R6 `Invoice.period[x]` is optional `0..1` with choices `date` and `Period`, summary, definition `Date/time(s) range of services included in this invoice.`",
+          "R6 also keeps a separate posting timestamp as `Invoice.creation`."
+        ],
+        "fmmEffect": "FMM 0/trial-use reinforces the low concern. The change is optional and additive, so the low maturity mainly confirms that reverse-conversion limitations should not be treated as a design break.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 `periodDate` or `periodPeriod` has no direct R4 base element, but there is no old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed because the element is additive. An R4 extension or cross-version mapping can help export, but that is migration support rather than a less-breaking R6 design.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies reverse-conversion risk and the lack of a needed base alternative. I disagree with framing it as medium impact for fresh R4-to-R6 review because it is optional additive content."
+      }
     },
     {
       "inheritedOrLocal": "local",
@@ -1193,7 +1281,21 @@
       "validationAndCompatibilityMd": "R4→R6 is unaffected. R6 `servicedDate`/`servicedPeriod` is not direct R4 base content.",
       "migrationGuidanceMd": "Define whether to map to extension, create/update ChargeItem, or reject R4 export.",
       "backwardCompatibilityAnalysisMd": "A standard extension bridge would reduce conversion loss.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Invoice:ELEMENT_PRESENCE_OR_IDENTITY:Invoice.lineItem.serviced:91de44",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional line-level service timing with `Invoice.lineItem.serviced[x]`. R4 line items remain valid in R6, and the new field supplies a native location for timing that previously had to live in a referenced ChargeItem, an extension, or local context. R6-to-R4 export needs policy, but the base addition itself is compatibility-preserving.",
+        "keyEvidence": [
+          "R4 `Invoice.lineItem` has no `serviced[x]` child.",
+          "R6 `Invoice.lineItem.serviced[x]` is optional `0..1` with choices `date` and `Period`.",
+          "R6 definition says the field captures when the service was delivered or completed."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers stability pressure and supports accepting this optional model growth. Since no R4 instance is invalidated, low maturity is more than sufficient to avoid a revisit judgment.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 service timing at line level has no direct R4 base slot, but there is no R4-to-R6 instance or generated-property removal.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed. Forcing timing to stay only on referenced ChargeItem would preserve R4 shape but would also prevent the R6 model from representing timing for inline CodeableConcept line items; R4 extensions are migration aids, not a better R6 base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly notes R6-to-R4 export work and no base alternative. I disagree with treating this optional addition as a meaningful breaking concern under the fresh review rubric."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1367,5 +1469,19 @@
       "Reference targetProfile removed while narrative still names a target",
       "date renamed to creation with new period choices"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Invoice.fresh-review.json",
+    "findingDecisionCount": 7,
+    "matchedFindingDecisionCount": 7,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 1,
+      "No problem": 3
+    }
   }
 }

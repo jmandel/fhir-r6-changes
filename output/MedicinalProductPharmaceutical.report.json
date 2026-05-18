@@ -306,7 +306,22 @@
       "migrationGuidanceMd": "Create an explicit migration layer. Choose whether each R4 instance becomes an `AdministrableProductDefinition` alone or an APD plus `MedicinalProductDefinition`, `ManufacturedItemDefinition`, `Ingredient`, and packaging resources. Test validators with old `resourceType`, migrated APD, and mixed resource graphs. Do not rely on automatic model-class renaming.",
       "backwardCompatibilityAnalysisMd": "The change appears to support a richer regulatory product model, but it is not backward compatible. A deprecated alias or wrapper could have made old wire content acceptable while encouraging migration, but at the cost of maintaining two overlapping resource models.",
       "reviewerNotesMd": "The identity break is certain; exact successor mapping is inferred from local R6 StructureDefinitions and should be checked against official migration guidance if available.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPharmaceutical:ARTIFACT_IDENTITY:root:7f8a21",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 defines a concrete `MedicinalProductPharmaceutical` resource, while the R6 package has no same-name StructureDefinition and instead carries `AdministrableProductDefinition` plus related product-definition resources. This is a top-level wire/API break: an existing instance, REST type, reference target, generated model class, or switch on `resourceType` cannot be accepted by an R6 system without an explicit transform. FMM 0 means the resource did not carry a strong stability promise, but the break is broad for any adopter and the medicinal-product regulatory domain is implementation-relevant enough that a pure resource identity replacement deserves renewed design attention.",
+        "keyEvidence": [
+          "R4 StructureDefinition id/type/url are MedicinalProductPharmaceutical; status draft; local maturity map says FMM 0 and trial-use.",
+          "R6 assigned StructureDefinition-MedicinalProductPharmaceutical.json is absent; R6 package index contains AdministrableProductDefinition and adjacent product-definition resources.",
+          "R6 CodeSystem/fhir-old-types contains MedicinalProductPharmaceutical as an old type.",
+          "FHIR R4 public page marks MedicinalProductPharmaceutical as Trial Use; EMA PMS page says an ISO IDMP-compatible HL7 FHIR data submission format replaces XEVPRM, and the DADI webinar page says new forms align with EU IGs using FHIR."
+        ],
+        "fmmEffect": "FMM 0/trial-use substantially softens the stability expectation and prevents assuming broad deployed impact from the break alone. I still weight this as concerning because it is a resource identity/API break and the regulatory product domain has official FHIR/IDMP implementation activity.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 instances with `resourceType: MedicinalProductPharmaceutical`, REST routes, references, generated classes, and FHIRPath roots have no same-name R6 base resource.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design plausibly existed: keep `MedicinalProductPharmaceutical` as the administrable-product resource identity, or provide a deprecated same-wire alias for a transition, while adding the richer R6 links and definitions. The tradeoff is a less tidy resource name and possible duplicate identity if both names remain first-class, but the pure identity break looks more disruptive than necessary.",
+        "comparisonToExisting": "partially agree with the existing Critical impact and Yes alternative judgment: the top-level break is real and a less-breaking identity design is plausible, but the existing report overstates expected prevalence given FMM 0 and only indirect production-use evidence."
+      }
     },
     {
       "findingId": "MedicinalProductPharmaceutical:CARDINALITY:AdministrableProductDefinition.status:b3c914",
@@ -478,7 +493,22 @@
       "migrationGuidanceMd": "Define a deterministic status policy before migration. If status is unknown, use the R6 `unknown` code rather than inventing a local code. Tests should cover omitted status, each allowed publication-status value, and business rules that must suppress retired or draft products.",
       "backwardCompatibilityAnalysisMd": "Requiring status in the base resource improves uniformity but is breaking for old data. A profile-level requirement would have preserved R4-compatible data but would not guarantee lifecycle state for all base R6 instances.",
       "reviewerNotesMd": "This finding assumes `AdministrableProductDefinition` is the migration target for the assigned R4 resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPharmaceutical:CARDINALITY:AdministrableProductDefinition.status:b3c914",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The likely R6 successor requires `AdministrableProductDefinition.status` as a 1..1 required-bound modifier, while R4 `MedicinalProductPharmaceutical` has no native lifecycle status. A forward migration must supply a status value and business logic must treat draft/retired/unknown appropriately. That is real migration work, but lifecycle state is a reasonable base requirement for a regulatory definition resource, and making it optional would weaken generic R6 filtering and safe use.",
+        "keyEvidence": [
+          "R4 differential has no MedicinalProductPharmaceutical.status element.",
+          "R6 AdministrableProductDefinition.status is 1..1 code, required-bound to publication-status, isModifier true, and isSummary true.",
+          "The R6 status comment says it allows filtering of administrable products appropriate for use.",
+          "EMA PMS/DADI pages support regulatory FHIR/IDMP relevance, though not direct proof of broad R4 MPP production use."
+        ],
+        "fmmEffect": "FMM 0/trial-use lowers the compatibility burden, but lifecycle status is central to regulatory product use and the R6 successor is FMM 2, so I do not dismiss the migration burden as mere metadata churn.",
+        "compatibilityMechanism": "old-valid/new-invalid on the successor plus runtime/API/codegen: a migrated APD without `status` fails R6 validation, and modifier-aware consumers must account for non-active states; R6-to-R4 loses the status unless carried outside native R4 MPP.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could make `status` 0..1, define absence as unknown, or require it only in profiles. That would preserve more transformed R4 data but would prevent base R6 consumers from relying on lifecycle state, especially for retired or draft definitions.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment: the break is genuine, but the stricter base requirement appears proportionate."
+      }
     },
     {
       "findingId": "MedicinalProductPharmaceutical:TYPE_DOMAIN:ingredient:aa19df",
@@ -664,7 +694,22 @@
       "migrationGuidanceMd": "Classify each R4 ingredient reference as simple coded content or detailed composition. For simple cases, map to APD `ingredient` CodeableConcept. For detailed cases, create R6 `Ingredient` resources and carry role, substance, strength, manufacturer, and allergen information there. Test both inline-code and detailed-reference cases, including missing required R6 `Ingredient.status`, `role`, and `substance`.",
       "backwardCompatibilityAnalysisMd": "The R6 design likely improves modeling by separating simple codes from rich ingredients, but replacing a reference with a code is not backward compatible. A transitional choice type would have reduced conversion friction but introduced duplicate ways to say the same thing.",
       "reviewerNotesMd": "Full safety assessment depends on separate analysis of R4 `MedicinalProductIngredient` versus R6 `Ingredient`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPharmaceutical:TYPE_DOMAIN:ingredient:aa19df",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `ingredient` is a repeating reference to `MedicinalProductIngredient`; R6 APD `ingredient` is a repeating `CodeableConcept`, with detailed ingredients represented through separate `Ingredient` resources that point back to the product graph. That changes both the JSON shape and the graph model, so direct copying is invalid and preserving detailed ingredient information may require dereferencing the old resource and constructing new R6 resources. The path is important, but the R6 design has a coherent goal: distinguish simple coded ingredient summaries from full ingredient definitions.",
+        "keyEvidence": [
+          "R4 MedicinalProductPharmaceutical.ingredient is 0..* Reference(MedicinalProductIngredient).",
+          "R6 AdministrableProductDefinition.ingredient is 0..* CodeableConcept with example substance-codes binding.",
+          "R6 Ingredient.for targets MedicinalProductDefinition, AdministrableProductDefinition, and ManufacturedItemDefinition; Ingredient.status, role, and substance are mandatory.",
+          "EMA PMS page documents ISO IDMP-compatible HL7 FHIR product-data submission, supporting domain relevance but not exact R4 MPP deployment prevalence."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability expectation, but ingredient composition is core regulatory and safety-significant product data, so lossy or expert-dependent mapping still matters.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: an R4 `ingredient.reference` cannot populate APD `ingredient` directly, while an R6 coded ingredient or incoming `Ingredient` graph may not round-trip to an R4 reference without creating synthetic target resources.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have used a code-or-reference shape or kept a reference-valued path retargeted to `Ingredient`. That would ease common R4 migrations, but it would introduce overlapping ingredient channels beside `Ingredient.for`, create precedence/consistency rules, and still need a story for the removed R4 target resource.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment: the migration burden is substantial, but the base design tradeoffs make the break probably acceptable."
+      }
     },
     {
       "findingId": "MedicinalProductPharmaceutical:CARDINALITY:device:12e4c0",
@@ -828,7 +873,22 @@
       "migrationGuidanceMd": "Inspect every R4 device. Keep at most one integral device on APD.device. Move co-packaged devices to `PackagedProductDefinition.packaging.containedItem.item` or product-level structures according to the broader product migration. Tests should include zero, one, multiple, integral, and co-packaged device scenarios.",
       "backwardCompatibilityAnalysisMd": "Narrowing the base field was probably intended to clarify product modeling. A role-coded repeating element would have been less breaking but would not force a clean distinction between integral and packaged devices.",
       "reviewerNotesMd": "Migration choices depend on package context that may be outside the old R4 MPP instance.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPharmaceutical:CARDINALITY:device:12e4c0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 element allowed multiple accompanying `DeviceDefinition` references. The R6 APD element allows at most one `DeviceDefinition` and narrows the meaning to a device integral to the product, not a merely co-packaged item. R4 data with several devices, or with package devices rather than integral devices, needs classification and possibly relocation to packaging structures. That is a real migration issue, but it reflects a reasonable model cleanup rather than an arbitrary constraint.",
+        "keyEvidence": [
+          "R4 MedicinalProductPharmaceutical.device is 0..* Reference(DeviceDefinition) with definition `Accompanying device.`",
+          "R6 AdministrableProductDefinition.device is 0..1 Reference(DeviceDefinition) and is defined as an integral device, not co-packaged.",
+          "R6 PackagedProductDefinition.packaging.containedItem.item can reference DeviceDefinition for package contents.",
+          "No quick evidence found that this specific low-FMM path is widely used in production."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the concern, and the path appears narrower than the resource identity or ingredient changes. The regulatory interpretation of integral versus co-packaged devices still keeps it above a no-problem category.",
+        "compatibilityMechanism": "old-valid/new-invalid for R4 arrays with more than one device, plus semantic/conformance risk when a single R4 accompanying device is actually co-packaged rather than integral.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `device` repeatable with a role or added a separate integral-device path while retaining the old broad field. That would preserve more R4 arrays, but old data often lacks the integral/co-packaged distinction and duplicate representation with packaging contents would need reconciliation.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment: the break is real, but FMM 0 and likely narrower prevalence make the practical impact less certain than High suggests."
+      }
     },
     {
       "findingId": "MedicinalProductPharmaceutical:ELEMENT_PRESENCE_OR_IDENTITY:characteristics:8ac0fd",
@@ -1047,7 +1107,22 @@
       "migrationGuidanceMd": "Map each R4 `characteristics` repeat to R6 `property`. Move `code` to `type`; map status only through an agreed terminology policy; preserve unmappable status or values with extensions if needed. Add tests for characteristics without status, with local status codes, and with R6 value[x] reverse conversion.",
       "backwardCompatibilityAnalysisMd": "The property/value design is semantically stronger but could have been introduced with a deprecated alias or choice. The binding change on status is the least backward-compatible part and may require manual terminology mapping.",
       "reviewerNotesMd": "The R6 status binding appears stricter than the R4 short text examples, so terminology review is recommended.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPharmaceutical:ELEMENT_PRESENCE_OR_IDENTITY:characteristics:8ac0fd",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `characteristics.code` maps naturally to R6 `property.type`, and R6 adds useful value and status structure. The concerning part is the avoidable wire-path change from `characteristics`/`code` to `property`/`type`, plus a stricter required binding on `property.status` when present. Existing instances that only have a coded characteristic could have remained valid if R6 kept the old names and added optional value/status refinements. Because the likely alternative is modest and preserves the R6 goal, this path deserves another look despite the low maturity.",
+        "keyEvidence": [
+          "R4 MedicinalProductPharmaceutical.characteristics is 0..* with required characteristics.code and optional unbound CodeableConcept status.",
+          "R6 AdministrableProductDefinition.property is 0..* with required property.type, optional value[x], and property.status required-bound to publication-status.",
+          "R4 status short text mentions assigned or pending; R6 publication-status codes are draft, active, retired, and unknown.",
+          "No quick evidence found that this optional low-FMM path is broadly deployed, but it can affect product-catalog semantics where used."
+        ],
+        "fmmEffect": "FMM 0/trial-use reduces the stability pressure and keeps this from being high-severity by itself. I still select Revisit because the path rename appears avoidable with a low-cost base design, not because broad production use is proven.",
+        "compatibilityMechanism": "runtime/API/codegen and potential old-valid/new-invalid: generated clients and FHIRPath expressions using `characteristics.code` break, local status codes may fail if mapped to required-bound `property.status`, and R6 value[x] creates R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "R6 could keep `characteristics` and `characteristics.code` as the property type, then add optional `characteristics.value[x]` and a constrained status. That preserves most R4 characteristic arrays and still enables richer R6 properties; the main tradeoff is retaining less generic legacy names.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Yes alternative judgment: I agree a less-breaking design looks plausible, while FMM 0 keeps the practical impact from being treated as broadly high."
+      }
     },
     {
       "findingId": "MedicinalProductPharmaceutical:CARDINALITY:administrableDoseForm:43b9e7",
@@ -1178,7 +1253,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is safe for this element because all valid R4 instances have a dose form that R6 can carry. R6-to-R4 is not safe when the dose form is absent; a converter must either derive a value, reject the conversion, or create an invalid/incomplete R4 instance.",
       "migrationGuidanceMd": "For reverse conversion, define a policy for missing dose form: derive from `MedicinalProductDefinition.combinedPharmaceuticalDoseForm`, `ManufacturedItemDefinition.manufacturedDoseForm`, local terminology, or reject conversion. Do not silently populate a placeholder unless a business rule authorizes it.",
       "backwardCompatibilityAnalysisMd": "The cardinality decrease is backward compatible for old data but not for round trips. If R6 needed flexibility, a profile could require dose form for systems that need R4 compatibility.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductPharmaceutical:CARDINALITY:administrableDoseForm:43b9e7",
+        "judgment": "No problem",
+        "narrativeMd": "This is a forward-compatible relaxation. R4 requires `administrableDoseForm`, and the R6 successor still has the same element and type but lowers the minimum to 0. Any valid R4 instance has a dose form that can be carried into R6. The only issue is reverse conversion from an R6 APD that omits the value, which is important for bidirectional converters but not a base R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 MedicinalProductPharmaceutical.administrableDoseForm is 1..1 CodeableConcept.",
+          "R6 AdministrableProductDefinition.administrableDoseForm is 0..1 CodeableConcept with an example binding.",
+          "The path suffix and datatype are preserved."
+        ],
+        "fmmEffect": "FMM 0/trial-use further softens the concern because the change does not invalidate old instances; it only affects R6-to-R4 downgrade policy.",
+        "compatibilityMechanism": "R6-to-R4 loss only: an R6 APD can omit a dose form that R4 requires, but R4-valid data remains acceptable in the R6 successor shape.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for forward compatibility. Systems that require R4 round-tripping can profile R6 to require the element or reject R6 records that omit it.",
+        "comparisonToExisting": "disagree with the existing Medium impact framing: the reverse-conversion caveat is real, but for this R4-to-R6 path-level review it is a No problem finding."
+      }
     },
     {
       "findingId": "MedicinalProductPharmaceutical:CONVERSION_OR_MAPPING:successor-links:f69c31",
@@ -1318,7 +1407,21 @@
       "migrationGuidanceMd": "When migrating forward, populate these links where the source system can identify the parent medicinal product or manufactured item. When converting backward, either preserve them in extensions, map them to other R4 resources outside this report's scope, or document the loss.",
       "backwardCompatibilityAnalysisMd": "The additions are reasonable for a split model and are optional, so they are not avoidable breaking changes in the forward direction. They do, however, make round-trip compatibility dependent on broader graph migration.",
       "reviewerNotesMd": "This finding is scoped to native R4 MPP fields; a whole-product R4 bundle may have places to carry some relationships outside this artifact.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPharmaceutical:CONVERSION_OR_MAPPING:successor-links:f69c31",
+        "judgment": "No problem",
+        "narrativeMd": "The listed R6 fields (`formOf`, `producedFrom`, `code`, and `description`) are optional additions on the successor resource. They improve the R6 product graph and do not make any R4 `MedicinalProductPharmaceutical` instance invalid during forward migration. They can be lost when downgrading a richer R6 graph to the single R4 resource, but that is a representability and converter-scope issue, not a breaking base design for old data.",
+        "keyEvidence": [
+          "R6 AdministrableProductDefinition.formOf is 0..* Reference(MedicinalProductDefinition).",
+          "R6 producedFrom is 0..* Reference(ManufacturedItemDefinition), code is 0..* Coding, and description is 0..1 markdown.",
+          "R4 MedicinalProductPharmaceutical has no native fields with these names, but all listed R6 fields are optional."
+        ],
+        "fmmEffect": "FMM 0/trial-use reinforces the No problem judgment because the change is additive for forward compatibility and any loss is in richer R6-to-R4 conversion.",
+        "compatibilityMechanism": "R6-to-R4 loss: richer APD graph links and descriptive/code content cannot be stored natively in the scoped R4 resource, but old R4 data is not rejected by these optional additions.",
+        "lessBreakingAlternativeAssessment": "Not applicable as a less-breaking base R6 alternative. Omitting these optional links would reduce R6 expressiveness rather than preserve additional R4-valid instances; downgrade preservation belongs in profiles, extensions, or broader graph mappings.",
+        "comparisonToExisting": "disagree with the existing Medium impact emphasis: I agree there is downgrade loss, but optional forward additions are not a material R4-to-R6 compatibility problem."
+      }
     },
     {
       "findingId": "MedicinalProductPharmaceutical:VALUE_CONSTRAINT:route-formOf-apd1:6d4047",
@@ -1457,7 +1560,22 @@
       "migrationGuidanceMd": "Choose one route location. If using APD `routeOfAdministration`, leave `MedicinalProductDefinition.route` empty for referenced products; if route is maintained at product level, avoid creating APD instances that violate APD's mandatory route model or follow official guidance if available. Add integration tests that validate the whole resource graph, not only each resource in isolation.",
       "backwardCompatibilityAnalysisMd": "The invariant prevents inconsistent route duplication but makes migration order and graph context important. A warning-level constraint would have been easier for migration but weaker for conformance.",
       "reviewerNotesMd": "Because APD `routeOfAdministration` is mandatory, the coexistence rule with MPD.route deserves human review for any migration design that also creates MedicinalProductDefinition resources.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "MedicinalProductPharmaceutical:VALUE_CONSTRAINT:route-formOf-apd1:6d4047",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds error invariant `apd-1`, requiring a referenced `formOf` MedicinalProductDefinition not to carry `route` when APD uses route-of-administration. This can invalidate migrated product graphs that duplicate route on both resources. The break is contextual rather than universal because R4 MPP has no `formOf` link, but graph migrations must choose one authoritative route location. The constraint appears proportionate because silently allowing duplicate route channels creates ambiguity for validators and consumers.",
+        "keyEvidence": [
+          "R6 AdministrableProductDefinition root constraint apd-1 is severity error with expression `AdministrableProductDefinition.formOf.resolve().route.empty()`.",
+          "R6 AdministrableProductDefinition.routeOfAdministration is 1..* and its definition notes it cannot be used when the formOf product already uses route.",
+          "R6 MedicinalProductDefinition.route definition says it is the same concept as APD routeOfAdministration.code and they cannot be used together.",
+          "R4 MedicinalProductPharmaceutical has no formOf link, so the issue arises during broader R6 graph construction rather than direct field copying."
+        ],
+        "fmmEffect": "FMM 0/trial-use softens the stability concern, and the break only appears in certain graph migrations. Regulatory route information is important enough that the error-level consistency rule still warrants treating it as real migration work.",
+        "compatibilityMechanism": "old-valid/new-invalid potential: a migrated R6 graph with APD.formOf resolving to an MPD that also has route fails an R6 error invariant, even if each individual route value is clinically equivalent.",
+        "lessBreakingAlternativeAssessment": "A warning-level invariant or an equivalence-based exception would be less disruptive. Those alternatives would preserve more transitional graphs but would weaken the duplicate-route rule and require difficult CodeableConcept equivalence or precedence logic when routes differ.",
+        "comparisonToExisting": "agree with the existing Medium impact and Partial alternative judgment: this is a contextual but legitimate R6 validation break with reasonable design tradeoffs."
+      }
     },
     {
       "findingId": "MedicinalProductPharmaceutical:SEMANTIC_OR_CONFORMANCE_TEXT:route-dose-text:35d8ef",
@@ -1572,7 +1690,21 @@
       "validationAndCompatibilityMd": "FHIR validation is not expected to reject old values based on this text change. The compatibility risk is behavioral: business rules, UI labels, and analytics may interpret the same data as a general product limit rather than a trial-specific limit.",
       "migrationGuidanceMd": "Review business rules and user-facing labels for these dose limit fields. If a source value is specifically trial/protocol-derived, consider preserving that provenance in related authorization/trial resources or extensions.",
       "backwardCompatibilityAnalysisMd": "This is a semantic broadening rather than a hard break. More explicit provenance or separate trial-specific fields would have reduced ambiguity but at a modeling cost.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "MedicinalProductPharmaceutical:SEMANTIC_OR_CONFORMANCE_TEXT:route-dose-text:35d8ef",
+        "judgment": "No problem",
+        "narrativeMd": "The route dosing children keep their cardinalities and datatypes, while the definitions move from clinical-trial/protocol wording to more general product-administration wording. That can affect labels, documentation, or business interpretation, but it is not a structural validation break and does not require a different R6 base design to preserve old instances.",
+        "keyEvidence": [
+          "R4 firstDose, maxSingleDose, maxDosePerDay, maxDosePerTreatmentPeriod, and maxTreatmentPeriod definitions mention clinical trial, protocol, authorization, or investigational product context.",
+          "R6 APD keeps the same child paths, max cardinalities, and Quantity/Ratio/Duration datatypes.",
+          "R6 definitions use more general product-administration wording."
+        ],
+        "fmmEffect": "FMM 0/trial-use further lowers the concern because this is a prose broadening on unchanged optional fields, not a compatibility break.",
+        "compatibilityMechanism": "semantic/documentation: business rules may need review if they assumed these fields were trial-only, but base validators and generated models see the same element shapes.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for instance compatibility. Separate trial-specific and general dosing fields could improve semantic precision, but would duplicate dose-limit concepts rather than rescue invalid R4 data.",
+        "comparisonToExisting": "agree with the existing Low impact and Not applicable alternative judgment: this is migration-awareness text, not a material break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1757,5 +1889,19 @@
       "Reference-to-CodeableConcept or Reference-to-CodeableReference shifts in the medicinal product family",
       "Route representation split between AdministrableProductDefinition and MedicinalProductDefinition"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/MedicinalProductPharmaceutical.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 4,
+      "No problem": 3
+    }
   }
 }

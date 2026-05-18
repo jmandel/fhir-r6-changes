@@ -459,7 +459,22 @@
       "migrationGuidanceMd": "Do not map R4 status values directly into R6 `status` without a business rule for publication status. Preserve the old subject lifecycle state in `subjectState.code` where possible, with `subjectState.startDate` if known; if dates are unavailable, use extensions, provenance, or a migration exception policy rather than inventing unsupported dates. Test every R4 status code, unknown or local extensions around status, and downstream workflows that use status as an enrollment-state filter.",
       "backwardCompatibilityAnalysisMd": "This was probably avoidable at the wire-format level. The R6 model could have added a new publication-status element and deprecated or complemented the old `status` field. Repurposing a required, required-bound field maximizes validation and runtime breakage and makes automated migration dependent on local policy rather than a simple structural transform.",
       "reviewerNotesMd": "Reviewers should look for any official R6 rationale or migration notes explaining why a non-canonical resource uses PublicationStatus at `ResearchSubject.status`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchSubject:TERMINOLOGY_BINDING:ResearchSubject.status:4b6f2a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `ResearchSubject.status` is a required subject-lifecycle code; R6 keeps the same required path but changes it to publication status with a disjoint required value set. An R4 instance with `status: on-study` is not just renamed: the old value is invalid in R6 and the correct R6 publication status cannot be inferred from the subject state. Because this is a mandatory path used to track study participation, the change deserves design attention even though the R4 artifact was low maturity.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ResearchSubject.status` 1..1 code, required binding to `ValueSet/research-subject-status|4.0.1`, definition `The current state of the subject.`",
+          "R6 StructureDefinition: `ResearchSubject.status` 1..1 code, required binding to `ValueSet/publication-status|6.0.0-ballot4`, definition `The publication state of the resource (not of the subject).`",
+          "R4 status codes include lifecycle values such as `candidate`, `screening`, `on-study`, `follow-up`, and `off-study`; R6 publication-status values are `draft`, `active`, `retired`, and `unknown`.",
+          "Quick production-use search did not find a dedicated production IG, but official R4/R6 FHIR pages describe ResearchSubject as supporting consent/registration, therapy exposure, adverse-event reporting, status tracking, healthcare-to-research interfaces, and sponsor oversight."
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use softens assumptions about installed-base prevalence. It does not remove concern here because the affected element is required, semantically central, and in a regulatory/research operations domain.",
+        "compatibilityMechanism": "old-valid/new-invalid: the required value set and meaning at the same path changed, so normal R4 lifecycle-status values fail R6 validation; generated enums, filters, and workflow logic also need non-mechanical remapping.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained `status` for current subject lifecycle and added a separately named optional publication-status element, while adding `subjectState` for detailed history. The tradeoff is consistency guidance between current status and state history, but that is lower cost than repurposing a required path to a different fact.",
+        "comparisonToExisting": "agree with the existing high impact and less-breaking-alternative judgment; the low FMM tempers prevalence claims but not the path-level design concern."
+      }
     },
     {
       "findingId": "ResearchSubject:ELEMENT_PRESENCE_OR_IDENTITY:ResearchSubject.individual:9a1c7d",
@@ -644,7 +659,22 @@
       "migrationGuidanceMd": "For R4→R6, rename `individual` to `subject` and preserve the Patient reference. For R6→R4, only Patient subjects can be mapped cleanly to `individual`; non-Patient subjects need an extension, profile-specific representation, or rejection from R4 down-conversion. Tests should cover Patient, Group, and at least one material-object subject such as Specimen or Device.",
       "backwardCompatibilityAnalysisMd": "The broader target domain is probably justified by the root definition's move from a physical entity to a participant or object. The wire-level rename was only partially avoidable: keeping `individual` would be misleading for non-individual subjects, but a deprecated alias or transitional extension could have reduced breakage for existing patient-based studies.",
       "reviewerNotesMd": "SearchParameter follow-up is important: R4 has `individual` and `patient` search parameters, while R6 has `subject`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchSubject:ELEMENT_PRESENCE_OR_IDENTITY:ResearchSubject.individual:9a1c7d",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 requires `individual` as the Patient participant link; R6 requires `subject` and widens targets to patients, groups, specimens, devices, medications, substances, and products. Every valid R4 instance has the old required path and will be missing the new required path until transformed. The broader target set is reasonable, but the wire-name rename of the mandatory participant link is a direct compatibility break for validators, generated models, FHIRPath, and search/API code.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ResearchSubject.individual` 1..1 `Reference(Patient)`, summary element, definition `The record of the person or animal who is involved in the study.`",
+          "R6 StructureDefinition: `ResearchSubject.subject` 1..1 `Reference(Patient | Group | Specimen | Device | Medication | Substance | SubstanceDefinition | BiologicallyDerivedProduct)`.",
+          "R6 scope text says ResearchSubject can be a participant or object, including device, drug product, biological product, substance, tissue/sample, group, or part of these.",
+          "Quick production-use search did not find a dedicated production IG, but official R4/R6 pages identify ResearchSubject as the link between healthcare/patient records and research studies."
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use lowers the stability expectation, but this is the required identity/link element for every ResearchSubject, so low maturity is not enough to dismiss the break.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances carry `individual` and lack required R6 `subject`; R6 non-Patient subjects also cause R6-to-R4 loss, and generated APIs/search expressions change names and target unions.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have kept the `individual` wire name and widened its target profiles/definition, preserving R4 Patient instances while supporting new subject types. The tradeoff is that `individual` is semantically awkward for groups, specimens, devices, and products and less aligned with the common FHIR `subject` pattern.",
+        "comparisonToExisting": "agree with the existing high impact and less-breaking-alternative judgment, while recognizing the R6 target-widening goal itself is justified."
+      }
     },
     {
       "findingId": "ResearchSubject:ELEMENT_PRESENCE_OR_IDENTITY:ResearchSubject.assignedArm:62e0bb",
@@ -832,7 +862,22 @@
       "migrationGuidanceMd": "Inventory actual use of `assignedArm` and `actualArm`. If a single assigned arm is present, it can often become `comparisonGroup.concept.text` or a coded concept, but preserve assigned/actual semantics with an extension or profile if they matter. If both assigned and actual are present and differ, manual review or a project-specific mapping is needed. Down-conversion from R6 should reject or extension-carry multiple/reference comparison groups rather than silently choosing one string.",
       "backwardCompatibilityAnalysisMd": "The change is partially avoidable. Adding `comparisonGroup` could have been done without removing the old strings immediately, but preserving both models would require consistency rules and might discourage migration to coded Group-based analysis. The base R6 model favors generality over wire compatibility.",
       "reviewerNotesMd": "Confirm with domain experts whether `comparisonGroup` is intended to replace both assigned and actual arms or only one of those use cases.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchSubject:ELEMENT_PRESENCE_OR_IDENTITY:ResearchSubject.assignedArm:62e0bb",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `assignedArm` and `actualArm` were separate optional strings; R6 removes both and introduces repeating `comparisonGroup` as a CodeableReference to Group. This is more computable, but it does not clearly preserve the assigned-versus-actual distinction or the difference between administration and analysis groupings. R4 instances using either arm element become invalid at those paths, and migration can require human policy rather than a purely mechanical transform.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ResearchSubject.assignedArm` 0..1 string, `The name of the arm in the study the subject is expected to follow...`",
+          "R4 StructureDefinition: `ResearchSubject.actualArm` 0..1 string, `The name of the arm in the study the subject actually followed...`",
+          "R6 StructureDefinition: `ResearchSubject.comparisonGroup` 0..* `CodeableReference(Group)`, definition `A group to which the subject is assigned`, with comment covering study administration and analysis groupings.",
+          "R4/R6 FHIR narrative describes study arm or comparison-group information as part of what ResearchSubject captures; the R6 page also describes operational oversight and progress tracking use cases."
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use softens broad installed-base assumptions, but arm assignment is a core trial concept and the change can lose assigned-versus-actual semantics, so the low FMM does not make this merely cosmetic.",
+        "compatibilityMechanism": "old-valid/new-invalid plus R6-to-R4 loss: old arm fields are absent in R6; R6 comparison groups can repeat and be coded or referenced, and do not directly encode which group was assigned versus actually followed.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design exists. R6 could have retained deprecated `assignedArm`/`actualArm` while adding `comparisonGroup`, or made `comparisonGroup` a backbone with an explicit role/use for assigned, actual, and analysis groups. The tradeoff is duplicate representations and consistency rules, but those may be preferable to losing a trial-critical distinction.",
+        "comparisonToExisting": "partially agree with the existing high impact and partial-alternative judgment; I place more weight on the lossy assigned-versus-actual migration and therefore judge it worth revisiting."
+      }
     },
     {
       "findingId": "ResearchSubject:CARDINALITY:ResearchSubject.consent:0d8f53",
@@ -981,7 +1026,22 @@
       "migrationGuidanceMd": "For R4→R6, wrap any existing single `consent` in an array/list in generated model code. For R6→R4, define a deterministic selection rule only if one consent is clearly primary; otherwise carry extras in extensions or reject down-conversion. Test zero, one, and multiple consent references.",
       "backwardCompatibilityAnalysisMd": "The widening is largely justified and less disruptive than many alternatives because it keeps the same path and target. A separate extra-consents element might reduce API churn but would complicate consumers and still need R6-to-R4 policy for multiple agreements.",
       "reviewerNotesMd": "Confirm whether all R6 `consent` references are semantically equivalent or whether profiles distinguish primary informed consent from other research agreements.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchSubject:CARDINALITY:ResearchSubject.consent:0d8f53",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The max cardinality changed from `0..1` to `0..*` at the same `consent` path. Conceptually this widens the model, but in FHIR JSON a repeating element is always serialized as an array, so an R4 JSON instance with a single object-valued `consent` needs a wire transform to be R6 JSON. That is a real but mechanical compatibility burden, and the R6 goal of allowing multiple consents or research agreements is proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `ResearchSubject.consent` 0..1 `Reference(Consent)`, definition `A record of the patient's informed agreement to participate in the study.`",
+          "R6 StructureDefinition: `ResearchSubject.consent` 0..* `Reference(Consent)`, definition includes study participation and other research agreements such as risk acknowledgements or protocol deviations.",
+          "FHIR JSON representation rule: elements with maximum cardinality greater than 1 are represented as arrays even when only one item is present.",
+          "R6 ResearchSubject scope text discusses multiple consent timing and consent requirements around pre-screening, screening, enrollment, and research data use."
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use softens the compatibility burden, but consent has legal and ethics relevance. The break is still proportionate because the field is optional and migration is usually a simple scalar-to-array wrap for R4-to-R6.",
+        "compatibilityMechanism": "old-valid/new-invalid for JSON instances that contain `consent`, because object-valued R4 JSON must become array-valued R6 JSON; secondary R6-to-R4 loss exists when R6 carries multiple consents.",
+        "lessBreakingAlternativeAssessment": "A less-breaking design could have kept scalar `consent` and added `additionalConsent` or `researchAgreement` as a new repeating element. That would preserve R4 JSON shape but split consent-like information across two locations and require primary/secondary or conflict rules, so the R6 widening is probably the cleaner base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly treats the change as proportionate and not a revisit item, but it undercalls the JSON old-valid/new-invalid wire-shape break by saying there is no hard instance break."
+      }
     },
     {
       "findingId": "ResearchSubject:CONVERSION_OR_MAPPING:ResearchSubject.subjectState:bd44a0",
@@ -1142,7 +1202,22 @@
       "migrationGuidanceMd": "For R4→R6, create `subjectState` only when the migration source has enough date information or a documented policy for state start dates. Preserve richer lifecycle history from source systems directly in the new backbones where available. For R6→R4, use extensions or reject down-conversion when state history or milestones matter. Tests should include absent backbones, a state with missing start date, multiple states, and milestone reasons.",
       "backwardCompatibilityAnalysisMd": "The additions themselves are reasonably backward-compatible for R4→R6 because they are optional. The lack of R4 representation is unavoidable for genuinely new lifecycle-history data unless R4 extensions are standardized. The bigger compatibility issue is the simultaneous repurposing of `status`, covered in the separate status finding.",
       "reviewerNotesMd": "The example-bound THO value sets for subject state, state-change reason, and subject milestones were not locally available for expansion comparison.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ResearchSubject:CONVERSION_OR_MAPPING:ResearchSubject.subjectState:bd44a0",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional repeating `subjectState` and `subjectMilestone` backbones. Their required children matter only when those optional backbone entries are present, so R4 instances are not made invalid by the additions. R6-to-R4 conversion can lose richer state intervals, milestones, dates, and reasons, but that is expected for new optional detail and the separate `status` finding covers the concerning lifecycle remodel.",
+        "keyEvidence": [
+          "R4 StructureDefinition has no `subjectState` or `subjectMilestone` elements.",
+          "R6 StructureDefinition: `subjectState` 0..* with required `code` and `startDate` only within each present backbone entry.",
+          "R6 StructureDefinition: `subjectMilestone` 0..* with required `milestone` only within each present backbone entry.",
+          "R6 ResearchSubject scope says states, state-change reasons, and milestones are intended to document a subject's progress through study participation."
+        ],
+        "fmmEffect": "R4 FMM 1/trial-use further reduces concern because the change is additive and optional; no R4-valid content is rejected merely because these new structures exist.",
+        "compatibilityMechanism": "R6-to-R4 loss only: R6 can carry new lifecycle-history details that base R4 cannot represent, but R4-to-R6 validation is unaffected when the optional backbones are absent.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for the additions themselves. Standard R4 extensions or conversion profiles could help down-conversion, but those are mitigation strategies rather than a less-breaking R6 design.",
+        "comparisonToExisting": "partially agree with the evidence and reverse-representability concern, but disagree that this optional additive change is a material R4-to-R6 compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1304,5 +1379,19 @@
       "R4 `individual` or patient-only participant references renamed to R6 `subject` with broader targets",
       "Scalar-to-array max-cardinality widening affecting generated clients"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ResearchSubject.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

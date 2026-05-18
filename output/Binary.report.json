@@ -348,7 +348,22 @@
       "migrationGuidanceMd": "Inventory R4 Binary records whose `securityContext.reference` starts with `Media/` and any image workflows that paired Binary with Media. Decide the R6 authorization proxy resource case by case: `DocumentReference` may fit document-like binaries, while other image/device/observation workflows may need another R6 resource, a profile rule, or an extension. Test both validation and authorization behavior, not just JSON parsing, because the risk is in reference resolution and access-control semantics.",
       "backwardCompatibilityAnalysisMd": "The local Binary structure remained backward-compatible; the disruptive part is the removal of a formerly recommended/example related resource. If Media is gone from R6, retaining it as a normal example would be incorrect. A backward-compatible migration aid could still have preserved a legacy note, ConceptMap, or conversion recipe so R4 `Media` security contexts could be transformed without implementers reverse-engineering the intended replacement.",
       "reviewerNotesMd": "Confirm against official R6 narrative or ballot notes whether Media was intentionally removed, renamed, or folded into another workflow-specific resource. If a separate Media migration report exists, this Binary finding should link to it rather than duplicating the Media resource identity analysis.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Binary:SEMANTIC_OR_CONFORMANCE_TEXT:Binary.securityContext:media-guidance",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 and R6 keep `Binary.securityContext` as `0..1 Reference(Resource)` with the same access-control role, so this is not a Binary-local cardinality, type, or binding break. The meaningful migration issue is narrower: an R4 Binary that used `securityContext.reference` to point at a `Media` resource may not resolve cleanly in R6 because the R6 package no longer defines `Media`, and generated R6 clients or validators may not have a Media resource type. That can affect authorization proxy logic, but it is largely a consequence of removing the low-maturity Media resource rather than a new restriction on Binary itself.",
+        "keyEvidence": [
+          "R4 `Binary.securityContext` definition says the related proxy resource may be `Media` or `DocumentReference`; R6 keeps `DocumentReference` but removes `Media` from the example.",
+          "R4 and R6 StructureDefinitions both define `Binary.securityContext` as `0..1 Reference(Resource)` with `isSummary: true` and `isModifier: false`.",
+          "R4 package contains `StructureDefinition-Media.json`; R6 package index and file glob show no `StructureDefinition-Media.json`.",
+          "R4 maturity data: Binary is normative/FMM 5, while Media is trial-use/FMM 1."
+        ],
+        "fmmEffect": "Binary's normative/FMM 5 status raises the burden for direct breaks on this access-control element, but the specific compatibility hazard depends on preserving the separate R4 Media resource, which was only trial-use/FMM 1; that softens the case for requiring R6 to keep Media solely for Binary securityContext compatibility.",
+        "compatibilityMechanism": "runtime/API/codegen, with possible old-valid/new-invalid behavior in validators that reject `Media/...` references because R6 has no Media resource type. The Binary element shape itself did not become narrower.",
+        "lessBreakingAlternativeAssessment": "A Binary-local less-breaking design is limited: the target is already the broad `Reference(Resource)`, and keeping `Media` in Binary prose while Media is absent would be misleading and would not preserve runtime resolvability. A true compatibility design would require retaining a legacy Media resource or alias in base R6, which is a broader top-level design choice with ongoing API, validation, and code-generation cost for an FMM 1 resource. Adding clearer migration guidance would help implementers but would not be a less-breaking base model.",
+        "comparisonToExisting": "partially agree with the existing impact judgment: there is a real migration risk for Binary securityContext values that point to Media, especially because securityContext drives access control. I would frame it as a proportionate runtime/codegen migration issue rather than a strong Binary-local hard break; I agree that there is no obvious low-cost less-breaking Binary design."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -528,5 +543,17 @@
       "Generic Reference(Resource) elements that may point to R4 resources absent from R6",
       "Artifacts whose R4 prose recommended Media for images or binary content"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Binary.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 1
+    }
   }
 }

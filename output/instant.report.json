@@ -260,7 +260,22 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is affected: a value such as `2020-01-01T00:00:00.1234567890Z` matches the R4 primitive regex and fails the R6 regex. R6-to-R4 conversion is not materially affected by this specific narrowing because R4 accepts all R6-permitted fractional precisions. Strict parsers, generated regex validators, JSON/XML schema validators, and FHIRPath-aware validation code are the likely enforcement points.",
       "migrationGuidanceMd": "Inventory all `instant`-typed fields and test values with more than 9 fractional-second digits. Choose and document a deterministic policy: reject the record, round to 9 digits, truncate to 9 digits, or preserve the original lexical value in an extension or audit store while using an R6-valid normalized value. Regression tests should include no fractional part, 1 digit, 9 digits, and 10 digits.",
       "backwardCompatibilityAnalysisMd": "The change could have been made less disruptive by retaining the R4 regex in the base datatype and expressing the 9-digit cap as guidance, a warning invariant, or profile-level rule. That would have preserved old instances but weakened the guarantee that all base R6 `instant` values fit within the desired precision envelope.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "instant:VALUE_CONSTRAINT:instant.value:fractional-seconds-9digits",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 keeps the `instant.value` path and primitive shape but narrows the lexical value space from arbitrary fractional-second length to at most 9 digits. A concrete R4 payload such as an audit or device-generated instant with 10 fractional digits is valid against the R4 regex and invalid against the R6 regex. The affected content is normative and this primitive is reused wherever `instant` appears, so even if over-9-digit precision is probably uncommon, the hard validation break needs a clear standards rationale and migration policy before it should be considered acceptable.",
+        "keyEvidence": [
+          "R4 StructureDefinition-instant.json snapshot `instant.value` regex contains `(\\.[0-9]+)?`, allowing any positive fractional-second length.",
+          "R6 StructureDefinition-instant.json snapshot `instant.value` regex contains `(\\.[0-9]{1,9})?`, capping fractional seconds at 9 digits.",
+          "R4 maturity map records `instant` standardsStatus `normative` and normativeVersion `4.0.0`; the R4 and R6 StructureDefinitions also carry normative status extensions.",
+          "R6 applies the same 1-9 fractional-second cap to `dateTime.value`, `time.value`, and `instant.value`, suggesting a deliberate temporal-primitive cleanup rather than an accidental diff."
+        ],
+        "fmmEffect": "The supplied R4 maturity context is normative, and local maturity/status evidence also shows normative status. That raises the burden of justification for a direct old-valid/new-invalid primitive value-space narrowing, even if the affected precision range is likely low-prevalence.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with `instant` values containing more than 9 fractional-second digits pass the R4 primitive regex but fail the R6 primitive regex; strict validators, schemas, and parsers enforcing R6 lexical rules can reject them.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design appears plausible: retain the R4 unbounded fractional-second regex for base validity while adding normative guidance, a warning-level invariant, or implementation support expectations that recommend no more than 9 digits. That would preserve old data and still improve interoperability guidance, but it would not give R6 the same hard bounded-precision guarantee and could leave arbitrary-precision handling burdens on implementations.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard R4-to-R6 validation break and high concern for normative content, but it does not give enough weight to the plausible less-breaking base design or the need for explicit rationale for this normative narrowing."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -413,5 +428,17 @@
       "Other date/time primitive regex precision changes",
       "Base hierarchy changes involving PrimitiveType, DataType, and Element"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/instant.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1
+    }
   }
 }

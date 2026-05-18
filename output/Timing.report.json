@@ -297,7 +297,23 @@
       "validationAndCompatibilityMd": "R4-valid data remains R6-valid with respect to these fields because absent optional elements are still allowed. R6-valid data that uses either field is not cleanly R4-representable as core Timing. R6 validators also enforce that each field appears only when `frequency > 1`, so migrations and test data must not add offsets to one-time-per-period schedules.",
       "migrationGuidanceMd": "For R4-to-R6 migration, no transform is required unless existing extensions or local conventions already represented these concepts. For R6-to-R4, define an explicit policy: reject such instances, map them to a documented extension, preserve them in narrative/text, or use a cross-version extension. Test both conformant offset examples and invalid cases where an offset appears without `frequency > 1`.",
       "backwardCompatibilityAnalysisMd": "The change is structurally additive and therefore the least disruptive core-model approach for R4-to-R6 migration. A cross-version extension would have been more backward compatible for R6-to-R4 exchange, but less likely to be uniformly implemented and harder for generic Timing processors to discover.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Timing:ELEMENT_PRESENCE_OR_IDENTITY:Timing.repeat.startOffset-endOffset:8f9d31",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds optional `Timing.repeat.startOffset` and `Timing.repeat.endOffset` fields rather than changing or removing any R4 field. That means ordinary R4 Timing instances continue to fit the R6 shape. The real break is reverse-direction and semantic: an R6 dosage or cyclic schedule can now carry offset information that R4 core Timing has no place to store, so a strict R4 parser, generated model, schema, or downgrade mapper may reject or drop clinically relevant timing detail. Given the stated goal of representing interlaced/cyclic schedules directly, the optional core additions look proportionate despite the downgrade burden.",
+        "keyEvidence": [
+          "R4 StructureDefinition/Timing has no `Timing.repeat.startOffset` or `Timing.repeat.endOffset` child.",
+          "R6 StructureDefinition/Timing adds both fields as `0..1` SimpleQuantity elements with `isSummary=true`.",
+          "R6 `Timing.repeat` adds error invariants `tim-11` and `tim-12`, requiring each new offset only when `frequency > 1`.",
+          "R6 comments tie these fields to interlaced schedules, Dosage, and medication schedules that cycle on/off.",
+          "R4 maturity map and local StructureDefinition show Timing as normative."
+        ],
+        "fmmEffect": "Timing is normative, so loss of schedule semantics in medication-oriented use deserves scrutiny. That said, the change does not invalidate R4 instances; the normative status mainly raises the need for explicit downgrade policy rather than making the additive R6 design suspect.",
+        "compatibilityMechanism": "R6-to-R4 loss: R6 instances using `startOffset` or `endOffset` have no native R4 core representation, and R4 generated models or validators may reject or discard the new properties.",
+        "lessBreakingAlternativeAssessment": "No clearly better base R6 design was identified. Keeping the concept only in extensions could improve cross-version carrying in R4, but would reduce native R6 discoverability and uniform processing for a core Timing use case; adding optional core fields is already the forward-compatible base-model pattern.",
+        "comparisonToExisting": "partially agree with the existing high reverse-direction impact and no hard R4-to-R6 break; agree that extension or mapping strategies are mitigations rather than a clearly less-breaking base R6 design."
+      }
     },
     {
       "findingId": "Timing:TERMINOLOGY_BINDING:Timing.repeat.when:event-timing-imd:3c4b7e",
@@ -434,7 +450,23 @@
       "validationAndCompatibilityMd": "Old R4 values are not made invalid by this change. An R6 instance using `when: [\"IMD\"]` is R6-valid under the R6 binding but not R4-valid under the local R4 required binding. Runtime effects include enum exhaustiveness failures, terminology validation failures, and lossy downgrade transforms.",
       "migrationGuidanceMd": "For R4-to-R6, no action is needed for existing codes. For R6-to-R4, add explicit handling for `IMD`: reject it, preserve it in an extension, map it to narrative/text, or apply a locally governed code mapping if one exists. Test downgrade paths with `IMD` and with mixed `when` arrays containing both old and new codes.",
       "backwardCompatibilityAnalysisMd": "The code addition is a standard forward evolution of a required code system. A backward-compatible alternative would require a cross-version extension or official ConceptMap rather than avoiding the new code entirely. Without such guidance, R4 compatibility remains a local policy decision.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Timing:TERMINOLOGY_BINDING:Timing.repeat.when:event-timing-imd:3c4b7e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`Timing.repeat.when` keeps the same path, cardinality, primitive type, and required binding strength, but the R6 EventTiming code system includes a new `IMD` code for immediate timing. Existing R4 codes are not removed, so this is not an old-valid/new-invalid R4-to-R6 break. The compatibility issue is that an R6 instance using `IMD` can fail R4 required-binding validation or generated-enum handling. Adding a first-class code for a real scheduling concept is a reasonable terminology evolution, provided cross-version receivers make an explicit policy for `IMD`.",
+        "keyEvidence": [
+          "R4 `Timing.repeat.when` is bound required to `http://hl7.org/fhir/ValueSet/event-timing|4.0.1`.",
+          "R6 `Timing.repeat.when` is bound required to `http://hl7.org/fhir/ValueSet/event-timing|6.0.0-ballot4`.",
+          "R4 CodeSystem/event-timing contains 12 codes and no `IMD`.",
+          "R6 CodeSystem/event-timing adds `IMD` with display `Immediate` and definition for a single event as soon as possible after the scheduled or actual start.",
+          "Both R4 and R6 EventTiming ValueSets include all codes from `http://hl7.org/fhir/event-timing`, so the new code enters the required binding through the code system expansion."
+        ],
+        "fmmEffect": "The Timing datatype and EventTiming terminology are normative in the local R4 inputs, which raises the burden to avoid gratuitous code-domain churn. Here the old required-domain values remain available, so the maturity concern is mostly about documenting reverse mapping, not about rejecting the R6 addition.",
+        "compatibilityMechanism": "R6-to-R4 loss: R4 terminology validators, switch statements, and generated enums may not accept `IMD`; downgrade requires rejection, text preservation, extension use, or a governed local mapping.",
+        "lessBreakingAlternativeAssessment": "No equivalent less-breaking base R6 design is apparent. Avoiding `IMD` or leaving immediate timing only as text/local coding would reduce downgrade friction but would not standardize the concept in the required EventTiming domain. ConceptMaps are useful migration guidance but not a base-model alternative.",
+        "comparisonToExisting": "partially agree with the existing high R6-to-R4 risk and agree that no less-breaking base design is obvious; the high impact should be read as reverse-direction terminology compatibility, not as R4 data becoming invalid in R6."
+      }
     },
     {
       "findingId": "Timing:VALUE_CONSTRAINT:Timing.repeat:tim-9-expression:6b2a44",
@@ -533,7 +565,23 @@
       "validationAndCompatibilityMd": "There is no definite R4-valid/new-invalid example from the StructureDefinitions alone because the R4 human rule already prohibited the target pattern. The compatibility risk is that computable validation behavior can become stricter or more consistent in R6 for multi-valued `when` arrays. R6-to-R4 representation is not materially affected.",
       "migrationGuidanceMd": "Review test data and production data for `Timing.repeat.offset` combined with `when` values `C`, `CM`, `CD`, or `CV`, especially arrays containing both allowed and disallowed values. Update custom FHIRPath validators and unit tests to use the R6 expression semantics rather than relying on the old expression form.",
       "backwardCompatibilityAnalysisMd": "Since the human rule did not change, preserving the old expression would mainly preserve ambiguity. The compatible migration path is to clean data and align validators, not to map fields.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Timing:VALUE_CONSTRAINT:Timing.repeat:tim-9-expression:6b2a44",
+        "judgment": "No problem",
+        "narrativeMd": "The `tim-9` human rule remains the same in R6: if `offset` is present, `when` must be present and must not be `C`, `CM`, `CD`, or `CV`. The changed FHIRPath expression appears to make the repeated-code test explicit rather than changing the intended conformance rule. A system that previously accepted `offset` with a prohibited meal-timing code may see a new validation failure, but that would be enforcement of a rule already stated in R4, not a legitimate R4-valid/new-R6-invalid data pattern.",
+        "keyEvidence": [
+          "R4 `Timing.repeat` constraint `tim-9` has severity `error` and human text forbidding offset with `C`, `CM`, `CD`, or `CV`.",
+          "R4 `tim-9` expression used `((when in ('C' | 'CM' | 'CD' | 'CV')).not())` against repeatable `when`.",
+          "R6 `tim-9` keeps the same severity and human text.",
+          "R6 rewrites the expression to `when.select($this in ('C' | 'CM' | 'CD' | 'CV')).allFalse()`.",
+          "`Timing.repeat.when` is repeatable (`0..*`) in both R4 and R6."
+        ],
+        "fmmEffect": "Normative status raises scrutiny for constraint changes, but it also makes preservation of the stated R4 rule important. Because the human error-level invariant did not change, FMM/status does not support treating this as a standards-design break.",
+        "compatibilityMechanism": "runtime/API/codegen: validator behavior may become more consistent for multi-valued `when`, but the affected instances were already contrary to the R4 human invariant; no clear old-valid/new-invalid base instance break exists.",
+        "lessBreakingAlternativeAssessment": "Retaining the older collection expression would be less disruptive only for permissive or inconsistent validators, and would preserve ambiguity. Downgrading to a warning would weaken an error-level rule already present in R4. No better less-breaking base expression was identified.",
+        "comparisonToExisting": "disagree with the existing potential hard-break characterization and medium impact; agree only that validator behavior can change and that preserving the old expression is not a good alternative."
+      }
     },
     {
       "findingId": "Timing:SEMANTIC_OR_CONFORMANCE_TEXT:Timing.repeat.dayOfWeek-timeOfDay:frequency-period:ad91c0",
@@ -653,7 +701,23 @@
       "validationAndCompatibilityMd": "FHIR instance validation based strictly on min/max/type/binding is not broken. Compatibility risk appears in semantic validators, generated rule engines, and scheduling algorithms. R6 content using combinations that R4 comments discouraged can be serialized in R4 shape but may not be semantically acceptable to R4-era implementations.",
       "migrationGuidanceMd": "Inventory custom Timing validators and scheduling logic for rules that reject `dayOfWeek` with `frequency`/`period` or `timeOfDay` with `frequency`/`period`. Decide whether to keep those restrictions as local profile rules or relax them for R6. Add test cases for weekly day/time schedules and for invalid `timeOfDay` plus `when` combinations.",
       "backwardCompatibilityAnalysisMd": "Because the old restriction was comment text rather than an invariant, R6 could change the guidance without a formal schema break. A backward-compatible alternative would have been to retain legacy warning text for one release, but that might have continued an overly restrictive interpretation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Timing:SEMANTIC_OR_CONFORMANCE_TEXT:Timing.repeat.dayOfWeek-timeOfDay:frequency-period:ad91c0",
+        "judgment": "No problem",
+        "narrativeMd": "R6 removes R4 comment text that said `frequency` and `period` cannot be combined with `dayOfWeek`, and narrows the `timeOfDay` comment to the existing computable `timeOfDay` versus `when` exclusion. Cardinalities, types, and the `tim-10` invariant do not tighten. This may require local validators or scheduling engines that encoded the old comments as hard rules to be updated, but it is a relaxation/clarification rather than an R4-to-R6 instance break.",
+        "keyEvidence": [
+          "R4 `Timing.repeat.dayOfWeek.comment` says `frequency` and `period` cannot be used as well as `dayOfWeek`.",
+          "R6 `Timing.repeat.dayOfWeek.comment` removes that incompatibility sentence.",
+          "R4 `Timing.repeat.timeOfDay.comment` says `when`, `frequency`, and `period` cannot be used as well as `timeOfDay`.",
+          "R6 `Timing.repeat.timeOfDay.comment` only states that `timeOfDay` and `when` cannot both be present.",
+          "`tim-10` remains `timeOfDay.empty() or when.empty()` in R6, and the affected element cardinalities/types remain stable."
+        ],
+        "fmmEffect": "Timing is normative, so semantic text changes should be checked rather than dismissed. The actual mechanism is a non-computable relaxation with stable field shape, so normative status does not make this a material breaking design issue.",
+        "compatibilityMechanism": "semantic/documentation: R4-derived business rules may differ from R6 guidance, but base structural validation is not tightened and old R4 instances are not made invalid.",
+        "lessBreakingAlternativeAssessment": "Keeping the R4 prohibition as transitional prose might reduce surprise for local validators, but it would also preserve guidance R6 appears to be correcting. Adding a formal invariant would be more breaking, not less. No necessary less-breaking base R6 design is apparent.",
+        "comparisonToExisting": "partially agree that local scheduling logic deserves migration awareness; disagree with treating this as medium-impact break or requiring design reconsideration, because it is a relaxation of comment text rather than a hard compatibility break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -802,5 +866,18 @@
       "Medication-related artifacts may be affected by the Timing semantic changes and new offset elements.",
       "Terminology code additions in required bindings should be checked for enum/codegen downgrade risk."
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Timing.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 2
+    }
   }
 }

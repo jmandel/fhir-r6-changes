@@ -312,7 +312,22 @@
       "migrationGuidanceMd": "Review primitive code generation and schema export logic. Prefer deriving the datatype identity from the root StructureDefinition (`type: oid`, canonical URL, and regex) rather than from only the primitive `value` system type. Test that `oid` still serializes as a JSON string/XML attribute and that validators still enforce the same `urn:oid:` regex.",
       "backwardCompatibilityAnalysisMd": "The R6 change appears to correct an internal inconsistency rather than intentionally narrow the data model. Preserving the R4 snapshot marker would be less disruptive for one class of tools, but it would keep the snapshot inconsistent with both the artifact identity and the differential.",
       "reviewerNotesMd": "The R6 package did not include a StructureDefinition resource for the `structuredefinition-fhir-type` extension, so the extension's intended R6 semantics were inferred from the R4 extension definition and its continued use in primitive definitions.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "oid:SERIALIZATION_OR_CODEGEN:oid.value:986e39",
+        "judgment": "No problem",
+        "narrativeMd": "The reconstructed change is limited to metadata on `oid.value`: the R4 snapshot's `structuredefinition-fhir-type` extension says `string`, while R6 says `oid`. The actual primitive remains the same canonical `oid` specialization of `uri`; `oid.value` keeps the same `System.String` underlying type, cardinality, XML representation, and `urn:oid:` regex. R4's own differential already used `oid`, so this looks like R6 aligning the snapshot with the primitive identity rather than changing the wire format or valid value space. A tool that used only the R4 snapshot extension might generate a different wrapper/API in R6, but that is a metadata/tooling correction rather than a base instance compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition-oid.json: canonical url `http://hl7.org/fhir/StructureDefinition/oid`, type `oid`, baseDefinition `uri`, standards-status `normative`.",
+          "R4 `oid.value` snapshot has `structuredefinition-fhir-type` = `string`, but R4 `oid.value` differential has `structuredefinition-fhir-type` = `oid`.",
+          "R6 StructureDefinition-oid.json: same canonical url, type `oid`, baseDefinition `uri`, and `oid.value` snapshot/differential both have `structuredefinition-fhir-type` = `oid`.",
+          "R4 and R6 `oid.value` keep `http://hl7.org/fhirpath/System.String`, min 0, max 1, `xmlAttr`, and regex `urn:oid:[0-2](\\.(0|[1-9][0-9]*))+`."
+        ],
+        "fmmEffect": "R4 `oid` is normative, which would raise the burden for a real wire-format or validation break. Here the normative status does not elevate the finding because the change is limited to correcting internal metadata and does not narrow valid OID instances.",
+        "compatibilityMechanism": "metadata/tooling: a generator that keys only off the snapshot `structuredefinition-fhir-type` extension could alter generated primitive wrappers, but there is no old-valid/new-invalid instance change and no semantic value-space change.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed. Keeping the R4 snapshot value `string` would preserve an inconsistency with the canonical primitive type and R4 differential; a transitional alias would add ambiguity for metadata consumers without preserving any valid instances that would otherwise be rejected.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that there is no hard instance break and no useful less-breaking alternative, but I would characterize the impact as metadata/tooling-only rather than a meaningful runtime or migration risk."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -476,5 +491,17 @@
       "R6 `structuredefinition-type-characteristics` metadata additions on primitive datatypes",
       "Base primitive hierarchy changes involving `PrimitiveType`"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/oid.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

@@ -396,7 +396,22 @@
       "migrationGuidanceMd": "For R4-to-R6, transform `PaymentNotice.provider` to `PaymentNotice.reporter` only when the source value identifies the party reporting the notice. If the source value specifically identifies the service provider and a different reporter is known, map the reporter separately and preserve provider semantics via an extension or workflow-specific related data. Regression tests should cover provider present, provider absent, and provider distinct from reporter.",
       "backwardCompatibilityAnalysisMd": "The change likely improves clarity, but a backward-compatible path existed: keep `provider` and add `reporter`, or keep the element name while changing narrative guidance. Those alternatives would preserve instance compatibility but leave systems with either duplicate elements or a historically misleading name.",
       "reviewerNotesMd": "Human review is recommended for data sets where the provider responsible for services is not necessarily the reporter of the payment notice.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PaymentNotice:ELEMENT_PRESENCE_OR_IDENTITY:PaymentNotice.provider:6c8f2a",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `PaymentNotice.provider` and R6 `PaymentNotice.reporter` have the same cardinality and reference target set, but the old wire element is gone and the definition shifted from the party responsible for rendered services to the party reporting the notice. An R4 instance carrying `provider` is therefore old-valid/new-invalid in R6, and clients or servers using the related `provider` search parameter must move to `reporter`. Because provider and reporter can be different parties in payment workflows, migration is not always a safe mechanical rename; it can affect financial attribution and audit meaning.",
+        "keyEvidence": [
+          "R4 StructureDefinition PaymentNotice.provider: 0..1 Reference(Practitioner|PractitionerRole|Organization), definition is the practitioner responsible for services rendered.",
+          "R6 StructureDefinition PaymentNotice.reporter: 0..1 Reference(Practitioner|PractitionerRole|Organization), definition is the party who reports the payment notice; no R6 PaymentNotice.provider element is present.",
+          "SearchParameter changed from PaymentNotice-provider expression PaymentNotice.provider in R4 to PaymentNotice-reporter expression PaymentNotice.reporter in R6.",
+          "R4 PaymentNotice metadata: FMM 2, standards status trial-use."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral rather than a strong stability guarantee, but it also is not the very-low-FMM case. The direct wire/search break and billing attribution risk drive the judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 instances with `provider` are not base-valid R6, generated accessors and FHIRPath/search expressions change, and R6 `reporter` is not representable as the old R4 element without a transform.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design appears plausible. R6 could have retained `provider` as a deprecated legacy element while adding `reporter`, or kept the old wire name if the intended role was the same and clarified the definition. The tradeoff is either duplicate/conflicting same-resource representations or carrying a misleading legacy name, but both would better preserve R4 data and expose the semantic distinction for review.",
+        "comparisonToExisting": "agree: the existing report's high impact and less-breaking-alternative judgment are consistent with the independent path-level assessment, though the semantic shift means some migrations need role review rather than a blind rename."
+      }
     },
     {
       "findingId": "PaymentNotice:CARDINALITY:PaymentNotice.payment:0f35bd",
@@ -574,7 +589,22 @@
       "migrationGuidanceMd": "R6 consumers should treat `payment` as nullable and test missing-reference cases. R6-to-R4 transforms must either derive a real PaymentReconciliation reference, reject/quarantine the record for manual handling, or use a non-base extension/profile strategy that will not be valid as plain R4. Do not invent placeholder references unless the receiving workflow explicitly permits them.",
       "backwardCompatibilityAnalysisMd": "The flexibility may be useful for draft or status-change notices, but relaxing base cardinality was not the only design path. A profile, invariant warning, or explicit absence-reason extension could have preserved the base R4 shape while documenting exceptional cases; the tradeoff is less universal support for payment-less notices.",
       "reviewerNotesMd": "Review downstream reconciliation rules before accepting R6 PaymentNotice resources that omit `payment`.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PaymentNotice:CARDINALITY:PaymentNotice.payment:0f35bd",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 relaxes `PaymentNotice.payment` from required to optional while leaving the PaymentReconciliation target and requirements text unchanged. This is not an R4-to-R6 validation break: every valid R4 instance already has `payment` and still satisfies the R6 cardinality. The real compatibility issue is downstream and reverse-directional: valid R6 notices may omit the payment reference, cannot be losslessly downgraded to base R4, and R6 code can no longer assume a non-null payment link. That is meaningful for reconciliation and audit workflows, but it looks proportionate if R6 intended to support draft, cancellation, or pre-reconciliation notices.",
+        "keyEvidence": [
+          "R4 StructureDefinition PaymentNotice.payment: min 1, max 1, Reference(PaymentReconciliation).",
+          "R6 StructureDefinition PaymentNotice.payment: min 0, max 1, Reference(PaymentReconciliation).",
+          "Both R4 and R6 keep the definition as a reference to the payment subject of the notice and requirements text saying the actual payment needs to be identified.",
+          "R4 PaymentNotice metadata: FMM 2, standards status trial-use."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use gives neutral stability pressure. The centrality of the payment reference creates real business migration concern, but the lower maturity makes the relaxation easier to accept if it supports legitimate R6 workflow flexibility.",
+        "compatibilityMechanism": "R6-to-R4 loss and runtime/API/codegen: there is no old-valid/new-invalid R4-to-R6 break, but R6 instances without `payment` cannot satisfy base R4 and generated R6 models/business logic must handle null.",
+        "lessBreakingAlternativeAssessment": "Keeping `payment` required, or adding a conditional invariant that requires it except for specific statuses, would reduce downgrade and nullability burden. Those alternatives also restrict the apparent R6 goal of allowing a notice before a specific PaymentReconciliation is known, and a conditional rule would add policy complexity. No clearly superior less-breaking base design is evident.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies no forward hard break and real R6-to-R4/nullability risk, but its high overall impact overstates this as a direct R4-to-R6 compatibility problem."
+      }
     },
     {
       "findingId": "PaymentNotice:ELEMENT_PRESENCE_OR_IDENTITY:PaymentNotice.statusReason:ab93d1",
@@ -728,7 +758,22 @@
       "validationAndCompatibilityMd": "Existing R4 instances remain valid with respect to this addition. R6 instances that populate `statusReason` cannot be represented in base R4 as-is; strict R4 JSON validation rejects the unknown member. Tolerant parsers might ignore it, which is a data-loss risk rather than a validation success.",
       "migrationGuidanceMd": "When downgrading to R4, map `statusReason` to a well-governed extension or preserve it out-of-band. Test cancellation and entered-in-error examples because R6 implementation guides may choose to make the reason required by profile even though the base resource does not.",
       "backwardCompatibilityAnalysisMd": "The R6 addition is forward-compatible and useful. For older versions, an extension is the natural compatibility bridge; the main tradeoff is discoverability and consistent receiver support.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "PaymentNotice:ELEMENT_PRESENCE_OR_IDENTITY:PaymentNotice.statusReason:ab93d1",
+        "judgment": "No problem",
+        "narrativeMd": "`PaymentNotice.statusReason` is an optional additive R6 element. It gives R6 instances a base place to explain a status change, especially cancellation, but it does not invalidate any R4 PaymentNotice moving forward to R6. The only compatibility concern is that populated R6 status reasons have no native R4 slot and would need an extension, omission, or out-of-band preservation when downgrading.",
+        "keyEvidence": [
+          "R4 PaymentNotice has no statusReason element.",
+          "R6 StructureDefinition PaymentNotice.statusReason: 0..1 string, summary=true, definition says it indicates why the status changed.",
+          "R6 comment says implementation guides may consider invariants requiring statusReason when status is cancelled.",
+          "R4 PaymentNotice metadata: FMM 2, standards status trial-use."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral, and the additive optional shape leaves little stability burden to weigh.",
+        "compatibilityMechanism": "R6-to-R4 loss only: forward R4-to-R6 instances remain valid; reverse conversion of populated `statusReason` needs an extension or loses explanatory/audit text.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is needed because the element is optional and additive. A cross-version extension can help R4 downgrade, but that is a migration/backport mechanism rather than a better R6 base design.",
+        "comparisonToExisting": "partially agree: the existing report's evidence and reverse-loss note are sound, but treating the additive change as medium impact overstates the standards-design concern."
+      }
     },
     {
       "findingId": "PaymentNotice:TERMINOLOGY_BINDING:PaymentNotice.paymentStatus:e1b4a7",
@@ -917,7 +962,22 @@
       "migrationGuidanceMd": "Review `paymentStatus` coding practices. Where the local status can be mapped to the standard payment-status system, add the standard coding while preserving local codings if needed. Do not drop local codes unless a reliable ConceptMap/business mapping exists. Confirm behavior with the validator used by the target R6 environment.",
       "backwardCompatibilityAnalysisMd": "The working group could have left the binding as `example` and relied on narrative guidance, which would avoid warning churn. The chosen `preferred` strength is still a relatively compatible way to improve consistency because it stops short of `extensible` or `required`.",
       "reviewerNotesMd": "Terminology confidence is medium because no expansion was present and the R6 core package did not include the referenced paymentstatus CodeSystem resource.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "PaymentNotice:TERMINOLOGY_BINDING:PaymentNotice.paymentStatus:e1b4a7",
+        "judgment": "No problem",
+        "narrativeMd": "`PaymentNotice.paymentStatus` keeps the same CodeableConcept shape and value set canonical while the binding strength increases from `example` to `preferred`. That can create validator warnings or policy pressure to use the common payment-status codes, but it still does not make out-of-set codings invalid in the base resource. For this path, the change is useful interoperability guidance rather than a hard compatibility break.",
+        "keyEvidence": [
+          "R4 StructureDefinition PaymentNotice.paymentStatus binding strength is example to http://hl7.org/fhir/ValueSet/payment-status.",
+          "R6 StructureDefinition PaymentNotice.paymentStatus binding strength is preferred to the same value set canonical.",
+          "Both R4 and R6 ValueSet-payment-status compose include http://terminology.hl7.org/CodeSystem/paymentstatus.",
+          "R4 package CodeSystem-payment-status contains paid and cleared; the base binding remains non-required."
+        ],
+        "fmmEffect": "R4 FMM 2/trial-use is neutral. Because the binding remains non-required, the maturity level does not turn warning-level conformance pressure into a material breaking concern.",
+        "compatibilityMechanism": "warning-level: preferred binding may produce validation warnings or influence profiles/tooling, but it is not old-valid/new-invalid for CodeableConcept content.",
+        "lessBreakingAlternativeAssessment": "A less disruptive design would keep `example` strength and add prose recommending the payment-status codes. That would avoid warning/policy churn but materially weakens the computable signal that shared codes are preferred, so it is only a partial alternative.",
+        "comparisonToExisting": "agree: the existing report's low-impact assessment and partial less-breaking alternative are consistent with the fresh review."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1085,5 +1145,19 @@
       "SearchParameter renames that mirror element renames",
       "R6 additions of `statusReason` fields across financial resources"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/PaymentNotice.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 1,
+      "No problem": 2
+    }
   }
 }

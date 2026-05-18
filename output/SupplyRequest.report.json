@@ -262,7 +262,23 @@
       "migrationGuidanceMd": "Inventory all R4 `SupplyRequest` storage, API, subscriptions, profiles, search parameters, and generated classes. Do not attempt a blind field rename. Instead, classify records by requested item and workflow, select an R6 target resource/profile for each class, and preserve source identifiers and provenance so the original SupplyRequest can be audited. Historical data may need to remain available through an R4 endpoint or be carried as source data/extension-backed content if no lossless R6 target exists.",
       "backwardCompatibilityAnalysisMd": "Removal is highly disruptive from an implementation standpoint. A backward-compatible alternative would have been to keep a deprecated R6 `SupplyRequest` definition or publish an explicit cross-version mapping. That alternative would not force immediate remodels, but it would also require ongoing support for a resource that the R6 ballot apparently removed from core.",
       "reviewerNotesMd": "Human review should confirm whether there is an official ballot rationale or replacement recommendation outside the local package. The absence finding itself is high-confidence from the supplied primary artifacts.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SupplyRequest:ARTIFACT_IDENTITY:root:4b7d2c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The R4 resource identity is genuinely gone in the supplied R6 ballot package: an R4 instance with `resourceType: \"SupplyRequest\"` has no base R6 StructureDefinition to validate against. That is a real top-level break, but the R4 resource was FMM 1 / trial-use and the R4 narrative itself framed the content as unsettled inventory/logistics work, including a trial-use request for feedback on whether SupplyRequest and DeviceRequest should be combined. I did not find verified evidence of broad production dependence in a quick targeted search. On that record, removing the low-maturity generic resource appears proportionate, even though implementers with existing data will need an explicit migration path.",
+        "keyEvidence": [
+          "R4 StructureDefinition-SupplyRequest.json defines a concrete DomainResource with type/url SupplyRequest.",
+          "The expected R6 StructureDefinition-SupplyRequest.json is absent, and the R6 package index has no SupplyRequest StructureDefinition entry.",
+          "R4 maturity metadata: SupplyRequest is trial-use, FMM 1, Orders and Observations WG.",
+          "HL7 R4 SupplyRequest page says the resource is trial-use inventory-management content and asks for input on whether to combine SupplyRequest and DeviceRequest.",
+          "Quick targeted web checks did not produce verified production-use evidence beyond HL7 specification pages."
+        ],
+        "fmmEffect": "FMM 1 / trial-use substantially softens the stability concern. I treated the resource removal as a real break, but not as presumptively disproportionate without stronger evidence of production reliance or safety-critical use.",
+        "compatibilityMechanism": "old-valid/new-invalid: any R4 SupplyRequest instance names a resource type that the supplied R6 core package does not define.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained a deprecated SupplyRequest for one release, which would preserve old instances. That is a real base-design alternative, but not clearly low-cost: it would keep a generic logistics resource in core, preserve generated APIs/search surfaces, and risk duplicate representation beside more specific request resources.",
+        "comparisonToExisting": "partially agree with the existing hard-break finding, but I would soften the action judgment because the old resource was low-FMM trial-use and already documented as unsettled; the less-breaking alternative is plausible but has material governance and implementation cost."
+      }
     },
     {
       "findingId": "SupplyRequest:SERIALIZATION_OR_CODEGEN:root:8e1a90",
@@ -381,7 +397,22 @@
       "validationAndCompatibilityMd": "This is not counted as a second hard instance-breaking change because the formal validation break is already captured by the identity finding. It is a high runtime risk: code can fail to compile or throw unknown-resource errors even before validation. R6-to-R4 representability is not applicable for a same-name resource because R6 does not define one.",
       "migrationGuidanceMd": "Update generated-model dependencies and compile the application with R6 models early. Search for `SupplyRequest`, `resourceType == \"SupplyRequest\"`, typed REST route registrations, search parameter builders, database schemas, and resource enum switches. Add explicit compatibility handling if historical R4 SupplyRequest data must still be read in an R6-oriented service.",
       "backwardCompatibilityAnalysisMd": "The less disruptive implementation design would be a compatibility shim or deprecated type. That would reduce runtime failures for cross-version systems, but it would not solve semantic migration and might encourage continued use of a removed resource.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "SupplyRequest:SERIALIZATION_OR_CODEGEN:root:8e1a90",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Generated R6 libraries that rely on the core package will normally omit a SupplyRequest class, enum value, serializers, typed routes, and search helpers. That creates compile-time and runtime migration work for systems that handled R4 SupplyRequest. Still, this is mostly the implementation-surface consequence of the resource identity removal rather than a separate R6 design choice. Given the R4 FMM 1 / trial-use status and the lack of verified broad production evidence, the runtime break looks acceptable if the intended R6 direction is to retire the generic SupplyRequest model.",
+        "keyEvidence": [
+          "R4 SupplyRequest has local elements, required item[x] and quantity, and a modifier status element available to R4 generators.",
+          "The supplied R6 package has no SupplyRequest StructureDefinition to drive generated model, validation, or serialization metadata.",
+          "R6 package index checks found related request resources such as DeviceRequest, MedicationRequest, and NutritionOrder, but no SupplyRequest model surface.",
+          "HL7 R4 scope text directs patient-focused or instruction-bearing medication/device requests toward MedicationRequest or DeviceRequest."
+        ],
+        "fmmEffect": "The low FMM reduces the expectation that R6 must preserve typed API compatibility. I did not treat missing generated classes for this trial-use resource as independently requiring standards reconsideration.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 generated code and servers may lack a SupplyRequest type, resource discriminator, endpoint, search API, or deserializer before instance validation is even attempted.",
+        "lessBreakingAlternativeAssessment": "A deprecated base StructureDefinition would let generators keep a compatibility class and resource discriminator. A separate compatibility package or local shim would mitigate migration, but is not a less-breaking base R6 design. Keeping the type in base would also imply ongoing support for a retired resource surface.",
+        "comparisonToExisting": "partially agree with the existing runtime-risk analysis, but I see the high runtime risk as derivative of an otherwise proportionate low-FMM resource retirement rather than a separate reason to revisit the ballot design."
+      }
     },
     {
       "findingId": "SupplyRequest:CONVERSION_OR_MAPPING:root:63c5b1",
@@ -549,7 +580,23 @@
       "migrationGuidanceMd": "Create a mapping decision table before transforming data. At minimum, classify by `item[x]` type/code, requester, supplier, delivery fields, and whether the record represents an order, procurement request, fulfillment instruction, or inventory movement. Preserve unmapped fields through extensions or provenance, and test representative medication, device, substance, and logistics-only cases with domain owners.",
       "backwardCompatibilityAnalysisMd": "The standards package could have reduced migration risk by supplying an official map, even if retaining the resource was undesirable. Because no such map was found locally, compatibility depends on implementation-specific design choices rather than a common R6 contract.",
       "reviewerNotesMd": "This finding has medium confidence because it infers migration implications from computable definitions and package search. Official ballot narrative could identify intended replacements or confirm that no direct successor is intended.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "SupplyRequest:CONVERSION_OR_MAPPING:root:63c5b1",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "There is a real semantic migration problem: R4 SupplyRequest covered a broad logistics request for a medication, substance, or device, including quantity, requester, supplier, and delivery source/destination. The R6 package contains adjacent request resources, but none is identified locally as a one-to-one SupplyRequest successor. Some transforms would require local judgment, especially for generic substance or inventory-transfer cases. However, the R4/R5 explanatory text already separates SupplyRequest logistics from clinical MedicationRequest/DeviceRequest use, and the R4 artifact is only FMM 1 / trial-use. Without verified evidence of broad production use, the absence of a universal successor or map is a migration burden but not enough to make the R6 base design look disproportionate.",
+        "keyEvidence": [
+          "R4 SupplyRequest.item[x] is mandatory and can be CodeableConcept or Reference to Medication, Substance, or Device; quantity is also mandatory.",
+          "R4 SupplyRequest includes supplier, deliverFrom, and deliverTo logistics fields.",
+          "R6 DeviceRequest, MedicationRequest, and NutritionOrder overlap with parts of the domain but have different required subjects/intents and do not preserve the same generic supply-logistics shape.",
+          "No SupplyRequest successor StructureDefinition or StructureMap was found in the supplied R6 package index.",
+          "HL7 R5 SupplyRequest page describes the resource as logistics-only and points clinical use to ServiceRequest, DeviceRequest, and MedicationRequest."
+        ],
+        "fmmEffect": "FMM 1 / trial-use is important here: even though some migrations may be lossy or expert-dependent, the low maturity and lack of verified production-use evidence keep the finding below Revisit.",
+        "compatibilityMechanism": "semantic/documentation: the issue is not a second structural validation rule but the absence of a common R6 semantic target for all R4 SupplyRequest logistics cases.",
+        "lessBreakingAlternativeAssessment": "Formal mapping guidance would be useful but is mitigation rather than a less-breaking base model. A deprecated SupplyRequest or explicit compatibility/successor resource could preserve more R4 semantics, but would duplicate domain-specific request resources and may still need case-by-case rules for clinical versus logistics workflows.",
+        "comparisonToExisting": "partially agree that migration can require human review and may lose logistics semantics, but I would not keep the existing high-impact posture without stronger usage evidence given the low FMM and the R4/R5 boundary guidance."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -695,5 +742,17 @@
       "Generic request resources split into domain-specific R6 workflows",
       "R4 resource-specific SearchParameters whose base resource is removed"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/SupplyRequest.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 3
+    }
   }
 }

@@ -333,7 +333,21 @@
       "migrationGuidanceMd": "Map R4 `statusReason` to `lifecycleStatusReason[0].text` unless local rules can code it. For R6-to-R4, decide whether to concatenate text, select one reason, or preserve full structured reasons in extensions. Test cancelled, rejected, on-hold, coded, text-only, and repeated cases.",
       "backwardCompatibilityAnalysisMd": "The model improvement was likely to support codable and multiple reasons, but a deprecated old string could have avoided a hard element-removal break. The tradeoff would be temporary duplication and ambiguity when both the old and new representations are present.",
       "reviewerNotesMd": "The R6 value set is example strength, so codes outside the listed SNOMED examples are still allowed; the main break is element identity and representation, not required terminology validation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Goal:ELEMENT_PRESENCE_OR_IDENTITY:Goal.statusReason:7b2a51",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `Goal.statusReason` is removed and the closest R6 element is `Goal.lifecycleStatusReason`, changing the wire name, type from `string` to `CodeableConcept`, and cardinality from `0..1` to `0..*`. That is a real old-valid/new-invalid break and generated code using the scalar string must change. The forward migration path is still fairly direct for ordinary R4 data: put the old string into one `CodeableConcept.text`. The R6 design also adds useful coded and repeated reasons, so the compatibility cost looks proportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition Goal.statusReason: 0..1 string, definition 'Captures the reason for the current status.'",
+          "R6 StructureDefinition Goal.lifecycleStatusReason: 0..* CodeableConcept, same status-reason role with example binding to goal-status-reason",
+          "No local cross-version mapping file was found outside the R4/R6 StructureDefinition evidence"
+        ],
+        "fmmEffect": "Goal is FMM 2 and trial-use, so stability expectations are meaningful but neutral; the concrete mechanism matters more than the maturity label.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 instances with statusReason fail strict R6 validation, and SDKs change from one string property to a repeating CodeableConcept property.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking base design would keep deprecated statusReason while adding lifecycleStatusReason. It would preserve old instances, but it creates duplicate same-resource representations and precedence/consistency rules, so it is not clearly lower cost than a straightforward transform.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative judgment; the break is real, but I would treat it as proportionate rather than a design that must be revisited."
+      }
     },
     {
       "findingId": "Goal:SEMANTIC_OR_CONFORMANCE_TEXT:Goal.statusDate:4c6f20",
@@ -465,7 +479,21 @@
       "migrationGuidanceMd": "Do not blindly rename every `statusDate`. If the Goal lifecycle status is `completed` and the date reflects achievement, map to `achievementStatusDate`. If the date reflects cancellation, rejection, initial creation, or another lifecycle transition, preserve it in an extension, Provenance, history, or another local migration field and flag for review.",
       "backwardCompatibilityAnalysisMd": "The clearer achievement-specific field is useful, but removing the broader old field was avoidable. Keeping a deprecated lifecycle-status date alongside the new achievement date would have preserved R4 data while enabling more precise R6 semantics.",
       "reviewerNotesMd": "Official narrative or cross-version maps would materially improve confidence about whether an R6 lifecycle-status date was intentionally omitted or represented elsewhere.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Goal:SEMANTIC_OR_CONFORMANCE_TEXT:Goal.statusDate:4c6f20",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Goal.statusDate` is a lifecycle-status effective date, including creation, achievement, cancellation, and similar status changes. R6 removes that path and adds `achievementStatusDate`, which is only for achievement-status timing. An R4 cancellation or creation date cannot safely be renamed without changing meaning, and old instances using `statusDate` are not valid R6 as-is. This looks like more than a naming cleanup because it drops the lifecycle-status date use case.",
+        "keyEvidence": [
+          "R4 StructureDefinition Goal.statusDate: 0..1 date, 'When initially created, when achieved, when cancelled, etc.'",
+          "R6 StructureDefinition Goal.achievementStatusDate: 0..1 date, 'When achieved, when improving, etc.'",
+          "Both elements have W5 mapping FiveWs.recorded, but the R6 definition narrows the semantic scope"
+        ],
+        "fmmEffect": "Goal is FMM 2/trial-use, which does not impose a high normative bar, but it also does not excuse a lossy semantic replacement when a modest-compatible design exists.",
+        "compatibilityMechanism": "old-valid/new-invalid plus semantic/documentation: R4 statusDate is an unknown R6 property, and mapping it to achievementStatusDate can misstate lifecycle events as achievement-status dates.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base design could keep statusDate for lifecycle-status timing and add achievementStatusDate for achievement timing. The tradeoff is two related date fields and consistency guidance, but the old and new meanings are distinct enough that this seems manageable.",
+        "comparisonToExisting": "agree with the existing High impact and Yes alternative judgment; the independent evidence supports a hard property break plus semantic narrowing with a plausible lower-cost base design."
+      }
     },
     {
       "findingId": "Goal:ELEMENT_PRESENCE_OR_IDENTITY:Goal.expressedBy:b917e3",
@@ -648,7 +676,21 @@
       "migrationGuidanceMd": "Map R4 `expressedBy` to R6 `source`. If local R4 Provenance identified a recorder, consider populating R6 `recorder`. For R6-to-R4, use `expressedBy` only for compatible source targets and preserve recorder or incompatible source targets with Provenance or extensions.",
       "backwardCompatibilityAnalysisMd": "The semantic split is understandable, but the rename could have been made less disruptive by retaining `expressedBy` as a deprecated alias. The tradeoff would be duplicate representations until implementers complete migration.",
       "reviewerNotesMd": "The Group restrictions in R6 comments are semantic guidance, not a computable target profile refinement.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Goal:ELEMENT_PRESENCE_OR_IDENTITY:Goal.expressedBy:b917e3",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `Goal.expressedBy` and R6 `Goal.source` appear to carry the same source/establishing-party concept, including the same W5 source mapping, while R6 separately adds `recorder` for authoring responsibility. Removing `expressedBy` creates an avoidable wire-name and generated-model break for existing data. The target widening to CareTeam and Group could have been done on the existing element name, and adding `recorder` does not require renaming the source element.",
+        "keyEvidence": [
+          "R4 Goal.expressedBy: 0..1 Reference(Patient, Practitioner, PractitionerRole, RelatedPerson), W5 FiveWs.source",
+          "R6 Goal.source: 0..1 Reference with the original targets plus CareTeam and Group, W5 FiveWs.source",
+          "R6 Goal.recorder: separate 0..1 Reference for the individual who recorded the Goal, W5 FiveWs.author"
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; it allows evolution, but a path rename with little apparent functional necessity still deserves scrutiny.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: R4 instances with expressedBy fail R6 validation and generated clients must rename source attribution logic; R6-to-R4 can also lose recorder or new source target detail.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could keep expressedBy as the establishing-party/source element, widen its targets, clarify the comment, and add recorder. That preserves R4 instances without duplicate source fields; the main tradeoff is retaining a less transparent legacy name.",
+        "comparisonToExisting": "agree with the existing High impact and Yes alternative judgment; this is a direct rename where a compatible design seems straightforward."
+      }
     },
     {
       "findingId": "Goal:ELEMENT_PRESENCE_OR_IDENTITY:Goal.outcomeCode:93d0af",
@@ -794,7 +836,21 @@
       "migrationGuidanceMd": "Inventory R4 Goals using outcome fields before migration. Decide whether to preserve coded outcomes in extensions, convert referenced Observations into external resources with a documented relationship, place human-readable summaries in `note`, or use profile-specific rules. Test completed, not-achieved, and partially achieved goals separately.",
       "backwardCompatibilityAnalysisMd": "Without rationale, the hard removal appears avoidable. A deprecation period or formal replacement mapping would have reduced breakage and protected historical outcome data while still allowing R6 to guide new implementations away from these fields.",
       "reviewerNotesMd": "Narrative spec pages or official change notes are needed to determine the intended R6 replacement pattern, if any.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Goal:ELEMENT_PRESENCE_OR_IDENTITY:Goal.outcomeCode:93d0af",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 allowed Goal-level outcome content through `outcomeCode` and `outcomeReference`; R6 has no direct Goal element for either. Existing R4 instances with outcome data become invalid and the migration path is not a simple rename. Outcome information can be clinically meaningful when reviewing whether a goal was achieved or what changed, so removal without a computable replacement is a real data-loss risk.",
+        "keyEvidence": [
+          "R4 Goal.outcomeCode: 0..* CodeableConcept for the result achieved regarding the goal",
+          "R4 Goal.outcomeReference: 0..* Reference(Observation) for details of what changed",
+          "R6 Goal snapshot contains no outcomeCode, outcomeReference, or same-definition replacement element"
+        ],
+        "fmmEffect": "FMM 2/trial-use reduces the stability burden compared with mature or normative content, but outcome data is central enough to goal review that the break remains concerning.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: R4 outcome elements are unknown in R6, and migration may require Observation linkage, extensions, notes, or profile-specific decisions rather than a base element.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design could retain deprecated outcomeCode/outcomeReference for one release or define a formal replacement relationship before removal. That would prolong an outcome-on-Goal representation that R6 may be trying to retire, but it would better protect existing outcome data.",
+        "comparisonToExisting": "agree with the existing High impact and Partial alternative judgment; the primary evidence supports a hard break with no direct R6 Goal replacement."
+      }
     },
     {
       "findingId": "Goal:TERMINOLOGY_BINDING:Goal.lifecycleStatus:2a8b11",
@@ -962,7 +1018,21 @@
       "validationAndCompatibilityMd": "No R4-valid status code is removed, so old instances remain valid for this field. R6 instances using `unknown` cannot validate as R4. Strict enum code generation also needs a new enum member in R6.",
       "migrationGuidanceMd": "For R6-to-R4, do not silently map `unknown` to `active`, `planned`, or another concrete status. Preserve it with an extension or reject/manual-review the down-conversion. Update enum switches and UI rules to handle `unknown` explicitly.",
       "backwardCompatibilityAnalysisMd": "The code addition is likely justified to avoid fabricating a lifecycle status for legacy data. The backward-compatible alternative of using an extension would avoid changing the required value set but would make the core modifier element less truthful.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Goal:TERMINOLOGY_BINDING:Goal.lifecycleStatus:2a8b11",
+        "judgment": "No problem",
+        "narrativeMd": "Adding `unknown` to the R6 required lifecycle-status value set does not make any R4 Goal invalid in R6. It is a forward-compatible widening, and the R6 comment says `unknown` is for legacy data and is strongly discouraged. A plain R4 down-conversion cannot represent that new code without an extension or local policy, but that is the ordinary cost of a new R6 code rather than a reason to revisit the R6 base design.",
+        "keyEvidence": [
+          "R4 Goal.lifecycleStatus binds required to ValueSet goal-status|4.0.1",
+          "R6 Goal.lifecycleStatus binds required to ValueSet goal-status|6.0.0-ballot4 and includes short display with unknown",
+          "R6 CodeSystem goal-status adds code unknown with definition that the source system does not specify which value applies"
+        ],
+        "fmmEffect": "Goal FMM 2/trial-use is neutral; because the change is widening for R4-to-R6 and the new code is discouraged, FMM does not increase concern.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 instance using lifecycleStatus=unknown cannot be represented by R4's required binding, but all R4 lifecycle-status values remain acceptable in R6.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 base design is needed for R4-to-R6. Avoiding the new code or moving it to an extension would preserve down-conversion but would make R6 less truthful for legacy records with genuinely unknown status.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Not applicable alternative judgment; I agree it is reverse-only, but I treat the practical compatibility concern as low enough for No problem."
+      }
     },
     {
       "findingId": "Goal:ELEMENT_PRESENCE_OR_IDENTITY:Goal.acceptance:cb43d2",
@@ -1081,7 +1151,21 @@
       "validationAndCompatibilityMd": "R4 instances remain valid with respect to this addition because the backbone is optional. R6 instances that populate it are not R4-representable without extensions, and any R6 acceptance entry missing `participant` is invalid because the child is 1..1.",
       "migrationGuidanceMd": "For R4-to-R6, consider whether local extensions or related records should populate `acceptance`. For R6-to-R4, preserve acceptance with extensions or related artifacts and test agree, disagree, pending, multiple participants, Organization/CareTeam/Group participants, and priority-only cases.",
       "backwardCompatibilityAnalysisMd": "Adding optional structure is the least disruptive way to standardize this semantics in R6. A purely extension-based approach would have been more backward-compatible but less interoperable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Goal:ELEMENT_PRESENCE_OR_IDENTITY:Goal.acceptance:cb43d2",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional structured acceptance information. Because the backbone is `0..*`, existing R4 instances remain structurally valid with respect to this new feature. The required `participant` applies only when an R6 acceptance entry is present. R4 cannot natively carry populated R6 acceptance details on down-conversion, but this is new optional R6 content rather than a break in old Goal data.",
+        "keyEvidence": [
+          "R4 Goal has no core acceptance backbone",
+          "R6 Goal.acceptance is 0..* BackboneElement",
+          "R6 Goal.acceptance.participant is 1..1 only within a present acceptance backbone, with optional status and priority children"
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the additive optional nature of the change dominates the maturity analysis.",
+        "compatibilityMechanism": "none for R4-to-R6; R6-to-R4 loss only if new acceptance content is populated and a plain R4 representation is required.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed to preserve R4 instances. Keeping acceptance extension-only would ease backports but would reduce the computable core support R6 is adding.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Not applicable alternative judgment; the down-conversion limitation is real, but I would not treat this optional addition as a meaningful break."
+      }
     },
     {
       "findingId": "Goal:REFERENCE_TARGET:Goal.addresses:6e7a18",
@@ -1226,7 +1310,21 @@
       "validationAndCompatibilityMd": "No old target was removed. R6 instances using one of the three new target types are not valid R4 Goal instances without extensions or alternative relationships.",
       "migrationGuidanceMd": "For R6-to-R4, preserve new target-type references using extensions or related resources, or reject/manual-review the conversion. Test all three new target types and mixed old/new target arrays.",
       "backwardCompatibilityAnalysisMd": "The wider target list is a reasonable base-resource evolution. The backward-compatible alternative would be profile-specific allowance, but that would limit interoperability for goals related to medications, procedures, or nutrition intake.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Goal:REFERENCE_TARGET:Goal.addresses:6e7a18",
+        "judgment": "No problem",
+        "narrativeMd": "R6 widens `Goal.addresses` by adding MedicationRequest, Procedure, and NutritionIntake targets while keeping the R4 target types. This preserves all R4-valid references and only creates a reverse-conversion issue for R6 instances that use the newly allowed targets. The widened list is a normal additive change to better express why a goal exists.",
+        "keyEvidence": [
+          "R4 Goal.addresses targets Condition, Observation, MedicationStatement, NutritionOrder, ServiceRequest, and RiskAssessment",
+          "R6 Goal.addresses keeps those targets and adds MedicationRequest, Procedure, and NutritionIntake",
+          "R6 definition describes context resources for why the goal exists"
+        ],
+        "fmmEffect": "Goal is FMM 2/trial-use; this does not raise concern because the change is a target-list widening, not a restriction.",
+        "compatibilityMechanism": "none for R4-to-R6; R6-to-R4 loss only when an R6 Goal uses a newly allowed target that R4 validators do not permit.",
+        "lessBreakingAlternativeAssessment": "No less-breaking R6 design is needed. Keeping the old narrow list or requiring profiles/extensions would improve down-conversion but would withhold useful base support for common clinical context links.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Not applicable alternative judgment; I agree it is reverse-only, but the fresh path-level review classifies it as No problem."
+      }
     },
     {
       "findingId": "Goal:ELEMENT_PRESENCE_OR_IDENTITY:Goal.continuous:0f9d44",
@@ -1322,7 +1420,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 instances are unaffected because the element is optional. R6-to-R4 conversion loses the boolean unless an extension or local convention is used.",
       "migrationGuidanceMd": "For R4-to-R6, infer `continuous` only from reliable local rules. For R6-to-R4, preserve the value in an extension if automated sustainment behavior matters.",
       "backwardCompatibilityAnalysisMd": "A core optional boolean is a reasonable way to standardize the behavior. Keeping it extension-only would be more backward-compatible but less interoperable.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Goal:ELEMENT_PRESENCE_OR_IDENTITY:Goal.continuous:0f9d44",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `Goal.continuous` to indicate whether ongoing activity is needed after meeting the goal. This does not invalidate any R4 instance and does not change an existing R4 path. Plain R4 loses this explicit sustainment flag on down-conversion, but it is an optional new semantic field with an obvious extension or profile mitigation if backporting is important.",
+        "keyEvidence": [
+          "R4 Goal has no continuous element",
+          "R6 Goal.continuous is 0..1 boolean",
+          "R6 comment gives examples such as one-time vaccination versus sustained HbA1c control"
+        ],
+        "fmmEffect": "FMM 2/trial-use is neutral; the additive optional field does not create a stability concern.",
+        "compatibilityMechanism": "none for R4-to-R6; R6-to-R4 loss only for a new optional boolean when converting to plain R4.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is required. Leaving the concept extension-only would preserve R4 symmetry but reduce visibility for R6 validators and applications.",
+        "comparisonToExisting": "agree with the existing Low impact and Not applicable alternative judgment; the concern is limited to optional new R6 content."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1508,5 +1620,19 @@
       "Outcome fields removed from clinical workflow resources",
       "Required status value sets adding `unknown` for legacy data"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Goal.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 3,
+      "Breaking but probably OK": 1,
+      "No problem": 4
+    }
   }
 }

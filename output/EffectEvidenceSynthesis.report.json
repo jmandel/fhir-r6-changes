@@ -342,7 +342,23 @@
       "migrationGuidanceMd": "Inventory all R4 `EffectEvidenceSynthesis` instances and implement an explicit transform to R6 `Evidence` or a governed compatibility profile. Preserve old `url`, `identifier`, `version`, and citations where possible, then map local evidence variables, statistics, and certainty fields deliberately. Tests should cover strict validation, generated model serialization, API routing, search/indexing, and round-trip data preservation.",
       "backwardCompatibilityAnalysisMd": "The consolidation may be reasonable because the R4 resource was low maturity and overlapped with Evidence/RiskEvidenceSynthesis concepts. A backward-compatible alternative would have been a deprecated R6 resource or formal migration package. That alternative reduces implementation breakage but retains extra resource types and old semantics in the core model.",
       "reviewerNotesMd": "A human reviewer should confirm whether ballot change notes explicitly describe the merge into Evidence and whether an official conversion map exists outside the supplied local packages.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EffectEvidenceSynthesis:ARTIFACT_IDENTITY:root:6d2f4a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 instances using the EffectEvidenceSynthesis resource type have no same resource identity in R6 core, so strict validators, generated SDKs, REST routing, and resource-type switches need an explicit migration path to Evidence. That is a real top-level break, but the source resource was FMM 0/trial-use and the R6 Evidence definition covers variables, statistics, and certainty in a broader single model. I found ballot-stage implementation-guide relevance, but no quick evidence of production deployment that would override the low maturity signal.",
+        "keyEvidence": [
+          "R4 StructureDefinition-EffectEvidenceSynthesis.json: kind resource, type EffectEvidenceSynthesis, base DomainResource, FMM 0, standards-status trial-use.",
+          "R6 package contains StructureDefinition-Evidence.json and StructureDefinition-EvidenceVariable.json, but no StructureDefinition-EffectEvidenceSynthesis.json.",
+          "R6 CodeSystem-fhir-old-types contains code EffectEvidenceSynthesis.",
+          "R6 Evidence definition says it includes evidence variables, statistics, and certainty.",
+          "Targeted web checks found HL7 EBM-on-FHIR ballot pages using Evidence for evidence synthesis, but no clear production-use evidence."
+        ],
+        "fmmEffect": "FMM 0/trial-use substantially softens the stability concern: a removed resource identity is mechanically severe, but the base standard had weak compatibility expectations for this experimental content.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: an R4 resourceType has no R6 StructureDefinition or generated class; R6 Evidence also is not automatically an R4 EffectEvidenceSynthesis.",
+        "lessBreakingAlternativeAssessment": "A deprecated R6 compatibility resource could preserve old resourceType and most R4 instances, but it would keep two overlapping core resource identities for low-maturity evidence-synthesis content and complicate validation, search, and API support. That is a real but costly base-design alternative.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard top-level break and a partial deprecated-resource alternative, but its critical framing should be tempered by FMM 0 and the cost of retaining a parallel resource."
+      }
     },
     {
       "findingId": "EffectEvidenceSynthesis:CONVERSION_OR_MAPPING:variables:1e9b7c",
@@ -544,7 +560,23 @@
       "migrationGuidanceMd": "Build a deterministic variable mapping. Create at least population, exposure, comparator, and outcome `variableDefinition` entries for each R4 instance; decide whether old references become `observed` or `intended`; and document how `exposureAlternative` maps to comparator semantics. Include test cases with missing optional R6 variables, multiple exposures, Group targets, covariates, and old comparator values.",
       "backwardCompatibilityAnalysisMd": "The R6 normalized structure is more expressive, so a fully backward-compatible design would have been awkward. Still, a published ConceptMap or compatibility extension/profile could have reduced ambiguity for the common R4 four-field pattern.",
       "reviewerNotesMd": "Comparator handling is the key ambiguity. The local StructureDefinition exposes `comparatorCategory`, but no official migration rule was present in the supplied inputs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EffectEvidenceSynthesis:CONVERSION_OR_MAPPING:variables:1e9b7c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The old fixed PICO-style fields map to R6 only through role-coded Evidence.variableDefinition entries. A converter must create entries for population, exposure, comparator, and outcome and decide whether references are observed or intended; a simple resourceType rename is not enough. The remodel affects central meaning, but it also solves a real limitation of the R4 shape by supporting covariates, Group targets, and a more general variable list.",
+        "keyEvidence": [
+          "R4 population, exposure, exposureAlternative, and outcome are each 1..1 Reference(EvidenceVariable).",
+          "R6 Evidence.variableDefinition is 0..* BackboneElement with variableRole 1..1 bound required to population, exposure, outcome, or covariate.",
+          "R6 observed and intended can reference Group or EvidenceVariable.",
+          "R6 variableDefinition includes comparatorCategory but no same exposureAlternative path.",
+          "No quick production-use evidence found beyond HL7 ballot/prototype EBM-on-FHIR materials."
+        ],
+        "fmmEffect": "FMM 0 lowers the burden to preserve the exact R4 element names even though the variable roles are core scientific content; the low maturity keeps this from being a standards-stability concern by itself.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: old named elements are not R6 Evidence elements, while R6 covariates, Group targets, and observed/intended distinctions do not fit directly into the four R4 fields.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained deprecated population/exposure/exposureAlternative/outcome aliases while adding variableDefinition. That would preserve common R4 data, but it would create duplicate channels for the same variables and require safety-relevant consistency rules when the aliases and role-coded entries disagree.",
+        "comparisonToExisting": "agree: the existing high-impact/partial-alternative judgment matches the path-level mechanism, with FMM 0 explaining why the break is still probably proportionate."
+      }
     },
     {
       "findingId": "EffectEvidenceSynthesis:CONVERSION_OR_MAPPING:statistics:93c8ad",
@@ -741,7 +773,23 @@
       "migrationGuidanceMd": "Create a statistic-mapping table. Map decimal point estimates plus UCUM unit CodeableConcepts into `Quantity`, map precision bounds into `Range`, move sample-size counts under each appropriate statistic, and decide how to replace or preserve `resultsByExposure.riskEvidenceSynthesis` links. Validate clinical displays and calculations after migration, not just JSON shape.",
       "backwardCompatibilityAnalysisMd": "A generalized statistic backbone is more sustainable than separate effect/risk models, but it is not backward compatible. An official StructureMap or compatibility extension set would have reduced implementation risk while allowing the R6 model to move forward.",
       "reviewerNotesMd": "The correct destination for `resultsByExposure` may depend on whether separate R4 RiskEvidenceSynthesis instances are also being migrated to R6 Evidence.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EffectEvidenceSynthesis:CONVERSION_OR_MAPPING:statistics:93c8ad",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 effect estimates, precision intervals, sample sizes, and results-by-exposure links must be rebuilt into the R6 Evidence.statistic model. This is real migration work and mistakes can change the displayed effect size or interval, but the R6 structure is a coherent generalized statistics model rather than a narrow renaming cleanup. Keeping the old backbones would duplicate clinically important numbers and would not solve removal of RiskEvidenceSynthesis cleanly.",
+        "keyEvidence": [
+          "R4 sampleSize has integer numberOfStudies and numberOfParticipants.",
+          "R4 effectEstimate has decimal value, required-bound UCUM unitOfMeasure, and repeatable precisionEstimate from/to decimals.",
+          "R4 resultsByExposure.riskEvidenceSynthesis is 1..1 Reference(RiskEvidenceSynthesis) when present.",
+          "R6 Evidence.statistic has quantity, sampleSize with unsignedInt counts, attributeEstimate quantity/range, and other statistic structures.",
+          "R6 CodeSystem-fhir-old-types contains code RiskEvidenceSynthesis."
+        ],
+        "fmmEffect": "FMM 0 softens the compatibility expectation, but the affected data are central effect-size and uncertainty content, so the break still needs a careful migration story.",
+        "compatibilityMechanism": "old-valid/new-invalid plus runtime/API/codegen: old paths and datatypes disappear, generated property access changes, and richer R6 statistics cannot always be represented in the old R4 model.",
+        "lessBreakingAlternativeAssessment": "Deprecated R4 statistical backbones could preserve many old instances, but they would duplicate the new statistic model and could produce conflicting effect values, units, intervals, and per-exposure risk links. The alternative has material safety and implementation tradeoffs.",
+        "comparisonToExisting": "agree: the existing report correctly treats this as a high-impact structural conversion with only a partial less-breaking alternative; FMM 0 keeps the final judgment from becoming Revisit."
+      }
     },
     {
       "findingId": "EffectEvidenceSynthesis:CARDINALITY:certainty-rating:58f1de",
@@ -926,7 +974,23 @@
       "migrationGuidanceMd": "Inspect certainty arrays with more than one rating. Decide whether to split them into multiple `Evidence.certainty` entries, map them to subcomponents, or preserve original structure with extensions. Perform terminology mapping from evidence-quality to certainty-rating where possible and flag unmapped codes for review.",
       "backwardCompatibilityAnalysisMd": "R6 may be improving semantic precision by separating certainty aspects and ratings, but narrowing cardinality without a formal map is avoidably disruptive for repeatable old ratings.",
       "reviewerNotesMd": "Terminology confidence is limited because the external R6 certainty-rating value set was not expanded locally.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EffectEvidenceSynthesis:CARDINALITY:certainty-rating:58f1de",
+        "judgment": "Revisit",
+        "narrativeMd": "The specific cardinality change from repeatable ratings to a single rating per certainty entry is narrower than the resource merge and looks more avoidable. An old certainty entry with multiple ratings needs a semantic decision: split into separate certainty entries, turn some ratings into subcomponents, or preserve extra ratings elsewhere. Since certainty ratings can affect trust in evidence and recommendations, the loss of grouping or scale information is not just cosmetic.",
+        "keyEvidence": [
+          "R4 EffectEvidenceSynthesis.certainty.rating is 0..* CodeableConcept with extensible binding to evidence-quality.",
+          "R6 Evidence.certainty.rating is 0..1 CodeableConcept with example binding to terminology.hl7.org certainty-rating.",
+          "R6 Evidence.certainty adds type, rater, and recursive subcomponent structures.",
+          "The external R6 certainty-rating value set was not locally available for expansion comparison.",
+          "No quick production-use evidence found, but certainty/quality judgments are directly relevant to evidence interpretation."
+        ],
+        "fmmEffect": "FMM 0 softens the general stability concern, but it does not erase the problem because this local cardinality narrowing has a plausible low-cost compatible design and migration can require expert judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid and semantic migration: multiple old ratings cannot occupy one R6 rating element, and choosing how to split or classify them can change meaning.",
+        "lessBreakingAlternativeAssessment": "Keeping Evidence.certainty.rating as 0..* while adding type, rater, and subcomponent would preserve old multi-rating data without introducing a duplicate element. The tradeoff is looser normalization and possible ambiguity, but that seems modest compared with forced semantic splitting.",
+        "comparisonToExisting": "agree: the existing report's potential-hard/medium-impact framing and Yes alternative are persuasive; I would elevate this specific avoidable cardinality narrowing to Revisit despite the artifact's low FMM."
+      }
     },
     {
       "findingId": "EffectEvidenceSynthesis:CONVERSION_OR_MAPPING:metadata:7ab6e0",
@@ -1078,7 +1142,23 @@
       "migrationGuidanceMd": "Define metadata preservation rules before bulk conversion. Map `relatedArtifact` to `relatesTo` only where type/target semantics are clear, preserve canonical identifiers and citations, and use governed extensions or profiles for jurisdiction/effectivePeriod/topic when required. Rebuild search indexes and filters around the new locations.",
       "backwardCompatibilityAnalysisMd": "A broader Evidence metadata model may be appropriate, but removal of common applicability fields without an explicit migration path is disruptive. Compatibility extensions or a StructureMap would have mitigated this without forcing R6 Evidence to retain every old field directly.",
       "reviewerNotesMd": "Confirm with the R6 narrative spec whether jurisdiction/effective period/topic were intentionally removed from Evidence or expected to be represented by extensions/profiles.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EffectEvidenceSynthesis:CONVERSION_OR_MAPPING:metadata:7ab6e0",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Several R4 knowledge-artifact metadata paths no longer have same-name homes on R6 Evidence. Systems that indexed jurisdiction, applicability period, topic, or related artifacts must define preservation rules, but these are optional peripheral metadata fields rather than the core evidence variables or statistics. With FMM 0 and no quick production-use evidence, the compatibility cost is real but not enough to require base-model reconsideration.",
+        "keyEvidence": [
+          "R4 defines jurisdiction 0..*, effectivePeriod 0..1, topic 0..*, and relatedArtifact 0..* on EffectEvidenceSynthesis.",
+          "R6 Evidence defines relatesTo 0..* with type 1..1 and target[x] 1..1.",
+          "No same R6 Evidence elements were found for jurisdiction, effectivePeriod, topic, or relatedArtifact in the local StructureDefinition.",
+          "R6 Evidence.status is 0..1 while R4 EffectEvidenceSynthesis.status was 1..1, affecting reverse conversion.",
+          "Targeted web checks found ballot EBM-on-FHIR evidence-synthesis material, not production-deployment evidence."
+        ],
+        "fmmEffect": "FMM 0/trial-use strongly softens the case for preserving every optional metadata path in base R6; applicability metadata matters, but the low maturity and optionality reduce the standards-stability burden.",
+        "compatibilityMechanism": "metadata/tooling plus old-valid/new-invalid: old metadata paths cannot be carried forward by path rename, and search/indexing or filtering logic must move to relatesTo, other metadata, extensions, or profiles.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept optional jurisdiction, effectivePeriod, topic, and relatedArtifact fields. That would be less breaking for R4 metadata, but relatedArtifact would overlap with relatesTo and the broader Evidence resource would inherit old low-maturity knowledge-artifact fields indefinitely. Extensions or profile rules are a reasonable tradeoff here.",
+        "comparisonToExisting": "partially agree: the existing report is right that optional carry-forward fields were possible, but I see the alternative as only partial because relationship duplication and low FMM make the break probably acceptable."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1256,5 +1336,18 @@
       "R4 integer count fields converted to R6 unsignedInt statistics",
       "R4 repeatable certainty ratings converted to R6 single certainty.rating"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/EffectEvidenceSynthesis.fresh-review.json",
+    "findingDecisionCount": 5,
+    "matchedFindingDecisionCount": 5,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 4
+    }
   }
 }

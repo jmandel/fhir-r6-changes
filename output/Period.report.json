@@ -247,7 +247,22 @@
       "migrationGuidanceMd": "For R4-to-R6 migration, replace copied `per-1` implementations with the R6 boundary expression and add tests for same instant, same date, date-only versus dateTime, year/month precision, missing start, and missing end. For R6-to-R4 export, either preserve the values and document that older validators may reject mixed precision, or normalize precision only when a business-safe, lossless-or-acceptable policy exists. Avoid blindly expanding an imprecise value to a specific instant unless the application can tolerate that semantic narrowing.",
       "backwardCompatibilityAnalysisMd": "The change is probably justified because partial temporal precision is a core FHIR datatype behavior and the R6 expression better models it. A backward-compatible alternative could have kept the R4 expression and moved the boundary logic into narrative guidance or a profile-level rule, but that would make base validation less useful and continue ambiguity around equality and mixed precision.",
       "reviewerNotesMd": "Confirm against the final R6 publication and any official diff notes. If a downstream validator treats empty FHIRPath Boolean results differently, the practical compatibility effect may be higher or lower than assessed here.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Period:VALUE_CONSTRAINT:Period.per-1:8cc6a1",
+        "judgment": "No problem",
+        "narrativeMd": "R6 changes the local `per-1` error invariant from a direct `start <= end` comparison to `start.lowBoundary() <= end.highBoundary()`. The `Period.start` and `Period.end` element names, cardinalities, types, summary flags, and missing-end meaning are unchanged. For ordinary same-precision dateTimes, R4-valid periods remain valid; for mixed or partial precision values, the R6 expression is more tolerant because it compares the earliest possible start to the latest possible end. That can create R6-to-R4 validator disagreement, but it is not an old-valid/new-invalid R4-to-R6 break and does not create a meaningful forward migration concern for this finding.",
+        "keyEvidence": [
+          "R4 StructureDefinition-Period differential `Period` constraint `per-1`: severity `error`, expression `start.hasValue().not() or end.hasValue().not() or (start <= end)`.",
+          "R6 StructureDefinition-Period differential `Period` constraint `per-1`: severity `error`, expression `start.hasValue().not() or end.hasValue().not() or (start.lowBoundary() <= end.highBoundary())`.",
+          "R4 and R6 `Period.start` and `Period.end` remain `0..1` `dateTime` elements with the same `per-1` condition and summary status; `Period.end.meaningWhenMissing` is unchanged.",
+          "R4 Period is normative in the StructureDefinition and in `viewer/r4-maturity.json` (`standardsStatus: normative`, `normativeVersion: 4.0.0`)."
+        ],
+        "fmmEffect": "Normative status raises the burden for direct hard breaks, but this finding is a forward-compatible invariant widening/clarification rather than a direct R4-to-R6 invalidation. The maturity context therefore supports checking the change carefully but does not turn a reverse-only validator difference into a Revisit issue.",
+        "compatibilityMechanism": "R6-to-R4 loss - R6 may accept partial-precision Period ranges that an R4-era direct dateTime comparison or copied business rule treats as indeterminate or invalid. No old-valid/new-invalid mechanism was found for R4-to-R6 migration.",
+        "lessBreakingAlternativeAssessment": "A base design that kept the R4 `start <= end` expression would preserve old validator behavior, but it would not meet the apparent R6 goal of handling imprecise dateTime boundaries computably. Making the invariant warning-level would also weaken the base guarantee that a period starts no later than it ends. Because the R6 expression is not a forward-breaking restriction, there is no compelling less-breaking R6 design to prefer.",
+        "comparisonToExisting": "partially agree with the existing no-hard-break assessment and its note about reverse validator divergence, but disagree with treating this as a Medium overall compatibility concern under the fresh framework; the existing lack of a less-breaking alternative remains reasonable."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -410,5 +425,17 @@
       "Other datatypes or resources whose temporal invariants changed from direct date/dateTime comparison to lowBoundary()/highBoundary().",
       "Generated class hierarchy changes caused by R6 datatypes specializing DataType instead of Element."
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Period.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "No problem": 1
+    }
   }
 }

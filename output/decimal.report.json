@@ -286,7 +286,23 @@
       "migrationGuidanceMd": "Before validating R4 data as R6, scan all decimal-valued elements for integer parts longer than 18 digits, fractional parts longer than 17 digits, and exponent parts longer than 9 digits. Do not silently round or truncate without domain review. If precision is clinically, scientifically, or financially significant, preserve the original value in an extension, source document, audit trail, or profile-specific representation and decide whether the R6 core decimal field should be omitted, rounded with provenance, or rejected.",
       "backwardCompatibilityAnalysisMd": "The change could have been made less disruptive by leaving the R4 regex in place and adding advisory implementation limits or profile-level constraints. That alternative would preserve existing high-precision data but would not establish a single enforceable base primitive contract. Given only the supplied definitions, the exact choice of 18 integer digits, 17 fractional digits, and 9 exponent digits cannot be fully justified or rejected.",
       "reviewerNotesMd": "The R6 package is a ballot build. If the final R6 package changes the decimal regex, this finding should be refreshed. Also verify official validator behavior for JSON decimal lexical preservation, because JSON parsers may lose the original numeric token text before validation.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "decimal:VALUE_CONSTRAINT:decimal.value:a6d2f1",
+        "judgment": "Revisit",
+        "narrativeMd": "`decimal.value` keeps the same primitive path, cardinality, and FHIRPath type, but R6 narrows the lexical regex from unbounded integer, fractional, and exponent digit runs to explicit caps. A strict validator or generated schema using the R6 package can therefore reject R4 decimal tokens such as a 19-digit integer, an 18-digit fractional tail, or a 10-digit exponent. The affected lexical forms are likely uncommon in routine clinical exchange, and the published datatype notes say regexes are informative rather than normative, so this is not necessarily a universal runtime failure. Still, `decimal` is a normative primitive used across many datatypes and resources, and the R6 package and OpenAPI schema make the narrower pattern visible to validators and code generators. Without supplied rationale showing why over-limit R4 values must become base-invalid rather than warning-level/non-portable, this normative primitive narrowing deserves standards/design review.",
+        "keyEvidence": [
+          "R4 StructureDefinition-decimal.json `decimal.value` regex: `-?(0|[1-9][0-9]*)(\\\\.[0-9]+)?([eE][+-]?[0-9]+)?`.",
+          "R6 StructureDefinition-decimal.json `decimal.value` regex: `-?(0|[1-9][0-9]{0,17})(\\\\.[0-9]{1,17})?([eE][+-]?[0-9]{1,9})?`.",
+          "R4 maturity map records `decimal` as standardsStatus `normative` with normativeVersion `4.0.0`; the task supplied R4 FMM/status as normative.",
+          "R6 OpenAPI `definitions.decimal.pattern` repeats the narrowed pattern, so downstream schema/tooling surfaces can enforce it.",
+          "HL7 R4 and current build datatype pages checked: both note decimal precision matters, large/highly precise values are rare in medicine, and regexes are informative rather than normative; the current build page also presents the bounded decimal regex."
+        ],
+        "fmmEffect": "Normative R4 status raises the burden of justification for a base primitive narrowing. The uncommon nature of over-limit values and the informative-regex note soften the practical prevalence estimate, but they do not remove the stability concern because package-driven validators and generated schemas can still reject formerly accepted R4 data.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 decimal lexical forms matching the old unbounded regex but exceeding R6 digit caps can fail R6 StructureDefinition/OpenAPI-pattern validation; some implementations may experience this mainly as schema/tooling break because published datatype notes treat regexes as informative.",
+        "lessBreakingAlternativeAssessment": "A plausible less-breaking base design would retain the R4 regex and express the finite portable limits as guidance, a best-practice/warning-level rule, or a declared interoperability support boundary. That would preserve R4 instances while still flagging values likely to be non-portable. The tradeoff is real: it would not give R6 a single hard base contract for validators, databases, and code generators. Given the normative primitive status and unclear supplied rationale for making the caps hard-invalid, the alternative is strong enough to warrant revisit.",
+        "comparisonToExisting": "partially agree: I agree with the existing report that the regex delta is real, R4-to-R6 directed, and potentially high impact for strict validation/tooling. I qualify the impact because official datatype notes describe regexes as informative and the affected values appear uncommon, and I place more weight on the less-breaking warning/advisory-base alternative than the existing probably-justified framing."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -455,5 +471,17 @@
       "All R4 decimal-valued elements containing values with more than 18 integer digits, more than 17 fractional digits, or more than 9 exponent digits",
       "Generated validators and schemas that differ in enforcement of decimal regex versus JSON/XML numeric parsing"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/decimal.fresh-review.json",
+    "findingDecisionCount": 1,
+    "matchedFindingDecisionCount": 1,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1
+    }
   }
 }

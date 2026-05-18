@@ -317,7 +317,22 @@
       "migrationGuidanceMd": "Inventory all `Attachment.language` values, normalize case and subtags to valid BCP-47, and map local codes through a site-specific mapping table. Test migration with common tags, regional tags, private-use tags if allowed by the terminology server, and invalid legacy values.",
       "backwardCompatibilityAnalysisMd": "The change likely makes the computable rules match the intended semantics. A backward-compatible alternative would have retained a weaker binding and introduced a warning invariant or implementation-guide rule, but that would leave BCP-47 compliance less reliably enforceable.",
       "reviewerNotesMd": "Exact pass/fail behavior depends on the terminology service's BCP-47 validation. The local ValueSet compose was inspected, but no live expansion/validation was run.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Attachment:TERMINOLOGY_BINDING:Attachment.language:a4d91c",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `Attachment.language` was a `code` with a preferred binding to Common Languages, but its definition already said the value is a BCP-47 human language tag and the element carried a maxValueSet for all languages. R6 makes the all-languages BCP-47 value set required. A syntactically valid but non-BCP-47 R4 code can therefore become invalid under R6 terminology validation, so this is a real path-level tightening. The affected values are outside the stated R4 semantics, and the R6 change makes that semantic expectation computable rather than changing the meaning of valid language tags.",
+        "keyEvidence": [
+          "R4 StructureDefinition Attachment.language: type code, binding strength preferred, valueSet http://hl7.org/fhir/ValueSet/languages, maxValueSet http://hl7.org/fhir/ValueSet/all-languages.",
+          "R6 StructureDefinition Attachment.language: type code, binding strength required, valueSet http://hl7.org/fhir/ValueSet/all-languages|6.0.0-ballot4, with Common Languages retained as an additional starter binding.",
+          "R6 ValueSet/all-languages composes all codes from urn:ietf:bcp:47.",
+          "R4 Attachment StructureDefinition standards status is normative with normativeVersion 4.0.0."
+        ],
+        "fmmEffect": "Normative R4 status raises the burden for hard validation tightening. Here the burden is largely met because R4 already described the element as BCP-47 and exposed all-languages as the maximum value set; the break mainly rejects values outside that semantic domain.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance with a non-BCP-47 code could pass when the binding was only preferred, but R6 required binding can reject it.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept the preferred binding or used warning-level/extensible conformance to all-languages, which would preserve more legacy values. Those alternatives do not meet the same base goal of a computable guarantee that Attachment.language is an IETF BCP-47 tag; keeping Common Languages as a starter binding is a reasonable softer authoring aid.",
+        "comparisonToExisting": "partially agree with the existing potential hard break and Medium impact; disagree with treating a less-breaking base design as likely, because the obvious alternatives preserve invalid language tags by weakening the R6 conformance goal."
+      }
     },
     {
       "findingId": "Attachment:TYPE_DOMAIN:Attachment.size:81f2be",
@@ -480,7 +495,22 @@
       "migrationGuidanceMd": "Regenerate models and schemas for R6 and audit any `int`, `uint32`, SQL integer, JSON number, or JavaScript number handling. Store `size` in a 64-bit-safe representation and add application validation that `size >= 0`. For R6-to-R4 export, fail fast or preserve the value in a documented extension when it is outside R4's representable range.",
       "backwardCompatibilityAnalysisMd": "The change seems justified for large binary payloads, but a standard large-size extension would have been less disruptive for R4 clients. The tradeoff is that extension-based handling would make large attachments less uniformly supported across R6 implementations.",
       "reviewerNotesMd": "No official rationale was available. Human review should confirm whether R6 intends `Attachment.size` to permit only non-negative integer64 values despite the signed primitive.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Attachment:TYPE_DOMAIN:Attachment.size:81f2be",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `Attachment.size` and R6 `Attachment.size` keep the same path and cardinality, but the primitive changes from `unsignedInt` to `integer64`. Existing R4 size values remain representable in R6, so this is not an old-valid/new-invalid instance break. The concrete migration burden is generated API, serializer, validator, and storage code that previously treated the property as an unsigned integer and must now handle the R6 integer64 representation and much larger values. The R6 goal is credible because byte counts for referenced attachments can exceed the older integer domain.",
+        "keyEvidence": [
+          "R4 StructureDefinition Attachment.size: type unsignedInt, min 0, max 1.",
+          "R6 StructureDefinition Attachment.size: type integer64, min 0, max 1.",
+          "R6 StructureDefinition integer64: described as a very large whole number, with value range -9223372036854775808 to 9223372036854775807.",
+          "Attachment.size requirements say applications use the size to decide whether to fetch content automatically or refuse to fetch it."
+        ],
+        "fmmEffect": "Normative R4 status makes the API/type churn important, especially because Attachment is a common datatype. It does not by itself make the change disproportionate because R4 instances migrate forward without becoming structurally invalid.",
+        "compatibilityMechanism": "runtime/API/codegen: generated model types, validation logic, JSON handling, and database columns may need wider integer64 handling; R6-to-R4 values above the R4 unsignedInt domain cannot be represented without loss or policy.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained `size` as unsignedInt and added a separate large-size field, or could have used an extension for very large byte counts. That would preserve old generated APIs, but it creates duplicate representations of the same byte count and conflict/precedence rules. Keeping only unsignedInt would fail the large-attachment goal. A non-negative constraint on the integer64 value might better preserve the old byte-count domain, but it would not remove the main codegen/API change.",
+        "comparisonToExisting": "agree with the existing assessment that this is not a hard R4-to-R6 instance break but is a meaningful runtime/codegen and reverse-conversion issue; also agree that the available less-breaking designs have material tradeoffs."
+      }
     },
     {
       "findingId": "Attachment:ELEMENT_PRESENCE_OR_IDENTITY:Attachment.mediaMetadata:5f03aa",
@@ -617,7 +647,22 @@
       "validationAndCompatibilityMd": "R4-to-R6: existing R4 instances remain valid with these fields absent. R6-to-R4: strict R4 validators will reject these unknown elements if they appear, and lossy converters that drop them can change rendering or selection behavior.",
       "migrationGuidanceMd": "For R6-native systems, add generated properties and tests for the new metadata. For R6-to-R4 export, define a standard extension mapping or explicitly document that the metadata is dropped. Test strict R4 parser behavior with each new field present.",
       "backwardCompatibilityAnalysisMd": "The optional additions are a backward-compatible R4-to-R6 design. The unavoidable compatibility cost is for down-conversion; a cross-version extension strategy can mitigate but not eliminate that cost.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Attachment:ELEMENT_PRESENCE_OR_IDENTITY:Attachment.mediaMetadata:5f03aa",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional Attachment media metadata fields for dimensions, frame count, duration, and page count. R4 instances do not need any new element and remain valid with respect to this change. Strict R4 consumers or R6-to-R4 converters can lose these new fields, but that is expected for additive R6 data and does not indicate an R4-to-R6 compatibility problem at this path.",
+        "keyEvidence": [
+          "R4 Attachment snapshot has no Attachment.height, Attachment.width, Attachment.frames, Attachment.duration, or Attachment.pages elements.",
+          "R6 Attachment snapshot adds Attachment.height, Attachment.width, Attachment.frames, Attachment.duration, and Attachment.pages, all with min 0 and max 1.",
+          "R6 Attachment.frames definition says applications should not assume a single frame unless explicitly stated, indicating useful rendering metadata rather than required core content.",
+          "R4 Attachment StructureDefinition standards status is normative with normativeVersion 4.0.0."
+        ],
+        "fmmEffect": "Normative R4 status warrants checking the additive change carefully, but it does not raise optional new R6 fields into a forward compatibility break.",
+        "compatibilityMechanism": "R6-to-R4 loss: optional R6-only metadata has no base R4 slot and may be dropped or rejected by strict R4 tooling; there is no R4-to-R6 old-valid/new-invalid mechanism.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base design is needed for R4-to-R6 compatibility because optional addition is already the compatibility-preserving pattern. Using only extensions would reduce base computability for common rendering metadata without preserving any additional R4 instance shape.",
+        "comparisonToExisting": "partially agree that reverse conversion can lose useful metadata, but disagree with treating this as a Medium R4-to-R6 compatibility concern; the path-level forward change is additive."
+      }
     },
     {
       "findingId": "Attachment:SEMANTIC_OR_CONFORMANCE_TEXT:Attachment.url:c72e19",
@@ -732,7 +777,22 @@
       "validationAndCompatibilityMd": "There is no old-valid/new-invalid pattern. The compatibility issue is still-valid-but-behaviorally-different: R6 content may depend on Bundle context for resolution, while R4-era code may treat the same string as service-relative or externally dereferenceable.",
       "migrationGuidanceMd": "When exchanging R6 Attachments with R4 systems, avoid Bundle-local-only URLs unless the receiver explicitly supports them. If down-converting, rewrite URLs to R4-compatible resolvable locations, inline `data` when appropriate, or include clear Bundle resolution instructions in an implementation agreement.",
       "backwardCompatibilityAnalysisMd": "The change is a clarification/semantic expansion rather than a structural break. It could have been isolated to profiles, but putting it in the base comment makes a common Bundle packaging pattern visible to all R6 implementations.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Attachment:SEMANTIC_OR_CONFORMANCE_TEXT:Attachment.url:c72e19",
+        "judgment": "No problem",
+        "narrativeMd": "The `Attachment.url` type and cardinality are unchanged. R6 adds prose saying URLs may also be URIs only resolvable within a Bundle containing the resource with the attachment. That broadens documented resolution behavior for new R6 data; it does not make R4 service-relative or absolute URLs invalid. An R4-only consumer may fail to resolve a new bundle-local URI, but that is a reverse/inter-version consumption issue rather than a break for R4 instances migrating to R6.",
+        "keyEvidence": [
+          "R4 StructureDefinition Attachment.url: type url, min 0, max 1, comment says relative URLs are interpreted relative to the service URL and must resolve to actual data.",
+          "R6 StructureDefinition Attachment.url: type url, min 0, max 1, same basic comment plus 'Urls may also be URIs only resolvable within a Bundle containing the resource with the attachment type.'",
+          "No computable cardinality, type, binding, or invariant change was found for Attachment.url.",
+          "R4 Attachment StructureDefinition standards status is normative with normativeVersion 4.0.0."
+        ],
+        "fmmEffect": "Normative R4 status makes semantic changes worth checking, but the actual mechanism is documentation-level broadening with no old-valid/new-invalid validation effect.",
+        "compatibilityMechanism": "semantic/documentation: R6 documents an additional Bundle-local resolution mode; R4 payloads and the wire type remain valid.",
+        "lessBreakingAlternativeAssessment": "A separate element for Bundle-local attachment references would be more disruptive and would duplicate URL semantics. Keeping the R4 prose unchanged would avoid reverse-consumer surprise but would also fail to document an intended R6 resolution mode. The current prose addition is already a low-breaking design.",
+        "comparisonToExisting": "partially agree that R4 consumers of new R6 data may not understand Bundle-local URIs, but disagree with the existing Medium compatibility impact for an R4-to-R6 review because the change is not a base validation or API break."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -902,5 +962,18 @@
       "Optional R6 metadata additions that need R4 extension mappings",
       "Datatypes whose baseDefinition moved under DataType"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Attachment.fresh-review.json",
+    "findingDecisionCount": 4,
+    "matchedFindingDecisionCount": 4,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Breaking but probably OK": 2,
+      "No problem": 2
+    }
   }
 }

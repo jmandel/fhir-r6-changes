@@ -246,7 +246,21 @@
       "validationAndCompatibilityMd": "Strict R6 validation rejects the removed root properties. R6-to-R4 conversion is only safe when all groups share compatible values. Generated code and FHIRPath that read root paths will break.",
       "migrationGuidanceMd": "Move root values into each intended group. If groups differ, require manual review or preserve group-specific values in extensions when converting to R4.",
       "backwardCompatibilityAnalysisMd": "The group-centric model is useful, but deprecated root defaults plus group overrides would have reduced instance breakage.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Measure:ELEMENT_PRESENCE_OR_IDENTITY:root-characteristics-moved:0d3369",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 measure-wide scoring, type, compositeScoring, and improvementNotation moved from the root to Measure.group in R6. This is a real old-valid/new-invalid and generated-path break, and the affected fields control measure interpretation rather than cosmetic metadata. However, the R6 goal is substantive: a single Measure can now express group-specific scoring/type/improvement semantics. Keeping root-level defaults as a compatibility alias would preserve simple R4 instances, but it would also create duplicate same-resource representations and precedence problems when group values intentionally differ.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot contains Measure.scoring, Measure.type, Measure.compositeScoring, and Measure.improvementNotation at the Measure root.",
+          "R6 StructureDefinition snapshot contains Measure.group.scoring, Measure.group.type, Measure.group.compositeScoring, and Measure.group.improvementNotation, with the root ids absent.",
+          "R4 Measure.improvementNotation has a required binding to http://hl7.org/fhir/ValueSet/measure-improvement-notation|4.0.1; R6 group.improvementNotation is extensibly bound to http://terminology.hl7.org/ValueSet/measure-improvement-notation."
+        ],
+        "fmmEffect": "Measure is FMM 2 and trial-use, so FMM is neutral rather than a strong stability guarantee or a low-FMM softener. Because these fields are central to measure semantics, the compatibility mechanism and R6 design goal drove the judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with the root properties are not base R6 Measure instances. There is also runtime/API/codegen path churn and R6-to-R4 loss when group-specific values cannot be collapsed to one R4 root value.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have retained the root fields as deprecated measure-wide defaults while adding group-level overrides, preserving many R4 instances. The tradeoff is material: validators, renderers, and evaluators would need conflict and precedence rules whenever both root and group values are populated or groups diverge.",
+        "comparisonToExisting": "partially agree with the existing High impact and Partial alternative assessment; I agree on the break mechanism, but view the group-specific design goal and duplicate-model tradeoff as enough to make the break probably OK."
+      }
     },
     {
       "findingId": "Measure:ELEMENT_PRESENCE_OR_IDENTITY:topic-removed:5dd7c2",
@@ -325,7 +339,21 @@
       "validationAndCompatibilityMd": "R4 topic-bearing instances are old-valid/new-invalid. There is no R6 base element to back-port.",
       "migrationGuidanceMd": "Map topics by local policy, likely to useContext, catalog metadata, or an extension; update search facets accordingly.",
       "backwardCompatibilityAnalysisMd": "Keeping topic deprecated or publishing an official mapping would have avoided data loss.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Measure:ELEMENT_PRESENCE_OR_IDENTITY:topic-removed:5dd7c2",
+        "judgment": "Revisit",
+        "narrativeMd": "Measure.topic was optional categorization metadata used for searching, sorting, and filtering. An R4 Measure carrying topic becomes invalid against the R6 base resource, and R6 does not add a direct replacement; useContext already existed in R4 and is not a lossless path-level continuation. The field is not part of measure calculation, but keeping an optional deprecated topic element would have been a low-cost way to preserve old catalog metadata while steering new content elsewhere.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot has Measure.topic 0..* CodeableConcept with an example definition-topic binding.",
+          "R6 local Measure paths list no Measure.topic element.",
+          "R6 still has Measure.useContext, but that path was already present in R4 and is not a direct structural replacement for topic."
+        ],
+        "fmmEffect": "Measure is FMM 2 and trial-use, which is neutral. It does not by itself require preserving every optional metadata field, but it also does not excuse a direct validation break where a modest deprecated-field alternative exists.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 topic-bearing instances contain an unknown base element in R6. The practical downstream effect is catalog/search metadata loss rather than calculation failure.",
+        "lessBreakingAlternativeAssessment": "Yes. Retaining Measure.topic as deprecated 0..* CodeableConcept while documenting a preferred R6 categorization approach would preserve R4 instances. The main cost is a small overlapping metadata surface, not a difficult semantic conflict.",
+        "comparisonToExisting": "agree with the existing Medium impact and Yes less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "Measure:ELEMENT_PRESENCE_OR_IDENTITY:definition-to-term:091375",
@@ -422,7 +450,21 @@
       "validationAndCompatibilityMd": "R4 instances with definition are old-valid/new-invalid. R6 term.definition can be flattened to R4 text, but term.code needs an extension or is lost.",
       "migrationGuidanceMd": "Wrap each R4 definition string as term.definition; populate term.code only when local conventions support it. Preserve R6 term.code by extension when back-porting.",
       "backwardCompatibilityAnalysisMd": "Adding term while keeping definition deprecated would have been less disruptive but would create duplicate representations.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Measure:ELEMENT_PRESENCE_OR_IDENTITY:definition-to-term:091375",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 Measure.definition was a repeatable markdown string, while R6 replaces it with a repeatable Measure.term backbone that can carry both a coded term and a markdown definition. Old R4 definition arrays are invalid in R6, but forward migration is usually mechanical by wrapping each string as term.definition. The new term.code field adds capability that R4 did not have. Retaining both definition and term would reduce migration friction, but would create two native places for the same uncoded term definitions.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot has Measure.definition 0..* markdown.",
+          "R6 local Measure paths omit Measure.definition and add Measure.term 0..*, Measure.term.code 0..1 CodeableConcept, and Measure.term.definition 0..1 markdown.",
+          "R6 Measure.term.code has an example binding to http://hl7.org/fhir/ValueSet/measure-definition-example."
+        ],
+        "fmmEffect": "Measure is FMM 2 trial-use, so the maturity signal is neutral. The judgment turns on the narrow documentation-path break and whether the structured term model justifies it.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 definition arrays do not validate as R6. There is also R6-to-R4 loss if term.code is populated because R4 has no native coded term slot.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have kept Measure.definition as deprecated while adding Measure.term. That would preserve old instances, but it would also require rendering, validation, and conversion rules for duplicate uncoded definitions when both fields are present.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative assessment; I agree on the mechanism but judge the structured term model's tradeoffs as proportionate."
+      }
     },
     {
       "findingId": "Measure:ELEMENT_PRESENCE_OR_IDENTITY:guidance-removed:048df9",
@@ -520,7 +562,21 @@
       "validationAndCompatibilityMd": "R6 rejects the removed guidance element. R6 usage can be carried as text in R4, but the old distinction between clinical usage and detailed guidance may be lost.",
       "migrationGuidanceMd": "Define a policy to concatenate with headings, preserve guidance in an extension, or require author review when both fields are present.",
       "backwardCompatibilityAnalysisMd": "Keeping guidance deprecated would have allowed old content to validate while authors consolidated documentation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Measure:ELEMENT_PRESENCE_OR_IDENTITY:guidance-removed:048df9",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 had both usage and guidance, while R6 removes guidance and changes usage to markdown with a comment that this metadata was typically called Guidance in HQMF. An R4 instance with guidance is invalid in R6, and if both R4 usage and guidance are populated, a converter must merge, label, or extend to avoid losing the distinction. This is documentation, not executable criteria, but guidance can affect safe and correct measure implementation. A deprecated guidance field would have preserved R4 content with modest cost.",
+        "keyEvidence": [
+          "R4 StructureDefinition snapshot has Measure.usage 0..1 string and Measure.guidance 0..1 markdown.",
+          "R6 StructureDefinition snapshot has Measure.usage 0..1 markdown and no Measure.guidance element.",
+          "R6 Measure.usage comment says the metadata element was typically referred to as Guidance in HQMF."
+        ],
+        "fmmEffect": "Measure is FMM 2 trial-use, so FMM is neutral. The documentation nature softens the severity, but not enough to dismiss a lossy merge where a simple deprecated-field alternative exists.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 guidance is not an R6 base element. The direct downstream risk is semantic/documentation loss when guidance and usage must be collapsed into one R6 usage field.",
+        "lessBreakingAlternativeAssessment": "Yes. R6 could have retained Measure.guidance as deprecated optional markdown while recommending Measure.usage for new content. The tradeoff is an overlapping documentation field and the need to define display behavior when both usage and guidance are present.",
+        "comparisonToExisting": "agree with the existing Medium impact and Yes less-breaking alternative judgment."
+      }
     },
     {
       "findingId": "Measure:CARDINALITY:criteria-optional-r6:fe3b04",
@@ -645,7 +701,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 is relaxed. R6-to-R4 fails when no Expression can be synthesized for the required R4 criteria fields. Runtime code must handle absent criteria.",
       "migrationGuidanceMd": "Update evaluators for optional criteria and new R6 alternatives. Reject or manually review R6-to-R4 conversions that use group definitions or value-based stratifiers without expressions.",
       "backwardCompatibilityAnalysisMd": "R6 expressiveness appears justified; preserving R4 criteria requiredness would force artificial expressions.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Measure:CARDINALITY:criteria-optional-r6:fe3b04",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Lowering population.criteria and stratifier.component.criteria from required to optional does not break R4-to-R6 validation: R4 instances that have criteria still fit the R6 cardinality. The burden is on upgraded evaluators, generated APIs, and R6-to-R4 converters that can no longer assume an Expression exists. Because the R6 model adds groupDefinition, valueSet, basis, and basisRequirement patterns for non-subject and definitional-group measures, keeping R4-required expressions would force artificial expressions or block the new modeling goal.",
+        "keyEvidence": [
+          "R4 Measure.group.population.criteria is 1..1 Expression; R6 lowers it to 0..1 Expression.",
+          "R4 Measure.group.stratifier.component.criteria is 1..1 Expression; R6 lowers it to 0..1 Expression.",
+          "R6 adds Measure.group.population.groupDefinition, Measure.group.stratifier.groupDefinition, Measure.group.stratifier.component.valueSet, Measure.group.basis, and Measure.group.basisRequirement."
+        ],
+        "fmmEffect": "Measure is FMM 2 trial-use, so FMM is neutral. The affected criteria are central to evaluation, which keeps the runtime concern real, but the change is widening for R4-to-R6 instances.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 consumers must handle absent criteria where R4 models could require it. R6-to-R4 loss also occurs when a valid R6 Measure uses groupDefinition or valueSet without an Expression that can be synthesized for R4.",
+        "lessBreakingAlternativeAssessment": "No clear less-breaking base design. Keeping criteria mandatory would preserve old assumptions but would undermine the R6 alternatives or require dummy expressions. An invariant requiring at least one definition mechanism might improve R6 authoring quality, but it is not a less-breaking design for preserving R4-valid instances.",
+        "comparisonToExisting": "agree with the existing High runtime/R6-to-R4 impact and Not applicable alternative assessment, with the caveat that this is not an R4-to-R6 instance validation break."
+      }
     },
     {
       "findingId": "Measure:TYPE_DOMAIN:string-to-markdown:a8f57f",
@@ -723,7 +793,21 @@
       "validationAndCompatibilityMd": "Not normally old-valid/new-invalid at the JSON value level. Risk appears in codegen/runtime and in R6-to-R4 display fidelity.",
       "migrationGuidanceMd": "Regenerate models and update renderers/forms for markdown. Test plain text and multi-paragraph markdown.",
       "backwardCompatibilityAnalysisMd": "Keeping string would preserve generated APIs but hide markdown rendering expectations.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Measure:TYPE_DOMAIN:string-to-markdown:a8f57f",
+        "judgment": "No problem",
+        "narrativeMd": "The affected fields changed from string to markdown, but both primitives are serialized as JSON strings and the fields are human-readable descriptions rather than structural calculation inputs. Existing plain string content should remain wire-compatible in ordinary R6 instances. Implementers may need to regenerate models or make renderers markdown-aware, but that is a limited tooling/runtime update, not a material base compatibility problem.",
+        "keyEvidence": [
+          "R4 Measure.usage, Measure.rateAggregation, Measure.riskAdjustment, group.description, population.description, stratifier.description, stratifier.component.description, and supplementalData.description use type string.",
+          "R6 uses type markdown at the same retained paths.",
+          "The local snapshots show unchanged cardinalities for the retained description paths."
+        ],
+        "fmmEffect": "Measure is FMM 2 trial-use, so FMM is neutral. The wire-compatible primitive shape and documentation-only nature dominate the judgment.",
+        "compatibilityMechanism": "runtime/API/codegen: some generated models and renderers distinguish markdown from string, but there is no normal old-valid/new-invalid JSON instance break for plain text values.",
+        "lessBreakingAlternativeAssessment": "Partial but unnecessary. R6 could have kept string and allowed markdown by prose convention, reducing codegen churn. That would lose the computable signal that these fields need markdown-aware display and sanitization; given the wire compatibility, the base design does not need renewed attention.",
+        "comparisonToExisting": "partially agree with the existing no-hard-break and Partial alternative assessment, but disagree with treating this as Medium impact."
+      }
     },
     {
       "findingId": "Measure:TERMINOLOGY_BINDING:subject-binding-group-subject:2ac671",
@@ -842,7 +926,22 @@
       "validationAndCompatibilityMd": "Old CodeableConcepts may produce terminology warnings rather than errors. R6 group subjects must be collapsed, dropped, or extended for R4.",
       "migrationGuidanceMd": "Map resource-types codings to fhir-types codings. Convert group subjects to R4 only when all groups share the same subject; otherwise require review.",
       "backwardCompatibilityAnalysisMd": "Including legacy codings or an official ConceptMap would reduce migration ambiguity.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Measure:TERMINOLOGY_BINDING:subject-binding-group-subject:2ac671",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The root subject[x] element keeps the same broad shape, but its extensible binding changes from subject-type/resource-types to participant-resource-types/fhir-types, and R6 adds group.subject[x]. Old root subject codings may trigger terminology normalization work rather than a structural base validation failure. The real compatibility issue is reverse and semantic: group-specific subject context can be central to evaluation and cannot always be represented in R4. The broader participant list and group scoping are coherent R6 goals, and a compatibility value set containing both code systems would create long-lived duplicate codings for the same subject concepts.",
+        "keyEvidence": [
+          "R4 Measure.subject[x] is CodeableConcept or Reference with an extensible binding to http://hl7.org/fhir/ValueSet/subject-type.",
+          "R4 ValueSet-subject-type includes Patient, Practitioner, Organization, Location, and Device from http://hl7.org/fhir/resource-types.",
+          "R6 Measure.subject[x] and Measure.group.subject[x] are CodeableConcept or Reference with extensible binding to http://hl7.org/fhir/ValueSet/participant-resource-types.",
+          "R6 ValueSet-participant-resource-types includes broader fhir-types concepts such as CareTeam, Group, PractitionerRole, and RelatedPerson."
+        ],
+        "fmmEffect": "Measure is FMM 2 trial-use, so FMM is neutral. Subject context is important to evaluation, so the reverse/semantic risk remains meaningful despite the extensible binding.",
+        "compatibilityMechanism": "R6-to-R4 loss: group.subject[x] has no R4 native location unless all group subjects can be collapsed to root subject[x]. The root binding change is mostly warning-level terminology pressure rather than an old-valid/new-invalid structural break.",
+        "lessBreakingAlternativeAssessment": "Partial. R6 could have included the old resource-types codings in the participant value set while adding fhir-types and group.subject[x]. That would reduce terminology churn for R4 instances but would institutionalize parallel code systems and complicate search, validation, and normalization.",
+        "comparisonToExisting": "partially agree with the existing Medium impact and Partial alternative assessment; I put less weight on hard R4-to-R6 validation risk and more on R6-to-R4 loss for group-specific subjects."
+      }
     },
     {
       "findingId": "Measure:VALUE_CONSTRAINT:r6-specific-constraints:8bfbdf",
@@ -927,7 +1026,21 @@
       "validationAndCompatibilityMd": "No old-valid/new-invalid case for R4 content. R6 basisRequirement content can be invalid if forbidden DataRequirement features are used.",
       "migrationGuidanceMd": "Configure validation severity handling and check basisRequirement DataRequirements before publication.",
       "backwardCompatibilityAnalysisMd": "Narrative guidance would be less disruptive but less reliably enforced.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Measure:VALUE_CONSTRAINT:r6-specific-constraints:8bfbdf",
+        "judgment": "No problem",
+        "narrativeMd": "The added R6 constraints either have warning severity on retained or new authoring metadata, or apply as an error to the new R6-only basisRequirement element. They do not invalidate an R4 Measure during R4-to-R6 migration. Local pipelines that fail on warnings may need policy updates, but warning-level guidance and constraints on new R6 content are not a base breaking-change concern.",
+        "keyEvidence": [
+          "R6 Measure.relatedArtifact has warning constraint mea-8 about dependencies/components referencing a resource.",
+          "R6 linkId elements have warning constraints mea-2 through mea-6 limiting length to 255 characters.",
+          "R6 Measure.group.basisRequirement has error constraint mea-7, but basisRequirement is not an R4 element."
+        ],
+        "fmmEffect": "Measure is FMM 2 trial-use, so FMM is neutral. The lack of an old-valid/new-invalid R4 instance mechanism dominates.",
+        "compatibilityMechanism": "warning-level: relatedArtifact and linkId constraints are warnings; the only error constraint is on a new R6-only element.",
+        "lessBreakingAlternativeAssessment": "Not applicable. Prose-only guidance would be quieter for warning-as-error pipelines but less computable. No R4-valid content is made invalid by the added base constraints.",
+        "comparisonToExisting": "agree with the existing Low impact and Not applicable alternative assessment."
+      }
     },
     {
       "findingId": "Measure:TERMINOLOGY_BINDING:measure-terminology-canonicals:5fc8ed",
@@ -1027,7 +1140,22 @@
       "validationAndCompatibilityMd": "Raw instances may still carry CodeableConcepts, but strict terminology expansion and profile validation can change. R6 codes from unavailable expansions may not map to R4.",
       "migrationGuidanceMd": "Install R6 terminology dependencies, regenerate value-set artifacts, and define aliases or ConceptMaps for old canonicals before bulk validation.",
       "backwardCompatibilityAnalysisMd": "Official aliases or ConceptMaps would make this safer.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Measure:TERMINOLOGY_BINDING:measure-terminology-canonicals:5fc8ed",
+        "judgment": "No problem",
+        "narrativeMd": "The retained Measure elements remain CodeableConcepts with extensible or example bindings; what changed is primarily the binding metadata and terminology package location for several value set canonicals. Base instances normally carry codings, not the binding value set URL, so an R4 instance is not invalid solely because the R6 binding points to terminology.hl7.org. Terminology services, generated enums, and cached expansions need updates, but this is tooling and dependency churn rather than a material path-level compatibility break.",
+        "keyEvidence": [
+          "R4 Measure.group.population.code is extensibly bound to http://hl7.org/fhir/ValueSet/measure-population; R6 binds the same path to http://terminology.hl7.org/ValueSet/measure-population.",
+          "R4 Measure.supplementalData.usage is extensibly bound to http://hl7.org/fhir/ValueSet/measure-data-usage; R6 binds the same path to http://terminology.hl7.org/ValueSet/measure-data-usage.",
+          "R4 local value sets already include terminology.hl7.org code systems for measure-population, measure-data-usage, and measure-improvement-notation.",
+          "The R6 core package index checked locally did not contain the external terminology.hl7.org Measure value set resources."
+        ],
+        "fmmEffect": "Measure is FMM 2 trial-use, so FMM is neutral. Because the mechanism is metadata/tooling rather than instance validity or central runtime semantics, FMM did not raise the concern.",
+        "compatibilityMechanism": "metadata/tooling: terminology resolution, package dependencies, and generated binding metadata may change. This is not normally an old-valid/new-invalid base instance break.",
+        "lessBreakingAlternativeAssessment": "Not applicable as a base instance-compatibility issue. Keeping old value set URLs or publishing aliases could reduce cache churn, but no R4-valid Measure instance pattern needs preservation, and the change appears tied to broader terminology stewardship.",
+        "comparisonToExisting": "disagree with the existing Medium impact and Yes less-breaking alternative assessment; I judge this as terminology tooling churn, not a material R4-to-R6 compatibility problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1223,5 +1351,19 @@
       "terminology.hl7.org canonical migration",
       "Measure/MeasureReport semantic alignment"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Measure.fresh-review.json",
+    "findingDecisionCount": 9,
+    "matchedFindingDecisionCount": 9,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 4,
+      "No problem": 3
+    }
   }
 }

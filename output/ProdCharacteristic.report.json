@@ -253,7 +253,22 @@
       "validationAndCompatibilityMd": "An R4 instance fragment valid as a `ProdCharacteristic` cannot be made R6-valid by simply changing the package version, because the R6 core package has no corresponding StructureDefinition. The break affects R4-to-R6 validation, profile derivation, StructureDefinition differential references, serializers, schema generation, and type-name based runtime dispatch.",
       "migrationGuidanceMd": "Inventory all profiles, transforms, and generated classes that mention `ProdCharacteristic` or its canonical URL. Replace references with context-specific R6 resource paths and define an explicit mapping for each old field. Tests should include resolution of canonical URLs, generated model compilation, validation of migrated examples, and failure cases for unmapped characteristics.",
       "backwardCompatibilityAnalysisMd": "The removal could have been softened by retaining the R4 datatype as deprecated or by publishing an official compatibility extension/ConceptMap. That would preserve old references while allowing R6 resources to prefer generic property structures. Without such a bridge, implementers must create local mappings and accept non-portable behavior until a standard map is available.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "ProdCharacteristic:ARTIFACT_IDENTITY:root:4b2a9e",
+        "judgment": "Revisit",
+        "narrativeMd": "R6 genuinely drops the same-canonical `ProdCharacteristic` complex datatype. That is a top-level identity/API break: R4 profiles, generated models, validators, and tooling that refer to `http://hl7.org/fhir/StructureDefinition/ProdCharacteristic` no longer have an R6 base artifact to resolve. The practical production blast radius is uncertain because the datatype and its containing R4 resources are draft/FMM-0, and a quick relevance check did not find clear production deployment evidence. Even so, this specific identity removal has a relatively modest less-breaking option: keep a deprecated legacy StructureDefinition in the R6 package while steering new R6 resources to the coded property/characteristic pattern. That would not solve all field-level migration, but it would preserve canonical/type resolution for a top-level artifact with limited base-model cost.",
+        "keyEvidence": [
+          "R4 package index contains StructureDefinition-ProdCharacteristic.json with id/url/type `ProdCharacteristic` and canonical `http://hl7.org/fhir/StructureDefinition/ProdCharacteristic`.",
+          "R6 assigned file StructureDefinition-ProdCharacteristic.json is absent, and exact R6 package-index lookup for the id/url/filename returned no StructureDefinition.",
+          "R4 maturity map lists `ProdCharacteristic` as standardsStatus `draft`; R4 `MedicinalProductPackaged`, `MedicinalProductManufactured`, and `DeviceDefinition` are FMM 0 trial-use and use `physicalCharacteristics` of type `ProdCharacteristic`.",
+          "Targeted web searches for documented production use did not produce clear concrete deployment evidence beyond generic FHIR/HL7 references."
+        ],
+        "fmmEffect": "The draft/no-numeric-FMM status and FMM-0 containing resources substantially reduce the presumption of broad deployed impact. I still chose Revisit because this is a root artifact identity removal and a deprecated compatibility StructureDefinition appears to be a low-cost base-design mitigation.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 validators, profile tooling, generated SDKs, and canonical-resolution code cannot resolve or generate the old `ProdCharacteristic` type from the R6 core package.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design exists: retain `ProdCharacteristic` as a deprecated legacy complex-type StructureDefinition, even if new R6 resource elements use resource-specific `property`/`characteristic` backbones. The tradeoff is carrying a legacy artifact and possible implementer confusion, but for the identity-only issue it need not introduce duplicate fields into successor resources.",
+        "comparisonToExisting": "Partially agree: the existing report correctly identifies a hard artifact-resolution break and a plausible Yes alternative. It overstates production impact somewhat because the R4 content is draft/FMM-0 and no concrete production-use evidence was found quickly."
+      }
     },
     {
       "findingId": "ProdCharacteristic:ELEMENT_PRESENCE:ProdCharacteristic:8d7c1f",
@@ -491,7 +506,22 @@
       "migrationGuidanceMd": "Create an explicit mapping table from each R4 field to the target R6 resource path, `type` coding, and `value[x]` type. Treat R4 repeating `color`, `imprint`, and `image` as repeated R6 property entries unless the target resource has a more specific pattern. Validate converted data with examples that include multiple colors, multiple imprints, all Quantity dimensions, image attachments, and unmapped local extensions.",
       "backwardCompatibilityAnalysisMd": "The R6 generic property design could support more characteristic kinds without adding new elements, which is a legitimate modeling goal. However, it could have been introduced less disruptively by keeping named fields as deprecated aliases or by making a standard conversion map part of the release. Without that, implementations must infer or locally govern the mapping.",
       "reviewerNotesMd": "The finding treats the property/characteristic elements as likely successors based on local R6 StructureDefinitions. Official R6 narrative or cross-version maps could refine which target resource and coding should be used for each old field.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ProdCharacteristic:ELEMENT_PRESENCE:ProdCharacteristic:8d7c1f",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "The named R4 fields are not path-preserved in the likely R6 model. R4 records dimensions and appearance with fixed fields such as `height`, `color`, `imprint`, `image`, and `scoring`; R6 product/device structures instead use repeated coded properties or characteristics with a required `type` and a `value[x]`. That breaks old JSON/FHIRPath paths and generated field accessors, so migration requires an intentional transform and a choice of product-characteristic code. However, the R6 design goal is coherent: it makes the characteristic kind explicit in data and supports a broader, more uniform property model across product resources. Keeping all old named fields as aliases would preserve more R4 instances but would also create duplicate representations and conflict-resolution rules. Given draft/FMM-0 status and no quick evidence of broad production use, the break looks proportionate rather than a design issue that clearly needs reopening.",
+        "keyEvidence": [
+          "R4 `ProdCharacteristic` has fixed value-bearing fields: six optional Quantity dimensions/measurements, `shape` string, repeating `color` and `imprint` strings, repeating `image` Attachment, and `scoring` CodeableConcept.",
+          "R4 `MedicinalProductPackaged.packageItem.physicalCharacteristics`, `MedicinalProductManufactured.physicalCharacteristics`, and `DeviceDefinition.physicalCharacteristics` are 0..1 `ProdCharacteristic`.",
+          "R6 `PackagedProductDefinition.packaging.property.type`, `AdministrableProductDefinition.property.type`, `MedicinalProductDefinition.characteristic.type`, and `ManufacturedItemDefinition.property.type` are 1..1 CodeableConcepts bound to `product-characteristic-codes` with example strength.",
+          "R6 successor value elements use `value[x]` choices rather than the old named paths; R6 `DeviceDefinition.property` similarly uses `type` plus required `value[x]`."
+        ],
+        "fmmEffect": "Low maturity is important here. Because `ProdCharacteristic` is draft and the R4 resources that directly used it are FMM 0, I did not treat the path break alone as evidence of broad deployed harm. The regulatory/product-identification domain keeps the migration meaningful, but not enough to overcome the R6 design rationale.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: an R4 instance/profile/query using fields like `ProdCharacteristic.color` or `ProdCharacteristic.height` cannot be carried forward by retaining those paths in the R6 base model, and generated accessors/FHIRPath expressions must change to property-list traversal.",
+        "lessBreakingAlternativeAssessment": "A partial less-breaking design would keep the old named fields as deprecated aliases or keep using the legacy datatype alongside the new coded property list. That would preserve many R4 paths, but it creates duplicate same-concept locations, possible conflicts between alias and coded entries, extra validation/search/codegen burden, and weaker computability. A standard mapping table from old field names to characteristic codes would help migration but is not itself a less-breaking base model.",
+        "comparisonToExisting": "Partially agree: the existing report is right that this is a real representation and generated-code break. I rate the less-breaking alternative as only partial with material tradeoffs, and I would soften the High-impact implication because of the draft/FMM-0 context."
+      }
     },
     {
       "findingId": "ProdCharacteristic:CONVERSION_OR_MAPPING:successor-property:5f31aa",
@@ -676,7 +706,22 @@
       "migrationGuidanceMd": "For R6-to-R4 conversion, define policy per property type: exact map to an old field, map to extension, convert to text with loss marker, or reject. Round-trip tests should include all candidate R6 `value[x]` types, unknown `type` codes, multiple repeated properties of the same type, and administrable-product property status.",
       "backwardCompatibilityAnalysisMd": "The wider R6 property domain is likely useful and partly unavoidable if R6 needed more flexible product characteristics. The backward-compatible alternative is not to prohibit those values globally, but to publish a compatibility profile or cross-version extension strategy for systems that must interoperate with R4.",
       "reviewerNotesMd": "Because there is no direct R6 artifact, this finding is based on likely successor structures. Official cross-version guidance could downgrade or refine the risk for particular resource contexts.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "ProdCharacteristic:CONVERSION_OR_MAPPING:successor-property:5f31aa",
+        "judgment": "No problem",
+        "narrativeMd": "The R6 property/characteristic models are broader than R4 `ProdCharacteristic`, so arbitrary R6 data will not always down-convert into the old fixed slots. That is a real R6-to-R4 or round-trip limitation, especially for values such as `Range`, `date`, `boolean`, `markdown`, `integer`, Binary references, or property status. But it is not an R4-to-R6 compatibility break: the problematic cases are new R6 expressivity, not formerly valid R4 content becoming invalid. Constraining R6 back to the R4 subset would undermine the apparent R6 goal. For a draft/FMM-0 R4 datatype and absent quick evidence of production round-trip dependence, this reverse-only concern does not warrant renewed base-design attention.",
+        "keyEvidence": [
+          "R4 value-bearing `ProdCharacteristic` elements are limited to Quantity, string, Attachment, and CodeableConcept fixed slots.",
+          "R6 candidate product properties allow broader values, including Range, date, boolean, markdown, integer, Attachment, and Reference(Binary), depending on the successor resource.",
+          "R6 `AdministrableProductDefinition.property.status` adds a CodeableConcept status not present in R4 `ProdCharacteristic`.",
+          "The finding affects R6-to-R4 representability; it does not identify an R4 instance shape that fails because R6 is narrower."
+        ],
+        "fmmEffect": "The low/draft maturity further reduces concern for a reverse-conversion limitation. Without evidence of deployed bidirectional R4/R6 conversion obligations, I treated this as normal version evolution rather than a material compatibility problem.",
+        "compatibilityMechanism": "R6-to-R4 loss: valid R6 coded property entries may use types or value choices that cannot be represented faithfully in the old R4 fixed-field datatype, but this is not an old-valid/new-invalid R4-to-R6 break.",
+        "lessBreakingAlternativeAssessment": "No less-breaking base R6 design is appropriate for this finding. Profiles, extensions, ConceptMaps, or conversion tooling can support systems that require round-tripping, but limiting the base R6 property model to R4-compatible values would defeat the added expressivity that motivates the new model.",
+        "comparisonToExisting": "Disagree on impact, while agreeing with the not-applicable alternative judgment. The reverse-conversion limitation is real, but treating it as High impact in an R4-to-R6 breaking-change review overstates the concern."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -820,5 +865,19 @@
       "Required property.type CodeableConcept introduced when old field names encoded the characteristic kind",
       "R6 generic value[x] choices with no R4 ProdCharacteristic slot"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/ProdCharacteristic.fresh-review.json",
+    "findingDecisionCount": 3,
+    "matchedFindingDecisionCount": 3,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 1,
+      "No problem": 1
+    }
   }
 }

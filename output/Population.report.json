@@ -302,7 +302,23 @@
       "validationAndCompatibilityMd": "An R4 instance fragment containing inline `Population` content can be valid under R4 medicinal-product definitions, but an R6 validator has no `Population` StructureDefinition and the old R4 medicinal-product elements are not typed as `Population` in R6. This is hard-breaking for R4-to-R6 validation and high risk for generated code. The same-artifact R6-to-R4 direction is not applicable because there is no R6 `Population` artifact to serialize back.",
       "migrationGuidanceMd": "Inventory all generated models, profiles, transforms, and persisted data that mention `Population`. Do not attempt a pure canonical URL update. For clinical-use population criteria, migrate through the surrounding resource changes, likely creating or referencing a `Group` and using `Group.characteristic` for old age, gender, race, and physiological-condition criteria. Test validation with R4 examples, converted R6 examples, and missing/unknown criteria cases.",
       "backwardCompatibilityAnalysisMd": "The change could have been less disruptive if R6 had retained a deprecated `Population` datatype or supplied a formal compatibility extension/map. That alternative would let old data remain structurally valid while signaling that new implementations should prefer `Group`. The tradeoff is additional legacy complexity in a ballot build that may have intentionally consolidated a draft medicinal-product model.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "Population:ARTIFACT_IDENTITY:root:5d3f62",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 defines `Population` as a concrete draft complex datatype, while the supplied R6 ballot package has no `StructureDefinition-Population.json` or package-index entry for the Population canonical/type. That is a real break for validators, code generators, serializers, and profiles that directly resolve the datatype. The break looks proportionate, though: the type was draft/low-maturity, appears in R4 core mainly as part of the medicinal-product clinical-use model, and retaining the datatype alone would not preserve the old containing resource shapes in R6. The apparent R6 direction, `ClinicalUseDefinition.population` referencing `Group`, is a coherent modeling change rather than just a gratuitous rename.",
+        "keyEvidence": [
+          "R4 `StructureDefinition-Population.json` defines canonical `http://hl7.org/fhir/StructureDefinition/Population`, kind `complex-type`, type `Population`, derived from `BackboneElement`.",
+          "R6 package file/path check and `.index.json` search found no Population StructureDefinition, canonical, id, or type entry.",
+          "R4 elements typed `Population` found on `MedicinalProductIndication.population`, `MedicinalProductContraindication.population`, and `MedicinalProductUndesirableEffect.population`.",
+          "R6 `ClinicalUseDefinition.population` is `0..* Reference(Group)`, supporting a replacement direction but not a same-identity datatype.",
+          "Quick targeted web searches did not reveal clear documented production use beyond core/spec references and implementation-guide-style discussion."
+        ],
+        "fmmEffect": "The local maturity data shows standards status `draft` and no numeric FMM for Population, matching the supplied low-maturity context. That substantially lowers the stability expectation, so the existence of a hard break alone is not enough to demand redesign.",
+        "compatibilityMechanism": "runtime/API/codegen: R6 validators and generators cannot resolve the old Population canonical/type. There is also an old-valid/new-invalid effect for R4 containing resources that used inline Population content, but Population itself is an embedded datatype rather than a standalone resource instance.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base R6 design could have retained a deprecated `Population` StructureDefinition to preserve canonical resolution and generated model availability. That alternative is only partial: without also retaining the old medicinal-product resources/elements, most old R4 instances would still need structural migration, and carrying a legacy datatype next to the `Group` model would add long-term ambiguity.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative assessment: the break mechanism is real and serious for affected tooling, but the draft/low-maturity status and limited evidence of production use make it acceptable as a proportionate R6 cleanup."
+      }
     },
     {
       "findingId": "Population:ELEMENT_PRESENCE_OR_IDENTITY:Population.local-elements:4e941a",
@@ -594,7 +610,23 @@
       "migrationGuidanceMd": "For each old `Population`, create or identify a `Group` that represents the same criteria. Map `age[x]` to a `Group.characteristic` with an age code and `valueRange` or `valueCodeableConcept`; map `gender`, `race`, and `physiologicalCondition` to separate characteristics with agreed characteristic codes and `exclude: false`. Decide whether the Group is contained, bundled, or independently persisted. Test for multiple populations, missing fields, local code systems, and cases where old free-text CodeableConcepts do not map to standardized Group characteristic codes.",
       "backwardCompatibilityAnalysisMd": "A direct field-preserving design could have kept the four R4 elements and added an optional `group` reference, allowing gradual migration. That would have avoided hard shape breaks for simple criteria but would have duplicated semantics and failed to force convergence on the more general Group model. Given the old datatype's draft status and narrow scope, a richer replacement is understandable, but the lack of a computable map makes migration riskier than necessary.",
       "reviewerNotesMd": "The replacement relationship is inferred, not proven by an official map. Reviewers should verify ballot narrative or HL7 change notes before treating `ClinicalUseDefinition.population -> Group` as the complete intended replacement for every R4 `Population` use.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "Population:ELEMENT_PRESENCE_OR_IDENTITY:Population.local-elements:4e941a",
+        "judgment": "Revisit",
+        "narrativeMd": "The four R4 local criteria slots, `age[x]`, `gender`, `race`, and `physiologicalCondition`, do not have a same-path R6 datatype counterpart. They can plausibly be represented as `Group.characteristic` entries through `ClinicalUseDefinition.population`, but that is not a mechanical rename: each migrated criterion needs a characteristic code, a value choice, and an explicit include/exclude value, and free-text or local CodeableConcepts may require expert judgment. Because these fields describe which patient population an indication, contraindication, or adverse effect applies to, an incorrect migration can change clinical-use semantics. Low maturity softens the stability claim, but the safety/regulatory nature and lossy mapping risk justify renewed attention to the transition design or computable mapping guidance.",
+        "keyEvidence": [
+          "R4 `Population.age[x]` is optional `Range` or `CodeableConcept`; `Population.gender`, `Population.race`, and `Population.physiologicalCondition` are optional `CodeableConcept` summary elements.",
+          "R6 has no Population datatype fields at those paths.",
+          "R6 `ClinicalUseDefinition.population` is `0..* Reference(Group)`.",
+          "R6 `Group.characteristic.code`, `Group.characteristic.value[x]`, and `Group.characteristic.exclude` are each `1..1`; value choices include `CodeableConcept`, `boolean`, `Quantity`, `Range`, `Reference`, `uri`, and `Expression`.",
+          "No local ConceptMap, StructureMap, or official migration note was found to define characteristic codes, containment/reference handling, or lossless round-trip behavior."
+        ],
+        "fmmEffect": "Population is draft/low-maturity, so this is not a Revisit merely because old fields disappeared. The judgment remains elevated because the affected fields carry patient-population applicability for medicinal-product clinical use, where lossy or inconsistent conversion can be safety- or regulatory-significant.",
+        "compatibilityMechanism": "old-valid/new-invalid and R6-to-R4 loss: old inline fields have no direct R6 destination, while R6 Group characteristics require additional structure and can express exclusions, expressions, references, and other criteria that cannot be represented cleanly in the four R4 fields.",
+        "lessBreakingAlternativeAssessment": "A base-compatible design could have allowed a transitional inline criteria backbone or choice alongside `Reference(Group)` so simple R4 age/gender/race/condition cases stayed valid. That would preserve many old instances but has real tradeoffs: duplicate population semantics, authority conflicts when both forms are present, and poor coverage of richer Group expressions. If R6 keeps the Group-only design, a computable StructureMap/ConceptMap and characteristic-code guidance would reduce breakage, though migration guidance alone is not a less-breaking base model.",
+        "comparisonToExisting": "partially agree with the existing high-impact and partial-alternative assessment: the report correctly identifies the representation change and duplicate-semantics tradeoff, but the path-level review gives more weight to the expert-dependent, safety-relevant mapping risk than to the general justification for moving to Group."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -725,5 +757,18 @@
       "R4 inline backbone/datatype criteria replaced by Reference(Group)",
       "R4 medicinal product resources replaced or consolidated into ClinicalUseDefinition"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/Population.fresh-review.json",
+    "findingDecisionCount": 2,
+    "matchedFindingDecisionCount": 2,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 1
+    }
   }
 }

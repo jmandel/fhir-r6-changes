@@ -397,7 +397,23 @@
       "migrationGuidanceMd": "Inventory all R4 DetectedIssue.status values before migration. Map straightforward continuing records to `preliminary`, `final`, `entered-in-error`, or `unknown` only when clinically correct. Treat `cancelled`, `amended`, `corrected`, and `registered` as policy decisions rather than automatic string substitutions. Preserve the original R4 status in an extension or Provenance/audit trail when the mapping is not exact. Test validation against the R6 DetectedIssueStatus value set rather than the element short text alone.",
       "backwardCompatibilityAnalysisMd": "The DetectedIssue-specific lifecycle is reasonable, but the break could have been softened by including legacy ObservationStatus codes as deprecated transitional codes or by publishing an explicit cross-version ConceptMap. The tradeoff would be a less precise R6 status value set.",
       "reviewerNotesMd": "Confirm whether `processing-error` is intended to be in the R6 DetectedIssueStatus value set. The local ballot package is internally inconsistent on that code.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DetectedIssue:TERMINOLOGY_BINDING:DetectedIssue.status:vs-change",
+        "judgment": "Revisit",
+        "narrativeMd": "`DetectedIssue.status` remains mandatory and modifier, but R6 changes its required value set from all ObservationStatus codes to a smaller DetectedIssue-specific set. R4 instances using `registered`, `amended`, `corrected`, or `cancelled` become invalid unless transformed, and the correct transformation is not always mechanical because these states affect whether an alert is current, withdrawn, erroneous, or mitigated. The supplied R6 package also has a ballot inconsistency: `processing-error` is in the element text and CodeSystem but not in the required ValueSet compose. Even with low R4 maturity, this path is central enough to DetectedIssue lifecycle and alert behavior that the design deserves renewed review.",
+        "keyEvidence": [
+          "R4 StructureDefinition: DetectedIssue.status is 1..1, modifier, required-bound to http://hl7.org/fhir/ValueSet/observation-status|4.0.1.",
+          "R4 ObservationStatus ValueSet includes the full observation-status system, covering registered, preliminary, final, amended, corrected, cancelled, entered-in-error, and unknown.",
+          "R6 StructureDefinition: DetectedIssue.status is 1..1, modifier, required-bound to http://hl7.org/fhir/ValueSet/detectedissue-status|6.0.0-ballot4.",
+          "R6 DetectedIssueStatus ValueSet compose includes preliminary, final, entered-in-error, unknown, and mitigated; CodeSystem also defines processing-error but the ValueSet compose does not include it.",
+          "Lightweight web search found HL7 DetectedIssue specification pages describing CDS/drug-interaction use, but no cited production implementation guide evidence in the returned results."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens the general stability expectation, so the break is not concerning merely because it is a hard break. I still escalate because status is mandatory, modifier, safety-relevant alert lifecycle data, and mapping removed statuses requires policy judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4-valid status codes removed from the required R6 value set fail validation; there is also runtime/API/codegen enum churn and R6-to-R4 loss for mitigated.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could include the removed R4 ObservationStatus codes as deprecated legacy members while adding DetectedIssue-specific statuses and publishing clear mappings. That would preserve old instances, but it would keep observation-oriented lifecycle values in a DetectedIssue modifier, so the alternative is real but not free.",
+        "comparisonToExisting": "partially agree: I agree with the existing report's high-impact assessment and partial alternative, but judge the finding more strongly as Revisit because of the mandatory modifier role, safety-sensitive alert semantics, and the R6 processing-error value-set inconsistency."
+      }
     },
     {
       "findingId": "DetectedIssue:ELEMENT_PRESENCE_OR_IDENTITY:DetectedIssue.patient-to-subject:rename",
@@ -578,7 +594,22 @@
       "validationAndCompatibilityMd": "R4 instances with `patient` are old-valid/new-invalid because `patient` is no longer a valid R6 element. R6 instances with `subject.reference` to Patient can be converted back to R4 `patient`; R6 subjects such as Medication, Device, Procedure, or Group cannot be represented in R4 without an extension or loss of subject context.",
       "migrationGuidanceMd": "Rename `patient` to `subject` for Patient references during R4-to-R6 migration. Update generated model accessors, search/indexing code, FHIRPath expressions, authorization rules, and displays that assumed `DetectedIssue.patient`. For R6-to-R4, only map Patient subjects to `patient`; preserve non-Patient subjects in an extension and flag the record for manual review if downstream behavior depends on subject type.",
       "backwardCompatibilityAnalysisMd": "The broadened subject pattern is useful and aligns with other event resources, but the breaking rename could have been eased by retaining a deprecated patient element or by publishing a cross-version extension. That alternative would trade short-term compatibility for model duplication.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DetectedIssue:ELEMENT_PRESENCE_OR_IDENTITY:DetectedIssue.patient-to-subject:rename",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 replaces the patient-specific `DetectedIssue.patient` element with `DetectedIssue.subject` and broadens the target domain beyond Patient. This is a real wire-format and generated-API break for R4 payloads and code that read `patient`, and non-Patient R6 subjects cannot round-trip to R4. However, the R6 goal is more than a cosmetic rename: it aligns DetectedIssue with the subject pattern and supports detected issues about groups, devices, medications, substances, organizations, procedures, and other non-patient subjects. The plausible base-compatible alternatives either keep a misleading `patient` name for non-patient subjects or introduce duplicate patient/subject representations with conflict rules.",
+        "keyEvidence": [
+          "R4 StructureDefinition: DetectedIssue.patient is 0..1 Reference(Patient), summary true.",
+          "R6 StructureDefinition: DetectedIssue.subject is 0..1 Reference(Patient, Group, Device, Location, Organization, Procedure, Practitioner, Medication, Substance, BiologicallyDerivedProduct, NutritionProduct), summary true.",
+          "R6 StructureDefinition has no DetectedIssue.patient element.",
+          "R6 subject definition says it is the subject whose record the detected issue is associated with."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens the expectation that R6 must preserve the old wire name. The affected path is central for record context and access control, so the break remains important, but low maturity and the broader subject goal make it proportionate.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with patient contain an unknown R6 element and generated models/FHIRPath expressions must switch to subject; R6 non-Patient subjects are R6-to-R4 loss.",
+        "lessBreakingAlternativeAssessment": "Keeping `patient` and broadening its target list would preserve many R4 instances but would make a field named patient point at non-patient resources. Keeping both `patient` and `subject` would preserve wire compatibility but creates duplicate representations and precedence/conflict rules. These tradeoffs are material, so a less-breaking design exists only in a costly partial form.",
+        "comparisonToExisting": "partially agree: I agree that this is a hard, high-impact migration issue, but I do not agree that the less-breaking alternative is clearly low cost; the R6 subject model has a meaningful design rationale."
+      }
     },
     {
       "findingId": "DetectedIssue:TYPE_DOMAIN:DetectedIssue.severity:code-to-codeableconcept",
@@ -756,7 +787,22 @@
       "validationAndCompatibilityMd": "R4 instances with a populated severity primitive are old-valid/new-invalid. Empty severity is unaffected. R6 CodeableConcept values can only be losslessly converted to R4 when they contain a clear high/moderate/low coding from the legacy system; text-only, multi-coding, or local-scale severity values need manual policy.",
       "migrationGuidanceMd": "Wrap R4 severity codes into a CodeableConcept using system `http://hl7.org/fhir/detectedissue-severity`. Update generated classes, JSON serializers, validation tests, and UI code that treated severity as a scalar enum. For R6-to-R4, choose a deterministic preferred coding when available and preserve richer CodeableConcept content in an extension or audit field when no legacy code is available.",
       "backwardCompatibilityAnalysisMd": "The richer datatype likely reflects a valid terminology need, but the same goal could have been achieved by adding a parallel CodeableConcept field. The chosen direct replacement simplifies R6 but breaks old wire format and generated APIs.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DetectedIssue:TYPE_DOMAIN:DetectedIssue.severity:code-to-codeableconcept",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`DetectedIssue.severity` keeps the same path but changes from a primitive required-bound `code` to a preferred-bound `CodeableConcept`. Populated R4 severity strings such as `\"high\"` are not valid R6 CodeableConcept objects, so serializers, generated SDKs, and alert-priority logic need updates. The common R4-to-R6 migration is straightforward wrapping of high/moderate/low into a coding, and the R6 goal of supporting richer severity systems and text is credible. A parallel-field alternative would preserve old strings but risks duplicate, conflicting severity representations in safety-sensitive alert triage.",
+        "keyEvidence": [
+          "R4 StructureDefinition: DetectedIssue.severity is 0..1 code with required binding to detectedissue-severity|4.0.1.",
+          "R6 StructureDefinition: DetectedIssue.severity is 0..1 CodeableConcept with preferred binding to detectedissue-severity.",
+          "R4 and R6 detectedissue-severity CodeSystems both define high, moderate, and low.",
+          "FHIR JSON represents primitive code as a scalar string and CodeableConcept as an object."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use reduces the stability burden. Severity is clinically meaningful, but the legacy code set maps cleanly into the richer R6 datatype, so low maturity weighs against Revisit.",
+        "compatibilityMechanism": "old-valid/new-invalid: populated R4 severity strings are the wrong JSON shape for R6; runtime/API/codegen types change from scalar or enum-like code to CodeableConcept, with R6-to-R4 loss for non-legacy codings.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept primitive `severity` and added a separate CodeableConcept element, but then implementations would need precedence rules when both are present or disagree. Because severity often drives alert priority, duplicate representations are a meaningful safety and implementation tradeoff.",
+        "comparisonToExisting": "agree: I agree with the existing hard-break and high runtime-risk assessment, and with treating the less-breaking alternative as only partial because duplicate severity forms are costly."
+      }
     },
     {
       "findingId": "DetectedIssue:SEMANTIC_OR_CONFORMANCE_TEXT:DetectedIssue.code:category-split",
@@ -943,7 +989,22 @@
       "migrationGuidanceMd": "Do not blindly copy R4 `code` to R6 `code` without reviewing what the source system placed there. If the R4 value was used as a high-level category, populate R6 `category`; if it was truly a specific issue code, populate R6 `code`; if it served both purposes, consider populating both with documented mapping rules. Update search parameters, indexes, display grouping, access-control logic, and CDS rule predicates that used `DetectedIssue.code` as a category.",
       "backwardCompatibilityAnalysisMd": "The split improves modeling precision, but retaining the name `code` for a changed semantic role is migration-hostile. An explicit transition element or ConceptMap could have reduced silent behavior drift.",
       "reviewerNotesMd": "Confidence is lower than for structural findings because the v3 ActCode filter expansions were not locally expanded and real-world R4 use of `code` may vary by implementation.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DetectedIssue:SEMANTIC_OR_CONFORMANCE_TEXT:DetectedIssue.code:category-split",
+        "judgment": "Revisit",
+        "narrativeMd": "R4 `DetectedIssue.code` was the general issue category, preferred-bound to `detectedissue-category`. R6 keeps the same `code` path but changes it to the specific issue type, changes the preferred value set to `detectedissue-code`, and adds repeatable `category` for high-level categorization. Because the bindings are preferred, an old category value copied into R6 `code` may still validate while being interpreted in the wrong semantic slot. R6 category is explicitly used for filtering, access control, and system behavior, so this is a silent behavior-risk change rather than a simple terminology cleanup.",
+        "keyEvidence": [
+          "R4 StructureDefinition: DetectedIssue.code short/definition describe issue category or general type and bind to http://hl7.org/fhir/ValueSet/detectedissue-category.",
+          "R6 StructureDefinition: DetectedIssue.code is the specific type of detected issue and binds to http://hl7.org/fhir/ValueSet/detectedissue-code.",
+          "R6 StructureDefinition adds DetectedIssue.category 0..* CodeableConcept for high-level categorization, filtering, access control, and system behavior.",
+          "R4 detectedissue-category ValueSet uses v3 ActCode is-a filters; R6 detectedissue-category explicitly includes FOOD, DRUG, ALGY, and DUPTHPY while R6 detectedissue-code uses broader ActCode filters."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens compatibility expectations, but this finding still deserves attention because it affects a central classification path, may influence clinical alert routing/access-control behavior, and migration can require terminology and implementation judgment.",
+        "compatibilityMechanism": "semantic/documentation: the same R6 `code` element can accept old-looking CodeableConcepts while changing their intended meaning; there is also runtime/API/search/index behavior risk and R6-to-R4 loss for separate multiple categories.",
+        "lessBreakingAlternativeAssessment": "A less-breaking base design could have preserved `code` as the R4 category/general-type element and added a new `specificCode` or equivalent for detailed issue type. That would avoid silent semantic drift, though it would leave awkward legacy naming and require guidance for repeatable categories.",
+        "comparisonToExisting": "agree: I agree with the existing high semantic-risk assessment and the partial less-breaking alternative; the fresh review also supports Revisit because validation may not catch mis-migration."
+      }
     },
     {
       "findingId": "DetectedIssue:TYPE_DOMAIN:DetectedIssue.identified_x_:timing-added",
@@ -1108,7 +1169,21 @@
       "validationAndCompatibilityMd": "R4 dateTime and Period instances remain representable in R6. R6 Timing instances are not native R4 DetectedIssue content. Code that enumerates known choice suffixes must add `identifiedTiming` and should not assume the field is only the initial identification moment.",
       "migrationGuidanceMd": "Carry R4 `identifiedDateTime` and `identifiedPeriod` forward as-is unless local requirements distinguish initial detection time from occurrence time. Add tests for all three R6 choices. For R6-to-R4, preserve Timing in an extension or map only a bounds Period when loss is acceptable.",
       "backwardCompatibilityAnalysisMd": "The additive type is backward-compatible for R4-to-R6 validation but not for reverse conversion. The semantic change could have been clearer with a new occurrence element and a retained identified element.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DetectedIssue:TYPE_DOMAIN:DetectedIssue.identified_x_:timing-added",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R6 adds `Timing` to `identified[x]` and changes the prose from initial identification time to occurrence or ongoing timing. Existing R4 `identifiedDateTime` and `identifiedPeriod` instances remain valid R6 shapes, so there is no forward hard instance break. The real burden is generated choice handling, reverse conversion of `identifiedTiming`, and possible semantic confusion for systems that used the field as the initial alert detection timestamp. That is worth migration guidance, but at FMM 1 and with no old-valid/new-invalid break, it does not by itself justify renewed base-design review.",
+        "keyEvidence": [
+          "R4 StructureDefinition: DetectedIssue.identified[x] is 0..1 dateTime or Period and defined as when the issue was initially identified.",
+          "R6 StructureDefinition: DetectedIssue.identified[x] is 0..1 dateTime, Period, or Timing and defined as when the issue did occur or is occurring.",
+          "R6 comment says ongoing events should not include an upper bound in Period or Timing.bounds."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use strongly softens this concern because the change is additive for R4-to-R6 validation and the element is optional. The semantic distinction matters, but the maturity level argues against escalating absent stronger adoption evidence.",
+        "compatibilityMechanism": "runtime/API/codegen: generated choice handlers must account for identifiedTiming and business logic must not assume initial-detection semantics; R6-to-R4 loss occurs for Timing recurrence details.",
+        "lessBreakingAlternativeAssessment": "A separate occurrence or occurrenceTiming element could preserve the R4 meaning of identified while adding recurring/ongoing timing. That design is cleaner semantically, but it adds model surface and dual temporal concepts; because old R4 values remain valid, the alternative is not compelling enough for Revisit here.",
+        "comparisonToExisting": "partially agree: I agree with the existing reconstruction and medium migration risk, but place less weight on the alternative because the forward break is limited and the artifact was FMM 1 in R4."
+      }
     },
     {
       "findingId": "DetectedIssue:REFERENCE_TARGET:DetectedIssue.author:target-widened",
@@ -1250,7 +1325,21 @@
       "validationAndCompatibilityMd": "There is no old-valid/new-invalid break for R4 target profiles. The compatibility risk is R6-to-R4 and runtime: old generated validators or business rules may reject or mishandle Patient/RelatedPerson authors.",
       "migrationGuidanceMd": "Update reference-target validation and actor display logic. For R6-to-R4, preserve Patient/RelatedPerson authors in an extension or Provenance record rather than dropping accountability silently.",
       "backwardCompatibilityAnalysisMd": "This is a reasonable additive target expansion. A backward-compatible R4 path would require extensions, which are less interoperable than a native R6 target list.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DetectedIssue:REFERENCE_TARGET:DetectedIssue.author:target-widened",
+        "judgment": "No problem",
+        "narrativeMd": "`DetectedIssue.author` keeps its path, cardinality, and existing R4 target profiles, while R6 adds Patient and RelatedPerson. R4 instances that reference Practitioner, PractitionerRole, or Device remain valid against the R6 target list. Closed client assumptions may need widening, and R6 Patient/RelatedPerson authors do not fit unprofiled R4, but that is expected for an additive target expansion rather than a concerning R4-to-R6 break.",
+        "keyEvidence": [
+          "R4 StructureDefinition: DetectedIssue.author targets Practitioner, PractitionerRole, and Device.",
+          "R6 StructureDefinition: DetectedIssue.author targets Patient, RelatedPerson, Practitioner, PractitionerRole, and Device.",
+          "Element remains 0..1 Reference and summary true in both versions."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use further reduces concern. Since the change widens valid R6 content while preserving all R4 targets, low maturity reinforces No problem.",
+        "compatibilityMechanism": "R6-to-R4 loss: Patient and RelatedPerson authors cannot be represented in the base R4 author target list, but there is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable for forward compatibility: the R6 base model retains all old targets and only adds new ones. R4 extensions could support downgrade, but that is not a less-breaking R6 base design.",
+        "comparisonToExisting": "partially agree: I agree with the target-widening facts, but the existing medium impact overstates the forward compatibility concern; this is best treated as No problem."
+      }
     },
     {
       "findingId": "DetectedIssue:SERIALIZATION_OR_CODEGEN:DetectedIssue.detail:markdown-type",
@@ -1367,7 +1456,22 @@
       "validationAndCompatibilityMd": "Plain R4 string content should remain structurally representable in R6. R6 markdown content can be copied into R4 string without losing characters, but R4 consumers will not know it is intended as markdown. Generated classes may change from StringType/string to MarkdownType/markdown wrappers.",
       "migrationGuidanceMd": "Update generated model mappings and UI rendering. Treat migrated R4 detail text as literal markdown input and ensure HTML output is sanitized. For R6-to-R4, preserve the markdown source string and document that R4 consumers may display formatting markers literally.",
       "backwardCompatibilityAnalysisMd": "This change is probably acceptable because it preserves the primitive JSON shape. The less-breaking alternative of keeping `string` would not express the new formatting semantics to tooling.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "DetectedIssue:SERIALIZATION_OR_CODEGEN:DetectedIssue.detail:markdown-type",
+        "judgment": "No problem",
+        "narrativeMd": "`DetectedIssue.detail` changes from `string` to `markdown`, but both are FHIR primitive values serialized as JSON strings. Existing R4 plain-text detail values should remain structurally acceptable in R6. Tooling may generate a markdown-specific primitive wrapper and UIs may render or sanitize the content differently, but that is a manageable presentation/codegen concern, not a meaningful compatibility problem for the base R4-to-R6 instance shape.",
+        "keyEvidence": [
+          "R4 StructureDefinition: DetectedIssue.detail is 0..1 string.",
+          "R6 StructureDefinition: DetectedIssue.detail is 0..1 markdown.",
+          "Both FHIR primitive types serialize as scalar JSON strings for the value field.",
+          "Element definition and cardinality remain otherwise stable."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use softens this already limited concern. The element is optional, non-modifier explanatory text, and the wire shape is unchanged.",
+        "compatibilityMechanism": "runtime/API/codegen: generated primitive wrappers and rendering/sanitization expectations may change, but there is no meaningful old-valid/new-invalid JSON-shape break.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `string` and mentioned markdown in prose, but that would remove the computable markdown signal for generic tooling. Given the unchanged JSON shape, the less-breaking alternative is not necessary.",
+        "comparisonToExisting": "disagree: the existing report's medium impact and avoidable-break framing overstate the concern; this is minor codegen/rendering churn."
+      }
     },
     {
       "findingId": "DetectedIssue:ELEMENT_PRESENCE_OR_IDENTITY:DetectedIssue.r6-only-context:added-fields",
@@ -1554,7 +1658,22 @@
       "validationAndCompatibilityMd": "R4 instances remain valid with respect to these additions because all are optional. R6 instances using any of these fields are not cleanly representable in base R4. Strict R4 validators will reject the unknown elements unless they are transformed into extensions.",
       "migrationGuidanceMd": "For R4-to-R6, populate these fields only when source extensions or local data support them. For R6-to-R4, define cross-version extensions for each field that must survive downgrade, and add tests that verify no management or mitigation rationale is silently lost. If no extension strategy exists, flag affected records as lossy conversions.",
       "backwardCompatibilityAnalysisMd": "Because these are optional additions, the forward compatibility cost is low. The main backward-compatible alternative is publishing official cross-version extensions and ConceptMaps for the new terminology-backed fields.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "DetectedIssue:ELEMENT_PRESENCE_OR_IDENTITY:DetectedIssue.r6-only-context:added-fields",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional DetectedIssue context and management elements such as `encounter`, `qualityOfEvidence`, `expectedOnsetType`, `medicationClass`, `managementCode`, and `mitigation.note`. These additions do not invalidate any R4 DetectedIssue instances and are a normal way to add expressivity in a later release. R6-to-R4 downgrade can lose clinically useful context if no extension strategy is used, but that is not a reason to revisit optional native R6 additions.",
+        "keyEvidence": [
+          "R6 StructureDefinition adds encounter 0..1 Reference(Encounter), qualityOfEvidence 0..1 CodeableConcept, expectedOnsetType 0..1 CodeableConcept, medicationClass 0..*, managementCode 0..1 CodeableConcept, and mitigation.note 0..* Annotation.",
+          "R4 StructureDefinition has no corresponding native elements for those paths.",
+          "All listed R6 additions are optional.",
+          "Some added R6 definitions relate to access control, evidence quality, expected onset, medication class, management approach, or mitigation justification."
+        ],
+        "fmmEffect": "Supplied R4 FMM 1/trial-use reduces any expectation that R6 must avoid additive expressivity. Because the additions are optional and forward-compatible, FMM supports No problem.",
+        "compatibilityMechanism": "R6-to-R4 loss: new R6 fields lack native base R4 slots, but there is no R4-to-R6 validation or API removal break.",
+        "lessBreakingAlternativeAssessment": "Not applicable for R4-to-R6 base compatibility: optional native fields are already the less-breaking way to add expressivity. Official cross-version extensions could help downgrade, but extensions are not a less-breaking R6 base alternative.",
+        "comparisonToExisting": "partially agree: I agree with the existing reverse-conversion loss concern, but disagree that it should be treated as a material breaking-change finding for R4-to-R6; optional additions are No problem."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1740,5 +1859,19 @@
       "Event-pattern status value-set replacements",
       "Choice elements gaining Timing and occurrence semantics"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/DetectedIssue.fresh-review.json",
+    "findingDecisionCount": 8,
+    "matchedFindingDecisionCount": 8,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 2,
+      "Breaking but probably OK": 3,
+      "No problem": 3
+    }
   }
 }

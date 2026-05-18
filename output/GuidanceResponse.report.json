@@ -377,7 +377,22 @@
       "migrationGuidanceMd": "Implement an explicit transform: map R4 `reasonCode[n]` to R6 `reason[n].concept`, and map R4 `reasonReference[n]` to R6 `reason[n].reference`. Preserve both arrays, but do not invent pairing unless there is local business knowledge. For R6-to-R4, split simple concept-only and reference-only items, validate references against the R4 target set, and use an extension or manual review for paired or out-of-domain reasons.",
       "backwardCompatibilityAnalysisMd": "The change was probably motivated by a better common representation for code-or-reference elements. It could have been less disruptive by retaining deprecated old fields or by providing a formal cross-version extension. That alternative would reduce immediate migration cost but make the base resource carry two overlapping representations.",
       "reviewerNotesMd": "Confirm whether production validators enforce `CodeableReference.reference` target profiles when none are present on the local element. Also confirm whether any project-specific profile imposes a narrower R6 reason target set.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "GuidanceResponse:ELEMENT_PRESENCE_OR_IDENTITY:GuidanceResponse.reason:4b9f2a",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 instances that populate `reasonCode` or `reasonReference` need an explicit transform because R6 exposes one `reason` array of `CodeableReference` instead of the two old wire names. That is a real instance and generated-model break, and reverse conversion can require policy when an R6 item carries both a concept and a reference or references a resource outside the old R4 target set. The R6 design goal is still coherent: a single code-or-reference representation avoids the artificial R4 split, and the straightforward R4-to-R6 mapping is usually mechanical rather than expert-driven.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `GuidanceResponse.reasonCode` is `0..* CodeableConcept`.",
+          "R4 StructureDefinition: `GuidanceResponse.reasonReference` is `0..* Reference(Condition|Observation|DiagnosticReport|DocumentReference)`.",
+          "R6 StructureDefinition: `GuidanceResponse.reason` is `0..* CodeableReference`; the old `reasonCode` and `reasonReference` element ids are absent.",
+          "R6 CodeableReference StructureDefinition: `concept` and `reference` are separate optional components."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral under the framework. They do not demand normative-level stability, but they also do not soften this the way FMM 0-1 would; the concrete wire/API mechanism drives the judgment.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 `reasonCode` and `reasonReference` properties are not R6 GuidanceResponse elements. There is also runtime/API/codegen churn from two lists to one CodeableReference list and possible R6-to-R4 loss for paired or broader references.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have retained deprecated `reasonCode` and `reasonReference` aliases while adding `reason`, preserving many R4 instances. The tradeoff is duplicate same-resource reason representations, conflict and precedence rules when old and new fields coexist, and prolonged support for the old split model.",
+        "comparisonToExisting": "partially agree: the existing report correctly identifies a hard break and a partial alias-style alternative, but the fresh review treats the CodeableReference consolidation as proportionate rather than a design issue needing renewed review."
+      }
     },
     {
       "findingId": "GuidanceResponse:CARDINALITY:GuidanceResponse.evaluationMessage:6c2d1f",
@@ -516,7 +531,21 @@
       "migrationGuidanceMd": "Scan R4 data for `evaluationMessage` arrays with more than one entry. Decide whether to merge multiple OperationOutcome resources, choose a primary message, preserve extra messages in extensions, or reject records for manual remediation. Tests should include zero, one, and multiple message cases.",
       "backwardCompatibilityAnalysisMd": "The narrowing could have been avoided by keeping the R4 cardinality and adding guidance to aggregate messages. A strict base limit simplifies consumers but forces every migrator to solve aggregation or data loss for existing repeated messages.",
       "reviewerNotesMd": "If historical data rarely used multiple evaluation messages, operational impact may be lower, but the structural break is unambiguous.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "GuidanceResponse:CARDINALITY:GuidanceResponse.evaluationMessage:6c2d1f",
+        "judgment": "Revisit",
+        "narrativeMd": "`evaluationMessage` is narrowed from repeating to single-valued while keeping the same OperationOutcome reference type. An R4 response with two diagnostic outcomes can be valid in R4 and fail R6 cardinality validation. If R6 wants one aggregate OperationOutcome, that goal could be met by guidance or profiling without prohibiting the existing base pattern, so the base max-cardinality reduction looks disproportionate.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `GuidanceResponse.evaluationMessage` is `0..* Reference(OperationOutcome)`.",
+          "R6 StructureDefinition: `GuidanceResponse.evaluationMessage` is `0..1 Reference(OperationOutcome)`.",
+          "The element definition remains about messages resulting from evaluating the artifact or artifacts; the computable type and target are unchanged."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. They lower the stability expectation compared with normative content, but a direct cardinality break on evaluation diagnostics with a low-cost less-breaking design still warrants renewed review.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances with more than one `evaluationMessage` repetition exceed the R6 maximum of one. Runtime/API/codegen also changes from list handling to a nullable singleton.",
+        "lessBreakingAlternativeAssessment": "Yes: keep the base element `0..*` and recommend that producers use one aggregate OperationOutcome where practical, with profiles constraining to `0..1` for ecosystems that require it. This preserves R4 data and still supports the apparent simplification goal.",
+        "comparisonToExisting": "agree: the existing high impact and less-breaking-alternative-available assessment match the fresh path-level review."
+      }
     },
     {
       "findingId": "GuidanceResponse:REFERENCE_TARGET:GuidanceResponse.result:0e77aa",
@@ -698,7 +727,21 @@
       "migrationGuidanceMd": "Migrate referenced `RequestGroup` resources to `RequestOrchestration` before or alongside the GuidanceResponse transform, and update `result.reference` values accordingly. For R6-to-R4, allow only CarePlan and successfully mapped RequestOrchestration-to-RequestGroup references; otherwise preserve data in an extension or reject for manual handling.",
       "backwardCompatibilityAnalysisMd": "The broader target set is useful because decision support can propose many kinds of actions. It was not fully backward compatible because one of the two R4 targets disappeared. A compatibility target or formal cross-version mapping would reduce migration ambiguity but would also keep legacy workflow concepts in the base resource.",
       "reviewerNotesMd": "Treat this finding together with the separate resource-level analysis of `RequestGroup` and `RequestOrchestration`; this report does not validate the internal element mapping between those resources.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "GuidanceResponse:REFERENCE_TARGET:GuidanceResponse.result:0e77aa",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`result` still carries proposed actions, but the allowed target set changes substantially: `CarePlan` is retained, `RequestGroup` is no longer an R6 target, and many R6 request resources including `RequestOrchestration` are added. R4 data pointing to RequestGroup needs coordinated migration of the referenced resource, and R6 data can point to action resources that R4 never allowed. The break is meaningful because proposed actions can be clinically important, but it appears tied to the broader R6 workflow model rather than a simple avoidable rename.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `GuidanceResponse.result` targets `CarePlan` or `RequestGroup`.",
+          "R6 StructureDefinition: `GuidanceResponse.result` targets `CarePlan`, `RequestOrchestration`, and multiple other request-like resources, but not `RequestGroup`.",
+          "Local packages: R4 contains `StructureDefinition-RequestGroup.json`; R6 contains `StructureDefinition-RequestOrchestration.json` and no `StructureDefinition-RequestGroup.json`."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. The judgment depends on the action-reference migration burden and safety relevance, not on a strong stability guarantee.",
+        "compatibilityMechanism": "old-valid/new-invalid: under target-profile/resource-type validation, an R4 `result` reference to `RequestGroup/...` no longer conforms in R6. There is also runtime/API/codegen risk for changed target unions and R6-to-R4 loss for newly allowed target resources.",
+        "lessBreakingAlternativeAssessment": "Partial: R6 could have retained a legacy `RequestGroup` target or made the target profile looser. That would preserve more R4 references, but it either keeps an obsolete workflow resource in play or weakens validation of proposed-action targets, so it is not a clearly low-cost base design.",
+        "comparisonToExisting": "partially agree: the existing report correctly flags high migration risk and only a partial alternative, but the fresh review treats the change as proportionate to the RequestGroup-to-RequestOrchestration transition."
+      }
     },
     {
       "findingId": "GuidanceResponse:CARDINALITY:GuidanceResponse.result:3a51e8",
@@ -810,7 +853,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is safe for cardinality because any R4 singleton fits within R6 `0..*`. R6-to-R4 is not safe when more than one result appears; a strict R4 validator will reject repeated `result` values.",
       "migrationGuidanceMd": "Update generated models and serializers to treat R6 `result` as an array. For R6-to-R4, define a business rule: select one primary result, wrap multiple actions into a mappable orchestration resource, store extras in extensions, or reject the instance for manual review.",
       "backwardCompatibilityAnalysisMd": "The R6 choice improves expressiveness but sacrifices direct R4 round-tripping. A backward-compatible alternative would be to keep a singleton and require aggregation, but that would make the R6 base less direct for multi-action guidance.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "GuidanceResponse:CARDINALITY:GuidanceResponse.result:3a51e8",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "Changing `result` from optional singleton to repeating does not invalidate any R4 GuidanceResponse by itself, but it is still a real model-shape change for R6 code and a direct loss point for R6-to-R4 conversion when multiple proposed actions are present. Because GuidanceResponse can naturally produce more than one action, the R6 expressiveness goal is reasonable and the singleton-preserving alternative would mainly push aggregation complexity elsewhere.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `GuidanceResponse.result` maximum cardinality is `1`.",
+          "R6 StructureDefinition: `GuidanceResponse.result` maximum cardinality is `*`.",
+          "The element definition in both versions describes actions produced by evaluating the artifact."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. The lack of an old-valid/new-invalid cardinality break weighs against Revisit, while the generated API and reverse-conversion impact prevents dismissing it entirely.",
+        "compatibilityMechanism": "runtime/API/codegen: generated R6 models and application logic must treat `result` as a collection rather than a singleton. R6-to-R4 loss occurs when more than one result reference must be down-converted into the R4 single slot.",
+        "lessBreakingAlternativeAssessment": "Not applicable for preserving R4-valid instances, because every R4 absent-or-singleton value fits R6 `0..*`. Keeping R6 singleton would reduce API churn and reverse loss, but it would not meet the R6 goal of directly carrying multiple proposed actions.",
+        "comparisonToExisting": "agree: the existing report appropriately treats this as not a hard R4-to-R6 instance break but as meaningful runtime and R6-to-R4 migration risk."
+      }
     },
     {
       "findingId": "GuidanceResponse:ELEMENT_PRESENCE_OR_IDENTITY:GuidanceResponse.location:9d0c44",
@@ -923,7 +980,21 @@
       "validationAndCompatibilityMd": "R4 instances remain valid with respect to this change because no new required element was added. R6 instances that populate `location` cannot be represented in core R4 GuidanceResponse without an extension; strict R4 parsers will reject a raw `location` property.",
       "migrationGuidanceMd": "For R4-to-R6, no action is required unless location can be derived and should be populated. For R6-to-R4, define a cross-version extension or omit with documented data loss. Include access-control and audit workflows in tests if they use location context.",
       "backwardCompatibilityAnalysisMd": "Adding an optional element is the least disruptive base-resource change in the forward direction. The unavoidable backward-compatibility issue is that R4 cannot carry new R6 fields without extensions.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "GuidanceResponse:ELEMENT_PRESENCE_OR_IDENTITY:GuidanceResponse.location:9d0c44",
+        "judgment": "No problem",
+        "narrativeMd": "R6 adds optional `location` as `0..1 Reference(Location)`. This is forward-compatible for R4 data because no existing instance is required to add it and no old field is removed. A populated R6 location has no core R4 slot on down-conversion, but that is the ordinary cost of an optional new field rather than a standards-design concern for R4-to-R6 compatibility.",
+        "keyEvidence": [
+          "R4 StructureDefinition: no `GuidanceResponse.location` element is present.",
+          "R6 StructureDefinition: `GuidanceResponse.location` is `0..1 Reference(Location)` and is marked summary.",
+          "The new element is not a modifier and has minimum cardinality zero."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. Because the change is optional and additive, FMM does not raise it to a compatibility problem.",
+        "compatibilityMechanism": "R6-to-R4 loss: a populated R6 `location` cannot be represented in core R4 GuidanceResponse without an extension or external association. There is no old-valid/new-invalid R4-to-R6 mechanism.",
+        "lessBreakingAlternativeAssessment": "Not applicable: the base R6 design is already the compatibility-preserving form for forward migration, an optional addition. R4 extensions can mitigate reverse conversion but are not a less-breaking R6 base design.",
+        "comparisonToExisting": "partially agree: the existing evidence and reverse-conversion note are correct, but the fresh review rates the optional additive change as no problem rather than a material medium-impact concern."
+      }
     },
     {
       "findingId": "GuidanceResponse:FLAGS_AND_MODIFIERS:summary-context-fields:f2a8b1",
@@ -1014,7 +1085,21 @@
       "validationAndCompatibilityMd": "Full R4 and R6 instances are not made valid or invalid by this flag change. The compatibility effect is runtime behavior: summary serializers and `_summary=true` responses may include fields that were not summary in R4.",
       "migrationGuidanceMd": "Review clients and tests that compare exact summary payloads. If summaries are used for privacy or minimal-disclosure workflows, confirm that adding subject, encounter, and occurrenceDateTime is acceptable.",
       "backwardCompatibilityAnalysisMd": "The change is a behavioral representation change rather than an instance-schema break. A backward-compatible alternative would be to leave summaries unchanged and require clients to request these fields explicitly, but that reduces the usefulness of the default summary.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "GuidanceResponse:FLAGS_AND_MODIFIERS:summary-context-fields:f2a8b1",
+        "judgment": "No problem",
+        "narrativeMd": "R6 marks `subject`, `encounter`, and `occurrenceDateTime` as summary elements while leaving their cardinalities and types compatible. This can change `_summary` responses or generated summary views, so clients with exact payload or privacy assumptions should notice it. It does not affect full-resource validity and the added fields are ordinary context rather than modifiers.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `GuidanceResponse.subject`, `encounter`, and `occurrenceDateTime` are not summary elements.",
+          "R6 StructureDefinition: the same three elements have `isSummary: true`.",
+          "The three elements keep the same cardinalities and datatypes/reference targets across R4 and R6."
+        ],
+        "fmmEffect": "Supplied R4 FMM 2 and trial-use status are neutral. Since this is a summary representation flag change rather than a validation break, maturity context does not make it a Revisit issue.",
+        "compatibilityMechanism": "runtime/API/codegen: summary serializers and `_summary` responses may include more context fields. There is no old-valid/new-invalid instance break.",
+        "lessBreakingAlternativeAssessment": "Partial but not compelling: keeping the R4 summary flags would preserve exact summary payload expectations, but it would also make the standard R6 summary less useful for subject, encounter, and timing context.",
+        "comparisonToExisting": "agree: the existing low-impact framing is consistent with the fresh review."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1208,5 +1293,19 @@
       "R4 singleton result/action fields widened to repeating R6 fields",
       "Summary flag additions on event context fields"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/GuidanceResponse.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 2
+    }
   }
 }

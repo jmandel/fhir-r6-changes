@@ -377,7 +377,21 @@
       "migrationGuidanceMd": "Do not treat this as a simple rename. Build a mapping policy that classifies each R4 `characteristic` as variable definition, modifier, category, timing, constraint, data-storage, or missing/unacceptable-data handling. Test old instances using each R4 `definition[x]` choice, `exclude`, `participantEffective[x]`, `timeFromStart`, and `groupMeasure`. Where no safe mapping exists, preserve the original content in an extension and require manual review.",
       "backwardCompatibilityAnalysisMd": "A backward-compatible alternative was partially available: keep `characteristic` as optional/deprecated and add the new R6 fields. That would have preserved wire compatibility for R4 instances but at the cost of duplicated semantics and possible conflicts between old and new representations. Because the R4 resource was low maturity, the redesign may be acceptable, but it remains materially breaking for implementers.",
       "reviewerNotesMd": "This finding intentionally groups several removed R4 subelements because they were all nested under the mandatory old backbone and participate in the same model redesign. A separate migration guide or ConceptMap would improve confidence in exact element-to-element mappings.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EvidenceVariable:ELEMENT_PRESENCE_OR_IDENTITY:EvidenceVariable.characteristic:8f2a61",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 required at least one `EvidenceVariable.characteristic`, with a required `characteristic.definition[x]`; R6 removes that backbone and spreads variable meaning, timing, constraints, storage, and missing-data handling across new optional top-level elements. That is a genuine old-valid/new-invalid break for essentially every valid R4 EvidenceVariable and migration can require domain judgment, especially for DataRequirement, TriggerDefinition, exclusion, timing, and aggregation content. The break nevertheless appears proportionate because the R6 model is a substantial redesign rather than a simple rename, and keeping the old backbone beside the new model would leave two competing ways to express the core variable.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `EvidenceVariable.characteristic` is 1..* BackboneElement and `characteristic.definition[x]` is 1..1 with Reference(Group), canonical(ActivityDefinition), CodeableConcept, Expression, DataRequirement, and TriggerDefinition choices.",
+          "R6 StructureDefinition: no `EvidenceVariable.characteristic`; replacements include `definition`, `definitionModifier`, `dataStorage`, `timing`, `period`, `constraint`, `missingDataMeaning`, and `unacceptableDataHandling`.",
+          "HL7 EBMonFHIR IG v1.0.0-ballot says the evidence-related resources, including EvidenceVariable, are first ready for use in FHIR R5, with R6 enhancements; quick checks found specialized EBM use but not broad R4 production exchange evidence."
+        ],
+        "fmmEffect": "R4 FMM 0 and trial-use status substantially soften the stability expectation. The path was central and required, so the break is real, but low maturity and the official EBM IG's R5/R6 emphasis make broad R4 production impact less certain.",
+        "compatibilityMechanism": "old-valid/new-invalid: an R4 instance containing the required `characteristic` element has an element not defined in R6; R6-to-R4 loss is also possible because new R6 variable-detail fields do not collapse cleanly into one R4 characteristic.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base could have kept `characteristic` as a deprecated legacy backbone while adding the new elements. That would preserve old wire instances, but it is not low cost: it creates duplicate core representations, conflict/precedence questions, and long-term pressure to support the R4 PICO-shaped model indefinitely.",
+        "comparisonToExisting": "partially agree with the existing high-impact hard-break assessment, but the fresh FMM-informed judgment weighs the low R4 maturity and redesign tradeoff more heavily; agree that the less-breaking alternative is only partial."
+      }
     },
     {
       "findingId": "EvidenceVariable:TYPE_DOMAIN:EvidenceVariable.type:42bb0e",
@@ -563,7 +577,22 @@
       "migrationGuidanceMd": "Create an explicit mapping table. Map `continuous` and `dichotomous` to equivalent R6 handling codings where appropriate; decide how to map or preserve R4 `descriptive`; and decide whether R6 `boolean`, `ordinal`, `polychotomous`, `time-to-event`, and `not-specified` can down-convert to R4 or require extensions. Update codegen models from primitive enum handling to CodeableConcept handling.",
       "backwardCompatibilityAnalysisMd": "This could have been less disruptive by retaining `type` as a deprecated field or by adding `handling` as an optional supplement. That would have preserved old instances but left two partly overlapping ways to classify handling. A ConceptMap would mitigate the break, but no authoritative one was supplied.",
       "reviewerNotesMd": "The binding comparison used local CodeSystem concepts where available; full value set expansion was not performed.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EvidenceVariable:TYPE_DOMAIN:EvidenceVariable.type:42bb0e",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "R4 `EvidenceVariable.type` was an optional primitive `code` with a required binding to `variable-type`; R6 removes it and uses optional `handling` as a `CodeableConcept` with an example binding. Old instances that populated `type` need a wire-name and datatype migration, and generated APIs may move from an enum/string to a complex concept. The modeling goal is reasonable because statistical handling is more expressive in R6 and the old code set was narrow.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `EvidenceVariable.type` is 0..1 `code`, isSummary true, required binding `http://hl7.org/fhir/ValueSet/variable-type|4.0.1`.",
+          "R4 local CodeSystem `variable-type` contains `dichotomous`, `continuous`, and `descriptive`.",
+          "R6 StructureDefinition: closest replacement `EvidenceVariable.handling` is 0..1 `CodeableConcept`, example binding `http://hl7.org/fhir/ValueSet/variable-handling-example`.",
+          "R6 local handling codes include `boolean`, `continuous`, `dichotomous`, `ordinal`, `polychotomous`, `time-to-event`, and `not-specified`."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use reduces the burden to preserve this optional enum exactly. The field can affect analysis semantics, but there was no quick evidence of broad R4 production exchange depending on the old primitive shape.",
+        "compatibilityMechanism": "old-valid/new-invalid and runtime/API/codegen: populated R4 `type` is not an R6 element, and generated code changes from primitive required-bound code to CodeableConcept. R6-to-R4 conversion can be lossy for new handling codes or multi-coding concepts.",
+        "lessBreakingAlternativeAssessment": "R6 could have retained deprecated `type` alongside `handling`, or made a transitional alias. That preserves old instances, but it creates overlapping statistical-handling fields and requires consistency rules where old and new values disagree or lack one-to-one terminology mappings.",
+        "comparisonToExisting": "partially agree with the existing hard-break and high runtime-risk mechanism, but the fresh judgment treats the optionality, low FMM, and reasonable R6 expressivity goal as making the break probably acceptable."
+      }
     },
     {
       "findingId": "EvidenceVariable:ELEMENT_PRESENCE_OR_IDENTITY:EvidenceVariable.relatedArtifact:1c706b",
@@ -730,7 +759,22 @@
       "migrationGuidanceMd": "Inventory old instances for `subtitle`, `jurisdiction`, `topic`, and `relatedArtifact`. For `relatedArtifact`, define a case-by-case mapping into `relatesTo.type` and `target[x]`; preserve unsupported fields in extensions. For `jurisdiction`, `topic`, and `subtitle`, decide whether to use extensions, an ImplementationGuide-specific profile, or external catalog metadata.",
       "backwardCompatibilityAnalysisMd": "Because these fields were optional, preserving them as deprecated fields would have been technically possible and would have avoided strict validation breaks for existing instances. The tradeoff is that R6 would need rules for duplication with the new metadata model.",
       "reviewerNotesMd": "Search parameters were not assessed, but the package indexes suggest corresponding discovery/search behavior may also need separate review.",
-      "requiresHumanReview": true
+      "requiresHumanReview": true,
+      "freshReview": {
+        "findingId": "EvidenceVariable:ELEMENT_PRESENCE_OR_IDENTITY:EvidenceVariable.relatedArtifact:1c706b",
+        "judgment": "Revisit",
+        "narrativeMd": "This finding groups several optional R4 metadata and relationship elements: `subtitle`, `jurisdiction`, `topic`, and `relatedArtifact`. R6 removes those wire names and introduces `relatesTo` for relationships, but `subtitle`, `jurisdiction`, and `topic` do not have direct same-name replacements. Because these fields are optional, the prevalence may be limited; however, if present they become strict R6 validation breaks and can carry discovery, jurisdiction, classification, or citation context. Retaining at least the non-overlapping metadata fields as deprecated base elements looks like a modest-cost compatibility design that would not obviously block the R6 model.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `subtitle` 0..1 string, `jurisdiction` 0..* CodeableConcept, `topic` 0..* CodeableConcept, and `relatedArtifact` 0..* RelatedArtifact.",
+          "R6 StructureDefinition: no local `subtitle`, `jurisdiction`, `topic`, or `relatedArtifact` elements were found.",
+          "R6 StructureDefinition: `relatesTo` is 0..* BackboneElement with required `type` CodeableConcept and required `target[x]` choice.",
+          "R4 package includes EvidenceVariable search parameters for jurisdiction, topic, and relationship-style metadata, showing these fields were exposed as discovery surfaces in R4 core."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens assumptions about widespread deployed content, but these are ordinary metadata and relationship paths that are plausible in cataloged evidence artifacts. The low maturity does not fully justify removing optional discovery/citation fields when cheap transitional retention appears possible.",
+        "compatibilityMechanism": "old-valid/new-invalid: R4 instances using any removed field have undefined R6 elements. There is also metadata/tooling impact for catalog, search, and citation workflows that used jurisdiction, topic, subtitle, or RelatedArtifact.",
+        "lessBreakingAlternativeAssessment": "A less-breaking R6 base could have retained `subtitle`, `jurisdiction`, and `topic` as deprecated optional metadata and either retained `relatedArtifact` transiently or provided a more explicit compatibility rule to `relatesTo`. The tradeoff is real for `relatedArtifact` because it overlaps with `relatesTo`, but the other optional metadata paths appear cheaper to preserve.",
+        "comparisonToExisting": "partially agree with the existing medium-impact assessment and partial alternative finding, but the fresh review is more action-oriented: the grouped removal deserves revisit because several optional metadata fields seem preservable at low cost."
+      }
     },
     {
       "findingId": "EvidenceVariable:CARDINALITY:EvidenceVariable.status:90e73a",
@@ -888,7 +932,21 @@
       "validationAndCompatibilityMd": "R4-to-R6 validation is not broken by this cardinality change. R6-to-R4 validation is broken for R6 instances with no `status`; an R4 validator will reject them unless a value is supplied. Runtime code that assumed status is always present must now handle absence in R6.",
       "migrationGuidanceMd": "For R4-to-R6, copy `status` as-is. For R6-to-R4, populate `unknown` only when no reliable lifecycle status is available; otherwise preserve the actual status. Test application logic that filters out retired or inactive artifacts so missing R6 status is not accidentally treated as active.",
       "backwardCompatibilityAnalysisMd": "The R6 change could have preserved R4 compatibility by keeping `status` required and using the existing `unknown` code for unknown status. The chosen design is more permissive but shifts responsibility to validators and converters.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EvidenceVariable:CARDINALITY:EvidenceVariable.status:90e73a",
+        "judgment": "No problem",
+        "narrativeMd": "This is a cardinality loosening, not an R4-to-R6 instance break. Every valid R4 EvidenceVariable already has `status`, and the same publication-status codes remain available in R6. R6 authors may omit status, which creates a down-conversion concern, but R6 also gives missing status the meaning of unknown, and R4 has an `unknown` code that can represent that case.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `EvidenceVariable.status` is 1..1 `code`, modifier, summary, with required PublicationStatus binding.",
+          "R6 StructureDefinition: `EvidenceVariable.status` is 0..1 `code`, modifier, summary, with required PublicationStatus binding.",
+          "Local PublicationStatus concepts remain `draft`, `active`, `retired`, and `unknown` in the inspected packages."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use further lowers concern, but the main reason for the judgment is that R4-to-R6 compatibility is widened for this path.",
+        "compatibilityMechanism": "R6-to-R4 loss: an R6 instance with omitted status needs a value for R4, but `unknown` is an available and semantically aligned fallback. No old-valid/new-invalid R4-to-R6 mechanism was found.",
+        "lessBreakingAlternativeAssessment": "Keeping `status` mandatory in R6 would ease down-conversion, but it is not needed to preserve R4 instances moving forward. The R6 omission design is a permissive base-model choice rather than a backward-compatibility failure.",
+        "comparisonToExisting": "disagree with treating this as medium practical impact for R4-to-R6 migration; agree only that there is a reverse-direction representability consideration."
+      }
     },
     {
       "findingId": "EvidenceVariable:FLAGS_AND_MODIFIERS:EvidenceVariable.effectivePeriod:4b7d12",
@@ -993,7 +1051,21 @@
       "validationAndCompatibilityMd": "Full R4 and R6 instances with `effectivePeriod` remain structurally compatible for this element. The compatibility risk is that clients using FHIR summary behavior may no longer receive the field in R6 summary responses and must request full resources or specific elements.",
       "migrationGuidanceMd": "Audit consumers that use `_summary=true`, summary projections, generated lightweight DTOs, or search-result cards for EvidenceVariable. If they need applicability dates, request full resources or explicitly include `effectivePeriod` where the server supports element selection.",
       "backwardCompatibilityAnalysisMd": "The backward-compatible alternative was simply to preserve `isSummary: true`. Since this is not a full-instance validation break, the compatibility cost is lower than the content-model removals, but clients relying on summaries still need attention.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EvidenceVariable:FLAGS_AND_MODIFIERS:EvidenceVariable.effectivePeriod:4b7d12",
+        "judgment": "Breaking but probably OK",
+        "narrativeMd": "`effectivePeriod` keeps the same name, type, and cardinality, but R6 no longer marks it as a summary element. Full-resource instances remain compatible; the risk is limited to summary projections, REST `_summary` behavior, generated lightweight DTOs, or UI cards that expected applicability timing in compact representations. That is a real API/projection change, but it is narrow and can usually be handled by requesting the full resource or explicit elements.",
+        "keyEvidence": [
+          "R4 StructureDefinition: `EvidenceVariable.effectivePeriod` is 0..1 Period with `isSummary: true`.",
+          "R6 StructureDefinition: `EvidenceVariable.effectivePeriod` remains 0..1 Period but has `isSummary: false`.",
+          "No quick evidence was found that R4 EvidenceVariable summary responses are a broad production exchange dependency."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use softens the concern for summary-view compatibility. The element can be useful for applicability timing, but the affected surface is summary output rather than full instance validity.",
+        "compatibilityMechanism": "runtime/API/codegen: summary-only responses or generated summary projections may omit `effectivePeriod` in R6. Full-instance validation and serialization are unchanged for this element.",
+        "lessBreakingAlternativeAssessment": "Keeping `isSummary: true` would have been the least-breaking base design and has low apparent cost beyond a slightly larger or less curated summary view. Still, because the break is summary-only and low-FMM, it does not rise to a revisit-level concern without evidence of deployed reliance.",
+        "comparisonToExisting": "partially agree with the existing low runtime-impact finding and the existence of a simple alternative, but disagree that the simple alternative makes this a material standards concern under the FMM-informed framework."
+      }
     },
     {
       "findingId": "EvidenceVariable:VALUE_CONSTRAINT:EvidenceVariable.root-url-name:55d09c",
@@ -1132,7 +1204,22 @@
       "validationAndCompatibilityMd": "Because both R6 constraints are warnings, ordinary FHIR validation should still accept affected instances unless a local policy treats warnings as failures. Tooling that records invariant keys may see `evv-0` disappear and `cnl-0`/`cnl-1` appear.",
       "migrationGuidanceMd": "Update QA baselines and code-generation checks to use `cnl-0` and `cnl-1`. Review canonical URLs containing `|`, `#`, or spaces and consider normalizing them before migration. If one-character names are intentionally used, decide whether local warning policy should tolerate them.",
       "backwardCompatibilityAnalysisMd": "The new URL warning is a reasonable addition, and keeping severity at warning is a compatibility-preserving choice. The invariant key change could have been documented or aliased for tools that depend on stable keys.",
-      "requiresHumanReview": false
+      "requiresHumanReview": false,
+      "freshReview": {
+        "findingId": "EvidenceVariable:VALUE_CONSTRAINT:EvidenceVariable.root-url-name:55d09c",
+        "judgment": "No problem",
+        "narrativeMd": "The changed name and URL constraints are warning-level quality checks. R6 standardizes the name warning key/expression and adds a warning for canonical URLs containing characters that complicate canonical-reference processing. These warnings can affect strict QA baselines that fail on warnings, but they do not make ordinary instances invalid and the new URL warning is a reasonable interoperability safeguard.",
+        "keyEvidence": [
+          "R4 StructureDefinition root warning `evv-0`: `name.matches('[A-Z]([A-Za-z0-9_]){0,254}')`.",
+          "R6 StructureDefinition root warning `cnl-0`: `name.exists() implies name.matches('^[A-Z]([A-Za-z0-9_]){1,254}$')`.",
+          "R6 StructureDefinition URL warning `cnl-1`: `exists() implies matches('^[^|# ]+$')`.",
+          "All inspected constraints in this finding have severity `warning`, not `error`."
+        ],
+        "fmmEffect": "R4 FMM 0/trial-use further reduces stability concern for warning-key and QA-baseline churn. The warning nature is the main driver of the no-problem judgment.",
+        "compatibilityMechanism": "warning-level: warning-as-error pipelines or invariant-key dashboards may need updates, but ordinary structural validation is not an old-valid/new-invalid break.",
+        "lessBreakingAlternativeAssessment": "R6 could have kept `evv-0` as a deprecated alias, but that would duplicate warnings and still would not avoid the new URL warning. Since the checks remain warnings, an alias is not a compelling base-model alternative.",
+        "comparisonToExisting": "mostly agree with the existing low-impact assessment, but the fresh judgment treats the partial alias alternative as unnecessary rather than a reason for concern."
+      }
     }
   ],
   "checkedNoMaterialChange": [
@@ -1297,5 +1384,19 @@
       "Primitive code fields replaced by CodeableConcept fields",
       "Summary-flag removals on effectivePeriod-like metadata fields"
     ]
+  },
+  "freshReviewSummary": {
+    "schemaVersion": "fresh-review-merge-v1",
+    "reviewSchemaVersion": "fresh-review-decisions-v1",
+    "sourceReviewFile": "batch/fresh-review/reviews/EvidenceVariable.fresh-review.json",
+    "findingDecisionCount": 6,
+    "matchedFindingDecisionCount": 6,
+    "missingFindingDecisionCount": 0,
+    "complete": true,
+    "judgmentCounts": {
+      "Revisit": 1,
+      "Breaking but probably OK": 3,
+      "No problem": 2
+    }
   }
 }
