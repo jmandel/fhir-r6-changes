@@ -456,7 +456,6 @@ function BehaviorFindingPage({ finding, reportKey, findingId, view, onBack }: {
         </header>
 
         <QuestionGroup q="What changed?">
-          <Section title="Match rationale" md={finding.matchRationaleMd} />
           {Array.isArray(finding.changedFields) && finding.changedFields.length > 0 && (
             <section className="section">
               <h2>Changed fields</h2>
@@ -689,7 +688,6 @@ function behaviorFindingMarkdown(f: FlatBehaviorFinding, index: number): string 
   out.push("");
 
   pushBehaviorQuestion(out, "What changed?", () => {
-    pushMdSection(out, "Match rationale", f.matchRationaleMd);
     pushDeltaSection(out, "Changed fields", f.changedFields);
     pushDeltaSection(out, "Parameter deltas", f.parameterDeltas);
   });
