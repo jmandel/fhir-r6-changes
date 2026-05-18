@@ -16,6 +16,38 @@ listed below. Validate page availability with `curl`, one URL at a time:
 curl -L -s -o /dev/null -w '%{http_code} %{url_effective}\n' 'https://hl7.org/fhir/R4/operations.html'
 ```
 
+## Narrative / Spec Page Source Strategy
+
+The package JSON is not enough for this review round. Operations, search,
+REST/HTTP, narrative introductions, requirement prose, and top-level pages
+such as `operations.html`, `search.html`, and `http.html` live primarily in
+the rendered specification, not only in the package artifacts.
+
+Preferred source of truth for narrative page comparison:
+
+- Download versioned full-spec ZIPs and read the HTML locally.
+- Example R4 source: `http://hl7.org/fhir/R4/fhir-spec.zip`
+- Use the matching R6 ballot full-spec ZIP or static published build when
+  available for `6.0.0-ballot4`.
+- Preserve the ZIP URL, extraction path, and page path in evidence so agents
+  can cite exact local files rather than relying on live web fetches.
+
+Secondary/correlation source:
+
+- Clone or inspect `HL7/fhir` when source-level context, commit history, or
+  generation inputs are useful.
+- Correlating git commits to exact published R4 4.0.1 and R6 ballot outputs can
+  be harder than using the versioned downloads, but git may explain why text or
+  generated pages changed.
+
+Tradeoff:
+
+- Full-spec ZIPs are explicit and reproducible for published HTML, but they are
+  rendered artifacts and may be harder to diff semantically.
+- Git/source material can expose intent and generation inputs, but requires
+  careful version matching and may not correspond exactly to the published
+  static site.
+
 Regenerate the operation inventory from disk with:
 
 ```sh
