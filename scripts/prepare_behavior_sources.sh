@@ -33,7 +33,7 @@ fi
 
 status_file="$BEHAVIOR_DIR/source-status.tsv"
 tmp_status="$status_file.tmp"
-printf 'version\tpage\turl\tstatus\tlocalPath\n' > "$tmp_status"
+printf 'version\tpage\turl\tstatus\tlastModified\tlocalPath\n' > "$tmp_status"
 
 download_page() {
   local version=$1
@@ -43,16 +43,20 @@ download_page() {
 
   local dest_dir="$SPEC_DIR/$version/html"
   local dest="$dest_dir/$page"
+  local headers="$dest.headers"
   mkdir -p "$dest_dir" "$(dirname "$dest")"
 
   local code
-  code=$(curl -L -s -o "$dest.tmp" -w '%{http_code}' "$url" || true)
+  code=$(curl -L -s -D "$headers" -o "$dest.tmp" -w '%{http_code}' "$url" || true)
+  local last_modified
+  last_modified=$(awk 'BEGIN { IGNORECASE = 1 } /^last-modified:/ { sub(/\r$/, ""); sub(/^[^:]+:[[:space:]]*/, ""); value = $0 } END { print value }' "$headers")
+  rm -f "$headers"
   if [[ "$code" == "200" ]]; then
     mv "$dest.tmp" "$dest"
-    printf '%s\t%s\t%s\t%s\t%s\n' "$version" "$page" "$url" "$code" "$dest" >> "$tmp_status"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$version" "$page" "$url" "$code" "$last_modified" "$dest" >> "$tmp_status"
   else
     rm -f "$dest.tmp"
-    printf '%s\t%s\t%s\t%s\t\n' "$version" "$page" "$url" "$code" >> "$tmp_status"
+    printf '%s\t%s\t%s\t%s\t%s\t\n' "$version" "$page" "$url" "$code" "$last_modified" >> "$tmp_status"
   fi
 }
 
@@ -92,7 +96,7 @@ download_full_zips() {
   if [[ ! -f "$r6_zip" ]]; then
     if ! curl -L --fail --show-error -o "$r6_zip.tmp" 'https://hl7.org/fhir/6.0.0-ballot4/fhir-spec.zip'; then
       rm -f "$r6_zip.tmp"
-      printf 'r6-6.0.0-ballot4\tfhir-spec.zip\thttps://hl7.org/fhir/6.0.0-ballot4/fhir-spec.zip\tunavailable\t\n' >> "$tmp_status"
+      printf 'r6-6.0.0-ballot4\tfhir-spec.zip\thttps://hl7.org/fhir/6.0.0-ballot4/fhir-spec.zip\tunavailable\t\t\n' >> "$tmp_status"
     else
       mv "$r6_zip.tmp" "$r6_zip"
     fi

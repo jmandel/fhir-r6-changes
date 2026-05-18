@@ -7,19 +7,6 @@ export type BehaviorView = "operations" | "pages" | "search" | "rest" | "all";
 
 const RISK_ORDER = ["Critical", "High", "Medium", "Low", "Info", "Not applicable", "—"];
 const OVERALL_ASSESSMENT_ORDER = ["Revisit", "Unclear", "Breaking but probably OK", "No problem", "—"];
-const ALT_ORDER = ["Yes", "Partial", "No", "Not applicable", "Unknown", "—"];
-const CONFIDENCE_ORDER = ["High", "Medium", "Low", "Unknown", "—"];
-const MECHANISM_ORDER = [
-  "old-valid/new-invalid",
-  "runtime/API/codegen",
-  "warning-level",
-  "semantic/documentation",
-  "metadata/tooling",
-  "reverse-only/out-of-scope",
-  "none",
-  "other/unclear",
-  "—",
-];
 const MAX_FILTER_VALUES = 50;
 
 const RISK_COLOR: Record<string, string> = {
@@ -53,32 +40,107 @@ type Facet = {
   get: (f: FlatBehaviorFinding) => string;
   order?: string[];
   colors?: Record<string, string>;
+  group?: (v: string) => string;
+  format?: (v: string) => string;
 };
-
-function compatibilityMechanismBucket(value?: string): string {
-  if (!value) return "—";
-  const v = value.toLowerCase();
-  if (v.includes("old-valid") || v.includes("new-invalid")) return "old-valid/new-invalid";
-  if (v.includes("runtime") || v.includes("api") || v.includes("codegen") || v.includes("generated")) return "runtime/API/codegen";
-  if (v.includes("warning")) return "warning-level";
-  if (v.includes("semantic") || v.includes("documentation")) return "semantic/documentation";
-  if (v.includes("metadata") || v.includes("tooling")) return "metadata/tooling";
-  if (v.includes("r6-to-r4") || v.includes("round-trip") || v.includes("downgrade") || v.includes("reverse")) return "reverse-only/out-of-scope";
-  if (v.includes("none") || v.includes("no meaningful")) return "none";
-  return "other/unclear";
-}
 
 const FACETS: Facet[] = [
   { key: "judgment", label: "Overall Assessment", get: (f) => f.freshReview?.judgment ?? "—", order: OVERALL_ASSESSMENT_ORDER, colors: OVERALL_ASSESSMENT_COLOR },
-  { key: "mechanism", label: "Compatibility mechanism", get: (f) => compatibilityMechanismBucket(f.freshReview?.compatibilityMechanism), order: MECHANISM_ORDER },
-  { key: "alternative", label: "Less-breaking option", get: (f) => f.freshReview?.lessBreakingAlternative?.judgment ?? "—", order: ALT_ORDER, colors: ALT_COLOR },
   { key: "runtimeRisk", label: "Runtime risk", get: (f) => f.impact?.runtimeBreakingRisk ?? "—", order: RISK_ORDER, colors: RISK_COLOR },
   { key: "conformanceRisk", label: "Conformance risk", get: (f) => f.impact?.conformanceRisk ?? "—", order: RISK_ORDER, colors: RISK_COLOR },
-  { key: "direction", label: "Affected direction", get: (f) => f.impact?.affectedDirection ?? "—" },
-  { key: "category", label: "Behavior category", get: (f) => f.behaviorCategory ?? f.category ?? "—" },
-  { key: "confidence", label: "Confidence", get: (f) => f.impact?.confidence ?? "—", order: CONFIDENCE_ORDER },
+  { key: "category", label: "Behavior category", get: (f) => f.behaviorCategory ?? f.category ?? "—", group: behaviorCategoryGroup, format: behaviorCategoryLabel },
   { key: "report", label: "Report", get: (f) => f.reportLabel },
 ];
+
+function facetsForView(view: BehaviorView): Facet[] {
+  return FACETS.filter((facet) => !(view === "pages" && facet.key === "conformanceRisk"));
+}
+
+function behaviorCategoryGroup(value: string): string {
+  if (!value || value === "—") return "Miscellaneous";
+  if (value.startsWith("operation-")) return "Operation lifecycle";
+  if (value.startsWith("search-parameter-")) return "Search parameter lifecycle";
+  if (
+    value === "base-scope-changed" ||
+    value === "expression-changed" ||
+    value === "type-changed" ||
+    value === "target-changed" ||
+    value === "comparator-changed" ||
+    value === "modifier-changed" ||
+    value === "chain-changed" ||
+    value === "composite-component-changed" ||
+    value === "multiple-and-or-changed" ||
+    value === "processing-mode-changed"
+  ) return "Search semantics";
+  if (
+    value.includes("parameter") ||
+    value === "parameter-binding-changed" ||
+    value === "parameter-profile-changed"
+  ) return "Operation parameters";
+  if (value === "invocation-context-changed" || value === "affects-state-changed") return "Invocation behavior";
+  if (
+    value.includes("advertisement") ||
+    value.includes("capability") ||
+    value.includes("interaction") ||
+    value.includes("endpoint") ||
+    value.includes("format") ||
+    value.includes("history") ||
+    value.includes("conditional") ||
+    value.includes("versioning") ||
+    value.includes("transaction") ||
+    value.includes("batch")
+  ) return "Capability / REST";
+  if (value.includes("semantic") || value.includes("text")) return "Narrative semantics";
+  return "Miscellaneous";
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  "operation-removed": "Removed",
+  "operation-added": "Added",
+  "operation-renamed": "Renamed",
+  "operation-replaced": "Replaced",
+  "search-parameter-removed": "Removed",
+  "search-parameter-added": "Added",
+  "search-parameter-renamed": "Renamed",
+  "search-parameter-replaced": "Replaced",
+  "base-scope-changed": "Base scope",
+  "expression-changed": "Expression",
+  "type-changed": "Type",
+  "target-changed": "Target",
+  "comparator-changed": "Comparator",
+  "modifier-changed": "Modifier",
+  "chain-changed": "Chain",
+  "composite-component-changed": "Composite component",
+  "multiple-and-or-changed": "Multiple AND/OR",
+  "processing-mode-changed": "Processing mode",
+  "input-parameter-requiredness-changed": "Input requiredness",
+  "input-parameter-type-changed": "Input type",
+  "output-parameter-shape-changed": "Output shape",
+  "parameter-binding-changed": "Binding",
+  "parameter-profile-changed": "Profile",
+  "invocation-context-changed": "Invocation context",
+  "affects-state-changed": "Side effects",
+  "capability-advertisement-changed": "Capability advertisement",
+  "operation-advertisement-changed": "Operation advertisement",
+  "search-advertisement-changed": "Search advertisement",
+  "resource-endpoint-advertisement-changed": "Resource endpoint",
+  "capability-semantics-changed": "Capability semantics",
+  "system-interaction-changed": "System interaction",
+  "resource-interaction-changed": "Resource interaction",
+  "format-changed": "Format",
+  "patch-format-changed": "Patch format",
+  "conditional-behavior-changed": "Conditional behavior",
+  "versioning-behavior-changed": "Versioning",
+  "history-behavior-changed": "History",
+  "transaction-or-batch-changed": "Transaction/batch",
+  "semantic-text-changed": "Text changed",
+  "other": "Other",
+  "—": "—",
+};
+
+function behaviorCategoryLabel(value: string): string {
+  return CATEGORY_LABELS[value] ?? value.replace(/-changed$/, "").replace(/-/g, " ");
+}
 
 const VIEW_LABEL: Record<BehaviorView, { title: string; crumb: string; sub: string }> = {
   operations: {
@@ -89,7 +151,7 @@ const VIEW_LABEL: Record<BehaviorView, { title: string; crumb: string; sub: stri
   pages: {
     title: "Page/API findings",
     crumb: "Pages/API",
-    sub: "Non-structure reviews from published spec pages and API behavior reports. Operation findings are separated into the operations entrypoint.",
+    sub: "Umbrella view for current non-operation behavior reports. It includes Search and REST findings; those entrypoints are narrower slices.",
   },
   search: {
     title: "Search findings",
@@ -140,37 +202,38 @@ function BehaviorExplore({ scoped, params, setParams, view, meta }: {
   view: BehaviorView;
   meta: { title: string; crumb: string; sub: string };
 }) {
+  const facets = useMemo(() => facetsForView(view), [view]);
   const query = params.get("q") ?? "";
   const active = useMemo(() => {
     const out: Record<string, Set<string>> = {};
-    for (const facet of FACETS) {
+    for (const facet of facets) {
       const v = params.get(facet.key);
       out[facet.key] = v ? new Set(v.split(",").filter(Boolean)) : new Set();
     }
     return out;
-  }, [params]);
+  }, [facets, params]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return scoped.filter((f) => {
-      for (const facet of FACETS) {
+      for (const facet of facets) {
         const set = active[facet.key];
         if (set.size && !set.has(facet.get(f))) return false;
       }
       if (!needle) return true;
       return behaviorHaystack(f).includes(needle);
     });
-  }, [active, query, scoped]);
+  }, [active, facets, query, scoped]);
 
   const facetBins = useMemo(() => {
     const bins: Record<string, Map<string, number>> = {};
     const needle = query.trim().toLowerCase();
-    for (const facet of FACETS) {
+    for (const facet of facets) {
       const others = { ...active, [facet.key]: new Set<string>() };
       const m = new Map<string, number>();
       for (const f of scoped) {
         let ok = true;
-        for (const ff of FACETS) {
+        for (const ff of facets) {
           const set = others[ff.key];
           if (set.size && !set.has(ff.get(f))) { ok = false; break; }
         }
@@ -182,11 +245,11 @@ function BehaviorExplore({ scoped, params, setParams, view, meta }: {
       bins[facet.key] = m;
     }
     return bins;
-  }, [active, query, scoped]);
+  }, [active, facets, query, scoped]);
 
   const values = useMemo(() => {
     const out: Record<string, string[]> = {};
-    for (const facet of FACETS) {
+    for (const facet of facets) {
       const set = new Set<string>();
       for (const f of scoped) set.add(facet.get(f));
       const arr = [...set];
@@ -205,13 +268,13 @@ function BehaviorExplore({ scoped, params, setParams, view, meta }: {
       out[facet.key] = arr;
     }
     return out;
-  }, [facetBins, scoped]);
+  }, [facets, facetBins, scoped]);
   const visibleFacets = useMemo(
-    () => FACETS.filter((facet) => {
+    () => facets.filter((facet) => {
       const distinctCount = values[facet.key]?.length ?? 0;
       return distinctCount > 1 && distinctCount <= MAX_FILTER_VALUES;
     }),
-    [values]
+    [facets, values]
   );
 
   const stats = useMemo(() => {
@@ -260,7 +323,7 @@ function BehaviorExplore({ scoped, params, setParams, view, meta }: {
         <span className="sep">·</span>
         <span className="here">All findings across {stats.reports.toLocaleString()} reports</span>
         <span className="crumb-actions">
-          <CopyBehaviorForLlmButton findings={filtered} active={active} query={query} totalAll={scoped.length} />
+          <CopyBehaviorForLlmButton findings={filtered} active={active} facets={facets} query={query} totalAll={scoped.length} />
         </span>
       </Crumb>
 
@@ -316,15 +379,16 @@ function BehaviorExplore({ scoped, params, setParams, view, meta }: {
               <div className="v" style={{ color: "#EC2028" }}>{stats.highRuntime.toLocaleString()}</div>
               <div className="d">runtime risk is High or Critical</div>
             </a>
-            <a className="stat stat-link" href={withParams("alternative", "Yes")} title="Filter to findings with a less-breaking design option">
+            <div className="stat">
               <div className="k">Avoidable</div>
               <div className="v" style={{ color: "#8A4500" }}>{scoped.filter((f) => f.freshReview?.lessBreakingAlternative?.judgment === "Yes").length.toLocaleString()}</div>
               <div className="d">less-breaking option exists</div>
-            </a>
+            </div>
           </div>
 
           <ActiveFilters
             active={active}
+            facets={facets}
             query={query}
             onClearFacet={clearFacet}
             onClearQuery={() => setQuery("")}
@@ -535,16 +599,17 @@ function BehaviorResults({ items, query }: { items: FlatBehaviorFinding[]; query
   );
 }
 
-function CopyBehaviorForLlmButton({ findings, active, query, totalAll }: {
+function CopyBehaviorForLlmButton({ findings, active, facets, query, totalAll }: {
   findings: FlatBehaviorFinding[];
   active: Record<string, Set<string>>;
+  facets: Facet[];
   query: string;
   totalAll: number;
 }) {
   const [state, setState] = useState<"idle" | "ok" | "err">("idle");
   const onClick = async () => {
     const filters: string[] = [];
-    for (const facet of FACETS) {
+    for (const facet of facets) {
       const set = active[facet.key];
       if (set && set.size > 0) filters.push(`${facet.label}: ${[...set].join(", ")}`);
     }
@@ -643,6 +708,9 @@ function FilterBlock({ facet, values, counts, selected, onToggle, onClear }: {
   onToggle: (v: string) => void;
   onClear: () => void;
 }) {
+  if (facet.group) {
+    return <GroupedFilterBlock facet={facet} values={values} counts={counts} selected={selected} onToggle={onToggle} onClear={onClear} />;
+  }
   return (
     <div className="filter-block">
       <div className="filter-h">
@@ -665,7 +733,7 @@ function FilterBlock({ facet, values, counts, selected, onToggle, onClear }: {
             >
               <span className="box" />
               {dot && <span className="sw-dot" style={{ background: dot }} />}
-              <span className="lbl">{v || "—"}</span>
+              <span className="lbl">{facet.format ? facet.format(v) : (v || "—")}</span>
               <span className="cnt">{c.toLocaleString()}</span>
             </button>
           );
@@ -675,8 +743,72 @@ function FilterBlock({ facet, values, counts, selected, onToggle, onClear }: {
   );
 }
 
-function ActiveFilters({ active, query, onClearFacet, onClearQuery, totalShown, totalAll }: {
+function GroupedFilterBlock({ facet, values, counts, selected, onToggle, onClear }: {
+  facet: Facet;
+  values: string[];
+  counts: Map<string, number>;
+  selected: Set<string>;
+  onToggle: (v: string) => void;
+  onClear: () => void;
+}) {
+  const groups = new Map<string, string[]>();
+  for (const v of values) {
+    const g = facet.group!(v);
+    const arr = groups.get(g) ?? [];
+    arr.push(v);
+    groups.set(g, arr);
+  }
+  const groupCounts = new Map<string, number>();
+  for (const [g, vs] of groups) {
+    let n = 0;
+    for (const v of vs) n += counts.get(v) ?? 0;
+    groupCounts.set(g, n);
+  }
+  const groupOrder = [...groups.keys()].sort((a, b) =>
+    (groupCounts.get(b) ?? 0) - (groupCounts.get(a) ?? 0) || a.localeCompare(b)
+  );
+
+  return (
+    <div className="filter-block">
+      <div className="filter-h">
+        {facet.label}
+        {selected.size > 0 && <button className="clear" onClick={onClear}>Clear</button>}
+      </div>
+      <div className="filter-list grouped">
+        {groupOrder.map((g) => {
+          const leaves = groups.get(g) ?? [];
+          return (
+            <div key={g} className="facet-subgroup">
+              <div className="facet-subgroup-h">{g}</div>
+              {leaves.map((v) => {
+                const c = counts.get(v) ?? 0;
+                const isSel = selected.has(v);
+                const cls = `filter-row leaf ${isSel ? "on" : ""} ${c === 0 && !isSel ? "disabled" : ""}`;
+                return (
+                  <button
+                    key={v}
+                    className={cls}
+                    disabled={c === 0 && !isSel}
+                    onClick={() => (c === 0 && !isSel) ? undefined : onToggle(v)}
+                    title={v}
+                  >
+                    <span className="box" />
+                    <span className="lbl">{facet.format ? facet.format(v) : v}</span>
+                    <span className="cnt">{c.toLocaleString()}</span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ActiveFilters({ active, facets, query, onClearFacet, onClearQuery, totalShown, totalAll }: {
   active: Record<string, Set<string>>;
+  facets: Facet[];
   query: string;
   onClearFacet: (k: string) => void;
   onClearQuery: () => void;
@@ -685,12 +817,13 @@ function ActiveFilters({ active, query, onClearFacet, onClearQuery, totalShown, 
 }) {
   const chips: { label: string; onClear: () => void }[] = [];
   if (query) chips.push({ label: `"${query}"`, onClear: onClearQuery });
-  for (const facet of FACETS) {
+  for (const facet of facets) {
     const set = active[facet.key];
     if (set.size > 0) {
       const values = [...set];
+      const labelValues = values.map((v) => facet.format ? facet.format(v) : v);
       chips.push({
-        label: values.length === 1 ? `${facet.label}: ${values[0]}` : `${facet.label}: ${values.length}`,
+        label: values.length === 1 ? `${facet.label}: ${labelValues[0]}` : `${facet.label}: ${values.length}`,
         onClear: () => onClearFacet(facet.key),
       });
     }

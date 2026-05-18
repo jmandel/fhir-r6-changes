@@ -20,6 +20,17 @@ listed below. Validate page availability with `curl`, one URL at a time:
 curl -L -s -o /dev/null -w '%{http_code} %{url_effective}\n' 'https://hl7.org/fhir/R4/operations.html'
 ```
 
+Use these HL7 published-version source dates when recording page evidence in
+behavior reports:
+
+- R4 4.0.1 pages under `https://hl7.org/fhir/R4/`: source date `2019-10-30`
+  from `https://hl7.org/fhir/directory.html`.
+- R6 6.0.0-ballot4 pages under `https://hl7.org/fhir/6.0.0-ballot4/`:
+  source date `2025-12-18` from `https://hl7.org/fhir/directory.html`.
+
+HTTP `Last-Modified` headers are useful download/cache provenance, but do not
+replace the FHIR version publication date above.
+
 ## Narrative / Spec Page Source Strategy
 
 The package JSON is not enough for this review round. Operations, search,

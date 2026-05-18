@@ -32,6 +32,12 @@ Use these local primary inputs:
 
 Prefer local rendered HTML pages when present. Use the published URLs below as provenance and as a fallback only if the local page cache is missing a page.
 
+For every published HL7 page pair you cite in `scope.publishedPagesReviewed`,
+populate the source-date fields from `https://hl7.org/fhir/directory.html`:
+R4 4.0.1 source date `2019-10-30`; R6 6.0.0-ballot4 source date
+`2025-12-18`. Treat HTTP `Last-Modified` headers as cache/provenance metadata,
+not as the FHIR version publication date.
+
 Review these published HL7 source pages in the appropriate FHIR versions:
 
 - Extended operations framework:

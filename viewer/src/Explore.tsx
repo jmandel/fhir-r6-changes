@@ -6,8 +6,6 @@ import { buildLlmMarkdown } from "./llmMarkdown";
 
 const IMPACT_ORDER = ["Critical", "High", "Medium", "Low", "Info"];
 const BREAK_ORDER = ["Yes", "Potential", "Unknown", "No"];
-const VERDICT_ORDER = ["Justified", "Probably justified", "Cannot assess", "Not clearly justified", "Probably avoidable"];
-const BCALT_ORDER = ["Yes", "Partial", "No", "Not applicable", "Unknown"];
 const OVERALL_ASSESSMENT_ORDER = ["Revisit", "Unclear", "Breaking but probably OK", "No problem", "—"];
 
 const IMPACT_COLOR: Record<string, string> = {
@@ -69,37 +67,10 @@ const FMM_ORDER = ["5", "4", "3", "2", "1", "0", "—"];
 const FMM_COLOR: Record<string, string> = {
   "5": "#2F8A4F", "4": "#2E5DA8", "3": "#8A6800", "2": "#F09225", "1": "#EC2028", "0": "#8A1118",
 };
-const MECHANISM_ORDER = [
-  "old-valid/new-invalid",
-  "runtime/API/codegen",
-  "warning-level",
-  "semantic/documentation",
-  "metadata/tooling",
-  "reverse-only/out-of-scope",
-  "none",
-  "other/unclear",
-  "—",
-];
 const MAX_FILTER_VALUES = 50;
-
-function compatibilityMechanismBucket(value?: string): string {
-  if (!value) return "—";
-  const v = value.toLowerCase();
-  if (v.includes("old-valid") || v.includes("new-invalid")) return "old-valid/new-invalid";
-  if (v.includes("runtime") || v.includes("api") || v.includes("codegen") || v.includes("generated")) return "runtime/API/codegen";
-  if (v.includes("warning")) return "warning-level";
-  if (v.includes("semantic") || v.includes("documentation")) return "semantic/documentation";
-  if (v.includes("metadata") || v.includes("tooling")) return "metadata/tooling";
-  if (v.includes("r6-to-r4") || v.includes("round-trip") || v.includes("downgrade") || v.includes("reverse")) return "reverse-only/out-of-scope";
-  if (v.includes("none") || v.includes("no meaningful")) return "none";
-  return "other/unclear";
-}
 
 const FACETS: Facet[] = [
   { key: "review",    label: "Overall Assessment",    get: (f) => f.freshReview?.judgment ?? "—", order: OVERALL_ASSESSMENT_ORDER, colors: OVERALL_ASSESSMENT_COLOR },
-  { key: "mechanism", label: "Compatibility mechanism", get: (f) => compatibilityMechanismBucket(f.freshReview?.compatibilityMechanism), order: MECHANISM_ORDER },
-  { key: "bcAlt",     label: "Less-breaking option",  get: (f) => f.justification?.backwardCompatibleAlternativeAvailable ?? "Unknown", order: BCALT_ORDER, colors: BCALT_COLOR },
-  { key: "verdict",   label: "Justification verdict", get: (f) => f.justification?.justificationVerdict ?? "Cannot assess", order: VERDICT_ORDER, colors: VERDICT_COLOR },
   { key: "impact",    label: "Impact (severity)",     get: (f) => f.impact?.overallImpact ?? "Info", order: IMPACT_ORDER, colors: IMPACT_COLOR },
   { key: "breaking",  label: "Hard instance break",   get: (f) => f.impact?.hardInstanceBreaking ?? "Unknown", order: BREAK_ORDER, colors: BREAK_COLOR },
   { key: "r4Status",  label: "R4 standards status",   get: (f) => f.r4Maturity?.standardsStatus ?? "—", order: R4_STATUS_ORDER, colors: R4_STATUS_COLOR },
@@ -321,11 +292,11 @@ export function Explore({ route }: { route: RouteState }) {
               <div className="v" style={{ color: "#EC2028" }}>{stats.high.toLocaleString()}</div>
               <div className="d">overallImpact = High</div>
             </a>
-            <a className="stat stat-link" href={buildHref([], new URLSearchParams({ bcAlt: "Yes" }))} title="Findings where a less-breaking alternative was identified">
+            <div className="stat">
               <div className="k">Possibly avoidable</div>
               <div className="v" style={{ color: "#8A4500" }}>{stats.altYes.toLocaleString()}</div>
               <div className="d">a less-breaking alternative was identified</div>
-            </a>
+            </div>
           </div>
 
           <ActiveFilters active={active} query={query} onClearFacet={clearFacet} onClearQuery={() => setQ("")} totalShown={filtered.length} totalAll={flat.length} />

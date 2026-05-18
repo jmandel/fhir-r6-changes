@@ -222,6 +222,12 @@ Use these local primary inputs:
     baseline. R6 FMM/status is future-version context only; do not use it to
     raise the burden for R4 compatibility.
 
+When you cite published HL7 pages in \`scope.publishedPagesReviewed\`, populate
+\`r4SourceDate: "2019-10-30"\`, \`r6SourceDate: "2025-12-18"\`, and
+\`sourceDateEvidence: "https://hl7.org/fhir/directory.html"\`. These are the
+FHIR version publication dates. Treat HTTP \`Last-Modified\` values in
+\`source-status.tsv\` as cache/download provenance only.
+
 Scope:
 
 - Keep this report focused on the assigned operation shard.

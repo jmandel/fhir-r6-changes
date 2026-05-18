@@ -15,6 +15,8 @@ Use rendered HTML pages as the narrative source of truth:
 
 - Preferred R4 full-spec ZIP: `http://hl7.org/fhir/R4/fhir-spec.zip`
 - R6 ballot page root: `https://hl7.org/fhir/6.0.0-ballot4/`
+- Published-version source dates from `https://hl7.org/fhir/directory.html`:
+  R4 4.0.1 = `2019-10-30`; R6 6.0.0-ballot4 = `2025-12-18`.
 - Current finding: `https://hl7.org/fhir/6.0.0-ballot4/fhir-spec.zip`
   returns 404, so for R6 ballot4 the practical reproducible source is a local
   page cache of the relevant static HTML pages.

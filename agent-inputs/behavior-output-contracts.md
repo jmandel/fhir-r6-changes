@@ -39,6 +39,13 @@ export interface PublishedPageRef {
   label: string;
   r4Url: string;
   r6Url: string;
+  /**
+   * HL7 published-version date from https://hl7.org/fhir/directory.html.
+   * Use the version publication date, not the web server Last-Modified header.
+   */
+  r4SourceDate?: string;
+  r6SourceDate?: string;
+  sourceDateEvidence?: string;
   whyReview: string;
   priority: "High" | "Medium" | "Low";
 }
