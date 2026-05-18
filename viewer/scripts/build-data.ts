@@ -19,38 +19,17 @@ try {
   console.warn(`No base artifact TSV at ${baseTsvPath}; coverage will be unknown.`);
 }
 
-// R4 maturity / normative status — scraped from the R4 StructureDefinition
-// package extensions. Keyed by artifactName.
-const r4PkgDir = join(root, "fhir-definitions", "r4-4.0.1", "package");
-const STATUS_EXT = "http://hl7.org/fhir/StructureDefinition/structuredefinition-standards-status";
-const FMM_EXT    = "http://hl7.org/fhir/StructureDefinition/structuredefinition-fmm";
-const WG_EXT     = "http://hl7.org/fhir/StructureDefinition/structuredefinition-wg";
-const NORM_VER   = "http://hl7.org/fhir/StructureDefinition/structuredefinition-normative-version";
-
+// R4 maturity / normative status — read from a checked-in JSON map produced
+// by `scripts/extract-r4-maturity.ts`. The R4 package itself is .gitignored,
+// so committing the extracted JSON makes the data available in CI builds.
+const maturityPath = resolve(import.meta.dir, "..", "r4-maturity.json");
 type R4Maturity = { standardsStatus?: string; fmm?: number; wg?: string; normativeVersion?: string };
-const r4Maturity: Record<string, R4Maturity> = {};
+let r4Maturity: Record<string, R4Maturity> = {};
 try {
-  const sdFiles = (await readdir(r4PkgDir)).filter((f) => f.startsWith("StructureDefinition-") && f.endsWith(".json"));
-  for (const f of sdFiles) {
-    try {
-      const sd = JSON.parse(await readFile(join(r4PkgDir, f), "utf8"));
-      if (!sd?.name) continue;
-      const exts: any[] = sd.extension ?? [];
-      const out: R4Maturity = {};
-      for (const e of exts) {
-        if (e.url === STATUS_EXT && e.valueCode) out.standardsStatus = e.valueCode;
-        else if (e.url === FMM_EXT && typeof e.valueInteger === "number") out.fmm = e.valueInteger;
-        else if (e.url === WG_EXT && e.valueCode) out.wg = e.valueCode;
-        else if (e.url === NORM_VER && e.valueCode) out.normativeVersion = e.valueCode;
-      }
-      if (Object.keys(out).length > 0) r4Maturity[sd.name] = out;
-    } catch (e) {
-      // skip malformed defs
-    }
-  }
-  console.log(`scanned ${Object.keys(r4Maturity).length} R4 artifacts for maturity`);
+  r4Maturity = JSON.parse(await readFile(maturityPath, "utf8"));
+  console.log(`loaded maturity for ${Object.keys(r4Maturity).length} R4 artifacts from ${maturityPath}`);
 } catch {
-  console.warn(`No R4 package at ${r4PkgDir}; maturity facet will be unknown.`);
+  console.warn(`No r4-maturity.json at ${maturityPath}; maturity facet will be unknown. Run scripts/extract-r4-maturity.ts to regenerate.`);
 }
 
 const files = (await readdir(dataDir)).filter((f) => f.endsWith(".report.json"));
