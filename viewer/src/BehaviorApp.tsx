@@ -3,7 +3,7 @@ import { behaviorFlat, behaviorReports, type FlatBehaviorFinding } from "./data"
 import { Markdown } from "./Markdown";
 import { TopBar, SubNav, Crumb, Footer } from "./Shell";
 
-export type BehaviorView = "operations" | "pages" | "search" | "rest" | "all";
+export type BehaviorView = "operations" | "pages" | "all";
 
 const RISK_ORDER = ["Critical", "High", "Medium", "Low", "Info", "Not applicable", "—"];
 const OVERALL_ASSESSMENT_ORDER = ["Revisit", "Unclear", "Breaking but probably OK", "No problem", "—"];
@@ -151,17 +151,7 @@ const VIEW_LABEL: Record<BehaviorView, { title: string; crumb: string; sub: stri
   pages: {
     title: "Page/API findings",
     crumb: "Pages/API",
-    sub: "Umbrella view for current non-operation behavior reports. It includes Search and REST findings; those entrypoints are narrower slices.",
-  },
-  search: {
-    title: "Search findings",
-    crumb: "Search",
-    sub: "SearchParameter inventory, search expression, comparator, modifier, target, chain, and processing behavior changes.",
-  },
-  rest: {
-    title: "REST findings",
-    crumb: "REST",
-    sub: "HTTP, REST, CapabilityStatement, and cross-cutting interaction behavior changes.",
+    sub: "Non-operation behavior reports, including SearchParameter, HTTP, REST, CapabilityStatement, and published-page/API semantics.",
   },
   all: {
     title: "Behavior/API findings",
@@ -279,15 +269,7 @@ function BehaviorExplore({ scoped, params, setParams, view, meta }: {
 
   const stats = useMemo(() => {
     const reportKeys = new Set(scoped.map((f) => f.reportKey));
-    let revisit = 0;
-    let highRuntime = 0;
-    let needsReview = 0;
-    for (const f of scoped) {
-      if (f.freshReview?.judgment === "Revisit") revisit++;
-      if (f.impact?.runtimeBreakingRisk === "Critical" || f.impact?.runtimeBreakingRisk === "High") highRuntime++;
-      if (f.requiresHumanReview) needsReview++;
-    }
-    return { reports: reportKeys.size, revisit, highRuntime, needsReview };
+    return { reports: reportKeys.size };
   }, [scoped]);
 
   const toggleFacet = (key: string, value: string) => {
@@ -363,26 +345,21 @@ function BehaviorExplore({ scoped, params, setParams, view, meta }: {
             </a>
           </div>
 
-          <div className="stats stats-4">
+          <div className="stats">
             <div className="stat">
               <div className="k">Findings</div>
               <div className="v">{scoped.length.toLocaleString()}</div>
-              <div className="d">across {stats.reports.toLocaleString()} reports</div>
+              <div className="d">total behavior findings</div>
             </div>
-            <a className="stat stat-link" href={withParams("judgment", "Revisit")} title="Filter to findings needing renewed review">
-              <div className="k">Revisit</div>
-              <div className="v" style={{ color: "#EC2028" }}>{stats.revisit.toLocaleString()}</div>
-              <div className="d">overall assessment</div>
-            </a>
-            <a className="stat stat-link" href={withParams("runtimeRisk", "High")} title="Filter to High runtime risk">
-              <div className="k">High runtime</div>
-              <div className="v" style={{ color: "#EC2028" }}>{stats.highRuntime.toLocaleString()}</div>
-              <div className="d">runtime risk is High or Critical</div>
-            </a>
             <div className="stat">
-              <div className="k">Avoidable</div>
-              <div className="v" style={{ color: "#8A4500" }}>{scoped.filter((f) => f.freshReview?.lessBreakingAlternative?.judgment === "Yes").length.toLocaleString()}</div>
-              <div className="d">less-breaking option exists</div>
+              <div className="k">Reports</div>
+              <div className="v">{stats.reports.toLocaleString()}</div>
+              <div className="d">included in this view</div>
+            </div>
+            <div className="stat">
+              <div className="k">Visible</div>
+              <div className="v">{filtered.length.toLocaleString()}</div>
+              <div className="d">matching current filters</div>
             </div>
           </div>
 
@@ -611,34 +588,17 @@ function CopyBehaviorForLlmButton({ findings, active, facets, query, totalAll }:
     const filters: string[] = [];
     for (const facet of facets) {
       const set = active[facet.key];
-      if (set && set.size > 0) filters.push(`${facet.label}: ${[...set].join(", ")}`);
+      if (set && set.size > 0) {
+        filters.push(`${facet.label}: ${[...set].map((v) => facet.format ? facet.format(v) : v).join(", ")}`);
+      }
     }
-    const lines = [
-      "# FHIR R4 to R6 behavior/API findings",
-      "",
-      `Source URL: ${location.href}`,
-      `Showing: ${findings.length.toLocaleString()} of ${totalAll.toLocaleString()} findings`,
-      query.trim() ? `Query: ${query.trim()}` : undefined,
-      filters.length ? `Filters: ${filters.join("; ")}` : undefined,
-      "",
-      ...findings.map((f, i) => [
-        `## ${i + 1}. ${f.title}`,
-        "",
-        `- Report: ${f.reportLabel}`,
-        `- Finding ID: ${f.findingId}`,
-        `- Category: ${f.behaviorCategory ?? f.category ?? "—"}`,
-        `- Runtime risk: ${f.impact?.runtimeBreakingRisk ?? "—"}`,
-        `- Conformance risk: ${f.impact?.conformanceRisk ?? "—"}`,
-        `- Overall Assessment: ${f.freshReview?.judgment ?? "—"}`,
-        `- Compatibility mechanism: ${f.freshReview?.compatibilityMechanism ?? "—"}`,
-        `- Less-breaking alternative: ${f.freshReview?.lessBreakingAlternative?.judgment ?? "—"}`,
-        "",
-        f.freshReview?.realWorldScenarioMd ? `Real-world scenario: ${f.freshReview.realWorldScenarioMd}` : undefined,
-        f.freshReview?.rationaleMd ? `Rationale: ${f.freshReview.rationaleMd}` : undefined,
-        f.runtimeMechanismMd ? `Runtime mechanism: ${f.runtimeMechanismMd}` : undefined,
-        "",
-      ].filter(Boolean).join("\n")),
-    ].filter(Boolean).join("\n");
+    const lines = buildBehaviorLlmMarkdown(findings, {
+      url: location.href,
+      totalShown: findings.length,
+      totalAll,
+      filters,
+      query: query.trim() || undefined,
+    });
     try {
       await navigator.clipboard.writeText(lines);
       setState("ok");
@@ -662,6 +622,166 @@ function CopyBehaviorForLlmButton({ findings, active, facets, query, totalAll }:
       {label}
     </button>
   );
+}
+
+function buildBehaviorLlmMarkdown(findings: FlatBehaviorFinding[], ctx: {
+  url: string;
+  totalShown: number;
+  totalAll: number;
+  filters: string[];
+  query?: string;
+}): string {
+  const out: string[] = [];
+  out.push("# FHIR R4 to R6 behavior/API findings");
+  out.push("");
+  out.push(`Source: ${ctx.url}`);
+  out.push("");
+  out.push(
+    "This excerpt mirrors the behavior finding detail page for each currently-visible item: " +
+    "objective metadata, what changed, what breaks, overall assessment, migration notes, and evidence."
+  );
+  out.push("");
+  out.push(`**Showing:** ${ctx.totalShown.toLocaleString()} of ${ctx.totalAll.toLocaleString()} findings`);
+  if (ctx.query || ctx.filters.length > 0) {
+    out.push("");
+    out.push("**Active filters:**");
+    if (ctx.query) out.push(`- Search: \`${ctx.query}\``);
+    for (const filter of ctx.filters) out.push(`- ${filter}`);
+  }
+  out.push("");
+  out.push("---");
+  out.push("");
+  for (let i = 0; i < findings.length; i += 1) {
+    out.push(behaviorFindingMarkdown(findings[i], i + 1));
+    out.push("---");
+    out.push("");
+  }
+  return out.join("\n");
+}
+
+function behaviorFindingMarkdown(f: FlatBehaviorFinding, index: number): string {
+  const out: string[] = [];
+  const impact = f.impact ?? {};
+  const review = f.freshReview;
+  const lessBreaking = review?.lessBreakingAlternative;
+
+  out.push(`## ${index}. ${f.title}`);
+  out.push("");
+  out.push(`- **Report:** ${f.reportLabel}`);
+  out.push(`- **Finding ID:** \`${f.findingId}\``);
+  out.push(`- **Family:** ${f.family}`);
+  if (review?.judgment) out.push(`- **Overall Assessment:** ${review.judgment}`);
+  out.push(`- **Runtime risk:** ${impact.runtimeBreakingRisk ?? "—"}`);
+  out.push(`- **Conformance risk:** ${impact.conformanceRisk ?? "—"}`);
+  if (impact.affectedDirection) out.push(`- **Direction:** ${impact.affectedDirection}`);
+  if (f.behaviorCategory || f.category) out.push(`- **Category:** \`${f.behaviorCategory ?? f.category}\``);
+  if (review?.compatibilityMechanism) out.push(`- **Mechanism:** \`${review.compatibilityMechanism}\``);
+  if (lessBreaking?.judgment) out.push(`- **Less-breaking option:** ${lessBreaking.judgment}`);
+  if (review?.fmmContext) {
+    const parts = [
+      review.fmmContext.fmm != null ? `FMM ${review.fmmContext.fmm}` : "FMM unknown",
+      review.fmmContext.standardsStatus,
+      review.fmmContext.effect,
+    ].filter(Boolean);
+    out.push(`- **R4 maturity context:** ${parts.join(" · ")}`);
+  }
+  if (f.requiresHumanReview != null) out.push(`- **Human review:** ${f.requiresHumanReview ? "Required" : "Not flagged"}`);
+  out.push("");
+
+  pushBehaviorQuestion(out, "What changed?", () => {
+    pushMdSection(out, "Match rationale", f.matchRationaleMd);
+    pushDeltaSection(out, "Changed fields", f.changedFields);
+    pushDeltaSection(out, "Parameter deltas", f.parameterDeltas);
+  });
+  pushBehaviorQuestion(out, "What breaks?", () => {
+    pushMdSection(out, "Runtime mechanism", f.runtimeMechanismMd);
+    pushMdSection(out, "Impact rationale", impact.impactRationaleMd);
+    const profile = [
+      impact.expectedPrevalence ? `- **Expected prevalence:** ${impact.expectedPrevalence}` : undefined,
+      impact.confidence ? `- **Confidence:** ${impact.confidence}` : undefined,
+    ].filter(Boolean);
+    if (profile.length > 0) {
+      out.push("#### Compatibility profile");
+      out.push("");
+      out.push(...profile);
+      out.push("");
+    }
+  });
+  if (review) {
+    pushBehaviorQuestion(out, "Overall Assessment", () => {
+      pushMdSection(out, "Real-world scenario", review.realWorldScenarioMd);
+      pushMdSection(out, "Rationale", review.rationaleMd ?? review.narrativeMd);
+      pushMdSection(out, "FMM/status rationale", review.fmmContext?.rationaleMd);
+      if (lessBreaking) {
+        out.push("#### Less-breaking alternative");
+        out.push("");
+        out.push(`- **Judgment:** ${lessBreaking.judgment ?? "—"}`);
+        out.push("");
+        pushMdSection(out, "Candidate design", lessBreaking.candidateDesignMd);
+        pushMdSection(out, "Tradeoffs", lessBreaking.tradeoffsOrReasonMd);
+      }
+      if (Array.isArray(review.keyEvidence) && review.keyEvidence.length > 0) {
+        out.push("#### Key evidence");
+        out.push("");
+        for (const item of review.keyEvidence) out.push(`- ${item}`);
+        out.push("");
+      }
+    });
+  }
+  pushBehaviorQuestion(out, "Migration", () => {
+    pushMdSection(out, "Migration guidance", f.migrationGuidanceMd);
+    pushMdSection(out, "Backward-compatibility analysis", f.backwardCompatibilityAnalysisMd);
+  });
+  if (Array.isArray(f.evidence) && f.evidence.length > 0) {
+    out.push("### Evidence");
+    out.push("");
+    for (const ev of f.evidence) {
+      out.push(`- **${ev.source ?? "evidence"}** · ${ev.confidence ?? "Unknown"}`);
+      if (ev.locator) out.push(`  - Locator: \`${ev.locator}\``);
+      if (ev.detail) out.push(`  - Detail: ${ev.detail}`);
+      if (ev.quote) out.push(`  - Quote: ${ev.quote}`);
+    }
+    out.push("");
+  }
+
+  return out.join("\n").replace(/\n{4,}/g, "\n\n\n").trim();
+}
+
+function pushBehaviorQuestion(out: string[], title: string, build: () => void) {
+  const start = out.length;
+  build();
+  if (out.length === start) return;
+  const section = out.splice(start);
+  out.push(`### ${title}`);
+  out.push("");
+  out.push(...section);
+}
+
+function pushMdSection(out: string[], title: string, md?: string) {
+  if (!md || !md.trim()) return;
+  out.push(`#### ${title}`);
+  out.push("");
+  out.push(md.trim());
+  out.push("");
+}
+
+function pushDeltaSection(out: string[], title: string, rows?: any[]) {
+  if (!Array.isArray(rows) || rows.length === 0) return;
+  out.push(`#### ${title}`);
+  out.push("");
+  out.push("| Field | R4 | R6 | Note |");
+  out.push("|---|---|---|---|");
+  for (const row of rows) {
+    const field = row.field ?? row.name ?? row.path ?? row.changeKind ?? "delta";
+    const note = row.note ?? row.impactMd ?? row.changeKind ?? "";
+    out.push(`| \`${tableCell(field)}\` | ${tableCell(fmt(row.oldValue))} | ${tableCell(fmt(row.newValue))} | ${tableCell(note)} |`);
+  }
+  out.push("");
+}
+
+function tableCell(value: any): string {
+  const text = fmt(value);
+  return text.replace(/\|/g, "\\|").replace(/\n+/g, " ").trim() || "—";
 }
 
 function BehaviorRows({ f, query }: { f: FlatBehaviorFinding; query: string }) {
@@ -913,8 +1033,6 @@ function altCell(value?: string) {
 
 function includeForView(view: BehaviorView, f: FlatBehaviorFinding): boolean {
   if (view === "operations") return f.family === "Operations";
-  if (view === "search") return f.family === "Search";
-  if (view === "rest") return f.family === "HTTP / REST";
   if (view === "pages") return f.family !== "Operations";
   return true;
 }

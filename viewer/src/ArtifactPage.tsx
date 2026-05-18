@@ -41,17 +41,11 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
   }
   const s = r.summary ?? {};
   const findings = r.findings ?? [];
-  const cls = (s: string) => s.replace(/\s+/g, "-");
-
-  let altYes = 0, altPartial = 0, altNone = 0, needsReview = 0, freshRevisit = 0;
+  const deltaKinds = new Set<string>();
+  let evidenceItems = 0;
   for (const f of findings) {
-    const alt = f.justification?.backwardCompatibleAlternativeAvailable;
-    const v = f.justification?.justificationVerdict;
-    if (alt === "Yes") altYes++;
-    else if (alt === "Partial") altPartial++;
-    else if (alt === "No") altNone++;
-    if (alt === "Yes" && (v === "Justified" || v === "Probably justified")) needsReview++;
-    if (f.freshReview?.judgment === "Revisit") freshRevisit++;
+    if (f.structuredDelta?.deltaKind) deltaKinds.add(f.structuredDelta.deltaKind);
+    evidenceItems += f.evidence?.length ?? 0;
   }
 
   return (
@@ -74,12 +68,6 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
           </div>
           <h1>{r.artifactName} — R4 → R6 findings</h1>
           <div className="bdgs">
-            {s.overallImpact && (
-              <span className={`bdg imp-${s.overallImpact}`}>
-                <span className="dot" style={{ background: IMPACT_COLOR[s.overallImpact] ?? "#fff" }} />
-                {s.overallImpact}
-              </span>
-            )}
             {s.overallAssessment && <span className="bdg neutral">{s.overallAssessment}</span>}
           </div>
         </header>
@@ -91,24 +79,14 @@ export function ArtifactPage({ artifactName }: { artifactName: string }) {
             <div className="d">in this artifact</div>
           </div>
           <div className="stat">
-            <div className="k">Possibly avoidable</div>
-            <div className="v" style={{ color: "#8A1118" }}>{altYes}</div>
-            <div className="d">less-breaking alt = Yes</div>
+            <div className="k">Delta kinds</div>
+            <div className="v">{deltaKinds.size}</div>
+            <div className="d">represented in findings</div>
           </div>
           <div className="stat">
-            <div className="k">Tradeoff alt exists</div>
-            <div className="v" style={{ color: "#8A4500" }}>{altPartial}</div>
-            <div className="d">less-breaking alt = Partial</div>
-          </div>
-          <div className="stat">
-            <div className="k">No alternative</div>
-            <div className="v" style={{ color: "var(--ink-2)" }}>{altNone}</div>
-            <div className="d">less-breaking alt = No</div>
-          </div>
-          <div className="stat">
-            <div className="k">Needs review</div>
-            <div className="v" style={{ color: "#EC2028" }}>{freshRevisit || needsReview}</div>
-            <div className="d">{freshRevisit ? "overall assessment = Revisit" : "bcAlt=Yes but verdict justified"}</div>
+            <div className="k">Evidence items</div>
+            <div className="v">{evidenceItems}</div>
+            <div className="d">linked across findings</div>
           </div>
         </div>
 

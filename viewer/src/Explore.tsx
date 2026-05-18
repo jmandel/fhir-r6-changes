@@ -212,18 +212,6 @@ export function Explore({ route }: { route: RouteState }) {
 
   const anyFiltersOn = Object.values(active).some((s) => s.size > 0) || query.length > 0;
 
-  // Top-line stats — computed once over the full dataset.
-  const stats = useMemo(() => {
-    let critical = 0, high = 0, altYes = 0;
-    for (const f of flat) {
-      const imp = f.impact?.overallImpact;
-      if (imp === "Critical") critical++;
-      else if (imp === "High") high++;
-      if (f.justification?.backwardCompatibleAlternativeAvailable === "Yes") altYes++;
-    }
-    return { critical, high, altYes };
-  }, []);
-
   return (
     <>
       <TopBar />
@@ -276,26 +264,21 @@ export function Explore({ route }: { route: RouteState }) {
             </div>
           </div>
 
-          <div className="stats stats-4">
-            <a className="stat stat-link" href={buildHref([])} title="Show all findings">
+          <div className="stats">
+            <div className="stat">
               <div className="k">Findings</div>
               <div className="v">{flat.length.toLocaleString()}</div>
-              <div className="d">across {bundle.reports.length} artifacts</div>
-            </a>
-            <a className="stat stat-link" href={buildHref([], new URLSearchParams({ impact: "Critical" }))} title="Filter to Critical impact">
-              <div className="k">Critical impact</div>
-              <div className="v" style={{ color: "#8A1118" }}>{stats.critical.toLocaleString()}</div>
-              <div className="d">overallImpact = Critical</div>
-            </a>
-            <a className="stat stat-link" href={buildHref([], new URLSearchParams({ impact: "High" }))} title="Filter to High impact">
-              <div className="k">High impact</div>
-              <div className="v" style={{ color: "#EC2028" }}>{stats.high.toLocaleString()}</div>
-              <div className="d">overallImpact = High</div>
-            </a>
+              <div className="d">total structure findings</div>
+            </div>
             <div className="stat">
-              <div className="k">Possibly avoidable</div>
-              <div className="v" style={{ color: "#8A4500" }}>{stats.altYes.toLocaleString()}</div>
-              <div className="d">a less-breaking alternative was identified</div>
+              <div className="k">Artifacts</div>
+              <div className="v">{bundle.reports.length.toLocaleString()}</div>
+              <div className="d">resources, datatypes, and artifacts</div>
+            </div>
+            <div className="stat">
+              <div className="k">Visible</div>
+              <div className="v">{filtered.length.toLocaleString()}</div>
+              <div className="d">matching current filters</div>
             </div>
           </div>
 

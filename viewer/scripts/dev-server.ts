@@ -7,8 +7,6 @@ const ENTRIES = [
   "index.html",
   "operations/index.html",
   "pages/index.html",
-  "search/index.html",
-  "rest/index.html",
 ];
 
 const args = parseArgs(process.argv.slice(2));
@@ -33,10 +31,6 @@ const aliases = new Map([
   ["/operations/index.html", "/operations"],
   ["/pages/", "/pages"],
   ["/pages/index.html", "/pages"],
-  ["/search/", "/search"],
-  ["/search/index.html", "/search"],
-  ["/rest/", "/rest"],
-  ["/rest/index.html", "/rest"],
 ]);
 
 const server = Bun.serve({
@@ -77,7 +71,7 @@ const server = Bun.serve({
 
 console.log(`Viewer dev server: http://${host}:${server.port}/`);
 console.log(`Bun HTML upstream: http://127.0.0.1:${upstreamPort}/`);
-console.log("Aliases: /index.html, /operations/index.html, /pages/index.html, /search/index.html, /rest/index.html");
+console.log("Aliases: /index.html, /operations/index.html, /pages/index.html");
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {

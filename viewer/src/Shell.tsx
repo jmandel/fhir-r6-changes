@@ -12,8 +12,6 @@ export function TopBar() {
           <a href={`${base}index.html`}>Structure</a>
           <a href={`${base}operations`}>Operations</a>
           <a href={`${base}pages`}>Pages/API</a>
-          <a href={`${base}search`}>Search</a>
-          <a href={`${base}rest`}>REST</a>
         </nav>
         <a
           className="source-link"
@@ -63,7 +61,7 @@ export function Footer() {
 
 function navBase(): string {
   if (typeof location === "undefined") return "./";
-  return /\/(?:operations|pages|search|rest)\/(?:index\.html)?$/.test(location.pathname)
+  return /\/(?:operations|pages)\/(?:index\.html)?$/.test(location.pathname)
     ? "../"
     : "./";
 }

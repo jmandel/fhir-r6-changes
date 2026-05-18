@@ -52,7 +52,7 @@ tradeoff.
 - `scripts/`: batch runners, source preparation, merge/reduce scripts, and
   audit checks.
 - `viewer/`: React/Bun static viewer with separate entrypoints for structure,
-  operations, pages/API, search, and REST.
+  operations, and a Pages/API umbrella for non-operation behavior reports.
 
 Large local batch logs, downloaded FHIR packages, downloaded spec pages, and
 intermediate operation-shard outputs are intentionally not required for the
@@ -78,8 +78,6 @@ Useful local URLs:
 - http://localhost:3000/
 - http://localhost:3000/operations
 - http://localhost:3000/pages
-- http://localhost:3000/search
-- http://localhost:3000/rest
 
 Build the static site:
 
