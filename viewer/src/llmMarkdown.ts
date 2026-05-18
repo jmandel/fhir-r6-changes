@@ -165,6 +165,15 @@ function findingMarkdown(f: FlatFinding): string {
       out.push("");
       out.push(`**Less-breaking alternative:** ${f.freshReview.lessBreakingAlternativeAssessment.trim()}`);
     }
+    if (f.freshReview.comparisonToExisting?.trim()) {
+      out.push("");
+      out.push(`**Existing report:** ${f.freshReview.comparisonToExisting.trim()}`);
+    }
+    if (Array.isArray(f.freshReview.keyEvidence) && f.freshReview.keyEvidence.length > 0) {
+      out.push("");
+      out.push("**Key evidence:**");
+      for (const item of f.freshReview.keyEvidence) out.push(`- ${item}`);
+    }
     out.push("");
   }
 
