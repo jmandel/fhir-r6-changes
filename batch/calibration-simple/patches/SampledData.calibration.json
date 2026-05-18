@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "SampledData",
+  "patches": [
+    {
+      "findingId": "SampledData:ELEMENT_PRESENCE_OR_IDENTITY:SampledData.period:8b7e2a",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `period` as the regular-sampling interval field, clarify that it is measured in `intervalUnit`, and allow missing units to mean milliseconds for legacy R4 content.",
+        "alternativeTradeoffSummary": "This preserves R4 instances and avoids a same-fact rename, but it keeps the older `period` name and a legacy implicit-millisecond path.",
+        "justificationRationaleMd": "The R6 goal of generalizing regular sample spacing beyond implicit milliseconds is reasonable, but the element-identity break from `period` to `interval` was not clearly necessary. The primary definitions show that both elements are decimal regular-sampling increments; R6 could have broadened and clarified the existing `period` element instead of renaming it. The remaining tradeoff is mostly clarity and model tidiness rather than a need to reject the R4 element name.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could keep `SampledData.period` for regular sampling, update its definition from fixed milliseconds to an amount expressed in `intervalUnit`, and treat omitted `intervalUnit` as `ms` for R4-compatible content. `offsets` could remain the irregular-sampling alternative. This would preserve old serialized instances far better than a rename. The cost is living with the older name and a compatibility default, but it avoids duplicate `period`/`interval` fields if R6 simply retains the old field rather than adding an alias."
+      }
+    },
+    {
+      "findingId": "SampledData:CARDINALITY:SampledData.intervalUnit:9f4c11",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `intervalUnit` optional or default it to `ms` for legacy regular-sampling content while requiring it for new non-millisecond or offsets use.",
+        "alternativeTradeoffSummary": "This would preserve more R4 content, but it materially weakens R6's explicit-unit guarantee and perpetuates the hidden millisecond assumption.",
+        "justificationRationaleMd": "Requiring a UCUM unit is a reasonable safety and interoperability goal because R4 encoded milliseconds only in prose. The raw-instance break is real, but an optional/defaulted unit would only partially meet the R6 goal: implementations would still need to infer units when the field is absent, which is exactly the ambiguity R6 appears to be correcting.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would allow `intervalUnit` to be absent for migrated R4 regular samples and define that absence as `ms`, possibly while requiring `intervalUnit` whenever offsets or non-millisecond intervals are used. That preserves old data but makes validators and receivers support both explicit and implicit unit semantics. Because unit mistakes can change sampled-data interpretation, that tradeoff is material rather than a low-cost compatibility tweak."
+      }
+    },
+    {
+      "findingId": "SampledData:CONVERSION_OR_MAPPING:SampledData.offsets:df3a21",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `offsets` is optional additive R6 content and does not make R4-valid SampledData instances invalid in R6 by itself.",
+        "alternativeTradeoffSummary": "R6-to-R4 conversion may need extensions or rejection for irregular data, but that is reverse-direction loss handling rather than an R4-to-R6 base-design alternative.",
+        "justificationRationaleMd": "The inferred goal of representing irregular sampling is reasonable and addresses a capability R4's single uniform `period` could not natively express. Since the element is an optional R6 addition, the compatibility issue is valid R6 content that cannot be faithfully exported to base R4, not preservation of R4-valid instances.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible alternative is needed for R4-to-R6 instance preservation because old R4 instances do not contain `offsets`. R6 could have represented irregular offsets only through an extension, which would ease some R4 round-tripping, but that would make the feature less discoverable, less consistently validated, and less interoperable in base R6. Extension or sidecar preservation is a down-conversion mitigation, not a less-breaking base R6 design for this finding."
+      }
+    },
+    {
+      "findingId": "SampledData:SEMANTIC_OR_CONFORMANCE_TEXT:SampledData.data-codeMap:c6d0e4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R4 numeric and E/L/U `data` strings remain within the R6 semantic domain; the issue is R6-only coded tokens and `codeMap` round-tripping.",
+        "alternativeTradeoffSummary": "A separate coded-data field or extension would reduce surprise for numeric parsers, but it would split the series representation and is not needed to preserve R4-valid instances.",
+        "justificationRationaleMd": "The R6 goal of standardizing coded sampled-data tokens appears reasonable, and the local definitions show a semantic widening rather than an old-valid/new-invalid restriction. Existing R4 data strings remain structurally and semantically acceptable after the timing migration. The lack of concrete ConceptMaps or examples limits confidence in the exact use cases, so `Probably justified` is more appropriate than a stronger verdict.",
+        "backwardCompatibleAlternativeMd": "Under the calibration rule this is not an R4-to-R6 base break: the R6 datatype broadens what `data` may contain and adds optional `codeMap`. A design that kept `data` numeric-only and put coded tokens in a separate element, profile, or extension could reduce runtime surprise for parsers that assume decimals plus E/L/U, but it would not preserve any additional R4-valid instances. It would also fragment the compact token stream and make coded samples less uniform across R6 implementations."
+      }
+    },
+    {
+      "findingId": "SampledData:VALUE_CONSTRAINT:SampledData.sdd-1:1a2b3c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `period` as a deprecated regular-timing alternative and make the base invariant require exactly one of retained `period`/regular interval or `offsets`.",
+        "alternativeTradeoffSummary": "This would reduce migration failures, but it complicates the timing choice and may leave deprecated timing representations in use indefinitely.",
+        "justificationRationaleMd": "A base rule requiring interpretable timing is justified once R6 offers both regular intervals and irregular offsets; allowing neither or both would be unsafe and ambiguous. The avoidable part is narrower: the invariant could have acknowledged a retained R4 `period` path if the model had chosen to keep it. Because that alternative is entangled with duplicate or legacy timing representations, the current invariant is probably justified despite a partial less-breaking path.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could express the timing choice as exactly one of a retained `period` regular-sampling representation and `offsets`, or exactly one of `period`, `interval`, and `offsets` if both regular fields were kept during transition. That would help raw R4 instances and older code, but it increases invariant complexity, requires precedence rules if two regular fields exist, and risks making deprecated representations permanent. A profile-only rule is not counted as a backward-compatible base alternative because it would leave base R6 instances with missing or conflicting timing valid."
+      }
+    }
+  ]
+}

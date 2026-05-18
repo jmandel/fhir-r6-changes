@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MedicinalProductUndesirableEffect",
+  "patches": [
+    {
+      "findingId": "MedicinalProductUndesirableEffect:ARTIFACT_IDENTITY:root:8f2c1a",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `MedicinalProductUndesirableEffect` as a deprecated concrete R6 resource while also introducing `ClinicalUseDefinition`.",
+        "alternativeTradeoffSummary": "This would preserve old instances and endpoints, but leave parallel resources, search surfaces, and conformance expectations for the same clinical-use fact.",
+        "justificationRationaleMd": "Consolidating related clinical-use concepts into `ClinicalUseDefinition` is a coherent R6 goal, especially because the new resource shares subject, status, population, and branch mechanics across indications, contraindications, interactions, warnings, and undesirable effects. The breakage is high because resource type, canonical identity, generated classes, and APIs change. A less-breaking transition existed, but it would have compromised the clean single-resource model.",
+        "backwardCompatibleAlternativeMd": "The strongest less-breaking base design would keep a concrete, deprecated `MedicinalProductUndesirableEffect` resource in R6 while adding `ClinicalUseDefinition`; a profile or alias over `ClinicalUseDefinition` alone would not preserve R4 `resourceType` validity. That alternative preserves most R4 instances, but creates a long-lived duplicate representation and requires servers, search definitions, validation, and migration guidance to handle both resource identities."
+      }
+    },
+    {
+      "findingId": "MedicinalProductUndesirableEffect:ELEMENT_PRESENCE_OR_IDENTITY:ClinicalUseDefinition.type:2b7d31",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `type` optional or infer it from the populated branch, or avoid needing it by retaining separate clinical-use resources.",
+        "alternativeTradeoffSummary": "Optional or inferred typing weakens uniform base validation and search; separate resources duplicate the model surface.",
+        "justificationRationaleMd": "For the chosen merged-resource design, a required discriminator is reasonable because consumers need to know which clinical-use branch is active and base constraints enforce branch/type consistency. The value is deterministic for migrated R4 undesirable-effect records. The less-breaking paths reduce the immediate validation break only by weakening the merged model or by retaining old resource identities.",
+        "backwardCompatibleAlternativeMd": "Within `ClinicalUseDefinition`, R6 could have allowed `type` to be omitted when `undesirableEffect` is present and inferred the branch from the backbone, with profiles or warnings requiring explicit type. That would help some naive migrations, but it does not preserve raw R4 instances and leaves branchless or partially populated instances less explicit. Keeping the old resource would avoid the discriminator entirely, but has the duplicate-resource tradeoffs described in the root finding."
+      }
+    },
+    {
+      "findingId": "MedicinalProductUndesirableEffect:CARDINALITY:subject:4e6b90",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `subject` optional and retain an old Reference-compatible representation while adding coded or broader subject support separately.",
+        "alternativeTradeoffSummary": "This preserves subjectless records but permits base R6 safety data without a subject and complicates old/new target and coded-subject handling.",
+        "justificationRationaleMd": "The subject is central to safely interpreting an undesirable effect, and the broader `ClinicalUseDefinition` scope reasonably needs product, device, substance, procedure, and coded subject support. The cardinality increase is nevertheless a hard break for subjectless R4 records. A less-breaking base design exists, but it has material safety and interoperability tradeoffs because it would continue to allow incomplete base records.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could leave base `subject` at `0..*`, keep a Reference-compatible form for migrated R4 `Medication` and legacy medicinal product references, and require subject through profiles, warnings, or implementation guides. That alternative only partially meets the R6 goal: it does not guarantee that every base clinical-use issue identifies its subject, and it still needs a policy for the R4 `MedicinalProduct` to R6 `MedicinalProductDefinition` target shift and for coded subjects."
+      }
+    },
+    {
+      "findingId": "MedicinalProductUndesirableEffect:ELEMENT_PRESENCE_OR_IDENTITY:undesirableEffect-backbone:7cae15",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain root-level undesirable-effect detail fields as deprecated base aliases while adding the `undesirableEffect` backbone.",
+        "alternativeTradeoffSummary": "Old paths would survive, but the same facts could appear at root and under the backbone, requiring precedence and cleanup rules indefinitely.",
+        "justificationRationaleMd": "A branch backbone is a natural content model for a resource that can carry several mutually exclusive clinical-use branches. The move is disruptive for JSON paths, generated accessors, FHIRPath, and patch/search logic, but it keeps the merged resource structurally coherent. The less-breaking alternative has material duplicate-representation costs.",
+        "backwardCompatibleAlternativeMd": "A true base-design alternative would allow `symptomConditionEffect`, `classification`, and `frequencyOfOccurrence` at their old root-level locations when `type = undesirable-effect`, not merely as extensions or profile guidance. That would preserve old paths after the resource-level migration, but validators and consumers would need rules for root-versus-backbone precedence, and deprecated parallel paths could persist indefinitely."
+      }
+    },
+    {
+      "findingId": "MedicinalProductUndesirableEffect:TYPE_DOMAIN:symptomConditionEffect:9bd204",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the `CodeableConcept` field and add an optional `ObservationDefinition` reference sibling or other additive reference support.",
+        "alternativeTradeoffSummary": "This preserves concept values and old generated types, but creates two representations for the same effect and requires rules when both are present.",
+        "justificationRationaleMd": "Allowing an undesirable effect to be represented by a reusable `ObservationDefinition` is reasonable, and `CodeableReference` is the standard R6 pattern for concept-or-reference content. Existing R4 concepts can be represented through `CodeableReference.concept`, so the data goal is mostly preserved, but the wire shape and generated type still change. A less-breaking design exists but carries duplicate-representation and ambiguity costs.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `symptomConditionEffect` as `CodeableConcept` and added a separate optional reference, such as a sibling reference element, for reusable `ObservationDefinition` content. A choice element would not fully preserve old JSON unless the old name and shape were retained. The additive sibling would protect R4 concept instances, but systems would need clear precedence and validation rules if both concept and reference were populated, and the old representation might never disappear."
+      }
+    },
+    {
+      "findingId": "MedicinalProductUndesirableEffect:TYPE_DOMAIN:population:aa18d6",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain inline `Population` as a legacy option while adding `Reference(Group)`, or add a separate Group reference alongside the old field.",
+        "alternativeTradeoffSummary": "This preserves old inline data but retains an old datatype absent from R6 and creates duplicate population representations that can diverge.",
+        "justificationRationaleMd": "Switching to `Reference(Group)` supports reusable population definitions and avoids embedding population criteria in each clinical-use record. The R6 package does not contain the old `Population` StructureDefinition, so retaining it in base R6 would be a broader compatibility concession. Because inline R4 population data cannot validate as a Group reference, the break is real; however, the less-breaking alternatives have material normalization, referential-integrity, and duplicate-representation tradeoffs.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep the old inline `Population` field and add a `Group` reference, or define a legacy-preserving choice/sibling model. That would preserve R4 instances, but it would require rules for when inline criteria and referenced `Group` disagree, would keep legacy population criteria in circulation, and would still leave R6-to-R4 export lossy when only an unresolved `Group` reference is available."
+      }
+    },
+    {
+      "findingId": "MedicinalProductUndesirableEffect:FLAGS_AND_MODIFIERS:status:6d7f33",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: optional `status` is additive for R4-to-R6 instances and does not require a less-breaking base alternative.",
+        "alternativeTradeoffSummary": "No old-instance preservation tradeoff; R6 consumers and R6-to-R4 converters must preserve or honor modifier semantics.",
+        "justificationRationaleMd": "A lifecycle status is reasonable for reusable clinical-use knowledge, and the element is optional, so migrated R4 instances are not invalidated by its absence. Marking it as a modifier is also reasonable because retired or inactive status can change whether the issue should be treated as valid. The residual risk is mainly R6 consumer behavior and R6-to-R4 down-conversion, not R4-to-R6 base-instance compatibility.",
+        "backwardCompatibleAlternativeMd": "A non-modifier status would reduce generic consumer obligations, but would understate the safety-relevant meaning of inactive or retired content. Because this is optional R6 content and a modifier/down-conversion concern rather than a hard R4-to-R6 design break, backward-compatible alternative availability is not applicable."
+      }
+    },
+    {
+      "findingId": "MedicinalProductUndesirableEffect:TERMINOLOGY_BINDING:effect-detail-bindings:f19c08",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: example-strength bindings are non-restrictive guidance and do not break base R4-to-R6 validation.",
+        "alternativeTradeoffSummary": "No base validation tradeoff; only tooling that overinterprets example bindings may need adjustment.",
+        "justificationRationaleMd": "Adding example bindings improves terminology guidance while preserving existing local codes and text. Because example-strength bindings do not make non-member codes invalid in base R6, the change is already compatibility-preserving for validation purposes.",
+        "backwardCompatibleAlternativeMd": "The chosen example-strength binding is already the less-disruptive alternative to required or extensible binding. No separate backward-compatible base design is needed; implementers should only ensure validators and code-generation tools do not treat example bindings as closed code lists."
+      }
+    }
+  ]
+}

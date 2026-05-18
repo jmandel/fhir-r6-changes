@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Coverage",
+  "patches": [
+    {
+      "findingId": "Coverage:ELEMENT_PRESENCE_OR_IDENTITY:Coverage.kind:8f4b31",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `kind` optional or profile-required first, but that would not fully achieve base R6 discriminator validation.",
+        "alternativeTradeoffSummary": "Less breakage would leave legacy Coverage instances unclassified and weaken insurer/paymentBy base constraints.",
+        "justificationRationaleMd": "The goal of explicitly distinguishing insurance, self-pay, and other payment arrangements is reasonable because the value drives payer conformance and billing behavior. The breakage is material because every R4 Coverage lacks `kind`, but an optional-only transition would not meet the core R6 goal of having base instances carry the discriminator needed for uniform `insurer` and `paymentBy` validation.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking design would add `kind` as optional, perhaps with best-practice warnings or profile-level requirements during a transition. That preserves R4 instances, but only partially meets the goal: base R6 Coverage could still omit the discriminator, leaving applications unable to reliably apply the insurance versus self-pay constraints."
+      }
+    },
+    {
+      "findingId": "Coverage:ELEMENT_PRESENCE_OR_IDENTITY:Coverage.payor:3dbad7",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `payor` while adding `kind`, `insurer`, and `paymentBy`, but this would duplicate payer representations.",
+        "alternativeTradeoffSummary": "Transition compatibility would reduce validation failures but preserve ambiguity and risk conflicting payer data indefinitely.",
+        "justificationRationaleMd": "The R4 `payor` element combined insurer, self-pay, and non-insurance payment concepts in one required field. Splitting those concepts is a reasonable base-model goal, and the old shape could not express `paymentBy.responsibility` or cleanly distinguish an insurance issuer from a self-pay party. Keeping the old element would have reduced immediate migration failures, but the tradeoff is substantial for a central billing field.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 design could have kept `Coverage.payor` as deprecated and added the more precise payer fields, with invariants or guidance discouraging mixed use. That alternative is only partial because it creates same-resource duplicate representations of the payer. Conflicting `payor`, `insurer`, and `paymentBy` values would create validation ambiguity, claim-routing risk, and a real chance that deprecated payer representations never disappear."
+      }
+    },
+    {
+      "findingId": "Coverage:TYPE_DOMAIN:Coverage.subscriberId:f1a6ce",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 string `subscriberId` and add a new repeating Identifier-valued element for richer subscriber identifiers.",
+        "alternativeTradeoffSummary": "Additive modeling preserves old instances but needs duplicate-field and precedence rules while the string field is deprecated.",
+        "justificationRationaleMd": "The move from a bare string to `Identifier` is semantically reasonable, but replacing a same-path primitive with a repeating complex datatype creates avoidable wire-format and generated-code breakage for a common field. The R6 goal of carrying systems, assigners, periods, and multiple subscriber identifiers could have been met by adding a new Identifier-valued element while retaining the R4 string for compatibility.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design could retain `subscriberId` as a deprecated string and add an optional repeating `subscriberIdentifier` or similarly named Identifier element. New systems could use the richer element, while R4-valid instances would remain valid. The main tradeoff is duplicate representations and the need to define how to reconcile both fields, but that is a moderate long-term cost compared with invalidating existing scalar `subscriberId` data."
+      }
+    },
+    {
+      "findingId": "Coverage:TYPE_DOMAIN:Coverage.class.value:49c0e2",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `Coverage.class.value` as the R4 string and add a separate Identifier-valued class element.",
+        "alternativeTradeoffSummary": "The alternative preserves class entries but creates duplicate class value representations and reconciliation rules.",
+        "justificationRationaleMd": "Representing class values as identifiers is a reasonable improvement, especially for group, plan, or routing values that need an assigning system. However, directly changing the same required element from string to `Identifier` breaks existing Coverage.class entries even though the richer metadata could have been added without replacing the R4 wire shape.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could keep `Coverage.class.value` as a deprecated string and add `Coverage.class.identifier` or another optional Identifier-valued child for systems that know the assigning namespace. This would preserve most R4-valid instances while meeting the goal for new data. The tradeoff is duplicate same-resource representations; implementations would need precedence rules, and deprecated string values could persist for a long time."
+      }
+    },
+    {
+      "findingId": "Coverage:CARDINALITY:Coverage.costToBeneficiary.value:2e6a58",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable because this is a forward-compatible cardinality loosening plus optional R6 content, not an R4-to-R6 validation break.",
+        "alternativeTradeoffSummary": "The cost is R6-to-R4 downgrade loss for value-less benefit dimensions, not breakage of R4 instances moving forward.",
+        "justificationRationaleMd": "Lowering `value[x]` from 1..1 to 0..1 preserves R4 cost-to-beneficiary entries and lets R6 represent benefit category, network, unit, and term details before an amount is known. The resulting incompatibility is primarily reverse conversion: an R6 value-less cost component cannot be represented in base R4 without extensions or loss.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base R6 alternative is needed for R4-to-R6 compatibility because existing R4 instances remain valid for this aspect. Keeping `value[x]` mandatory would improve downgrade symmetry but would block the R6 expressiveness goal rather than preserve additional R4 data."
+      }
+    },
+    {
+      "findingId": "Coverage:SEMANTIC_OR_CONFORMANCE_TEXT:Coverage.status:b7e942",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable because the change is a semantic clarification and optional `statusReason` addition, not a breaking R4-to-R6 base-design change.",
+        "alternativeTradeoffSummary": "The only material tradeoff is possible R6-to-R4 loss of optional `statusReason`; R4 status instances remain valid.",
+        "justificationRationaleMd": "The R6 text clarifies that `Coverage.status` is resource lifecycle status rather than proof that the policy is currently in force, while preserving the required code shape and apparent code set. This clarification is safety-positive and does not invalidate R4 instances. Optional `statusReason` adds R6 expressiveness without forcing old data to change.",
+        "backwardCompatibleAlternativeMd": "Because the primary change is clarifying text plus optional content, a less-breaking base design is not applicable. Downgrade systems may carry `statusReason` in an extension, but that is an R6-to-R4 mitigation rather than a backward-compatible alternative to a breaking R6 base design."
+      }
+    },
+    {
+      "findingId": "Coverage:CONVERSION_OR_MAPPING:Coverage.optional-r6-fields:0a91fd",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable because these are optional R6 additions and pure R6-to-R4 representability concerns.",
+        "alternativeTradeoffSummary": "Core optional elements improve R6 consistency and discoverability but require extensions or loss when downgrading to R4.",
+        "justificationRationaleMd": "Adding optional fields for status reason, insurance plan linkage, benefit dimensions, and payment responsibility does not break R4 instances migrating to R6. The goal of representing common Coverage details in the core R6 model is reasonable, and the incompatibility described by this finding is the expected lossiness of converting richer R6 content back to R4.",
+        "backwardCompatibleAlternativeMd": "Using only extensions for these concepts would make R6-to-R4 round-tripping more uniform, but it is not a backward-compatible alternative to an R4-to-R6 break because there is no such break here. Extension/backport strategies remain downgrade mitigations, while optional core elements are already forward-compatible for R4 data."
+      }
+    }
+  ]
+}

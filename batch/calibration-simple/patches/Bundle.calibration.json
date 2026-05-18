@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Bundle",
+  "patches": [
+    {
+      "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.entry.fullUrl:bdl15",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make the fullUrl requirement a base warning or best-practice rule rather than an error-level invariant.",
+        "alternativeTradeoffSummary": "This would preserve legacy Bundles, but generic R6 processors could not rely on entries being addressable or referenceable.",
+        "justificationRationaleMd": "The goal is reasonable because non-transaction Bundle entries often need stable identity for references, deduplication, and interpretation, and R4 prose already pointed in this direction. The breakage is still real for R4 instances that relied on the lack of computable enforcement, but making the rule an R6 error is probably justified by the interoperability value of a predictable `fullUrl`.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have kept the same element shape and expressed bdl-15 as a warning, best-practice invariant, or profile requirement. That would preserve old instances with missing `entry.fullUrl`, but it would not meet the stronger base goal that ordinary R6 Bundles are self-addressable without profile-specific knowledge."
+      }
+    },
+    {
+      "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.link:self:bdl18",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a warning or best-practice invariant for searchset self links instead of a base error.",
+        "alternativeTradeoffSummary": "The warning path would accept minimal R4 searchsets, but clients still could not assume a repeatable search URL is present.",
+        "justificationRationaleMd": "Requiring a searchset self link supports paging, cache keys, auditability, and interpretation of the returned matches. The inferred goal is reasonable, and the base invariant is probably justified because the affected shape is straightforward to populate and R4 can already represent it.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have retained R4 validity by making `relation = self` a conformance warning or profile-level rule. That alternative covers compatibility, but only partially satisfies the R6 goal because generic clients would still need fallback behavior for searchsets whose origin query is absent."
+      }
+    },
+    {
+      "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.entry:method-resource-consistency:bdl3b3c14",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Stage the method/body consistency rules as warnings or profile requirements before making them base errors.",
+        "alternativeTradeoffSummary": "Compatibility would improve for legacy logs and mechanically generated Bundles, but REST method semantics would remain ambiguous in base R6.",
+        "justificationRationaleMd": "The R6 constraints encode core REST expectations: request bodies belong with POST, PUT, and PATCH, and history entries should not use PATCH. The break can affect lax R4 transaction, batch, or history Bundles, but the stricter base rule is probably justified because accepting contradictory method/body combinations creates interoperability and processing ambiguity.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 design could have preserved R4 acceptance and surfaced the new method/body rules as warnings or profile requirements. That is only a partial alternative because it would leave base R6 processors unable to treat transaction, batch, and history entries as having consistent operational semantics."
+      }
+    },
+    {
+      "findingId": "Bundle:TYPE_DOMAIN:Bundle.entry.response.outcome:operationoutcome-profile",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the broad Resource type and rely on prose, warning validation, or profiles to prefer OperationOutcome.",
+        "alternativeTradeoffSummary": "That would preserve structurally valid but semantically inconsistent R4 instances while weakening computable type safety.",
+        "justificationRationaleMd": "The R4 definition already described this slot as an OperationOutcome, so the broad `Resource` type allowed content that contradicted the element's own stated meaning. The partial alternative would avoid strict validation failures, but it would fail the core R6 goal of making the intended OperationOutcome restriction computable and reliable for validators and generated models.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have left `entry.response.outcome` as unprofiled `Resource` and added warning-level validation or profile guidance. That is only a partial alternative: it keeps legacy payloads valid, but it perpetuates an indefinitely broad same-resource representation where generic R6 tooling cannot know that the outcome is actually an OperationOutcome."
+      }
+    },
+    {
+      "findingId": "Bundle:TYPE_DOMAIN:Bundle.link.relation:code-iana",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the string shape and use a preferred or extensible IANA binding or warning instead of a required code binding.",
+        "alternativeTradeoffSummary": "This would preserve private relation values, but generic R6 clients would lose the guarantee of registered, interoperable link semantics.",
+        "justificationRationaleMd": "Formalizing link relations as coded IANA values is a reasonable interoperability goal, especially because R4 already pointed implementers to the IANA registry. The required binding and primitive narrowing are breaking for private or malformed relation strings, but the stronger base validation is probably justified by the value of predictable link semantics.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `relation` as `string`, or used a weaker binding, while documenting that registered IANA values are preferred. That alternative is incomplete because it keeps arbitrary same-field values in circulation and forces clients to keep handling unregistered relation names indefinitely."
+      }
+    },
+    {
+      "findingId": "Bundle:ELEMENT_PRESENCE_OR_IDENTITY:Bundle.issues:added",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because Bundle.issues is an optional R6 addition.",
+        "alternativeTradeoffSummary": "R6-to-R4 exchange still needs an extension, outcome-entry mapping, or documented loss, but those are conversion mitigations rather than base-design alternatives.",
+        "justificationRationaleMd": "`Bundle.issues` gives R6 a clear bundle-level OperationOutcome channel without invalidating R4 Bundles that omit it. The constraints on the new element affect new R6 content, not legacy R4 instance validity, so the R6 design is justified as an additive base feature.",
+        "backwardCompatibleAlternativeMd": "Because this is not a breaking R4-to-R6 base-design change, backward-compatible alternative availability is not applicable. Continuing to use search outcome entries or defining a cross-version extension can help R6-to-R4 conversion, but those approaches do not make the optional R6 addition less breaking for R4 instances because there is no R4-to-R6 break to avoid."
+      }
+    },
+    {
+      "findingId": "Bundle:TERMINOLOGY_BINDING:Bundle.type:subscription-notification",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because adding a Bundle.type code widens R6 and preserves existing R4 codes.",
+        "alternativeTradeoffSummary": "Older systems may need enum and down-conversion handling, but a profile or extension fallback would mainly be an R6-to-R4 mitigation.",
+        "justificationRationaleMd": "The new `subscription-notification` code creates first-class semantics and enables a computable first-entry SubscriptionStatus rule. Existing R4 Bundle.type codes remain valid in R6, so this is not a hard R4-to-R6 base break even though it creates runtime enum and R6-to-R4 representability work.",
+        "backwardCompatibleAlternativeMd": "Using an extension or profile on an existing Bundle.type would not be a less-breaking alternative for R4-to-R6 validity, because existing R4 instances are already preserved. It would instead make the new R6 semantics less visible to generic processors while only helping older-version exchange."
+      }
+    },
+    {
+      "findingId": "Bundle:SEMANTIC_OR_CONFORMANCE_TEXT:Bundle.entry.resource:parameters-context",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use softer guidance, warning validation, or profile-specific rules for standalone Parameters entries.",
+        "alternativeTradeoffSummary": "Softer guidance would preserve legacy contextual edge cases, but it would not reliably prevent context-free Parameters entries in base R6.",
+        "justificationRationaleMd": "Preventing context-free Parameters resources is a plausible goal, but the available inputs show only a prose change and no official rationale or computable invariant. That makes it unclear how strongly the new text is intended to be enforced and whether the resulting compatibility impact is proportional.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained the R4 text and added non-normative guidance, warning validation, or profile rules for Bundles where standalone Parameters entries are unsafe. That is only a partial alternative because it would reduce disruption but would also leave the base resource ambiguous about when a Parameters entry has enough context to be meaningful."
+      }
+    }
+  ]
+}

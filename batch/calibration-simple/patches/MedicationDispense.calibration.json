@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MedicationDispense",
+  "patches": [
+    {
+      "findingId": "MedicationDispense:ELEMENT_PRESENCE_OR_IDENTITY:MedicationDispense.medication:1f0a6b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain R4 `medication[x]` as deprecated while adding or preferring an R6 CodeableReference representation.",
+        "alternativeTradeoffSummary": "Preserves code-only and reference-only R4 instances, but creates duplicate mandatory medication identity paths and needs rules for paired concept/reference values.",
+        "justificationRationaleMd": "Adopting `CodeableReference` for medication identity is a coherent R6 modeling goal because it normalizes coded and referenced medication identity in one container. A less-breaking design exists, but it would leave overlapping same-resource representations for a required, safety-relevant fact, so the breaking design is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative could keep the R4 `medication[x]` choice valid, possibly deprecated, and add a new CodeableReference path for R6 content. That would preserve existing R4 wire format for code-only and reference-only instances, but systems would need precedence and consistency rules if old and new medication fields were both populated, and the old choice form cannot natively preserve a single item that carries both a concept and a reference."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:CARDINALITY:MedicationDispense.subject:7aa091",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep base `subject` optional and require or warn on it through profiles, best-practice guidance, or jurisdictional rules.",
+        "alternativeTradeoffSummary": "Preserves historical records with no subject, but weakens the base guarantee that every dispense identifies its recipient.",
+        "justificationRationaleMd": "The goal of ensuring a patient or group recipient is clinically and operationally strong, especially for safety, privacy, and attribution. A profile-level or warning-based alternative would avoid invalidating old records, but it would not deliver the same base-resource guarantee, so the break is probably justified despite the migration burden.",
+        "backwardCompatibleAlternativeMd": "A partial less-breaking design would retain `subject` at `0..1` in the base resource and make recipient presence mandatory only in profiles or best-practice rules. That protects old partial or historical records, but base R6 consumers could no longer assume a dispense has recipient context, and unsafe inference of missing subjects would remain a migration risk."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:TERMINOLOGY_BINDING:MedicationDispense.status:02476b",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `stopped` as a deprecated legacy code while adding `unfulfilled` and an explicit ConceptMap.",
+        "alternativeTradeoffSummary": "Adds synonym/deprecation handling to a required value set, but avoids invalidating existing modifier-status values.",
+        "justificationRationaleMd": "The inferred goal of clearer lifecycle wording is reasonable, but the local definitions for R4 `stopped` and R6 `unfulfilled` are effectively the same. Because this is a required modifier binding, removing the old code creates validation, enum, and workflow breaks that a deprecated-code alias could have avoided with modest long-term terminology cost.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 base design could include both `stopped` and `unfulfilled` in the required value set, mark `stopped` as legacy or deprecated, and publish a ConceptMap from `stopped` to `unfulfilled`. That preserves R4-valid instances while allowing new R6 systems to prefer the clearer term; the main tradeoff is carrying a legacy synonym that terminology servers and generated enums must continue to recognize."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:ELEMENT_PRESENCE_OR_IDENTITY:MedicationDispense.notPerformedReason:6e0f21",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `statusReason[x]` compatibility aliases while adding `notPerformedReason` CodeableReference.",
+        "alternativeTradeoffSummary": "Preserves optional old reason fields, but duplicates non-performance reason semantics and needs conflict rules.",
+        "justificationRationaleMd": "The R6 goals of clearer non-performance naming and `CodeableReference` normalization are reasonable. Keeping the R4 choice names would reduce wire breakage, but it would leave duplicate paths for the same reason and still would not cleanly represent a paired concept and DetectedIssue reference in the old choice shape.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative could keep `statusReasonCodeableConcept` and `statusReasonReference` as deprecated aliases while introducing `notPerformedReason`. That would preserve R4 instances that use this optional element, but R6 validators and applications would need mutual-exclusion, precedence, or equivalence rules when both old and new forms appear, and old clients could not represent a single CodeableReference with both children."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:REFERENCE_TARGET:MedicationDispense.encounter:acb9d0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `context` for R4 Encounter/EpisodeOfCare references while adding or preferring `encounter`.",
+        "alternativeTradeoffSummary": "Preserves old context data, but keeps broad EpisodeOfCare/context semantics alongside the narrower encounter-specific path.",
+        "justificationRationaleMd": "Clarifying this relationship as an encounter-specific link is a reasonable R6 cleanup, and the target removal is a real semantic narrowing. A compatibility field could preserve old instances, but it would only partially meet the R6 goal because consumers would have to reconcile `context` and `encounter`, and EpisodeOfCare context semantics could persist indefinitely.",
+        "backwardCompatibleAlternativeMd": "A partial less-breaking design could retain `context` as a deprecated compatibility element with Encounter and EpisodeOfCare targets, while directing new R6 content to `encounter` and using a separate element or extension if EpisodeOfCare remains important. This preserves R4 data but creates overlapping Encounter carriers and leaves broad contextual references in a resource that R6 appears to be narrowing to encounter context."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:ELEMENT_PRESENCE_OR_IDENTITY:MedicationDispense.detectedIssue:52f15d",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain optional `detectedIssue` as a deprecated broad safety/audit link while adding `notPerformedReason`.",
+        "alternativeTradeoffSummary": "Keeps a legacy DetectedIssue relationship with some overlap, but avoids losing safety-relevant issue links.",
+        "justificationRationaleMd": "The supplied computable evidence does not show an exact R6 replacement for completed-dispense or broader clinical issue links. `notPerformedReason` can reference DetectedIssue only for non-performance rationale, so removal of the optional R4 relationship appears avoidable unless an external rationale shows the broader relationship was intentionally unsafe or redundant.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `MedicationDispense.detectedIssue` at `0..*`, mark it deprecated if needed, and add `notPerformedReason` for the narrower non-performance use case. That preserves R4 safety and audit data with manageable overlap; applications can distinguish detected issues associated with the dispense from reasons the dispense was not performed."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:TYPE_DOMAIN:MedicationDispense.dosageInstruction:bc17c8",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain repeating R4 `dosageInstruction` Dosage during transition and add a separate DosageDetails representation.",
+        "alternativeTradeoffSummary": "Preserves old dosage arrays, but creates duplicate clinically sensitive dosage models with merge and precedence ambiguity.",
+        "justificationRationaleMd": "Moving to `DosageDetails` is a substantial modeling change that can represent a rendered course and structured steps, so the goal is reasonable. The less-breaking alternative would preserve old data, but dosage instructions are safety-critical and duplicate same-resource dosage models could conflict, so the breaking normalization is probably justified though not proven by an official rationale.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative could retain the R4 repeating `Dosage` element and add a new optional `DosageDetails` element for richer R6 courses. This would cover common R4 instances and avoid the array-to-object break, but implementers would need rules for whether Dosage or DosageDetails controls when both are present, how to merge multiple Dosage entries into one rendered course, and how to prevent deprecated dosage representations from persisting indefinitely."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:CARDINALITY:MedicationDispense.substitution.responsibleParty:fae80c",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Add Organization as a target while retaining max `*`, with profiles or guidance for single-primary use cases.",
+        "alternativeTradeoffSummary": "Preserves rare multi-party R4 data, but weakens base enforcement that exactly one party has primary substitution responsibility.",
+        "justificationRationaleMd": "Adding Organization is a reasonable expressiveness improvement and could have been done without reducing cardinality. The R4 definition already described primary responsibility despite repeatability, so the supplied evidence does not show that invalidating multiple responsible parties was necessary in the base resource.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `responsibleParty` repeatable, add Organization to the target list, and clarify that profiles or business rules should identify a single primary party when required. This preserves all R4 instances and meets the organization-responsibility goal; the tradeoff is continued ambiguity for uncommon cases with multiple parties, but that is a moderate interoperability cost rather than an unavoidable base break."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:CONVERSION_OR_MAPPING:MedicationDispense.category:db4295",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; R6 widens category cardinality and weakens the binding, so R4 category instances remain valid in the R4-to-R6 direction.",
+        "alternativeTradeoffSummary": "No R4-to-R6 base-design break; R6-to-R4 conversion must select, constrain, or preserve extra categories.",
+        "justificationRationaleMd": "Allowing multiple category axes is a plausible R6 goal, and the change does not invalidate R4 singleton category data. The R6 comment indicates the terminology may still be revisited, so the goal is only probably justified, but the backward-compatible alternative question does not apply to preserving R4 instance validity.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R6 base design is needed for R4-to-R6 compatibility because the element is widened. R4-facing exchange may need profiles, prioritization rules, or extensions to handle multiple or broader R6 categories, but those are down-conversion mitigations rather than base R6 alternatives."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:REFERENCE_TARGET:MedicationDispense.reference-widening:ed4462",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; added reference targets preserve existing R4-valid references in the R4-to-R6 direction.",
+        "alternativeTradeoffSummary": "No old-instance break; R6-to-R4 exchange must constrain or map newly allowed target types.",
+        "justificationRationaleMd": "The added targets support broader real-world dispense triggers, performers, and receivers, and target widening does not make R4 instances invalid in R6. Under the calibration rules this is a down-conversion and profiling concern, not a breaking R4-to-R6 base-design issue.",
+        "backwardCompatibleAlternativeMd": "Avoiding the target widening would reduce R6 expressiveness rather than preserve old R4 instance validity. R4-facing profiles, extensions, or conversion rules can handle newly allowed target types, but those are migration mitigations rather than less-breaking base R6 designs."
+      }
+    },
+    {
+      "findingId": "MedicationDispense:ELEMENT_PRESENCE_OR_IDENTITY:MedicationDispense.new-r6-elements:92c3ee",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; the new fields are optional R6 additions and do not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "No R4-to-R6 break; downgrade to R4 needs extensions or explicit data-loss handling for populated new fields.",
+        "justificationRationaleMd": "The added workflow and packaging details fill plausible R6 modeling gaps, and because they are optional additions they are the least disruptive base-resource evolution pattern for R4-to-R6 compatibility.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed to preserve old instances. If R6 content must be sent to R4 systems, extensions or implementation-guide mappings may preserve `basedOn`, `statusChanged`, `fillNumber`, `recorded`, and `doseAdministrationAid`, but those are R6-to-R4 mitigation strategies rather than backward-compatible base alternatives."
+      }
+    }
+  ]
+}

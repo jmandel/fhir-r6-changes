@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "ClaimResponse",
+  "patches": [
+    {
+      "findingId": "ClaimResponse:ELEMENT_PRESENCE_OR_IDENTITY:ClaimResponse.patient:2c2b8f",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the required `patient` path, broaden its target to `Patient|Group`, and update its definition/aliases to recipient or subject semantics.",
+        "alternativeTradeoffSummary": "This would preserve R4 instances with low validation cost; the main tradeoff is a misleading legacy element name and weaker consistency with subject-named resources.",
+        "justificationRationaleMd": "Generalizing the ClaimResponse recipient to include `Group` is a reasonable R6 goal. The hard break comes from renaming a required element that already represented the recipient. Because the same recipient generalization could have been achieved by keeping the R4 path and broadening the target, the breaking rename looks probably avoidable rather than necessary.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would keep `ClaimResponse.patient` as `1..1`, widen its allowed target profiles to `Patient` and `Group`, and clarify in the definition that the element identifies the recipient/subject. That preserves existing R4 instances and supports group recipients. The cost is living with a nonoptimal field name for group cases; adding a new parallel `subject` field would introduce duplicate recipient representations, but simple target widening avoids that duplication."
+      }
+    },
+    {
+      "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.item.adjudication.value:8a733d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated decimal `value` while adding optional `quantity` for richer unit-bearing adjudication values.",
+        "alternativeTradeoffSummary": "A dual-field transition would preserve old instances but create duplicate representations and require precedence/conflict rules when both fields appear.",
+        "justificationRationaleMd": "Using `Quantity` for non-monetary adjudication values is a reasonable modeling improvement because percentages, counts, and unit-bearing values are safer when units can be carried explicitly. A less-breaking overlap was possible, but it would materially complicate validation and interpretation of financial adjudication data.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained `item.adjudication.value` as a deprecated decimal and added `item.adjudication.quantity`, perhaps with an invariant discouraging both. That would let R4 instances validate while enabling richer R6 data. The tradeoff is long-lived duplicate representations of the same adjudication fact, ambiguity about whether `80` means 80 percent or another unitless quantity, and implementation burden for conflict handling across all reused adjudication backbones."
+      }
+    },
+    {
+      "findingId": "ClaimResponse:SERIALIZATION_OR_CODEGEN:ClaimResponse.addItem.bodySite:673c7e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add the new repeated detailed body-site backbone while retaining deprecated flat `bodySite` and `subSite` aliases.",
+        "alternativeTradeoffSummary": "Keeping both shapes would preserve old data but create duplicated anatomical-location semantics, precedence questions, and possible loss of site/sub-site grouping discipline.",
+        "justificationRationaleMd": "The R6 remodel addresses real R4 limitations: one flat body site, sibling sub-sites not structurally tied to a site, and no native `BodyStructure` reference. A compatibility-preserving overlap was possible, but the duplicate same-resource location model would be materially ambiguous and costly to keep interoperable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have preserved the R4 flat `addItem.bodySite` and `addItem.subSite` fields and added a new detailed repeating structure for multiple sites, grouped sub-sites, and `BodyStructure` references. That would avoid invalidating old instances. The cost is two ways to express the same anatomical fact, unclear precedence when both are populated, and a high risk that deprecated flat fields remain indefinitely."
+      }
+    },
+    {
+      "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.processNote.type:b6ec0a",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated primitive `type` and add a parallel CodeableConcept element for richer note-purpose coding.",
+        "alternativeTradeoffSummary": "The overlap would preserve R4 note codes but create duplicate note-purpose fields and require rules for precedence and down-conversion.",
+        "justificationRationaleMd": "Moving note purpose from a primitive code to `CodeableConcept` is a reasonable way to support coded systems, display text, translations, and extensions. The old primitive cannot carry that richer metadata. A less-breaking additive approach exists, but it has material duplicate-representation and conflict-resolution costs.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `processNote.type` as the deprecated primitive code and added a new optional `processNote.typeCodeableConcept` or equivalent. R4 instances with `type: \"print\"` would remain valid, while richer R6 coding could use the new element. The tradeoff is two same-resource note-purpose representations, ambiguity when both are present, and extra converter logic to select a single R4 code."
+      }
+    },
+    {
+      "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.processNote.text:c4a320",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `processNote.text` as `string` and update the definition/comment to say markdown syntax is permitted.",
+        "alternativeTradeoffSummary": "This preserves wire and generated-type compatibility; the tradeoff is losing a computable datatype signal that renderers and validators can use to recognize markdown.",
+        "justificationRationaleMd": "Formatted explanatory notes are a reasonable goal, and this change is not a hard JSON instance break because both primitives serialize as strings. However, the formal type replacement still creates type-aware codegen and rendering churn. The same practical goal could mostly be met by retaining `string` and clarifying markdown usage, so the break is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would keep the R4 `string` type and add normative text that the value may contain GitHub-flavored Markdown. Existing instances and generated string properties would continue to work, while systems that want formatted display could opt in based on the definition. The cost is weaker machine-readable signaling: validators and generic renderers could not infer markdown handling solely from the primitive type."
+      }
+    },
+    {
+      "findingId": "ClaimResponse:TERMINOLOGY_BINDING:ClaimResponse.processNote.language:225ed1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep a preferred or extensible language binding and add best-practice guidance or warning-level validation for BCP-47 tags.",
+        "alternativeTradeoffSummary": "This would preserve legacy local language codes but would not provide enforceable base-resource interoperability for process-note language tagging.",
+        "justificationRationaleMd": "Requiring BCP-47 language tags is a reasonable interoperability goal, and R6 uses the broad all-languages value set rather than only common languages. The less-breaking alternative would tolerate local or informal codes, but that materially weakens the goal of reliably machine-readable language tags for human-facing adjudication notes.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept the R4 preferred binding and added guidance or a warning invariant recommending `urn:ietf:bcp:47` codings. That would preserve R4 instances that used local language systems. It is only a partial alternative because systems could still exchange process notes whose language is not enforceably BCP-47, undermining display, translation, and accessibility workflows."
+      }
+    },
+    {
+      "findingId": "ClaimResponse:CARDINALITY:required-elements-relaxed:9d56c1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: lowering minimum cardinalities preserves R4-to-R6 instances; the issue is R6-to-R4 representability when R6 omits fields R4 required.",
+        "alternativeTradeoffSummary": "Relaxed base cardinalities create reverse-conversion gaps, but retaining R4 minimums would fail the inferred goal of allowing partial, queued, or incomplete base R6 responses.",
+        "justificationRationaleMd": "This is not a breaking R4-to-R6 base-design issue: R4 instances that populated the required fields remain compatible on these cardinalities. The change creates important R6-to-R4 gaps, but if R6 intends the base resource to admit partial or not-yet-fully-adjudicated responses, decreasing the base minimums is the direct way to do that.",
+        "backwardCompatibleAlternativeMd": "There is no R4-to-R6 backward-compatible alternative to assess for this finding. Keeping the R4 `1..1` or `1..*` minimums would improve reverse conversion but would prevent valid base R6 instances from omitting insurer, adjudication, or product/service data. Profiles cannot generally relax a stricter base minimum, so profile guidance would not meet the same base-resource goal."
+      }
+    },
+    {
+      "findingId": "ClaimResponse:CONVERSION_OR_MAPPING:r6-added-content:0c88a4",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: these are additive optional R6 elements, so they do not make R4-valid instances invalid in R6.",
+        "alternativeTradeoffSummary": "Optional additions are forward-compatible; R6-to-R4 export still needs extensions, loss policy, or rejection for data that R4 cannot represent natively.",
+        "justificationRationaleMd": "Adding optional elements is the normal backwards-compatible way for the base R6 resource to express information that R4 lacked. The migration problem is reverse conversion and information preservation, not avoidable R4-to-R6 instance breakage.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed for the R4-to-R6 direction because omitting these optional fields remains valid. Declining to add them would fail the R6 goal of representing trace, decision, review, supporting-info, request-link, tax, and error-expression data. Cross-version extensions are appropriate R6-to-R4 mitigations, but they are not a base-design alternative."
+      }
+    },
+    {
+      "findingId": "ClaimResponse:TERMINOLOGY_BINDING:ClaimResponse.outcome:1f093b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the primitive outcome code values appear stable, so this is terminology metadata/runtime churn rather than an R4-to-R6 instance break.",
+        "alternativeTradeoffSummary": "The canonical rename can affect terminology caches, generated enum metadata, and documentation; ConceptMaps or aliases would mitigate migration but are not less-breaking base field designs.",
+        "justificationRationaleMd": "Renaming the binding from remittance-outcome to claim-outcome is plausibly clearer for ClaimResponse, and the inspected primitive codes remain `queued`, `complete`, `error`, and `partial`. Because instances carry only the code string, the base JSON compatibility impact is low; the main concern is terminology tooling and generated metadata.",
+        "backwardCompatibleAlternativeMd": "Keeping the old value set canonical would avoid metadata churn but would not accomplish the terminology rename. An official ConceptMap, alias, or terminology migration note would be useful mitigation for validators and code generators, but that is support metadata rather than a less-breaking base R6 design for the element itself."
+      }
+    }
+  ]
+}

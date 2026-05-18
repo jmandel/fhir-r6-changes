@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "AppointmentResponse",
+  "patches": [
+    {
+      "findingId": "AppointmentResponse:TERMINOLOGY_BINDING:AppointmentResponse.participantStatus:9b8d2c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 retains all R4 participantStatus codes and only adds entered-in-error.",
+        "alternativeTradeoffSummary": "No R4-valid status is rejected; the remaining costs are closed-enum/runtime handling and lossy R6-to-R4 conversion for the new modifier code.",
+        "justificationRationaleMd": "The inferred goal is reasonable: AppointmentResponse needed a standard way to mark a response as entered in error, and the R4 element text already hinted at that modifier meaning even though the R4 value set lacked the code. Because R6 preserves the old required codes, this is not a breaking R4-to-R6 base-design issue; the material breakage is for R6-to-R4 conversion and systems with closed status enums.",
+        "backwardCompatibleAlternativeMd": "An R4 extension or conversion policy for `entered-in-error` is a mitigation, not a less-breaking R6 base design. Keeping the new invalidation state outside the base required status would preserve more R6-to-R4 compatibility but would make a safety-relevant modifier state less discoverable and less uniformly handled. Since all R4 codes remain valid in R6, `backwardCompatibleAlternativeAvailable` is best classified as `Not applicable`."
+      }
+    },
+    {
+      "findingId": "AppointmentResponse:REFERENCE_TARGET:AppointmentResponse.actor:1a7f3e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding Group is a target-domain widening that keeps every R4 actor target.",
+        "alternativeTradeoffSummary": "No R4 actor reference becomes invalid; the tradeoff is R6-to-R4 loss and codegen/runtime updates for clients with closed reference-target unions.",
+        "justificationRationaleMd": "Supporting group participation in scheduling responses is a plausible R6 goal, and the base change was made by widening the target list rather than replacing old targets. That preserves R4-valid instances, so the issue is not a less-breaking R4-to-R6 design question, even though R6 `Group` actors need explicit handling by R4 converters and generated clients.",
+        "backwardCompatibleAlternativeMd": "Using an extension for group actors would be a backport or down-conversion mitigation rather than a backward-compatible R6 base alternative. The R6 base design already keeps the old target profiles, and native `Group` support gives generic clients a computable target that an extension-only approach would not."
+      }
+    },
+    {
+      "findingId": "AppointmentResponse:TYPE_DOMAIN:AppointmentResponse.comment:6f0a21",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `comment` as `string` with clearer prose allowing Markdown, or add a parallel markdown comment while deprecating the old string field.",
+        "alternativeTradeoffSummary": "Keeping only `string` loses a computable Markdown rendering signal; adding a parallel same-resource field creates duplicate comment representations that may conflict or never disappear.",
+        "justificationRationaleMd": "The goal of supporting richer human-facing explanatory text is reasonable, and `markdown` is still represented as a JSON string. The breakage is therefore mostly codegen, validator, and display-policy churn rather than ordinary instance invalidation. A less-breaking base design exists, but it would either fail to advertise Markdown intent computably or introduce duplicate comment fields for the same information.",
+        "backwardCompatibleAlternativeMd": "The least disruptive base design would have left `AppointmentResponse.comment` as `string` and updated the definition to say Markdown syntax may be used when both systems agree. That preserves R4 wire shape and generated APIs but gives generic clients no reliable primitive-type signal for Markdown rendering or sanitization. A second `commentMarkdown`-style element would provide the signal but risks conflicting values and indefinite support for two same-resource representations."
+      }
+    },
+    {
+      "findingId": "AppointmentResponse:ELEMENT_PRESENCE_OR_IDENTITY:AppointmentResponse.proposedNewTime:d4c23b",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `proposedNewTime` is optional additive R6 content and existing R4 instances can omit it.",
+        "alternativeTradeoffSummary": "The cost is semantic inference for migrated R4 data and lossy R6-to-R4 conversion, not rejection of R4-valid instances by the R6 base resource.",
+        "justificationRationaleMd": "The inferred goal is to make counter-proposal semantics computable instead of relying on consumers to compare `start` and `end` with the referenced Appointment. Adding an optional boolean is a backward-safe base change for R4-to-R6 validation and a reasonable way to reduce ambiguity for R6 clients.",
+        "backwardCompatibleAlternativeMd": "R4 extensions or business-rule inference can mitigate cross-version exchange, but they are not less-breaking R6 base designs. Keeping only the R4 implicit start/end comparison would avoid a new field but would not meet the R6 goal of making the counter-proposal flag explicit for generic clients."
+      }
+    },
+    {
+      "findingId": "AppointmentResponse:ELEMENT_PRESENCE_OR_IDENTITY:AppointmentResponse.recurrence:ac72e9",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the recurrence fields are optional R6 additions and do not invalidate existing R4 AppointmentResponse instances.",
+        "alternativeTradeoffSummary": "Native recurrence fields create lossy R6-to-R4 cases when populated, but they do not require changing R4-valid data during R4-to-R6 migration.",
+        "justificationRationaleMd": "The R6 goal of supporting recurring appointment workflows in the base scheduling model is reasonable, and adding optional fields is a proportionate base design because it preserves R4-to-R6 structural compatibility. The serious risk is down-conversion: dropping recurrence scope can change whether a response applies to one occurrence or an entire series.",
+        "backwardCompatibleAlternativeMd": "An extension-only approach would help R4 backports but would leave recurrence behavior profile-specific and less visible to generic R6 scheduling clients. Because the R6 additions are optional and preserve R4 instances, the backward-compatible-alternative question is `Not applicable` rather than `No`."
+      }
+    },
+    {
+      "findingId": "AppointmentResponse:TERMINOLOGY_BINDING:AppointmentResponse.participantType:5e91aa",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 explicit `SPRF`, `PPRF`, and `PART` includes while adding the R6 `LOC` hierarchy and `ELOC` exclusion.",
+        "alternativeTradeoffSummary": "A broader preferred set may retain role codes R6 wanted to discourage, but it avoids removing R4-preferred concepts and does not create duplicate fields or validation ambiguity beyond ordinary extensible-binding breadth.",
+        "justificationRationaleMd": "Adding location-role coverage is a reasonable goal, but the local evidence does not show that the old explicit `SPRF`, `PPRF`, and `PART` includes had to be dropped to achieve it. Because the binding remains extensible, the current change is not a hard validation break, yet it can still affect terminology validation, auto-complete, and participant matching. The supplied compose definitions show a straightforward less-breaking value-set design, so the disruptive part is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 base value set could include the old explicit R4 concepts and add the new `LOC` descendant filter while retaining the R6 `ELOC` exclusion. That would preserve R4-preferred participant-role codes for systems that already use them and still add the new location-role coverage. The tradeoff is a less curated and possibly broader preferred value set; if HL7 intentionally de-preferred the old performer or generic participation concepts, official rationale or expansion notes would be needed to justify that choice."
+      }
+    }
+  ]
+}

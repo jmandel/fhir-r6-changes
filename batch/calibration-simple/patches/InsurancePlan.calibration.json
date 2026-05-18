@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "InsurancePlan",
+  "patches": [
+    {
+      "findingId": "InsurancePlan:ARTIFACT_IDENTITY:root:5d1b71",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 combined product/plan shape as deprecated content while adding InsuranceProduct and product references.",
+        "alternativeTradeoffSummary": "Preserves old instances but leaves duplicate product and plan representations with unclear precedence.",
+        "justificationRationaleMd": "The inferred R6 goal is reasonable: product benefits and administrative metadata can be reused across multiple plan offerings instead of being repeated in every plan. A less-breaking transition could have kept the combined R4 `InsurancePlan` shape legal, but that would materially weaken the normalized product/plan boundary and require long-lived rules for when inline product data, nested plans, and referenced `InsuranceProduct` data conflict.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have added `InsuranceProduct` and `InsurancePlan.product` while retaining the old inline product fields and `InsurancePlan.plan` backbone as deprecated transitional elements. That would preserve many R4 instances, but it is only a partial alternative because it creates parallel same-domain representations and risks the deprecated combined shape never disappearing."
+      }
+    },
+    {
+      "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.status:b74bb0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `InsurancePlan.status` as a deprecated alias while also placing product lifecycle status on `InsuranceProduct.status`.",
+        "alternativeTradeoffSummary": "Compatibility aliasing would preserve old data but creates duplicate modifier status and conflict-handling risk.",
+        "justificationRationaleMd": "Moving product lifecycle status to `InsuranceProduct.status` follows the product/plan split and is domain-coherent. The break is still significant because the R4 element was a modifier, but retaining it as a base R6 alias would require explicit agreement or precedence rules between plan-local and product-level status and could create safety-relevant ambiguity.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have kept `InsurancePlan.status` with deprecation guidance, possibly requiring it to agree with the referenced product status when both are present. That would let old R4 instances validate, but only partially solves the problem because duplicate modifier elements can conflict and consumers would need to inspect both locations."
+      }
+    },
+    {
+      "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.product-fields:cba827",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain old inline product metadata, contact, endpoint, ownership, and coverage fields on `InsurancePlan` as deprecated aliases.",
+        "alternativeTradeoffSummary": "Reduces validation breaks but keeps two sources of truth for product facts.",
+        "justificationRationaleMd": "The R6 placement is coherent because these elements describe the reusable insurance product rather than a plan-cost variant. Preserving them on `InsurancePlan` would be less disruptive, but the cost is material: product name, contacts, ownership, endpoints, and benefits could be present both inline and on `InsuranceProduct`, requiring reconciliation and making validation semantics less clear.",
+        "backwardCompatibleAlternativeMd": "A compatible base design could have allowed the removed R4 product fields to remain on `InsurancePlan` during a transition while encouraging use of `InsuranceProduct`. This would preserve many R4-valid instances, but it is only a partial alternative because duplicated product data can diverge and would burden servers and clients with precedence rules."
+      }
+    },
+    {
+      "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.plan:62296d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 `InsurancePlan.plan` backbone as deprecated or allow both nested and root-level plan representations.",
+        "alternativeTradeoffSummary": "Preserves old multi-plan resources but undermines the one-resource-per-plan model and creates mapping ambiguity.",
+        "justificationRationaleMd": "Once product information is split out, making each plan offering its own `InsurancePlan` resource is a reasonable model because it improves addressability of plan identifiers, networks, and costs. Keeping the repeatable backbone would avoid old-valid/new-invalid failures, but it would materially compromise that goal by continuing to allow several plan offerings inside one resource.",
+        "backwardCompatibleAlternativeMd": "The less-breaking design would retain `InsurancePlan.plan` as deprecated content or permit both nested `plan` data and root plan fields. That alternative covers old R4 instances, including multi-plan resources, but it is partial because it leaves ambiguous representations for the same plan facts and makes it unclear how root fields relate to repeated nested plans."
+      }
+    },
+    {
+      "findingId": "InsurancePlan:CARDINALITY:InsurancePlan.type:fc5acb",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep R4 root `type` as a repeatable product-type alias and add a new plan classification element instead of reusing and narrowing `type`.",
+        "alternativeTradeoffSummary": "Adds legacy surface and duplicates product type with `InsuranceProduct.type`, but avoids a stable path changing meaning and cardinality.",
+        "justificationRationaleMd": "The product/plan split is reasonable, but this specific path-level break was probably avoidable. R6 could have represented plan classification under a new element while leaving the existing repeatable root `type` available as deprecated product-type content. That would preserve most R4-valid instances and avoid silently treating product categories as plan tiers.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would retain `InsurancePlan.type` at `0..*` for the old product-type meaning, mark it deprecated or transitional, and introduce a distinct plan classification element such as `planType`. The tradeoff is an extra element and a product-type alias that can duplicate `InsuranceProduct.type`, but that is a moderate long-term cost compared with changing the meaning and maximum cardinality of a surviving path."
+      }
+    },
+    {
+      "findingId": "InsurancePlan:SEMANTIC_OR_CONFORMANCE_TEXT:InsurancePlan.identifier:2bb116",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a new plan identifier path or require explicit identifier typing while preserving old product identifiers separately.",
+        "alternativeTradeoffSummary": "Reduces semantic mis-migration but conflicts with normal resource identifier conventions or adds profiling burden.",
+        "justificationRationaleMd": "After R6 narrows `InsurancePlan` to a plan resource, using the root `identifier` to identify that plan is consistent with FHIR resource conventions. A less-breaking design could reduce accidental product-to-plan identifier copying, but only by keeping product identifiers on the plan resource, adding nonstandard element names, or relying on stronger identifier typing rules.",
+        "backwardCompatibleAlternativeMd": "The best alternative would add a distinct plan identifier element, such as `planIdentifier`, or require clear identifier type coding while preserving old root product identifiers as transitional content. This is only partial because it either diverges from the expectation that a resource's root `identifier` identifies the resource itself or shifts interoperability burden to profiles and coding discipline."
+      }
+    },
+    {
+      "findingId": "InsurancePlan:VALUE_CONSTRAINT:InsurancePlan.ipn-1:58a463",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable because removing the invariant is not an R4-to-R6 old-valid/new-invalid base-design break.",
+        "alternativeTradeoffSummary": "A replacement plan-identifier warning could help quality and round-trip conversion, but it would be a new R6 constraint rather than a compatibility alternative.",
+        "justificationRationaleMd": "The R4 invariant depended on `InsurancePlan.name`, which no longer exists on the R6 plan resource, and the comparable product identity rule moved to `InsuranceProduct`. Removing or relocating this constraint does not invalidate R4 instances in R6; the reported concern is mainly that some R6 plans may be hard to down-convert or reconcile without local identifiers.",
+        "backwardCompatibleAlternativeMd": "Because this is a constraint weakening and a primarily R6-to-R4 round-trip concern, backward-compatible alternative availability is not applicable. R6 could add a best-practice warning such as `identifier.exists()` for operational quality, but that would intentionally constrain new R6 content rather than preserve old R4-valid instances."
+      }
+    },
+    {
+      "findingId": "InsurancePlan:REFERENCE_TARGET:InsurancePlan.product:02afeb",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable because `InsurancePlan.product` is an optional additive R6 element and does not make R4 instances invalid.",
+        "alternativeTradeoffSummary": "Down-conversion requires dereferencing, inlining, or extensions, but those are migration mitigations rather than base-design alternatives for this additive element.",
+        "justificationRationaleMd": "The optional reference is the natural way to connect the plan resource to the product resource in the normalized R6 model. Its presence creates R6-to-R4 representability and bundling concerns, but it is not itself a breaking R4-to-R6 base-design issue because old R4 instances are not required to populate it.",
+        "backwardCompatibleAlternativeMd": "Backward-compatible alternative availability is not applicable for this finding. Keeping inline product data or using cross-version extensions may help conversion, but those alternatives relate to the broader product-field removal and down-conversion strategy, not to whether an optional new R6 reference preserves R4-valid instances."
+      }
+    }
+  ]
+}

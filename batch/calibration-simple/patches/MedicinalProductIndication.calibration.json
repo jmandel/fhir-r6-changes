@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MedicinalProductIndication",
+  "patches": [
+    {
+      "findingId": "MedicinalProductIndication:ARTIFACT_IDENTITY:root:34270e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain a deprecated `MedicinalProductIndication` base resource as a transitional parallel representation while introducing `ClinicalUseDefinition`; maps alone are migration aids, not the base alternative.",
+        "alternativeTradeoffSummary": "Preserves old resourceType and endpoint shapes, but keeps duplicate indication resource models alive and may prolong the old medicinal-product model indefinitely.",
+        "justificationRationaleMd": "The inferred goal of consolidating related clinical-use issues into `ClinicalUseDefinition` is reasonable, and the old standalone resource family would be costly to keep forever. A less-breaking base design was possible only by retaining `MedicinalProductIndication` in parallel as a deprecated resource or alias. Because that would materially undermine the single-resource consolidation and create long-lived duplicate representations, the break is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best base-design alternative would have been to keep `MedicinalProductIndication` as a deprecated R6 resource, potentially constrained to map to `ClinicalUseDefinition` indication semantics. That would preserve most R4 instances, generated classes, REST routes, and old `resourceType` dispatch. The tradeoff is significant: implementers and the specification would need to support two canonical ways to represent the same indication, and deprecated resource families often persist much longer than intended. A ConceptMap or StructureMap would help migration but is not itself a backward-compatible base resource design."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIndication:CARDINALITY:ClinicalUseDefinition.type-subject:db80be",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the required type discriminator for the merged resource, but leave `subject` optional in the base and require it through profiles or best-practice warnings.",
+        "alternativeTradeoffSummary": "Preserves subjectless R4 stubs, but weakens the R6 guarantee that every clinical-use definition is linked to what it governs.",
+        "justificationRationaleMd": "The required `type` is intrinsic to the merged `ClinicalUseDefinition` design and is not meaningfully avoidable once indications, contraindications, interactions, warnings, and undesirable effects share one resource. The `subject` minimum increase is less strictly necessary, but the goal of making every clinical-use statement self-describing and indexable is reasonable. Keeping `subject` optional would preserve old stubs at the cost of weaker baseline data quality, so the break is probably justified with a partial alternative.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 base design could have used `type` = `indication` while keeping `subject` at `0..*`, then required a subject in implementation profiles, IGs, or best-practice invariants. That would let R4 instances with no subject migrate structurally, but it would also permit base R6 records whose clinical subject is unknown, limiting search, safety review, and downstream interpretation."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIndication:SERIALIZATION_OR_CODEGEN:ClinicalUseDefinition.indication:47fd64",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated top-level aliases for indication-specific fields on `ClinicalUseDefinition` while adding the `indication` backbone.",
+        "alternativeTradeoffSummary": "Aliases ease wire compatibility but create duplicate same-resource representations that need synchronization and may never disappear.",
+        "justificationRationaleMd": "Moving indication-specific content under an `indication` backbone is a coherent consequence of the merged clinical-use resource. A less-breaking design could have retained top-level aliases, but that would duplicate the same facts both at the resource root and inside the issue-specific backbone. Given the validation and maintenance risk of divergent duplicate content, the break is probably justified.",
+        "backwardCompatibleAlternativeMd": "The best base-design alternative would be to accept legacy top-level fields such as `diseaseStatus` and `duration` as deprecated aliases on `ClinicalUseDefinition`, with invariants or mapping rules tying them to `ClinicalUseDefinition.indication.*`. This would preserve more R4 wire shape, but it would make clients support both old and new paths for the same semantics and could allow conflicting values unless validators imposed additional rules."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIndication:REFERENCE_TARGET:subject:c07d13",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Allow the old `Reference(MedicinalProduct|Medication)` form or old target as a transitional base option alongside the new `CodeableReference` subject.",
+        "alternativeTradeoffSummary": "Would preserve more R4 subjects, but carries forward removed target models and forces clients to handle old/new reference and CodeableReference variants.",
+        "justificationRationaleMd": "The R6 goal of making clinical-use subjects cover products, medications, devices, substances, procedures, and coded concepts is reasonable. R4 `Medication` references can be wrapped, but R4 `MedicinalProduct` references depend on a resource model that is no longer current. A less-breaking base design exists only partially because preserving old targets would either retain the old medicinal-product resource family or require mixed representations with material validation and implementation costs.",
+        "backwardCompatibleAlternativeMd": "A base-compatible design could have allowed a legacy `Reference(MedicinalProduct|Medication)` subject, or at least retained `MedicinalProduct` as an allowed target while adding the broader R6 `CodeableReference` target list. That would preserve more R4 instances than a migration-only map. The cost is that R6 consumers would need to support obsolete and current product models, plus concept-only `CodeableReference` subjects, in one element."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIndication:TYPE_DOMAIN:indication-clinical-descriptors:e08c18",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `CodeableConcept` descriptor fields and add optional reference-valued companions for `ObservationDefinition` instead of replacing them with `CodeableReference`.",
+        "alternativeTradeoffSummary": "Preserves simple R4 coded values, but splits one descriptor across concept/reference representations and complicates validation and client handling.",
+        "justificationRationaleMd": "The goal of allowing descriptors to be either coded concepts or references to reusable observation definitions is reasonable, and `CodeableReference` is the clean unified R6 representation. A less-breaking design could have kept the old `CodeableConcept` fields and added reference companions, but that would create parallel ways to state the same disease, status, comorbidity, or intended effect. The material ambiguity makes the existing break probably justified.",
+        "backwardCompatibleAlternativeMd": "The best alternative would preserve fields such as `diseaseSymptomProcedure` as direct `CodeableConcept` values and add optional references such as a companion observation-definition element. That would keep R4 payloads valid for common coded cases while still enabling richer reusable definitions. The tradeoff is duplicate representation: implementations would need rules for whether the concept, the reference, or both are authoritative."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIndication:TYPE_DOMAIN:duration:ee8c9d",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Add `Quantity` as a third `duration[x]` choice alongside `Range` and `string`.",
+        "alternativeTradeoffSummary": "Adds one choice type for consumers to handle, but preserves exact R4 durations losslessly while still supporting new range and text forms.",
+        "justificationRationaleMd": "The R6 goal of supporting ranges and narrative duration text is reasonable, but the supplied definitions do not show why the existing `Quantity` form had to be removed. Because R6 already uses a choice element for duration, retaining `Quantity` would have met the goal with a modest long-term cost. This specific type removal therefore looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design would define `ClinicalUseDefinition.indication.duration[x]` as `Range | string | Quantity`. Existing R4 exact durations could migrate without reinterpretation, while R6 could still represent ranges and textual windows. The main tradeoff is a broader choice domain and slightly more consumer logic, not a fundamental model conflict."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIndication:REFERENCE_TARGET:undesirableEffect:e428fd",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Support a reference-valued association to a separate undesirable-effect resource or `ClinicalUseDefinition` issue in addition to inline undesirable-effect content.",
+        "alternativeTradeoffSummary": "Preserves reusable linked effect patterns, but requires type constraints and creates linked-versus-embedded representation ambiguity.",
+        "justificationRationaleMd": "Modeling undesirable effects in the shared clinical-use framework is reasonable, and inline effect content can simplify indication-local details. However, the local inputs do not explain why the old linked-resource pattern had to disappear entirely. A reference option would be a serious but partial base alternative, so the level of breakage is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could allow `ClinicalUseDefinition.indication.undesirableEffect` to be either inline content or a reference to a separate undesirable-effect `ClinicalUseDefinition` or retained legacy undesirable-effect resource. This would better preserve R4 graphs where effects are reusable master data. The cost is material: validators would need to ensure the target really represents an undesirable effect, and clients would need to reconcile linked and embedded forms."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIndication:ELEMENT_PRESENCE_OR_IDENTITY:otherTherapy:cbb64c",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain R4 child names such as `therapyRelationshipType` and `medication[x]` with broader definitions or transitional aliases while adding current R6 target support.",
+        "alternativeTradeoffSummary": "Preserves much of the old wire shape, but leaves medication-centric naming for non-medication treatments and does not fully solve old target-resource migrations.",
+        "justificationRationaleMd": "Generalizing other-therapy content to treatments and current R6 product/substance resources is a reasonable goal. Still, the naming break itself appears only partly necessary: R6 could have lived with the older names plus clearer definitions and broader target support. Because old target resources and `CodeableReference` unification create real tradeoffs, the alternative is partial, but the extra rename break is not clearly justified by the local evidence.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `therapyRelationshipType` and `medication[x]` as deprecated or broadened fields, accepting the old `CodeableConcept` and `Reference` wire forms while adding current R6 targets or companion fields for broader treatments. This would preserve common R4 instances. The downside is a nonoptimal medication-focused name for therapies that may be substances, nutrition products, biologically derived products, or activities, plus continued handling of old target-resource families."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIndication:TYPE_DOMAIN:population:03dd01",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain inline `Population` values and add `Reference(Group)` as a transition or companion representation.",
+        "alternativeTradeoffSummary": "Preserves inline R4 population criteria, but creates two population representations and requires reconciliation rules between inline data and reusable Groups.",
+        "justificationRationaleMd": "Reusing `Group` for applicable populations is a reasonable R6 direction, especially when populations are shared across clinical-use definitions. The supplied definitions do not show why inline `Population` could not remain as a base option during transition. Because supporting both inline and referenced populations would add material ambiguity and implementation burden, the alternative is partial, but the hard replacement is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could keep `ClinicalUseDefinition.population` able to carry inline `Population` content or add a companion inline population element while also allowing `Reference(Group)`. That would preserve R4 population criteria without immediate resource materialization. The tradeoff is duplicate modeling: clients would need to understand when a Group reference supersedes, duplicates, or complements inline criteria."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIndication:FLAGS_AND_MODIFIERS:new-optional-fields:bdf092",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base alternative is applicable because these are optional R6 additions, not an R4-to-R6 breaking requirement.",
+        "alternativeTradeoffSummary": "R6-to-R4 round trips still need extensions or policy, but that is a down-conversion mitigation rather than a backward-compatible base-design alternative.",
+        "justificationRationaleMd": "Adding optional identifier, category, status, applicability, and library fields is a reasonable R6 enhancement and does not make R4 instances invalid when migrating forward. The modifier nature of `status` raises safety concerns for R6-to-R4 loss, but that is not evidence of avoidable R4-to-R6 breakage.",
+        "backwardCompatibleAlternativeMd": "Because the added fields are optional, preserving R4-valid instances does not require an alternative base design. R4 systems that need round-trip support can use extensions or companion resources for down-conversion, but those are migration/backport mitigations rather than a less-breaking R6 base model."
+      }
+    }
+  ]
+}

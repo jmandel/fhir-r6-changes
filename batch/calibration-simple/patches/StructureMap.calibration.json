@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "StructureMap",
+  "patches": [
+    {
+      "findingId": "StructureMap:TYPE_DOMAIN:group.rule.source.defaultValue:choice-to-string",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `defaultValue[x]` at least for legacy string defaults, or keep the broader R4 choice as deprecated while preferring R6 string defaults.",
+        "alternativeTradeoffSummary": "A string-only legacy choice preserves only common cases, while preserving all typed R4 defaults keeps a broad or duplicated representation that R6 was trying to simplify.",
+        "justificationRationaleMd": "The inferred goal of aligning defaults with textual StructureMap syntax is reasonable, and a scalar string default is simpler for R6 engines. The break is not completely avoidable unless R6 keeps either the R4 choice-shaped wire name or the broad R4 literal domain, both of which materially weaken that simplification.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have kept `defaultValue[x]` as a deprecated compatibility shape, possibly limiting new authoring guidance to `defaultValueString` or string-equivalent values. That would preserve many R4 maps and could preserve all R4 maps only by continuing to accept arbitrary typed defaults. The tradeoff is duplicate or over-broad same-resource representations and unresolved execution semantics for non-string typed defaults."
+      }
+    },
+    {
+      "findingId": "StructureMap:ELEMENT_PRESENCE_OR_IDENTITY:group.rule.target.contextType:removed",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `target.contextType` optional and deprecated, defaulting omitted values to `variable` while still validating legacy `type` and `variable` codes.",
+        "alternativeTradeoffSummary": "This leaves a legacy discriminator and two ways to say the common variable case, but the ambiguity is manageable and preserves R4 maps during transition.",
+        "justificationRationaleMd": "The R6 variable-oriented target context goal is understandable, but the local evidence does not show that removing the discriminator was necessary. R4 instances with `contextType='variable'` could have remained valid with deterministic normalization, and even `contextType='type'` could have been handled as a deprecated legacy semantic rather than a validation failure.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have widened `target.context` to string, made `contextType` optional, and specified that omitted `contextType` means `variable`. Existing R4 maps would continue to validate, while R6 authors could omit the field. The cost is carrying a legacy type/variable distinction and requiring engines to define how old `type` contexts are interpreted or rejected at execution time."
+      }
+    },
+    {
+      "findingId": "StructureMap:CONVERSION_OR_MAPPING:group.rule.dependent.variable:parameter",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `dependent.parameter` while retaining `dependent.variable` as a deprecated alias for simple variable-reference arguments.",
+        "alternativeTradeoffSummary": "The alias would preserve simple R4 calls but duplicate ordered argument representations and cannot express all R6 typed literal parameters.",
+        "justificationRationaleMd": "Unifying dependent group-call arguments with the target parameter model is a reasonable R6 design goal because it supports typed arguments and shared transform semantics. Keeping the old string list would reduce validation breakage for simple calls, but it would leave engines and validators with two argument models and incomplete coverage of R6's richer parameter shape.",
+        "backwardCompatibleAlternativeMd": "A compatibility design could have allowed `dependent.variable` for legacy variable names and `dependent.parameter` for the new typed parameter backbone, with an invariant preventing both forms from being mixed ambiguously. This would preserve many R4 instances, but long-term interoperability would suffer from duplicate representations and converters would still need policy for typed R6 parameters that have no R4 variable-list equivalent."
+      }
+    },
+    {
+      "findingId": "StructureMap:TERMINOLOGY_BINDING:group.typeMode:none-removed",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep code `none` in the required binding as a deprecated synonym for omitted `group.typeMode` while making the element optional.",
+        "alternativeTradeoffSummary": "There would be two representations for a non-default group, but the synonym is deterministic and has low interoperability cost.",
+        "justificationRationaleMd": "Representing the non-default case by absence is cleaner, but removing the required-binding code `none` creates a direct validation break for R4 maps. The same R6 goal could have been met by allowing omission for new content while still accepting the old explicit code as deprecated.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design is straightforward: R6 could set `group.typeMode` to 0..1 and keep `none` in the value set with a definition such as \"deprecated synonym for absence\". Validators and engines could normalize `none` to absence. The main tradeoff is that deprecated representations may persist indefinitely, but this is a small enum-level duplication rather than a conflicting data model."
+      }
+    },
+    {
+      "findingId": "StructureMap:TERMINOLOGY_BINDING:target.listMode:collate-single",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `single` while retaining `collate` as a deprecated code if its R4 execution semantics can still be supported safely.",
+        "alternativeTradeoffSummary": "Retaining `collate` preserves R4 validation but may force engines to carry retired list-assembly behavior and does not solve R6-to-R4 representation of `single`.",
+        "justificationRationaleMd": "The code-system delta is clear, but the local artifacts do not explain why `collate` had to be removed or whether `single` is intended to replace it. Because list modes affect execution, accepting both codes is not a cost-free synonym strategy, yet outright removal is not clearly justified by the available evidence.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `collate` in the required value set as deprecated and added `single` for the new behavior. That would preserve R4 maps using `collate` during R4-to-R6 validation. The alternative is only partial because engines would need to preserve or explicitly constrain old `collate` semantics, and the new `single` code would still require separate downgrade policy for R4."
+      }
+    },
+    {
+      "findingId": "StructureMap:VALUE_CONSTRAINT:source.min-max:tightened",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "No",
+        "backwardCompatibleAlternativeSummary": "No equivalent less-breaking base design was identified for enforcing valid source cardinality semantics.",
+        "alternativeTradeoffSummary": "Warning-only or permissive validation would preserve malformed R4 instances but would not guarantee executable cardinality consistency.",
+        "justificationRationaleMd": "R4 already described `source.max` as a number or `*`, and negative or inconsistent cardinalities are semantically invalid for executable map rules. R6 makes those expectations computable with an unsigned minimum and error constraints. The break mainly affects structurally accepted but nonsensical R4 content.",
+        "backwardCompatibleAlternativeMd": "The obvious less-disruptive option would be warning-only validation, but that is migration leniency rather than an equivalent base R6 design: it would continue to allow maps whose source cardinalities cannot be interpreted consistently. Keeping `integer` while adding an error invariant would still reject the same invalid negative values, so no materially less-breaking design that meets the enforcement goal was identified."
+      }
+    },
+    {
+      "findingId": "StructureMap:TYPE_DOMAIN:target.parameter.value:date-time-added",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: this is a type-domain widening that preserves R4-valid `target.parameter.value[x]` instances.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 downgrade and old-engine support for new date/time choices, not a less-breaking R4-to-R6 base-design issue.",
+        "justificationRationaleMd": "Adding date, time, and dateTime parameter literals is a reasonable expressivity improvement and does not invalidate R4 instances moving forward to R6. The reported risk is real for R6-to-R4 conversion and older runtimes, but it is not a breaking R4-to-R6 base-design change.",
+        "backwardCompatibleAlternativeMd": "Because all R4 value choices remain valid in R6, no backward-compatible alternative is needed for R4-to-R6 preservation. Encoding date/time literals as strings, using extensions, or rejecting them during downgrade are conversion strategies for R6-to-R4 interoperability, not base R6 alternatives."
+      }
+    },
+    {
+      "findingId": "StructureMap:CARDINALITY:group.rule-name:min-relaxed",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: relaxing minimum cardinalities preserves existing R4-valid groups and rules in R6.",
+        "alternativeTradeoffSummary": "The material cost is only for R6-to-R4 export and R4-era code assumptions about non-empty groups and named rules.",
+        "justificationRationaleMd": "Supporting empty groups or anonymous rules may be useful for authoring and partial map definitions, and the base change does not make any R4-valid StructureMap invalid in R6. The compatibility concern is downstream representability in R4, not avoidable R4-to-R6 breakage.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R4-to-R6 alternative applies because the change is already forward-compatible for R4 instances. Profiles, authoring constraints, or downgrade rejection rules can manage R6 maps that omit rules or names, but those are policy choices for R6-to-R4 conversion and runtime handling."
+      }
+    },
+    {
+      "findingId": "StructureMap:CONVERSION_OR_MAPPING:const:added",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `StructureMap.const` is an optional R6 addition and does not invalidate R4 StructureMap instances.",
+        "alternativeTradeoffSummary": "Inlining constants or using extensions can help R6-to-R4 conversion, but those are backport mitigations rather than less-breaking base R6 designs.",
+        "justificationRationaleMd": "A standard place for reusable constants is a reasonable R6 feature, and adding an optional element is forward-compatible for R4-to-R6 validation. The interoperability risk comes from R6 maps that depend on constants when exported to R4 or interpreted by R4-era engines.",
+        "backwardCompatibleAlternativeMd": "Backward-compatible alternative analysis is not applicable to R4-to-R6 preservation because R4 instances without `const` remain valid. R4 export can inline constants or use agreed extensions after semantic review, but those approaches do not change the fact that the base R6 addition itself is not an R4-to-R6 breaking design."
+      }
+    }
+  ]
+}

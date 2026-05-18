@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "BodyStructure",
+  "patches": [
+    {
+      "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.includedStructure.structure:0d7e41",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated root `location` while adding `includedStructure` with consistency or precedence rules.",
+        "alternativeTradeoffSummary": "Preserves common single-site R4 instances, but duplicates site representation and still cannot preserve locationless R4 instances if R6 requires an included structure.",
+        "justificationRationaleMd": "The inferred goal, supporting multiple included anatomic structures with per-structure detail and an explicit included site, is reasonable. The breaking design is probably justified because the less-breaking path would be incomplete and would leave receivers reconciling a deprecated root site with the new repeating backbone indefinitely.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained `BodyStructure.location` as a deprecated alias and added `includedStructure` for richer R6 structure details. That would keep many R4 instances using a single root location valid, but it would not satisfy a strict requirement that every instance use `includedStructure.structure`, and it would create long-term duplicate same-resource representations for the same anatomical site."
+      }
+    },
+    {
+      "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.morphology:9a35b2",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep root `morphology` as a deprecated shortcut for single-included-structure cases while adding per-structure morphology.",
+        "alternativeTradeoffSummary": "Helps simple R4 instances, but becomes ambiguous for multiple structures and duplicates morphology facts across root and backbone paths.",
+        "justificationRationaleMd": "Scoping morphology to the included structure is a reasonable goal once BodyStructure can represent multiple structures. The old root element cannot unambiguously describe which structure has the morphology in richer R6 instances, so the break is probably justified despite an incomplete compatibility path.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking design would preserve root `morphology` as deprecated and define that it applies only when there is exactly one included structure or when it is consistent with all per-structure values. That preserves common R4 cases but requires conflict rules and risks deprecated root morphology becoming a permanent parallel representation."
+      }
+    },
+    {
+      "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.locationQualifier:47c68d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain root `locationQualifier` as a deprecated catch-all while adding per-structure `qualifier`, `laterality`, and landmark-orientation elements.",
+        "alternativeTradeoffSummary": "Avoids old-path rejection but leaves competing qualifier/laterality representations, unclear precedence, and safety-sensitive mapping burden.",
+        "justificationRationaleMd": "Separating laterality and landmark-relative details from a broad catch-all qualifier is a reasonable R6 goal. The less-breaking design is only partial because it preserves ambiguity and requires clinical/terminology reconciliation when the same fact can appear in both old and new locations.",
+        "backwardCompatibleAlternativeMd": "A compatibility-oriented base design could keep `BodyStructure.locationQualifier` and introduce the new structured fields as preferred destinations. This would preserve R4 instances but would not provide a clean, single representation for laterality and landmark details, and without authoritative ConceptMaps it could make receivers guess which field is authoritative."
+      }
+    },
+    {
+      "findingId": "BodyStructure:CARDINALITY:BodyStructure.patient:5fb7c4",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 backward-compatible alternative is needed because lowering `patient` minimum cardinality preserves R4-valid instances.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 conversion and nullable-runtime risk, not old-valid/new-invalid R4-to-R6 breakage.",
+        "justificationRationaleMd": "The R6 goal of allowing patientless BodyStructure instances may be reasonable, but the local inputs do not explain why the base resource needed to relax `patient`. Under the calibration rules, this is not a breaking R4-to-R6 base-design issue because R4 instances with `patient` remain valid with respect to this element.",
+        "backwardCompatibleAlternativeMd": "Keeping `patient` required would preserve the R4 guarantee, but that is not a less-breaking alternative for an R4-to-R6 validation break; there is no such break here. Local R6 profiles or R6-to-R4 transform policies can require a patient for specific workflows, but those are mitigations for down-conversion and runtime assumptions rather than base-design alternatives."
+      }
+    },
+    {
+      "findingId": "BodyStructure:TYPE_DOMAIN:BodyStructure.description:88a61b",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `description` typed as `string` and document that markdown formatting is allowed by convention.",
+        "alternativeTradeoffSummary": "Preserves instance and generated-type stability with low-to-moderate cost: tooling loses a first-class markdown signal and must rely on comments or profiles.",
+        "justificationRationaleMd": "The markdown goal is understandable, and the wire format remains a JSON string, but changing the primitive type still creates generated-code and rendering assumptions. Because the same practical goal could be met by clearer definition text while keeping the R4 type, this break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design would retain `BodyStructure.description` as `string` and state in the definition/comment that implementations may include markdown syntax. This preserves essentially all R4-valid instances and old generated models while still telling implementers how to render the field, though it gives validators and code generators a weaker semantic signal."
+      }
+    },
+    {
+      "findingId": "BodyStructure:CONVERSION_OR_MAPPING:BodyStructure.includedStructure.bodyLandmarkOrientation:dd302e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "The added R6 structure-detail elements are optional R6 content and do not create an R4-to-R6 old-valid/new-invalid break.",
+        "alternativeTradeoffSummary": "R6-to-R4 loss remains, but extension/backport or flattening strategies are conversion mitigations, not less-breaking R6 base designs.",
+        "justificationRationaleMd": "First-class included/excluded structure, landmark-orientation, spatial-reference, and per-structure image fields reasonably support richer localization use cases. Because these are optional R6 additions, the issue is chiefly down-conversion from R6 to R4 rather than avoidable R4-to-R6 base breakage.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base-design alternative is applicable under the calibration rules. Modeling these details only as extensions on an R4-shaped resource could help R6-to-R4 round-tripping, but that is an extension/backport workaround and would sacrifice the discoverability and interoperability of first-class R6 elements."
+      }
+    },
+    {
+      "findingId": "BodyStructure:TERMINOLOGY_BINDING:BodyStructure.includedStructure.morphology:1b4f70",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use transitional broader R6 example/preferred ValueSets that include legacy concepts where semantically safe; ConceptMaps alone are migration aids, not base alternatives.",
+        "alternativeTradeoffSummary": "Could ease pick-list and warning-mode compatibility, but may duplicate laterality semantics, broaden morphology/site choices, and create analytics or safety ambiguity without expansion evidence.",
+        "justificationRationaleMd": "Aligning terminology with the restructured anatomy model is plausible, and example/preferred binding strengths limit base validation breakage. However, without official rationale, SNOMED expansions, or ConceptMaps, the necessity and safety of the specific ValueSet changes cannot be fully assessed.",
+        "backwardCompatibleAlternativeMd": "The best base-design alternative would be transitional ValueSets that temporarily retain old unilateral qualifier concepts and compatible morphology/site concepts while adding the new R6 concepts. That is only a partial alternative: it does not solve structural mapping, can leave duplicate codes for the same clinical idea, and may reduce terminology precision. Publishing ConceptMaps would be helpful migration guidance but should not be counted as the backward-compatible base design itself."
+      }
+    }
+  ]
+}

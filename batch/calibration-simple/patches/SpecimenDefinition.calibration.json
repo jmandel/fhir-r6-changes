@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "SpecimenDefinition",
+  "patches": [
+    {
+      "findingId": "SpecimenDefinition:ELEMENT_PRESENCE_OR_IDENTITY:SpecimenDefinition.status:required",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `status` optional in the base resource and require it only in profiles or best-practice rules.",
+        "alternativeTradeoffSummary": "Preserves old instances but weakens uniform lifecycle computability and modifier-aware processing in base R6.",
+        "justificationRationaleMd": "The goal is reasonable: R6 treats SpecimenDefinition more like a governed definitional artifact, and a lifecycle `status` is important enough to be a modifier. However, making a new modifier mandatory means every R4 instance without lifecycle metadata is invalid until a status policy is chosen. The less-breaking option is real but only partial because optional status would not guarantee all base R6 definitions expose their usable, retired, or unknown state to generic clients.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would add `status` as `0..1`, possibly with a best-practice warning or conformance profiles requiring it for published catalogs. That would preserve R4-valid instances while giving R6 a native lifecycle field. The tradeoff is material: generic R6 tooling could not rely on every SpecimenDefinition having a modifier status, and status-dependent safety or publication decisions would remain profile- or workflow-specific."
+      }
+    },
+    {
+      "findingId": "SpecimenDefinition:CARDINALITY:SpecimenDefinition.identifier:repeat-json",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `identifier` as `0..1` and add a separate repeating base element for additional identifiers.",
+        "alternativeTradeoffSummary": "Avoids the JSON shape break but creates duplicate identifier locations, search ambiguity, and a primary/additional distinction that may not be stable.",
+        "justificationRationaleMd": "Allowing multiple identifiers for a definitional catalog artifact is a reasonable R6 goal. The direct cardinality widening is still disruptive because populated R4 JSON changes from an object to an array. A less-breaking base design exists, but it is only partial because it would split one business concept across two same-resource locations and require clients, searches, and mappings to reconcile them.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would preserve the old singleton `identifier` and add a new repeating element for alternate or additional identifiers. This would keep most R4 instances valid without reshaping JSON. The cost is significant: implementations would need rules for which identifier belongs in the legacy field, searches could miss identifiers unless they aggregate both fields, and the duplicate representation might persist indefinitely rather than converging on one clean R6 model."
+      }
+    },
+    {
+      "findingId": "SpecimenDefinition:REFERENCE_TARGET:SpecimenDefinition.typeTested.container.additive.additive-x:substance-definition",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Allow both `Reference(Substance)` and `Reference(SubstanceDefinition)` target profiles in R6.",
+        "alternativeTradeoffSummary": "Preserves R4 references with moderate model-handling cost because clients must support both substance models during transition.",
+        "justificationRationaleMd": "Using `SubstanceDefinition` is semantically coherent for a definitional specimen resource, but replacing the R4 `Substance` target creates a hard validation break for existing additive references. The same base R6 goal could largely be met by adding the definitional target without removing the old one, so the hard break appears probably avoidable.",
+        "backwardCompatibleAlternativeMd": "FHIR `Reference` elements can support multiple target profiles. R6 could have allowed both `Substance` and `SubstanceDefinition`, while documentation, examples, or profiles encouraged new definitional references. That preserves most R4-valid instances and still gives R6 a native path to the definitional model. The tradeoff is that R6 clients must handle two substance representations and migration pressure is weaker, but this is a moderate interoperability cost rather than a reason the less-breaking base design would fail."
+      }
+    },
+    {
+      "findingId": "SpecimenDefinition:CONVERSION_OR_MAPPING:SpecimenDefinition.metadata:r6-only",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: these are optional R6-only additions that do not make R4 instances invalid in R6.",
+        "alternativeTradeoffSummary": "R6-to-R4 downgrade may need extensions or sidecars, but that is a preservation mitigation rather than a less-breaking R6 base design.",
+        "justificationRationaleMd": "The goal of adding canonical and publication metadata to SpecimenDefinition is reasonable and aligns the resource with other governed definitional artifacts. Because the added elements are optional, R4 instances are preserved by absence; the compatibility concern is loss when converting richer R6 content back to native R4.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible alternative is applicable for R4-to-R6 base validation because the R6 design does not invalidate old instances. Using R4 extensions, sidecar metadata, or cross-version mappings can mitigate downgrade loss, but those are R6-to-R4 preservation strategies and should not be counted as less-breaking base R6 alternatives."
+      }
+    },
+    {
+      "findingId": "SpecimenDefinition:CONVERSION_OR_MAPPING:SpecimenDefinition.qualifiers:r6-only",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the subject, single-use, and testing-destination qualifiers are optional additions that preserve R4 instances by absence.",
+        "alternativeTradeoffSummary": "Downgrade to R4 may require extensions or external rules; that loss is not a base R4-to-R6 breaking-design issue.",
+        "justificationRationaleMd": "The added qualifiers capture plausible applicability and workflow semantics that R4 could not express natively. The exact operational need is not fully explained by the local inputs, so the verdict remains probably rather than definitively justified. Since the elements are optional, however, they do not create an old-valid/new-invalid R4-to-R6 break.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is applicable for preserving R4 instances because absence of these optional elements already preserves them. Cross-version extensions or sidecar rules may be necessary when downgrading R6 content to R4, especially for `singleUse` or testing-destination semantics, but those are mitigation strategies rather than alternate base R6 designs."
+      }
+    },
+    {
+      "findingId": "SpecimenDefinition:TYPE_DOMAIN:SpecimenDefinition.markdown-text:string-to-markdown",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the fields typed as `string` and state that markdown syntax may be used.",
+        "alternativeTradeoffSummary": "Preserves generated models and primitive type continuity but loses a formal markdown signal for generic rendering, sanitization, and tooling.",
+        "justificationRationaleMd": "The local primitive definitions show markdown remains string-valued, so ordinary R4 text is not a direct validation casualty. The break is mostly generated-model, rendering, and sanitization behavior. Richer formatting for descriptions and instructions is a reasonable goal, and a formal `markdown` type gives generic R6 clients a clear signal that plain `string` comments would not reliably provide.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would leave these elements as `string` and update definitions to permit markdown syntax. That would avoid primitive-type changes for generated code and keep R4 content naturally compatible. It is only a partial alternative because generic clients would have to inspect prose or profiles to know that markdown rendering and sanitization are expected; inconsistent handling of formatted handling instructions could then persist."
+      }
+    },
+    {
+      "findingId": "SpecimenDefinition:TERMINOLOGY_BINDING:SpecimenDefinition.typeTested.container.type:container-vs",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable for base instance compatibility because the binding remains example strength.",
+        "alternativeTradeoffSummary": "Picklist and profile impacts need expansion review; retaining both SNOMED filters would be a terminology mitigation, not a necessary base-design alternative.",
+        "justificationRationaleMd": "The package evidence confirms the SNOMED filter root changed, but without a licensed expansion or ballot rationale the correctness and concrete code impact cannot be assessed. Because the binding is still example strength, base R4 instances should not become invalid in R6 solely because of this ValueSet change.",
+        "backwardCompatibleAlternativeMd": "For downstream authoring tools or profiles that depend on the ValueSet, a compatibility include retaining both the old and new SNOMED hierarchies could reduce disruption if expansion comparison shows commonly used old concepts were removed. That is not a base R4-to-R6 compatibility alternative for this element, and it could also preserve an intentionally overbroad hierarchy."
+      }
+    }
+  ]
+}

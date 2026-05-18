@@ -1,0 +1,149 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Immunization",
+  "patches": [
+    {
+      "findingId": "Immunization:VALUE_CONSTRAINT:Immunization.statusReason:8712b5",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `statusReason` valid in the base resource for existing statuses and express the `not-done` preference through warning-level guidance or profiles.",
+        "alternativeTradeoffSummary": "Preserves historical reasons but weakens uniform base enforcement of the preferred status relationship.",
+        "justificationRationaleMd": "The goal of making `statusReason` usage more consistent is reasonable, but the error-level invariant invalidates R4 records that were structurally valid and the R6 text still mentions `entered-in-error`. With that ambiguity, the level of breakage is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained the R4 permissive element and added clearer definition text, a best-practice warning, or a profile-specific invariant for systems that require `status = 'not-done'`. That would preserve old instances while still steering new implementations toward the intended usage."
+      }
+    },
+    {
+      "findingId": "Immunization:VALUE_CONSTRAINT:Immunization.subpotentReason:6a49d6",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a warning or a looser invariant that tolerates missing `isSubpotent` when `subpotentReason` exists.",
+        "alternativeTradeoffSummary": "More tolerant validation preserves old records but leaves clinically ambiguous subpotency assertions in the base resource.",
+        "justificationRationaleMd": "The R6 goal is clinically coherent: a subpotency reason should imply that the dose was subpotent. A less strict rule would reduce migration failures, but it would also preserve the R4 ambiguity where a reason can appear while the boolean is absent or false.",
+        "backwardCompatibleAlternativeMd": "A warning-level rule, or an invariant that rejects only explicit `isSubpotent=false`, would preserve more R4 data. That alternative is incomplete because an absent flag had a potent-by-default meaning in R4, so accepting absent-plus-reason records can still be clinically misleading."
+      }
+    },
+    {
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.reason:15ffae",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated `reasonCode` and `reasonReference` while adding `reason` CodeableReference for new R6 use.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but creates duplicate same-resource representations and reconciliation rules for the same clinical reason.",
+        "justificationRationaleMd": "The CodeableReference merge is consistent with the R6 modeling direction and supports concept/reference pairing. The break is substantial, but a fully compatible transition would leave parallel reason representations that implementations may populate inconsistently.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained `reasonCode` and `reasonReference` as deprecated elements and added `reason` as the preferred representation. That would preserve R4 JSON, but systems would need rules for precedence, duplication, and whether deprecated reason fields ever disappear."
+      }
+    },
+    {
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.informationSource:bd6a55",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `reportOrigin` for coded origin and add an optional source-actor reference for the richer R6 use case.",
+        "alternativeTradeoffSummary": "Keeps a less optimal old name and two related fields, but avoids invalidating coded R4 origins and still supports actor references.",
+        "justificationRationaleMd": "The goal of representing a concrete information source is reasonable, but replacing and renaming the existing coded-origin field was not necessary to meet it. A less-breaking additive design could have preserved nearly all R4 instances with moderate long-term cost.",
+        "backwardCompatibleAlternativeMd": "A base R6 design could keep `reportOrigin` as the coded origin and add a separate optional `informationSource` reference, or similar actor field, for Patient, Practitioner, RelatedPerson, or Organization. That is less unified than CodeableReference, but it meets the source-actor goal without forcing existing `reportOrigin` data through a new JSON shape."
+      }
+    },
+    {
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.recorded:a327e7",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `recorded` as optional, possibly deprecated, while recommending Provenance or extensions for richer capture metadata.",
+        "alternativeTradeoffSummary": "Retains one legacy provenance-like field but preserves historical capture dates and old instance validity.",
+        "justificationRationaleMd": "The local inputs do not show a replacement or rationale for removing a field that can carry distinct capture-time information. If the goal was model cleanup or a shift to Provenance, immediate base removal seems more disruptive than necessary.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could keep the optional R4 `recorded` element in R6 with clearer text that Provenance is preferred for new implementations. That preserves R4 data while allowing the ecosystem to migrate away from the legacy field over time."
+      }
+    },
+    {
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.education:fb7255",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the optional `education` backbone as deprecated or add a formal replacement path before removing it.",
+        "alternativeTradeoffSummary": "Keeps jurisdiction-specific education tracking in the base model, but avoids data loss and old-instance invalidity.",
+        "justificationRationaleMd": "The removal may reflect a desire to move education evidence elsewhere, but the supplied definitions do not identify a direct replacement. Given legal and public-health uses for education documentation, immediate removal appears avoidable.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained the R4 education backbone for compatibility while documenting preferred use of DocumentReference, Communication, `supportingInformation`, or a standard extension. That would preserve existing records and let profiles narrow or deprecate the old representation."
+      }
+    },
+    {
+      "findingId": "Immunization:TYPE_DOMAIN:Immunization.programEligibility:d52f3b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the old status CodeableConcept and add optional program information, or make the new program child optional during transition.",
+        "alternativeTradeoffSummary": "Eases migration but fails to guarantee program-specific eligibility and risks multiple representations for funding status.",
+        "justificationRationaleMd": "The R6 model fixes a real ambiguity by separating the funding program from the eligibility status. Because R4 data often lacks the new required program, a completely lossless compatible upgrade is not available without weakening that semantic improvement.",
+        "backwardCompatibleAlternativeMd": "A transition design could keep the R4 CodeableConcept status and add optional funding-program data, or introduce the backbone with optional `program`. That would preserve old instances but would not ensure every R6 eligibility assertion is tied to a specific program."
+      }
+    },
+    {
+      "findingId": "Immunization:TYPE_DOMAIN:Immunization.protocolApplied.doseNumber:626a54",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `doseNumber[x]` and `seriesDoses[x]` as choices and add CodeableConcept as another allowed choice type.",
+        "alternativeTradeoffSummary": "Preserves old primitive choice JSON but leaves multiple long-term representations for dose sequencing concepts.",
+        "justificationRationaleMd": "Allowing coded dose concepts is a reasonable R6 goal, especially for boosters and jurisdiction-specific schedules. The less-breaking choice-type expansion is plausible, but it would perpetuate competing primitive and coded representations for safety-relevant forecasting data.",
+        "backwardCompatibleAlternativeMd": "R6 could have used `doseNumber[x]` and `seriesDoses[x]` with `positiveInt`, `string`, and `CodeableConcept`, optionally relaxing `doseNumber` to 0..1. That would keep R4 choice properties valid, but implementers would need normalization rules and the deprecated primitive forms might persist indefinitely."
+      }
+    },
+    {
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.reaction.manifestation:d79b18",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `reaction.detail` for Observation references and add an optional coded manifestation element for simple reactions.",
+        "alternativeTradeoffSummary": "Avoids breaking existing references but creates related reaction fields that can duplicate or diverge.",
+        "justificationRationaleMd": "The R6 name and CodeableReference shape are clinically clearer and more expressive. A less-breaking design exists, but it would split manifestation information across old and new fields and weaken the clean single-element model.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained `reaction.detail` as the Observation reference and added a coded/text manifestation field. This would preserve R4 instances and support simpler coded reactions, but it would require reconciliation when both the reference and code describe the same manifestation."
+      }
+    },
+    {
+      "findingId": "Immunization:TYPE_DOMAIN:Immunization.manufacturer:f479d6",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `manufacturer` as Reference(Organization) and add a separate optional coded/text manufacturer element.",
+        "alternativeTradeoffSummary": "Preserves R4 JSON but duplicates manufacturer representation and complicates precedence when both are present.",
+        "justificationRationaleMd": "The R6 goal of supporting manufacturers without Organization resources is reasonable. A compatible additive field could meet many cases, but it would trade the unified CodeableReference model for parallel fields representing the same manufacturer fact.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could retain the existing `manufacturer` Reference and add `manufacturerCode` or `manufacturerConcept`. That would preserve old instances and support text/coded manufacturers, but deprecated or duplicate manufacturer forms may accumulate indefinitely."
+      }
+    },
+    {
+      "findingId": "Immunization:REFERENCE_TARGET:Immunization.performer.actor:043f07",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "This is target widening that preserves all R4 performer actor targets.",
+        "alternativeTradeoffSummary": "No R4-to-R6 base-design alternative is needed; the tradeoff is only down-version export handling for new R6 target types.",
+        "justificationRationaleMd": "Adding Patient and RelatedPerson supports plausible self- or caregiver-administered immunization scenarios and does not invalidate R4 instances, because the R4 target types remain allowed.",
+        "backwardCompatibleAlternativeMd": "The reported incompatibility is an R6-to-R4 representability issue for new target types, not a breaking R4-to-R6 base-design issue. Extensions or Provenance can mitigate down-conversion, but those are export strategies rather than backward-compatible base R6 alternatives."
+      }
+    },
+    {
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.optionalAdditions:9fd463",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "The elements are optional R6 additions, so they are already forward-compatible for R4 instances.",
+        "alternativeTradeoffSummary": "The remaining cost is R6-to-R4 down-conversion policy, not avoidable R4-to-R6 breakage.",
+        "justificationRationaleMd": "Adding optional fields for administered product, authorizing requests, and supporting information is the normal least-breaking way to add R6 expressivity. It does not make old R4 Immunization instances invalid.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed for R4-to-R6 compatibility. Using only extensions would make R6 content easier to backport in some systems but would reduce base-resource discoverability and interoperability for new R6 semantics."
+      }
+    },
+    {
+      "findingId": "Immunization:TERMINOLOGY_BINDING:Immunization.terminology:e83f63",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Required status codes appear unchanged; the observed changes are example/extensible terminology and canonical updates, not a base R4-to-R6 validation break.",
+        "alternativeTradeoffSummary": "Terminology refresh can affect tooling and local profiles, but no less-breaking base design is implicated by unchanged required codes.",
+        "justificationRationaleMd": "The clinical rationale for the example ValueSet edits cannot be fully assessed without expansions or official terminology notes. However, the local evidence does not show a required-code removal that would make R4 base instances invalid in R6.",
+        "backwardCompatibleAlternativeMd": "Because this is not a breaking base-design change, `Yes` or `Partial` alternatives would overcount migration aids as design alternatives. ConceptMaps, release notes, and terminology-server guidance are useful mitigations for tooling and profiles, but they are not backward-compatible base-resource alternatives."
+      }
+    }
+  ]
+}

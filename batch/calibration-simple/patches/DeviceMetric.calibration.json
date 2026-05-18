@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "DeviceMetric",
+  "patches": [
+    {
+      "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.status:0d4f3a",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `status` optional in the base resource or require it only in transition profiles.",
+        "alternativeTradeoffSummary": "Preserves old instances, but weakens uniform lifecycle/modifier handling and leaves inactive or entered-in-error safety optional.",
+        "justificationRationaleMd": "The inferred goal is reasonable: R6 separates record lifecycle from metric operational state and gives `entered-in-error`/`inactive` explicit modifier semantics. The 1..1 base requirement is disruptive, but the safety and consistency value of every DeviceMetric carrying lifecycle status makes the break probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have added `status` as 0..1 with best-practice guidance or profile-level requiredness. That would allow unchanged R4 instances to remain valid with respect to this element, but it would not let all base R6 consumers rely on lifecycle status and would leave modifier-sensitive state absent for legacy records."
+      }
+    },
+    {
+      "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.device:7b61c0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `device` while retaining deprecated optional `source` and `parent`, or make `device` profile-required during transition.",
+        "alternativeTradeoffSummary": "Improves compatibility, but creates duplicate device associations and ambiguity when `source`, `parent`, and `device` disagree.",
+        "justificationRationaleMd": "Normalizing DeviceMetric to a single referenced Device, with hierarchy represented through `Device.parent`, is a cleaner and more interoperable base model. The mandatory replacement is still highly breaking, but the old two-reference model had role ambiguity and no guaranteed device association.",
+        "backwardCompatibleAlternativeMd": "A transitional R6 design could have retained `source` and `parent` as deprecated aliases while adding `device` plus precedence or consistency invariants. This would preserve many R4 instances, but it duplicates same-resource representations for the device relationship and risks conflicting links that implementers may support indefinitely."
+      }
+    },
+    {
+      "findingId": "DeviceMetric:TERMINOLOGY_BINDING:DeviceMetric.operationalStatus:54ce8f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `entered-in-error` as a deprecated `operationalStatus` code while using `status` for lifecycle state.",
+        "alternativeTradeoffSummary": "Preserves rare old code values, but keeps operational and record-validity meanings mixed and can conflict with modifier `status`.",
+        "justificationRationaleMd": "Moving record invalidity out of `operationalStatus` and into mandatory modifier `status` is semantically coherent. The code removal is breaking for strict terminology validation, but continuing to allow a lifecycle/error code in a non-modifier operational field would undermine the R6 separation.",
+        "backwardCompatibleAlternativeMd": "R6 could have left `entered-in-error` in the required value set as deprecated, optionally with an invariant requiring `status=entered-in-error` when used. That would reduce validation breaks but is only a partial alternative because it preserves the old semantic overload and introduces contradiction risk between two status fields."
+      }
+    },
+    {
+      "findingId": "DeviceMetric:TYPE_DOMAIN:DeviceMetric.category:19b7e1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep primitive `category` and add an optional CodeableConcept companion for richer category coding.",
+        "alternativeTradeoffSummary": "Preserves the required R4 wire shape, but creates duplicate category representations and precedence/validation ambiguity.",
+        "justificationRationaleMd": "The R6 goal of allowing richer and externally coded metric categories is reasonable, and `CodeableConcept` is the idiomatic type for that goal. Replacing a required primitive is highly disruptive, but it avoids a long-lived pair of category fields representing the same fact.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `category` as a required code and added a new optional `categoryCodeableConcept` or similar element for additional codings/text. This would preserve all R4 category instances, but implementers would need rules for reconciling two category representations and the deprecated primitive could persist indefinitely."
+      }
+    },
+    {
+      "findingId": "DeviceMetric:TERMINOLOGY_BINDING:DeviceMetric.color:3a91bd",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the optional R4 primitive `color` and add a separate richer CodeableConcept color element, while mapping old names to the shared color terminology.",
+        "alternativeTradeoffSummary": "Creates some duplicate display-color representation, but the field is optional and low-safety, so the compatibility cost appears manageable.",
+        "justificationRationaleMd": "Using a shared color terminology and supporting RGB or broader named colors is reasonable. However, because `color` is optional display metadata and the R4 eight color names map naturally into a broader color vocabulary, replacing the primitive field was probably more breaking than necessary.",
+        "backwardCompatibleAlternativeMd": "A base R6 design could have kept `DeviceMetric.color` as the R4 primitive code, marked it deprecated, and added a new optional CodeableConcept field for richer colors. That would preserve existing R4 instances and still meet the core expressivity goal. The main tradeoff is duplicate same-resource color representations, but this is a moderate interoperability cost for display preference data rather than a central clinical/device identity field."
+      }
+    },
+    {
+      "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.measurementFrequency:8fb2d4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `measurementFrequency` while retaining deprecated `measurementPeriod` for transition.",
+        "alternativeTradeoffSummary": "Preserves R4 Timing schedules, but duplicates cadence data and creates conflict/precedence rules between Timing and Quantity.",
+        "justificationRationaleMd": "Representing metric cadence as a frequency `Quantity` aligns with the R6 text and device mappings, and can be clearer for common sampling-rate use cases. The break is probably justified because a general `Timing` allows schedules that are not a single measurement frequency, but the replacement still leaves some R4 content needing review.",
+        "backwardCompatibleAlternativeMd": "R6 could have introduced `measurementFrequency` alongside the existing `measurementPeriod` and deprecated the Timing form. That would preserve R4 instances and cover complex schedules, but it is only a partial alternative because two cadence fields can disagree, simple frequency and rich Timing semantics are not equivalent, and deprecated representations may accumulate."
+      }
+    },
+    {
+      "findingId": "DeviceMetric:TYPE_DOMAIN:DeviceMetric.calibration:bd4e02",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain primitive calibration `type`/`state` codes as deprecated aliases and add optional CodeableConcept detail fields.",
+        "alternativeTradeoffSummary": "Eases migration, but duplicates calibration facts inside a repeating backbone and complicates `unspecified` versus `unknown` semantics.",
+        "justificationRationaleMd": "Richer calibration terminology is a reasonable R6 goal, and CodeableConcept with extensible binding supports local or standard calibration concepts better than primitive enums. The break is material, but avoiding parallel primitive and CodeableConcept calibration fields is a legitimate design reason.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have kept the R4 primitive `calibration.type` and `calibration.state` and added separate optional CodeableConcept fields, while deprecating `unspecified` or retaining it temporarily. This would preserve existing R4 calibration entries, but repeated calibration backbones would then have two representations for each fact and uncertain precedence when old and new codings differ."
+      }
+    },
+    {
+      "findingId": "DeviceMetric:FLAGS_AND_MODIFIERS:summary-flags:aa6e71",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep R4 summary flags stable, or introduce a separate lean summary convention instead of changing default summary membership.",
+        "alternativeTradeoffSummary": "Preserves summary clients, but keeps default summaries larger or requires extra implementation conventions for lean payloads.",
+        "justificationRationaleMd": "The computable flag change is clear, but the local inputs do not explain why color, cadence, and calibration data needed to leave summary output. Because this is a runtime/client compatibility break rather than an instance-validity necessity, the justification is not clear.",
+        "backwardCompatibleAlternativeMd": "The most compatible base design would keep the R4 `isSummary` flags and let systems that need smaller payloads use explicit element selection or a separately documented lean summary pattern. This is only a partial alternative because it does not deliver a smaller default R6 `_summary` response and may add operational variability."
+      }
+    },
+    {
+      "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.availability:6c2a44",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Optional additive R6 content is already forward-compatible for R4-to-R6 base validation.",
+        "alternativeTradeoffSummary": "No forward instance break; R6-to-R4 downgrade loses availability unless an extension or sidecar mapping is used.",
+        "justificationRationaleMd": "Adding optional `availability` is a reasonable way to represent metric continuity and does not invalidate R4 instances during R4-to-R6 migration. The compatibility issue is only that R6 instances using the new element cannot be represented in base R4 without extra machinery.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R6 base design is needed for the forward direction because the element is 0..1 and absent in migrated R4 data. For R6-to-R4 conversion, the practical mitigation is a cross-version extension or external mapping, which is a downgrade workaround rather than a backward-compatible base R6 alternative."
+      }
+    }
+  ]
+}

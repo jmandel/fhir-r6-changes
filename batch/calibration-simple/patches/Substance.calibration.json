@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Substance",
+  "patches": [
+    {
+      "findingId": "Substance:TYPE_DOMAIN:Substance.code:7f3c2a",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `Substance.code` as `CodeableConcept` and add a separate optional `SubstanceDefinition` reference.",
+        "alternativeTradeoffSummary": "Preserves R4 concept-shaped instances, but creates duplicate identity slots, consistency/precedence rules, and weaker support for reference-only identity.",
+        "justificationRationaleMd": "The inferred goal is reasonable: R6 `CodeableReference` lets the required substance identity be either a terminology concept or an exact `SubstanceDefinition` reference in one semantic slot. A less-breaking separate-reference design is plausible, but it would either require redundant coding when the reference is authoritative or add rules for reconciling two identity fields. Those are material interoperability and implementation tradeoffs, so the breaking design is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have retained `Substance.code` as the mandatory R4 `CodeableConcept` and added an optional `Substance.definition` or `Substance.codeReference` to `SubstanceDefinition`. That would keep R4 instances valid and still permit richer linkage. It is only a partial alternative because it does not cleanly support a reference-only identity without either duplicating a code or weakening the old required concept, and it would require explicit precedence and consistency rules between concept and reference."
+      }
+    },
+    {
+      "findingId": "Substance:ELEMENT_PRESENCE_OR_IDENTITY:Substance.instance:5a91bd",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `Substance.instance` 0..* while adding top-level `expiry`, `quantity`, and package-aware identifier guidance.",
+        "alternativeTradeoffSummary": "Would preserve old package groups, but duplicates package facts, complicates validation/search consistency, and lets deprecated multi-instance representations persist indefinitely.",
+        "justificationRationaleMd": "Flattening package/container details onto `Substance` is a reasonable R6 simplification goal, especially for the single-package case. Keeping the old repeatable backbone would have reduced validation breakage, but it would also preserve a competing grouped representation for the same facts and keep allowing multiple package instances inside one resource when R6 appears to model only one top-level package view. Because those tradeoffs are material, the less-breaking path is partial and the removal is probably justified, though not definitively proven by the local files alone.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `Substance.instance` as deprecated 0..* and introduced top-level `expiry` and `quantity` as the preferred R6 representation. This would preserve all R4 instances, including multi-instance records, but would force implementations to handle conflicts between `instance.expiry` and `expiry`, `instance.quantity` and `quantity`, and old grouped package identifiers versus top-level identifiers. The duplicate same-resource representations could become permanent unless the specification supplied strong invariants, search rules, and migration policy."
+      }
+    },
+    {
+      "findingId": "Substance:ELEMENT_PRESENCE_OR_IDENTITY:Substance.ingredient:0d4e8f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `Substance.ingredient` 0..* with guidance to use R6 `Ingredient` or `SubstanceDefinition` for new content.",
+        "alternativeTradeoffSummary": "Preserves inline R4 composition, but creates overlapping sources of truth with dedicated R6 ingredient/substance-definition models and a safety-relevant reconciliation burden.",
+        "justificationRationaleMd": "Moving composition and ingredient detail out of lightweight `Substance` into more specialized R6 artifacts is a reasonable model goal. Retaining the old inline backbone would avoid immediate validation failures, but it would also perpetuate two places for clinically and regulatory significant composition facts and make it harder for receivers to know which representation is authoritative. That makes the alternative only partial and supports a probably justified verdict, with residual uncertainty because the local package does not provide an official migration map.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep `Substance.ingredient` as a deprecated optional backbone while making `Ingredient` or `SubstanceDefinition.relationship` the preferred target for richer R6 data. This would preserve R4 instances, but it would not be a clean long-term design: inline ingredient quantities and external ingredient/relationship resources could diverge, validators would need conflict rules, and implementers would carry the deprecated representation indefinitely."
+      }
+    },
+    {
+      "findingId": "Substance:TYPE_DOMAIN:Substance.description:2c6ab1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base alternative is needed for R4 instance validity; ordinary R4 string values remain JSON strings and markdown specializes string.",
+        "alternativeTradeoffSummary": "Retaining `string` would avoid generated-type and rendering review, but would not provide standard markdown semantics.",
+        "justificationRationaleMd": "This is not a hard R4-to-R6 instance-design break: `markdown` is still serialized as a string primitive and is a specialization of `string`, so ordinary R4 `description` values remain representable. The main risks are generated type churn, UI rendering, escaping, and sanitization. The goal of allowing formatted descriptive notes is reasonable, and the compatibility impact is modest, so the change is probably justified and `backwardCompatibleAlternativeAvailable` is not applicable.",
+        "backwardCompatibleAlternativeMd": "Keeping `description` as `string`, or adding a markdown extension, would reduce model churn for generated APIs but is not a needed base-design alternative to preserve R4-valid instances. Those options would make formatted descriptions less discoverable and less consistently handled by R6 systems."
+      }
+    },
+    {
+      "findingId": "Substance:SEMANTIC_OR_CONFORMANCE_TEXT:Substance.identifier:9e2f44",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `Substance.identifier` scoped to substance identity and add a distinct `containerIdentifier`, or retain deprecated `instance.identifier`, for package labels.",
+        "alternativeTradeoffSummary": "Adds an element and migration guidance, but avoids semantic collision between material identifiers and package/container identifiers.",
+        "justificationRationaleMd": "Preserving package/container labels after removing `Substance.instance.identifier` is a reasonable goal, but broadening the meaning of the existing `Substance.identifier` creates avoidable semantic ambiguity. A distinct identifier slot would preserve the R4 interpretation for existing `Substance.identifier` values while still supporting package labels with low to moderate long-term cost. Because that less-breaking base design appears to meet the goal without relying on conversion tooling or profiles alone, this semantic break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The best alternative would be a separate optional `Substance.containerIdentifier` 0..* or a retained deprecated `Substance.instance.identifier` path for package/container labels. Either keeps existing R4 substance-kind identifiers valid with their prior meaning and gives R6 systems a clear place for package labels. The tradeoff is one more element and explicit mapping/search guidance, but that is less costly than overloading a single repeating identifier field and requiring receivers to infer scope from `Identifier.type` conventions."
+      }
+    }
+  ]
+}

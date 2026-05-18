@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "PlanDefinition",
+  "patches": [
+    {
+      "findingId": "PlanDefinition:TYPE_DOMAIN:PlanDefinition.action.input-output:6b7e21",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 direct DataRequirement arrays and add separate optional data-flow wrapper fields for titled or related-data items.",
+        "alternativeTradeoffSummary": "Preserves old JSON but creates duplicate input/output representations and forces processors to reconcile direct requirements with wrapper or relatedData items.",
+        "justificationRationaleMd": "The R6 goal is reasonable: `title`, `requirement`, `relatedData`, and the XOR invariants make action data flow more explicit than R4 direct `DataRequirement` arrays. A less-breaking base design exists, but it is only partial because preserving the old array while adding a richer wrapper would leave two same-resource representations for action inputs and outputs. That long-term duplication and validation ambiguity make the breaking wrapper design probably justified.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep `action.input` and `action.output` as repeatable `DataRequirement` elements and add new optional wrapper or sibling elements for titled/related data-flow entries. Existing R4 instances would continue to validate, but R6 receivers would have to support both direct requirements and wrapper entries, define conflict and precedence rules, and accept that the legacy representation may persist indefinitely."
+      }
+    },
+    {
+      "findingId": "PlanDefinition:ELEMENT_PRESENCE_OR_IDENTITY:PlanDefinition.action.relatedAction:0a84ce",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `actionId` wire name, widen or clarify its definition as the target action id, and add optional `endRelationship`.",
+        "alternativeTradeoffSummary": "Leaves a less-clear legacy name, but avoids duplicate target fields and preserves R4 instances while still supporting the R6 end-relationship semantics.",
+        "justificationRationaleMd": "Clarifying that the referenced action is a target and adding `endRelationship` are reasonable goals, but renaming the required wire element from `actionId` to `targetId` was not necessary to meet them. The `id` to `string` type change is a widening for R4 values, and `endRelationship` is additive. Keeping the old name with a clearer definition would preserve nearly all R4 instances with low long-term cost, so this break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "Base R6 could have kept `relatedAction.actionId` as the required element, defined it as the id of the target related action, widened the primitive type if needed, and added `endRelationship`. This avoids the conflict risk of having both `actionId` and `targetId`; the main downside is living with the older, less precise name."
+      }
+    },
+    {
+      "findingId": "PlanDefinition:CARDINALITY:PlanDefinition.action.code:4dbf19",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `action.code` repeatable and use definition, warning, profile, or implementation-guide guidance to prefer a single CodeableConcept when appropriate.",
+        "alternativeTradeoffSummary": "Base R6 would still allow unusual repeated classifications, but CodeableConcept already supports multiple codings and stricter profiles can enforce one concept.",
+        "justificationRationaleMd": "A cleaner single-classification model is a reasonable inferred goal, especially because one `CodeableConcept` can carry multiple codings for the same concept. However, decreasing max cardinality from `*` to `1` directly invalidates R4 actions with multiple code repetitions, and the supplied definitions do not show why base validation had to enforce that immediately. Keeping the repeatable element with stronger guidance would preserve R4 content with modest tradeoff, so the hard break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would retain `action.code` at `0..*`, clarify that alternate codings for the same classification should normally be carried in one `CodeableConcept`, and let profiles or warning rules require `0..1` where interoperability needs that constraint. This preserves legacy instances while still communicating the preferred R6 modeling pattern."
+      }
+    },
+    {
+      "findingId": "PlanDefinition:TYPE_DOMAIN:PlanDefinition.action.timing:38e58f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `RelativeTime` while retaining `timingDateTime` and `timingPeriod` as deprecated or warning-only legacy choices.",
+        "alternativeTradeoffSummary": "Preserves old wire names but leaves multiple timing representations and perpetuates absolute or period forms that can be ambiguous in definitional apply-time semantics.",
+        "justificationRationaleMd": "The R6 comment explains `timing[x]` as a definitional instruction evaluated during apply, which supports favoring Age, Duration, Range, Timing, and RelativeTime over bare absolute date/time and Period choices. Retaining the legacy choices would reduce migration breakage, but it would keep ambiguous timing forms alive and duplicate concepts that can often be represented through `Timing.event` or `Timing.repeat.boundsPeriod`. Those material semantic and safety tradeoffs make the break probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would add `RelativeTime` and keep `dateTime` and `Period` as deprecated or warning-producing choices. This would preserve R4 instances using `timingDateTime` or `timingPeriod`, but it is only a partial alternative because processors would still need to interpret several overlapping timing forms in a definitional apply context."
+      }
+    },
+    {
+      "findingId": "PlanDefinition:TERMINOLOGY_BINDING:PlanDefinition.action.participant:bc41d0",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `related-person` as a deprecated alias for `relatedperson` while adding the broader actor, canonical, reference, and function fields.",
+        "alternativeTradeoffSummary": "Creates two spellings for the RelatedPerson concept and a normalization burden, but preserves R4 instances without blocking the R6 actor model.",
+        "justificationRationaleMd": "The richer R6 participant and actor model is reasonable, and most of it is additive or a cardinality relaxation for R4-to-R6. The hard forward break is mainly the removal of the required-bound R4 code `related-person`. A base R6 value set could have accepted that spelling as deprecated while also adding `relatedperson` and the new actor fields, so the code-spelling break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would include both `related-person` and `relatedperson` in the required participant-type code system/value set, with deprecation and normalization guidance for the old spelling. ConceptMaps and conversion notes are useful migration aids, but the base-design alternative is to keep the old code valid. R6-only actor-based participants would still need down-conversion policy for R4, but that is a separate R6-to-R4 issue."
+      }
+    },
+    {
+      "findingId": "PlanDefinition:REFERENCE_TARGET:PlanDefinition.subject-definition-detail:9d2a66",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 base alternative is needed because these subject, definition, and goal-detail domains are widened while retaining the R4 forms.",
+        "alternativeTradeoffSummary": "R6-only choices and targets need extension mapping or rejection for R6-to-R4 conversion, but that is not a less-breaking base R6 design alternative.",
+        "justificationRationaleMd": "These changes add R6 expressivity without invalidating R4 instances that use the shared subject, definition, or goal target detail forms. The compatibility issue is downstream and reverse-direction: valid R6 content may not fit into R4. Under the calibration rules, that makes the backward-compatible-alternative question not applicable for the R4-to-R6 base design, and the additive widening is justified.",
+        "backwardCompatibleAlternativeMd": "Extensions, external metadata, or explicit rejection may be needed when exporting R6-only choices such as `subjectCanonical` or `detailRatio` to R4. Those are R6-to-R4 mitigation strategies, not alternatives to a breaking R6 base design, because the R6 base model already preserves the R4-valid shapes."
+      }
+    },
+    {
+      "findingId": "PlanDefinition:SERIALIZATION_OR_CODEGEN:PlanDefinition.markdown-fields:41b930",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the fields typed as `string` and state in definitions or guidance that markdown syntax may be used.",
+        "alternativeTradeoffSummary": "Avoids generated primitive-type churn but loses the computable markdown signal for validation, rendering, and sanitization.",
+        "justificationRationaleMd": "The affected fields are human-facing prose, so the R6 goal of explicit markdown semantics is reasonable. Ordinary JSON string values are still wire-compatible, but generated models, primitive validators, renderers, and sanitizers can see a real type change. Keeping `string` with prose guidance would be less disruptive, but it would only partially meet the goal because conformance tooling would not know that markdown semantics are intended. The change is therefore probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would retain the R4 `string` primitive for `usage`, `action.description`, and `action.textEquivalent`, while strengthening comments or guidance to allow markdown content. This preserves R4-era generated types but relies on prose rather than a computable primitive type, leaving weaker support for safe markdown rendering and validation."
+      }
+    },
+    {
+      "findingId": "PlanDefinition:VALUE_CONSTRAINT:PlanDefinition.local-invariants:df46a7",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base alternative is needed because R6 introduced these checks as warning-severity constraints rather than errors.",
+        "alternativeTradeoffSummary": "Existing artifacts may produce new warnings, but hard failures come from local tooling or publication policy that escalates warnings.",
+        "justificationRationaleMd": "The new constraints address legitimate quality issues: canonical hygiene, internal goal/action references, and relatedArtifact use. Because they are warning-level constraints, the R6 base design does not make R4 content structurally invalid under normal validation severity handling. The compatibility-preserving base approach is already used, so the alternative question is not applicable and the change is justified.",
+        "backwardCompatibleAlternativeMd": "Suppressing the warnings or moving them only to external guidance would reduce conformance noise, but it would also weaken generic QA. Treating warnings as fatal is an implementation or publication-policy choice, not a base R6 design break that requires a backward-compatible alternative."
+      }
+    },
+    {
+      "findingId": "PlanDefinition:CONVERSION_OR_MAPPING:PlanDefinition.r6-new-elements:fd093b",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 alternative is needed because these are optional additive R6 elements and do not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "R6-to-R4 preservation requires extensions or conversion policy, which is down-conversion mitigation rather than a base R6 alternative.",
+        "justificationRationaleMd": "`versionAlgorithm[x]`, `copyrightLabel`, `asNeeded[x]`, `action.linkId`, `action.location`, and `action.applicabilityBehavior` add useful optional metadata and action semantics. Since R4 instances can omit all of them and still migrate forward, this is not a breaking R4-to-R6 base-design issue. The additive design is justified.",
+        "backwardCompatibleAlternativeMd": "For R6-to-R4 export, projects may need extensions, external metadata, or explicit loss/rejection policies for these new fields. Those are appropriate migration mitigations, but they are not backward-compatible base R6 alternatives because the R6 base model already chose the compatibility-preserving additive shape."
+      }
+    }
+  ]
+}

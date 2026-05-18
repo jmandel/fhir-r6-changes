@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Invoice",
+  "patches": [
+    {
+      "findingId": "Invoice:ELEMENT_PRESENCE_OR_IDENTITY:Invoice.date:0d6f8a",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `Invoice.date` as the posting/creation date, clarify its short text, and add `period[x]` for billing/service periods.",
+        "alternativeTradeoffSummary": "Preserves R4 wire compatibility at the cost of living with the less precise R4 element name.",
+        "justificationRationaleMd": "The R6 goal appears to be clearer separation between invoice posting/creation time and the new billing/service period. That goal is reasonable, but the supplied definitions show `date` and `creation` have the same cardinality, type, summary flag, and definition. Because the goal could largely be met by retaining `date` with clearer wording while adding `period[x]`, the breaking rename looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design would keep `Invoice.date` as the posting date, perhaps with an alias/deprecation note or improved short description, and rely on the newly added `Invoice.period[x]` to represent the billed service period. This avoids invalidating R4 instances and avoids duplicate same-resource fields; the tradeoff is that implementers must tolerate the older, broader name rather than the cleaner `creation` name."
+      }
+    },
+    {
+      "findingId": "Invoice:TERMINOLOGY_BINDING:priceComponent.type:b41c2d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `deduction` as a deprecated transitional code in the shared `price-component-type` code system.",
+        "alternativeTradeoffSummary": "Preserves R4 `deduction` instances but keeps two overlapping reduction codes in a required shared terminology.",
+        "justificationRationaleMd": "Normalizing price component terminology for shared `MonetaryComponent` is a reasonable R6 goal, and the R6 `discount` definition explicitly says it may be referred to as a deduction. A base-design alternative exists, but it is only partial because retaining `deduction` would perpetuate ambiguous discount/deduction coding in a required shared value set.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would include `deduction` in `price-component-type` as deprecated or legacy while making `discount` the preferred code. That would preserve R4-valid instances. The material tradeoff is indefinite duplicate representation for reductions: validators and downstream accounting logic would need to accept both codes, and deprecated terminology can persist for many release cycles. A ConceptMap alone would be useful migration guidance but is not a backward-compatible base R6 design."
+      }
+    },
+    {
+      "findingId": "Invoice:SERIALIZATION_OR_CODEGEN:priceComponent:7ac9e1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the Invoice-local priceComponent backbone in R6 while aligning its semantics and binding with `MonetaryComponent`.",
+        "alternativeTradeoffSummary": "Preserves old paths and modifierExtension-bearing instances but delays or weakens shared datatype standardization.",
+        "justificationRationaleMd": "Reusing a common `MonetaryComponent` datatype is a reasonable architectural goal. A less-breaking path could preserve many R4 instances and generated paths, but it would leave Invoice with a local financial-component model instead of fully adopting the shared type, so the alternative has material long-term modeling and tooling costs.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would keep `Invoice.lineItem.priceComponent` and `Invoice.totalPriceComponent` as the old Invoice-owned backbone for one release, update its definitions and required binding to align with `MonetaryComponent`, and publish mapping to the shared datatype. This would preserve R4 local paths and `modifierExtension` on the backbone. The cost is duplicate definitions for the same monetary fact, profile divergence, less reuse across resources, and the risk that the legacy representation never disappears."
+      }
+    },
+    {
+      "findingId": "Invoice:REFERENCE_TARGET:Invoice.issuer:2f93bc",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "The target widening preserves R4 `Organization` issuers; no R4-to-R6 compatibility alternative is needed.",
+        "alternativeTradeoffSummary": "R6-to-R4 export needs policy for Practitioner and PractitionerRole issuers, but R4 instances remain valid in R6.",
+        "justificationRationaleMd": "Changing the short label from issuing organization to issuing entity and allowing Practitioner/PractitionerRole is a reasonable expressiveness improvement. Since every R4-valid `Organization` issuer remains valid in R6, this is not a breaking R4-to-R6 base-design issue.",
+        "backwardCompatibleAlternativeMd": "Using an extension for individual or role issuers would be an R4 backport/down-conversion strategy, not a less-breaking base R6 alternative. The base R6 design can widen the target list without invalidating R4 instances; the tradeoff belongs to R6-to-R4 export and to consumers that assumed only Organization."
+      }
+    },
+    {
+      "findingId": "Invoice:REFERENCE_TARGET:Invoice.lineItem.chargeItem:5e7a09",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "R4 ChargeItem references remain valid; the concern is R6 validation clarity and R6-to-R4 representability, not R4-to-R6 compatibility.",
+        "alternativeTradeoffSummary": "Unconstrained Reference maximizes flexibility but sacrifices computable target validation and clear R4 export rules.",
+        "justificationRationaleMd": "The R6 computable targetProfile is absent while the narrative still describes a ChargeItem. Because the supplied evidence does not identify intended non-ChargeItem targets, the unconstrained Reference is not clearly justified even though it does not invalidate R4 ChargeItem references.",
+        "backwardCompatibleAlternativeMd": "For base R6 design clarity, the specification could have retained `Reference(ChargeItem)` or explicitly listed any additional intended targets. That would improve validation and interoperability, but it is not counted as a backward-compatible alternative here because R4-to-R6 preservation is already satisfied; the remaining issue is an R6-to-R4 and runtime interoperability risk."
+      }
+    },
+    {
+      "findingId": "Invoice:ELEMENT_PRESENCE_OR_IDENTITY:Invoice.period:8c62af",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Optional `Invoice.period[x]` is additive and does not invalidate R4 Invoice instances.",
+        "alternativeTradeoffSummary": "Improves R6 expressiveness while creating only R6-to-R4 round-trip/export burden.",
+        "justificationRationaleMd": "Separating the billed service date or period from invoice creation/posting fills a clear modeling gap. Because the new element is optional, the base R6 design preserves R4 instances and represents the new concept with low R4-to-R6 breakage.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base alternative is needed for R4-to-R6 compatibility because the change is already additive. An R4 extension bridge can help down-conversion, but that is migration/backport guidance rather than a less-breaking R6 base design."
+      }
+    },
+    {
+      "findingId": "Invoice:ELEMENT_PRESENCE_OR_IDENTITY:Invoice.lineItem.serviced:91de44",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Optional `Invoice.lineItem.serviced[x]` is additive and does not invalidate R4 line items.",
+        "alternativeTradeoffSummary": "Supports self-contained R6 line timing while requiring R4 export policy for R6-only timing data.",
+        "justificationRationaleMd": "Allowing a line item to carry service timing directly is a reasonable R6 goal, especially when an inline `CodeableConcept` charge item is used. The optional addition preserves R4-to-R6 compatibility; the compatibility issue is only lossless R6-to-R4 representation.",
+        "backwardCompatibleAlternativeMd": "Keeping timing only on referenced `ChargeItem` or using an R4 extension are down-conversion or profiling strategies, not less-breaking base R6 alternatives. Since the element is optional, R4 instances remain valid while R6 gains a native place for line-level timing."
+      }
+    }
+  ]
+}

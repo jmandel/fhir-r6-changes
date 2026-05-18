@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Condition",
+  "patches": [
+    {
+      "findingId": "Condition:CARDINALITY:Condition.clinicalStatus:0d4f73",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep clinicalStatus optional in base R6 while adding unknown, clearer absence semantics, and profile or best-practice requirements for workflows that need explicit status.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but leaves missing modifier status base-valid and relies on profiles or warnings for safety-critical uniformity.",
+        "justificationRationaleMd": "The R6 goal is clinically credible: `clinicalStatus` is a modifier, and requiring either a known status or `unknown` reduces the chance that consumers silently treat absent status as active or resolved. The less-breaking design would avoid invalidating R4 data, but it would not give base R6 consumers a uniform guarantee that status is present. Because that safety tradeoff is material, the base break is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained `Condition.clinicalStatus` at `0..1`, added `unknown`, clarified that absence means status is not known or not applicable to the workflow, and used a warning, invariant, or profile to require status for problem-list or safety-critical use. That preserves old instances but weakens the universal modifier-status guarantee that R6 appears to be pursuing."
+      }
+    },
+    {
+      "findingId": "Condition:TERMINOLOGY_BINDING:Condition.clinicalStatus:37e412",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding documented `unknown` status widens the R6 clinicalStatus value space and does not remove the R4 clinical status codes.",
+        "alternativeTradeoffSummary": "R6-to-R4 enum and down-conversion policy remains necessary, but avoiding `unknown` would weaken R6 handling of mandatory status when the clinical state is genuinely unknown.",
+        "justificationRationaleMd": "This finding is not an R4-to-R6 old-valid/new-invalid break by itself. Once R6 requires `clinicalStatus`, a computable `unknown` value is a reasonable way to distinguish true uncertainty from active, inactive, resolved, or absent status. The verdict remains probable rather than absolute because the local R6 package did not include the external CodeSystem expansion.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is needed to preserve R4 instances: existing R4 status codes remain acceptable. Using a data-absent-reason extension or keeping status optional would be a different modeling choice and may help R6-to-R4 conversion, but those are not backward-compatible base-design alternatives for an R4-to-R6 break."
+      }
+    },
+    {
+      "findingId": "Condition:VALUE_CONSTRAINT:Condition.entered-in-error:64d0aa",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 entered-in-error exception by making clinicalStatus conditionally required only when verificationStatus is not entered-in-error.",
+        "alternativeTradeoffSummary": "The exception slightly reduces uniformity and requires conditional validation, but it preserves the established error-state shape and avoids bidirectional invalidity.",
+        "justificationRationaleMd": "Uniform `clinicalStatus` is a reasonable R6 goal, but the entered-in-error state already has explicit modifier semantics through `verificationStatus`. R4 required the opposite shape for that state, so R6 creates a direct cross-version incompatibility without local rationale for why the exception had to disappear. A narrow conditional exception would have preserved old records with modest tradeoff, making this break probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could keep `clinicalStatus` at `0..1` and add an invariant requiring it unless `verificationStatus` is `entered-in-error`, while documenting how consumers should interpret error records. That still advances explicit-status safety for ordinary Conditions and avoids forcing erroneous records to carry a potentially misleading clinical status."
+      }
+    },
+    {
+      "findingId": "Condition:ELEMENT_PRESENCE_OR_IDENTITY:Condition.evidence:4c8e21",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 evidence backbone and add an optional CodeableReference-based representation or transitional child while deprecating code/detail.",
+        "alternativeTradeoffSummary": "Preserves old JSON for common cases but duplicates evidence representations, complicates grouping and validation, and risks deprecated paths persisting indefinitely.",
+        "justificationRationaleMd": "The R6 goal of using the standard `CodeableReference` pattern is reasonable and aligns Condition with a broader R6 modeling style. A dual or transitional model could reduce breakage, but it would create two same-resource representations for the same evidence fact and would not cleanly resolve R4 grouping of multiple codes and details versus `CodeableReference` items. Those material tradeoffs make the alternative only partial and the breaking redesign probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could preserve `Condition.evidence.code` and `Condition.evidence.detail` for one release while adding a new CodeableReference form. That would let R4-shaped instances validate, but validators, search logic, FHIRPath, serializers, and consumers would need precedence and consistency rules between old and new forms, and deprecated evidence paths might accumulate indefinitely."
+      }
+    },
+    {
+      "findingId": "Condition:REFERENCE_TARGET:Condition.stage.assessment:8af942",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep ClinicalImpression in the base target list and discourage or profile it out where R6 wants only Observation or DiagnosticReport evidence.",
+        "alternativeTradeoffSummary": "A broader target list slightly weakens semantic consistency but preserves old references with low implementation burden and no duplicate data shape.",
+        "justificationRationaleMd": "The inferred goal of focusing stage assessment on Observation or DiagnosticReport evidence is plausible, but the supplied inputs do not show why `ClinicalImpression` had to be removed from the base target set. Retaining the old target while adding clearer guidance or profiles would preserve R4 instances and still allow narrower R6 implementations. Because the compatibility cost is direct and the less-breaking alternative is straightforward, the base narrowing was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base R6 design could keep `ClinicalImpression` as an allowed `stage.assessment` target, mark it as discouraged in narrative, or constrain it out in oncology or implementation-specific profiles. Unlike duplicating an element, retaining a reference target mainly leaves the base resource broader; it does not create competing same-resource fields for the same fact."
+      }
+    },
+    {
+      "findingId": "Condition:ELEMENT_PRESENCE_OR_IDENTITY:Condition.bodyStructure:f1b7c0",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 keeps `bodySite` and adds optional native `bodyStructure`, so R4 base Condition instances remain valid unless a migration chooses to promote extension data.",
+        "alternativeTradeoffSummary": "R6-to-R4 mapping still needs the bodySite extension, and R6 producers must choose between coded bodySite and BodyStructure, but this is not an R4-to-R6 preservation problem.",
+        "justificationRationaleMd": "Promoting the existing BodyStructure-reference pattern to a native optional element is a reasonable R6 modeling improvement, and it does not invalidate ordinary R4 Condition instances. The mutual-exclusion rule affects R6 authoring and cross-version conversion choices, but the reported break is mainly R6-to-R4 representability rather than old-valid/new-invalid base validation.",
+        "backwardCompatibleAlternativeMd": "Continuing to use only the R4 extension would be more R4-like but would forgo the discoverability and validation benefits of a native R6 element. Because the R6 element is optional and `bodySite` remains available, no less-breaking base R6 design is needed for preserving R4 instances."
+      }
+    },
+    {
+      "findingId": "Condition:REFERENCE_TARGET:Condition.actors:b9d3a5",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 widens recorder and asserter target profiles, preserving all R4-valid actor references.",
+        "alternativeTradeoffSummary": "Closed-union clients and R6-to-R4 conversion need handling for Group and Device, but that is a down-conversion issue rather than a less-breaking R6 base-design alternative.",
+        "justificationRationaleMd": "Allowing group or device actors reflects plausible recording and assertion workflows, and the change does not reject existing R4 actor references. The remaining costs are runtime assumptions in R6 consumers and representability when converting new R6 content back to R4.",
+        "backwardCompatibleAlternativeMd": "Using Provenance or extensions for Group and Device actors would help downgrade to R4, but it would be a mitigation for R6-to-R4 conversion, not a necessary alternative to preserve R4 instances in the R6 base model."
+      }
+    },
+    {
+      "findingId": "Condition:TERMINOLOGY_BINDING:Condition.category:2c17de",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: weakening the category binding from extensible to example relaxes base validation and does not invalidate R4 category codings.",
+        "alternativeTradeoffSummary": "Keeping the extensible binding would improve uniform category guidance, but the tradeoff is conformance strictness and semantic consistency rather than preservation of old R4 instances.",
+        "justificationRationaleMd": "The inferred R6 goal is to avoid over-constraining category coding in the base Condition resource. That is a plausible design choice and it does not create an R4-to-R6 validation break, though it may increase semantic variation unless profiles restate stronger expectations.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible alternative is needed for R4 instance preservation because the R6 binding is weaker. Implementations that need R4-like category consistency can reintroduce extensible or required bindings in profiles or validation policy, but that is not a less-breaking base R6 design issue."
+      }
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MedicinalProductManufactured",
+  "patches": [
+    {
+      "findingId": "MedicinalProductManufactured:ARTIFACT_IDENTITY:root:5f0c1a",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the old resource identity and canonical URL while updating title, aliases, definitions, and model content for the manufactured-item definition concept.",
+        "alternativeTradeoffSummary": "Preserves resource-type compatibility with moderate naming-consistency cost; adding a parallel new resource would risk duplicate same-concept representations.",
+        "justificationRationaleMd": "The inferred goal of a clearer R6 definitional manufactured-item model is reasonable, but a resource-type and canonical rename is one of the most disruptive ways to achieve it. The local evidence shows continuity of the business concept rather than a need for two incompatible identities. Because R6 could have kept `MedicinalProductManufactured` as the base resource identity and improved its title, definition, aliases, maturity, and element model, the identity break looks probably avoidable. Migration tooling or a ConceptMap would help implementers, but those are mitigations and are not counted here as the backward-compatible base design.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have retained `resourceType: \"MedicinalProductManufactured\"` and the old StructureDefinition canonical while making the R6 definitional semantics explicit through metadata, definitions, and aliases such as \"ManufacturedItemDefinition\". That would preserve existing parsers, references, package allow-lists, and profile links for the resource identity. The tradeoff is living with a less consistent old name in the R6 resource inventory; if R6 also introduced `ManufacturedItemDefinition` as a separate resource for the same fact, duplicate representations could persist indefinitely, so simple retention of the old name is the cleaner compatibility alternative."
+      }
+    },
+    {
+      "findingId": "MedicinalProductManufactured:ELEMENT_PRESENCE_OR_IDENTITY:ManufacturedItemDefinition.status:9c42e7",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `status` optional in the base resource, or require it only in profiles and implementation guides.",
+        "alternativeTradeoffSummary": "Preserves old instances but loses the base guarantee that every R6 manufactured item can be lifecycle-filtered; profile-only requiredness fragments behavior.",
+        "justificationRationaleMd": "Adding lifecycle status to a definitional manufactured-item resource is a reasonable R6 goal, and making it mandatory has concrete interoperability value because consumers can consistently filter draft, active, retired, and unknown definitions. A less-breaking design exists, but it materially weakens that goal: optional or profile-only status would leave many base R6 instances without a lifecycle signal and could lead to unsafe local defaults during migration. On balance, the break is probably justified, provided migrations do not blindly default every historical item to `active`.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would define `ManufacturedItemDefinition.status` as `0..1` with the same required value set when present, then let regulatory profiles or best-practice invariants require it. That would allow R4-derived instances to validate without inventing a status. The cost is substantial: mixed R6 ecosystems could not rely on base instances carrying lifecycle state, and applications would need profile-specific logic or local assumptions before deciding whether a definition is usable."
+      }
+    },
+    {
+      "findingId": "MedicinalProductManufactured:ELEMENT_PRESENCE_OR_IDENTITY:MedicinalProductManufactured.quantity:d6e2a4",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain a deprecated optional root `quantity` on the R6 successor while adding the richer component and constituent amount model.",
+        "alternativeTradeoffSummary": "Preserves old mandatory data with moderate ambiguity risk around whether root quantity overlaps component, constituent, or packaging quantities.",
+        "justificationRationaleMd": "Moving toward a richer component/constituent representation may be a reasonable R6 goal, but the local definitions do not show a direct replacement for the mandatory R4 root `quantity`. Because every valid R4 instance had this value, dropping it creates avoidable validation and data-loss pressure. A base R6 compatibility field could preserve the old count while newer structures mature, so the level of breakage is not clearly justified by the available evidence.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep `ManufacturedItemDefinition.quantity` as a deprecated `0..1 Quantity` compatibility element, with definitions explaining when it represents the legacy manufactured-item count and how it relates to `component.amount`, `component.constituent.amount`, or packaging structures. This is a real base-design alternative, unlike an extension or conversion script. Its tradeoff is semantic overlap: implementations would need precedence and consistency rules, and deprecated quantity representations could persist indefinitely."
+      }
+    },
+    {
+      "findingId": "MedicinalProductManufactured:TYPE_DOMAIN:MedicinalProductManufactured.ingredient:8a19be",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a root `CodeableReference` or retain a deprecated root ingredient reference alongside the coded summary and inbound `Ingredient.for` pattern.",
+        "alternativeTradeoffSummary": "Would preserve common reference-shaped data but creates duplicate ingredient representations and graph-consistency risks across root codes, root references, and inbound Ingredient resources.",
+        "justificationRationaleMd": "The R6 goal appears to be a cleaner ingredient model: root coded summaries are available when detailed `Ingredient` resources do not point back to the manufactured item, while full ingredient details live in a dedicated graph. That goal is reasonable and the old outward reference list is not obviously equivalent to the new model. A less-breaking design exists for common cases, but it would blur the distinction between summary ingredients and authoritative ingredient resources and could produce conflicting representations of clinically important composition data. The break is therefore probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have made the root element a `CodeableReference(Ingredient)` or added an explicit deprecated root reference element while also allowing coded summaries. This would let many reference-shaped R4 payloads survive the element-type transition more easily. It is only a partial alternative because the referenced R4 `MedicinalProductIngredient` resource has its own identity/model migration, and allowing both root references and inbound `Ingredient.for` links would require strict consistency rules to avoid duplicate or contradictory ingredient facts."
+      }
+    },
+    {
+      "findingId": "MedicinalProductManufactured:SLICING_AND_CONTENT_MODEL:physicalCharacteristics-property:42b8dd",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated named `physicalCharacteristics` and `otherCharacteristics` compatibility fields while introducing the generic `property` backbone.",
+        "alternativeTradeoffSummary": "Preserves old named fields but duplicates the same characteristics in named and coded generic forms, requiring precedence and consistency rules.",
+        "justificationRationaleMd": "Generalizing product characteristics into coded `property` entries is a reasonable model-evolution goal because fixed named fields are hard to extend across regulatory and product-identification use cases. A less-breaking base design could preserve common R4 shapes, but the tradeoffs are material: the same color, imprint, image, dimension, or scoring fact could appear in both old named slots and new generic properties, and the deprecated representation might never disappear. That makes the breaking remodel probably justified, although the lack of official property-type mappings remains a migration risk.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would keep `physicalCharacteristics` and `otherCharacteristics` as deprecated compatibility elements, or define explicit base slices that accept the old named facts while mapping them into `property.type` and `value[x]`. This would preserve many R4 instances. It is only partial because it introduces same-resource duplication, validation ambiguity when old and new values disagree, and implementation burden for clients that must support both named fields and the generic property list."
+      }
+    },
+    {
+      "findingId": "MedicinalProductManufactured:ELEMENT_PRESENCE_OR_IDENTITY:ManufacturedItemDefinition.optional-additions:73fa91",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because these R6 additions are optional and do not invalidate R4-derived instances.",
+        "alternativeTradeoffSummary": "The remaining issue is R6-to-R4 information loss; extensions or ConceptMaps can mitigate that but are not backward-compatible base-design alternatives.",
+        "justificationRationaleMd": "The added identifier, name, marketing status, and component hierarchy make the R6 manufactured-item definition more expressive without requiring old R4 instances to supply those elements. Under the calibration rules this is not a breaking R4-to-R6 base-design issue, even though it is important for down-conversion and round-trip planning. The optional additions are therefore justified as ordinary model enrichment.",
+        "backwardCompatibleAlternativeMd": "Because the new elements are optional, R4-to-R6 compatibility for this finding is already preserved at the base-design level. The hard problem is the reverse direction: R6 instances that use these fields cannot be represented cleanly in the R4 resource. Cross-version extensions, sidecar records, or ConceptMaps may reduce that R6-to-R4 loss, but those are mitigation strategies rather than less-breaking alternatives to an R4-to-R6 base design."
+      }
+    }
+  ]
+}

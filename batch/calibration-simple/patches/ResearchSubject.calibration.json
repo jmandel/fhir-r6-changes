@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "ResearchSubject",
+  "patches": [
+    {
+      "findingId": "ResearchSubject:TERMINOLOGY_BINDING:ResearchSubject.status:4b6f2a",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `status` as the subject lifecycle state and add a separately named optional publication-status element while adding richer lifecycle history.",
+        "alternativeTradeoffSummary": "The alternative preserves R4 instances but requires consistency guidance between current lifecycle status, lifecycle history, and publication metadata.",
+        "justificationRationaleMd": "The R6 goal is reasonable: publication metadata and detailed subject-state history are different facts from a single current lifecycle code. The breakage level is not clearly reasonable because R6 repurposes a required, modifier, required-bound field to a disjoint code system and meaning. A less-breaking base design could have kept old lifecycle semantics at `ResearchSubject.status` and introduced publication status under a new name.",
+        "backwardCompatibleAlternativeMd": "The strongest alternative is to retain R4 `ResearchSubject.status` for current subject lifecycle state, add optional `subjectState`/`subjectMilestone` for richer history, and add a new optional publication-status element if resource-publication state is needed. This preserves most R4-valid instances and generated enum behavior. The tradeoff is some model redundancy and the need for rules explaining how the coarse current status relates to state history, but that is a moderate cost compared with invalidating every normal R4 status value."
+      }
+    },
+    {
+      "findingId": "ResearchSubject:ELEMENT_PRESENCE_OR_IDENTITY:ResearchSubject.individual:9a1c7d",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `individual` element name and widen its allowed targets and definition to cover non-patient research subjects.",
+        "alternativeTradeoffSummary": "Keeping the old name preserves wire compatibility but leaves a less precise name for groups, specimens, devices, and products.",
+        "justificationRationaleMd": "The goal of allowing research about patients, groups, specimens, devices, medications, substances, and products is well supported by the R6 target list. The hard rename from required `individual` to required `subject` was not necessary to achieve that target-domain generalization. Living with the older name plus a clearer definition would have preserved R4 Patient instances while still allowing the broader R6 model.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `ResearchSubject.individual` as 1..1 `Reference(Patient | Group | Specimen | Device | Medication | Substance | SubstanceDefinition | BiologicallyDerivedProduct)` with short/definition text explaining that the element may identify a person, animal, group, specimen, device, or product. This avoids duplicate same-resource fields and preserves R4 wire format. The downside is terminology clarity: `individual` is awkward for groups and material objects, and search/API names would remain less aligned with other FHIR `subject` patterns."
+      }
+    },
+    {
+      "findingId": "ResearchSubject:ELEMENT_PRESENCE_OR_IDENTITY:ResearchSubject.assignedArm:62e0bb",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `comparisonGroup` while retaining deprecated `assignedArm` and `actualArm`, or add typed assigned/actual comparison-group fields.",
+        "alternativeTradeoffSummary": "Retaining old arm fields preserves common R4 data but creates overlapping same-resource representations and unresolved consistency rules.",
+        "justificationRationaleMd": "The R6 direction is reasonable because coded or referenced comparison groups are more computable and broader than two free-text trial-arm strings. A less-breaking design exists, but it would keep legacy strings or add parallel assigned/actual group fields alongside the generalized model. Those alternatives preserve some R4 data but carry material duplication, ambiguity about assigned versus actual versus analysis group use, and long-term interoperability cost.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking option would have kept `assignedArm` and `actualArm` as deprecated optional strings while adding `comparisonGroup`, with guidance for mapping arm labels into coded concepts or Group references. Another option would be explicit `assignedComparisonGroup` and `actualComparisonGroup` elements. Both reduce immediate validation breakage, but both risk multiple indefinitely supported ways to express arm/group membership and require rules for conflicts when old strings and new groups disagree."
+      }
+    },
+    {
+      "findingId": "ResearchSubject:CARDINALITY:ResearchSubject.consent:0d8f53",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: increasing max cardinality from `1` to `*` preserves R4-valid instances for this element.",
+        "alternativeTradeoffSummary": "The tradeoff is generated scalar-to-list API churn and R6-to-R4 down-conversion loss, not old-valid/new-invalid base validation breakage.",
+        "justificationRationaleMd": "The goal is reasonable because the R6 definition explicitly covers multiple consent and research-agreement records. This is not a breaking R4-to-R6 base-design issue for instances: every R4 instance with zero or one `consent` still fits the R6 cardinality. The change is primarily a runtime/model-shape and R6-to-R4 representability concern.",
+        "backwardCompatibleAlternativeMd": "A separate `additionalConsent` element could reduce scalar-to-list churn for generated clients, but under the calibration rules that is not a backward-compatible alternative to an R4-to-R6 validation break because no such validation break exists. It would also make consumers inspect two locations for consent-like agreements and would still need policy for down-converting multiple R6 agreements to R4."
+      }
+    },
+    {
+      "findingId": "ResearchSubject:CONVERSION_OR_MAPPING:ResearchSubject.subjectState:bd44a0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: optional R6 `subjectState` and `subjectMilestone` additions do not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 representability and migration policy for richer lifecycle history, not a less-breaking R6 base design for old data.",
+        "justificationRationaleMd": "The inferred goal of representing dated subject states, milestones, and reasons is reasonable, and optional base elements are a proportionate way to support that data. By themselves these additions preserve R4-to-R6 instance compatibility because R4 instances can omit them. The compatibility problem is that R6 can now carry richer lifecycle history that base R4 lacks.",
+        "backwardCompatibleAlternativeMd": "Standard R4 extensions or external event resources can mitigate down-conversion, but those are backport and migration strategies rather than less-breaking base R6 alternatives. Since the R6 elements are optional additions, there is no old-valid/new-invalid base-design break to avoid here; the separate `status` finding covers the avoidable part of the lifecycle remodel."
+      }
+    }
+  ]
+}

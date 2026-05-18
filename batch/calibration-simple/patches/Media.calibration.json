@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Media",
+  "patches": [
+    {
+      "findingId": "Media:ARTIFACT_IDENTITY:root:0f4f86",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain Media in R6 as a deprecated base resource while steering new implementations to DocumentReference and imaging resources.",
+        "alternativeTradeoffSummary": "Preserves R4 instances, but keeps duplicate resource, API, search, validation, and codegen surfaces that may never disappear.",
+        "justificationRationaleMd": "Retiring a draft, generic `Media` resource in favor of document and imaging-specific resources is a reasonable R6 goal. A deprecated R6 `Media` resource would have avoided the hard validation break for existing data, but it would materially undercut consolidation by leaving two core ways to represent the same media content. With no official rationale in the local inputs, the removal is not proven necessary, but the duplicate-representation and maintenance costs make the break probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have kept `Media` in the R6 core package as deprecated, with definitions pointing to preferred replacement resources. That would preserve most R4-valid instances. The tradeoff is substantial: core packages, validators, servers, search parameters, generated SDKs, and interoperability guidance would need to support a legacy resource alongside `DocumentReference` and imaging resources indefinitely."
+      }
+    },
+    {
+      "findingId": "Media:SERIALIZATION_OR_CODEGEN:Media:5d8c2b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated Media StructureDefinition and Media search parameters in the R6 base package for compatibility.",
+        "alternativeTradeoffSummary": "Avoids generated-client and endpoint breaks, but forces R6 tooling and servers to carry legacy model and search semantics.",
+        "justificationRationaleMd": "The codegen and REST-surface break follows directly from removing the base resource. If retiring `Media` is accepted as a consolidation goal, removing its generated classes, resourceType enum entry, endpoint, and search parameters is a coherent consequence. A compatibility surface was possible, but ordinary server adapters or conversion tooling are mitigations rather than a less-breaking base R6 design.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would have retained the deprecated `Media` StructureDefinition and its search parameter definitions so R6 generators could still emit legacy types and route/search metadata. That would protect R4 clients during a transition, but it would also make the deprecated resource a continuing normative surface for servers and SDKs, preserving exactly the API area R6 appears to be retiring."
+      }
+    },
+    {
+      "findingId": "Media:CONVERSION_OR_MAPPING:Media.status:8fb3a1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Preserve the R4 event-status field in a deprecated Media resource or as a native compatibility status in a base replacement model.",
+        "alternativeTradeoffSummary": "Preserves old lifecycle state, but duplicates or conflicts with modifier status meanings on DocumentReference and ImagingSelection.",
+        "justificationRationaleMd": "Moving media content into resources with their own lifecycle semantics is reasonable, and status is a modifier where confusing event status with document/reference availability can be unsafe. A less-breaking base design could preserve the old event-status value separately, but doing so inside replacement resources would create competing status fields with different meanings. ConceptMaps, extensions, or conversion guidance alone would be migration mitigations, not a fully backward-compatible base design.",
+        "backwardCompatibleAlternativeMd": "The strongest base alternative is to keep deprecated `Media.status` unchanged on a retained `Media` resource, or to add an explicit native compatibility field for original media event status. That would keep old lifecycle values valid, but consumers would then need to reconcile old event states such as `not-done` or `on-hold` with R6 `DocumentReference.status` or `ImagingSelection.status`, increasing validation ambiguity and clinical interpretation risk."
+      }
+    },
+    {
+      "findingId": "Media:CONVERSION_OR_MAPPING:Media.content:2e73c4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the old single Media.content attachment shape in a deprecated Media resource or a native R6 compatibility container.",
+        "alternativeTradeoffSummary": "Preserves the payload shape, but duplicates the DocumentReference content model and leaves ambiguous rules for alternate formats and versions.",
+        "justificationRationaleMd": "Using `DocumentReference.content.attachment` for document-like media payloads is a reasonable R6 design direction and can carry many old Attachment values. The less-breaking option of retaining the old direct attachment shape would reduce migration work, but it would preserve a parallel representation that overlaps with the richer DocumentReference content backbone. Because that overlap is material, the structural break is probably justified, though not proven by local rationale.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design could have retained deprecated `Media.content` or added a native compatibility container that accepts the original single Attachment semantics. This would preserve most old payloads directly. Its cost is long-term duplication with `DocumentReference.content`, especially around repeated content entries, alternate representations, version handling, and whether generic audio/video/photo content is document-like."
+      }
+    },
+    {
+      "findingId": "Media:CONVERSION_OR_MAPPING:Media.acquisitionContext:6a1c9e",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated Media fields or add native optional base metadata fields for common legacy dimensions, duration, frame, view, and device facts.",
+        "alternativeTradeoffSummary": "Improves fidelity for generic media, but adds media-specific clutter and duplicated metadata beside document and DICOM-oriented models.",
+        "justificationRationaleMd": "Splitting generic content from DICOM-oriented imaging selection is a reasonable goal, but the local R6 evidence does not show a complete native home for common non-DICOM media metadata such as dimensions, frame count, duration, view, and device name. A less-breaking base design could preserve many of those facts without relying only on extensions or local conversion rules. Because that alternative would still be incomplete for specialized imaging and would duplicate metadata concepts, it is partial, but the loss of first-class metadata is not clearly justified from the supplied inputs.",
+        "backwardCompatibleAlternativeMd": "The best base alternative would keep these elements on deprecated `Media`, or add optional native compatibility metadata to the relevant replacement resource model for common legacy media facts. That would preserve common R4 photo/audio/video metadata and reduce semantic loss. The tradeoff is that `DocumentReference` and `ImagingSelection` would accumulate generic-media fields that may not fit their primary semantics, while deprecated representations could persist indefinitely."
+      }
+    },
+    {
+      "findingId": "Media:REFERENCE_TARGET:Media.participants:aa72df",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the original Media reference-role fields in a deprecated resource or native base compatibility fields.",
+        "alternativeTradeoffSummary": "Preserves old references, but duplicates role semantics and can validate references in fields whose R6 meaning is only approximate.",
+        "justificationRationaleMd": "Using target-resource-specific reference roles is a reasonable R6 design goal: `DocumentReference`, `ImagingSelection`, and other targets should name references according to their own semantics. The less-breaking alternative would keep old role names and target lists, but that creates long-lived ambiguity about whether a participant is an author, performer, subject, context, related resource, or part of an acquisition event. That semantic cost makes the break probably justified.",
+        "backwardCompatibleAlternativeMd": "A base-compatible path would retain `Media.subject`, `Media.operator`, `Media.basedOn`, `Media.partOf`, and `Media.encounter` on deprecated `Media`, or add native original-role fields in a compatibility model. This would preserve most old references, but it would also duplicate the replacement resources' own roles and could encourage valid-looking records whose role semantics are not equivalent."
+      }
+    },
+    {
+      "findingId": "Media:TERMINOLOGY_BINDING:Media.type:cf920d",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain legacy media-type, media-modality, and media-view terminology artifacts and explicitly allow or cross-reference old codings in R6 target bindings.",
+        "alternativeTradeoffSummary": "Low structural cost; main tradeoff is mixed legacy and target-specific codings that complicate search and analytics.",
+        "justificationRationaleMd": "Replacing generic media terminology with document and DICOM-oriented terminology is a reasonable direction, but the terminology-specific disruption appears avoidable. Unlike retaining a whole resource, keeping deprecated CodeSystems/ValueSets or broadening R6 CodeableConcept guidance to preserve old codings has relatively modest long-term cost. The local evidence does not show why image/video/audio, modality, or view codings had to lose a base-recognized legacy path.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base terminology design could keep the old media terminology artifacts as deprecated or legacy, and state where old media codings may be carried alongside preferred document or DICOM codings. This is more than ordinary conversion guidance because it preserves the legacy terminology as part of the R6 base package. It would not solve the root `Media` removal, but it would preserve the classification facts with little structural duplication."
+      }
+    },
+    {
+      "findingId": "Media:CONVERSION_OR_MAPPING:Media.created-issued:bd3170",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Define native base timing compatibility for original capture period/time and reviewed-availability instant, or retain the old fields on deprecated Media.",
+        "alternativeTradeoffSummary": "Covers common timing cases, but may duplicate target timing concepts and still needs policy for exact event semantics.",
+        "justificationRationaleMd": "Using target-resource timing fields is a reasonable goal, and `DocumentReference.period`, `DocumentReference.date`, and `ImagingSelection.issued` cover nearby concepts. However, the R4 distinction between collection time and reviewed availability time is important and could have been preserved more explicitly in base definitions for common cases. Because the available less-breaking design would still need semantic policy decisions and may duplicate existing timing fields, it is partial, but the current level of ambiguity is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could retain `Media.created[x]` and `Media.issued` on deprecated `Media`, or define native compatibility timing elements/aliases that distinguish capture time or period from reference creation and availability/review time. This would preserve many R4 timing semantics. The tradeoff is overlap with existing target fields, plus inconsistent interpretation if implementers treat capture, service period, reference creation, and availability as interchangeable."
+      }
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MedicinalProductPharmaceutical",
+  "patches": [
+    {
+      "findingId": "MedicinalProductPharmaceutical:ARTIFACT_IDENTITY:root:7f8a21",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `MedicinalProductPharmaceutical` as the R6 administrable-product resource identity and update its definitions and content there.",
+        "alternativeTradeoffSummary": "Preserves resourceType, reference, and endpoint compatibility, but leaves a legacy, less consistent name in the R6 definition-resource family.",
+        "justificationRationaleMd": "The inferred goal of an explicit administrable product definition and richer regulatory product graph is reasonable. However, the R4 resource already modeled the pharmaceutical or administrable product aspect, so changing the root wire identity to `AdministrableProductDefinition` was not clearly required to meet that goal. Field-level remodels may still need separate justification, but the root `resourceType` break itself appears probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have kept the R4 canonical/resource type `MedicinalProductPharmaceutical`, revised its definition toward administrable product semantics, and added the R6 relationships and elements under that resource. That would preserve old `resourceType` values, REST routes, references, generated classes, and FHIRPath roots. The tradeoff is a less tidy name than `AdministrableProductDefinition`; if both names were normative, duplicate resource identities could persist, so the cleaner compatibility path would be retention rather than a parallel alias."
+      }
+    },
+    {
+      "findingId": "MedicinalProductPharmaceutical:CARDINALITY:AdministrableProductDefinition.status:b3c914",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `status` optional, or give absence an explicit unknown meaning while requiring status through profiles or best-practice rules.",
+        "alternativeTradeoffSummary": "Preserves old instances without synthetic status values, but weakens base lifecycle guarantees and safe filtering of retired definitions.",
+        "justificationRationaleMd": "Making lifecycle state explicit is a reasonable R6 goal, especially because `status` is a modifier whose retired value affects whether applications should use the definition. A less-breaking base design exists, but it would materially reduce the guarantee that every administrable product can be filtered by lifecycle state. Given that safety and conformance tradeoff, the required modifier status is probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have left `status` at `0..1`, used meaning-when-missing or a default-like interpretation of unknown, and required the field in implementation profiles. That would let R4-derived instances validate without manufacturing a lifecycle state. The alternative is only partial because generic R6 consumers could not rely on status being present, and profile-level requirements would not protect base-level exchange from retired or unknown definitions being processed incorrectly."
+      }
+    },
+    {
+      "findingId": "MedicinalProductPharmaceutical:TYPE_DOMAIN:ingredient:aa19df",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain a reference-valued ingredient path, or add a code-or-reference choice while introducing detailed `Ingredient` resources.",
+        "alternativeTradeoffSummary": "Preserves referenced ingredients for common migrations, but leaves competing ingredient channels and depends on retaining or mapping the old target resource.",
+        "justificationRationaleMd": "The R6 goal of supporting both simple coded ingredients and detailed standalone ingredient definitions is reasonable. Replacing the old direct reference with a coded ingredient list is a hard shape and graph break, but a fully compatible alternative would have to carry old direct references beside incoming `Ingredient.for` links and coded summaries. Those duplicate-representation and target-resource tradeoffs make the break probably justified rather than fully avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `ingredient` as a reference, retargeted it to `Ingredient` or accepted a deprecated `MedicinalProductIngredient` target, and added a separate coded ingredient element or choice. That would preserve many R4 payloads with direct ingredient references. It is partial because the old target resource is also absent in R6, and supporting direct APD ingredient references, incoming `Ingredient.for` links, and coded summaries would require precedence and consistency rules for overlapping ingredient facts."
+      }
+    },
+    {
+      "findingId": "MedicinalProductPharmaceutical:CARDINALITY:device:12e4c0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `device` repeatable and qualify integral versus co-packaged devices, or retain legacy `device` while adding a distinct integral-device path.",
+        "alternativeTradeoffSummary": "Preserves more old device arrays, but requires classification absent from R4 and risks duplicate APD/package device relationships.",
+        "justificationRationaleMd": "Separating integral devices from merely co-packaged devices is a reasonable R6 modeling goal. A less-breaking design could preserve repeatability and add role semantics, but old R4 instances do not reliably state which accompanying devices are integral, and retaining a broad legacy field would compete with package-level modeling. Because the alternative preserves only part of the old meaning and has material consistency costs, the narrowing is probably justified.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would retain `device` as `0..*` and qualify each reference as integral or co-packaged, or leave the old broad `device` field during transition while adding a new integral-device element. This would reduce validation failures for R4 instances with multiple devices. The cost is that migration still needs human or source-system classification, and devices could be represented both on `AdministrableProductDefinition` and in package contents with conflicting roles."
+      }
+    },
+    {
+      "findingId": "MedicinalProductPharmaceutical:ELEMENT_PRESENCE_OR_IDENTITY:characteristics:8ac0fd",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `characteristics` and `characteristics.code`, adding optional `value[x]` and `status` refinements instead of renaming the backbone to `property`.",
+        "alternativeTradeoffSummary": "Leaves older terminology in the base resource, but avoids duplicate representations and preserves existing characteristic arrays.",
+        "justificationRationaleMd": "The R6 goal of turning characteristics into typed properties with values and optional lifecycle status is reasonable. The supplied definitions do not show that this required changing the wire path from `characteristics.code` to `property.type`; the same data model could have been expressed by retaining the R4 backbone name and adding optional children. Because that alternative has modest long-term cost and avoids a path break, this rename/remodel was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would use `characteristics.code` as the property type and add optional `characteristics.value[x]` plus optional `characteristics.status` with the R6 publication-status binding. Existing R4 instances containing only coded characteristics would remain valid, while R6 could still carry richer property values. The main tradeoff is living with the less generic `characteristics`/`code` names; adding both `characteristics` and `property` would create duplicate same-resource representations, but simply retaining the old names avoids that duplication."
+      }
+    },
+    {
+      "findingId": "MedicinalProductPharmaceutical:CARDINALITY:administrableDoseForm:43b9e7",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; decreasing `administrableDoseForm` from mandatory to optional preserves R4 instances in the R4-to-R6 direction.",
+        "alternativeTradeoffSummary": "R6-to-R4 conversion may need a profile requirement, rejection rule, or extension policy for R6 records missing dose form, but that is a downgrade concern.",
+        "justificationRationaleMd": "Allowing administrable product definitions when dose form is unknown or represented elsewhere is a plausible R6 flexibility goal. The cardinality relaxation does not make R4-valid instances invalid after forward migration, so the backward-compatible-alternative question does not apply in the same way as it would for a removal, rename, or stronger constraint.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is needed for R4-to-R6 validity because R4 instances that contain `administrableDoseForm` still fit the relaxed R6 cardinality. Keeping the element mandatory would improve R6-to-R4 round trips and can be required by compatibility profiles, but that would be a stricter R6 policy rather than an alternative needed to preserve R4-valid instances."
+      }
+    },
+    {
+      "findingId": "MedicinalProductPharmaceutical:CONVERSION_OR_MAPPING:successor-links:f69c31",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; optional R6 `formOf`, `producedFrom`, `code`, and `description` additions do not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "First-class R6 graph content creates R6-to-R4 loss unless extensions or sidecars are used, but those are downgrade mitigations rather than base-design alternatives.",
+        "justificationRationaleMd": "Connecting the administrable product to the broader R6 product graph is a reasonable design goal, and the listed fields are optional additions. They increase R6 expressiveness and R6-to-R4 representability risk, but they are not an avoidable R4-to-R6 breaking base-design change.",
+        "backwardCompatibleAlternativeMd": "The backward-compatible-alternative label is not applicable because preserving R4-valid instances does not require a different R6 base design for these optional fields. Extensions on R4 or sidecar resources can help downgrade or round-trip R6 content, but those are conversion/backport mitigations, not evidence that the R6 base should have omitted first-class optional links."
+      }
+    },
+    {
+      "findingId": "MedicinalProductPharmaceutical:VALUE_CONSTRAINT:route-formOf-apd1:6d4047",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Demote `apd-1` to a warning, or make it an error only when APD and parent product routes are demonstrably inconsistent.",
+        "alternativeTradeoffSummary": "Preserves some migrated graphs, but weakens duplicate-route prevention and requires difficult route equivalence or reconciliation rules.",
+        "justificationRationaleMd": "Preventing route of administration from being represented authoritatively on both an administrable product and its parent product is a reasonable R6 consistency goal. The error-level invariant can break migrated graphs depending on product-link context, but softer validation would permit duplicate route channels that generic consumers must reconcile. With those material interoperability tradeoffs, the constraint is probably justified with only a partial alternative.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have made `apd-1` a warning or best-practice invariant, or allowed duplication when the APD route and resolved product route are equivalent. That would preserve more R4-derived data where route was copied during graph migration. It is only partial because equivalence across `CodeableConcept` codings can be hard to prove, and allowing duplicate route locations makes it unclear which value is authoritative when they diverge."
+      }
+    },
+    {
+      "findingId": "MedicinalProductPharmaceutical:SEMANTIC_OR_CONFORMANCE_TEXT:route-dose-text:35d8ef",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable for R4-to-R6 instance compatibility; the dosing paths, types, and cardinalities are unchanged and the wording is broadened.",
+        "alternativeTradeoffSummary": "Separate trial-specific and general dosing fields could improve semantic clarity, but would duplicate dose-limit concepts rather than rescue invalid R4 instances.",
+        "justificationRationaleMd": "Broadening the dose-limit wording beyond investigational protocol context is plausible for an administrable product definition. The change can affect business assumptions for systems that treated these fields as trial-only, but it does not create a structural R4-to-R6 validation break. Under the calibration rubric, the backward-compatible-alternative question is therefore not applicable even though the semantic shift deserves migration attention.",
+        "backwardCompatibleAlternativeMd": "Since no R4 instance becomes invalid because of this wording change, no less-breaking base design is needed for R4-to-R6 instance compatibility. R6 could have retained trial-specific wording and added separate general-dose fields or qualifiers, but that would be a semantic-clarity design alternative with duplicated dose concepts, not a backward-compatible rescue for invalid old data."
+      }
+    }
+  ]
+}

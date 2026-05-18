@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "EpisodeOfCare",
+  "patches": [
+    {
+      "findingId": "EpisodeOfCare:element:patient-subject:0f0a54",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 `patient` element, broaden its target to Patient or Group, and clarify that it represents the workflow subject.",
+        "alternativeTradeoffSummary": "Preserves R4 instances without duplicate fields, but leaves a misleading `patient` name for Group subjects and weaker alignment with workflow naming.",
+        "justificationRationaleMd": "Allowing Group-focused episodes and aligning with workflow subject semantics are reasonable goals, but the required wire-name rename breaks essentially every R4 EpisodeOfCare instance. Because R4 `patient` already mapped to `Event.subject`, R6 could have widened and redefined that same element rather than requiring `subject`.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design would retain `EpisodeOfCare.patient` as `1..1 Reference(Patient | Group)` with updated short and definition text explaining that it is the patient or group subject. This preserves R4-valid Patient references while supporting Group subjects. The tradeoff is lasting semantic debt in the element name; adding both `patient` and `subject` would be worse because duplicate same-resource representations could conflict and persist indefinitely."
+      }
+    },
+    {
+      "findingId": "EpisodeOfCare:type:diagnosis-condition:7d8d0b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 `diagnosis.condition` Reference and add a new optional repeating CodeableReference sibling for coded, text, or multiple conditions.",
+        "alternativeTradeoffSummary": "Preserves common R4 references, but creates overlapping same-resource condition representations with conflict and indefinite-deprecation risk.",
+        "justificationRationaleMd": "The R6 goal of representing diagnoses by text, code, or Condition reference is reasonable, and CodeableReference gives one coherent model for those cases. A less-breaking design exists, but it would split the same diagnosis fact across old Reference and new codeable fields and require rules for precedence, duplication, and consistency.",
+        "backwardCompatibleAlternativeMd": "A partial base-design alternative would leave `EpisodeOfCare.diagnosis.condition` as the R4 `Reference(Condition)` and add a new repeated element such as `conditionCodeableReference` for code-only, text-only, and multiple conditions. That is more than conversion guidance and would preserve R4 instances, but it is incomplete and costly: R6 producers could populate either or both locations, validators would need conflict rules, and deprecated same-resource representations might never disappear."
+      }
+    },
+    {
+      "findingId": "EpisodeOfCare:semantic:diagnosis-reason-split:68bd1f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `reason` while retaining the broader R4 `diagnosis` semantics, or add a new addressed-diagnosis element while deprecating the old broad meaning.",
+        "alternativeTradeoffSummary": "Reduces migration ambiguity for old data, but weakens the new reason-versus-addressed distinction or creates overlapping clinical representations.",
+        "justificationRationaleMd": "Separating expected reasons from conditions actually addressed is clinically meaningful and can reduce downstream ambiguity. The breakage is partly semantic rather than only syntactic: old R4 diagnosis data may not say whether an item was merely a reason, actually addressed, or both. Less-breaking designs are possible, but they materially compromise the clean separation R6 appears to be pursuing.",
+        "backwardCompatibleAlternativeMd": "One partial alternative would introduce the optional R6 `reason` backbone while leaving `EpisodeOfCare.diagnosis` with its R4 broad relevant-or-intended meaning. Another would keep the old broad element deprecated and add a new addressed-diagnosis element. Either would preserve more historical data without forcing immediate classification, but R6 consumers could no longer rely on `diagnosis` meaning conditions actually addressed, and duplicate or overlapping reason/diagnosis fields could accumulate."
+      }
+    },
+    {
+      "findingId": "EpisodeOfCare:element:diagnosis-role-use:1d6b42",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `diagnosis.role`, widen it to repeat, and update or prefer the encounter diagnosis use terminology without changing the wire name.",
+        "alternativeTradeoffSummary": "Preserves R4 instances, but keeps older `role` naming and permits legacy diagnosis-role codings under a preferred binding, slowing terminology convergence.",
+        "justificationRationaleMd": "The goal of supporting encounter-style working/final uses and multiple classifications is reasonable, but the path rename from `role` to `use` is not necessary to achieve it. The element remains a CodeableConcept with essentially the same definition, and changing a preferred binding or increasing max cardinality can be done without invalidating the R4 wire property.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design would keep `EpisodeOfCare.diagnosis.role` as `0..* CodeableConcept`, update the short/definition if needed, and bind it preferentially to the encounter diagnosis use ValueSet or to a transition ValueSet that includes the new use codes. Existing R4 codings would remain structurally valid because the binding is preferred rather than required. The main tradeoff is a less harmonized name than `use` and weaker pressure to normalize legacy role codes."
+      }
+    },
+    {
+      "findingId": "EpisodeOfCare:element:diagnosis-rank:aa4071",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `diagnosis.rank` as deprecated while directing billing sequencing to `Account.diagnosis.sequence`.",
+        "alternativeTradeoffSummary": "Preserves old EpisodeOfCare data, but leaves competing EpisodeOfCare and Account ranking locations that could diverge and persist.",
+        "justificationRationaleMd": "Moving billing-oriented diagnosis sequencing to Account is a reasonable modeling goal, especially because R6 Account has an explicit diagnosis sequence. However, removing the same-resource field creates a hard R4-to-R6 data-loss risk for existing ranks. The less-breaking base alternative is real but has material interoperability and reconciliation costs.",
+        "backwardCompatibleAlternativeMd": "A partial base R6 design would keep `EpisodeOfCare.diagnosis.rank` as a deprecated `0..1 positiveInt` with a comment that billing ranking should use `Account.diagnosis.sequence`. That would preserve R4-valid instances without relying only on migration tooling. The tradeoff is substantial: rank could be duplicated between EpisodeOfCare and Account, stale values could conflict, and reimbursement-related sequencing might remain split indefinitely."
+      }
+    },
+    {
+      "findingId": "EpisodeOfCare:element:team-careTeam:2de3c5",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `team` element and clarify or alias it as the CareTeam reference instead of renaming the wire property.",
+        "alternativeTradeoffSummary": "Avoids validation and code-generation break with minimal cost; only persistent name inconsistency and less harmonized path naming remain.",
+        "justificationRationaleMd": "The new `careTeam` name is clearer, but this is otherwise a pure rename: cardinality, datatype, target profile, and mapping are unchanged. A base R6 wire rename for clarity alone is difficult to justify when the old element could have been retained with updated narrative or aliases.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep `EpisodeOfCare.team` as `0..* Reference(CareTeam)` and add clearer definition text, comments, or alias metadata explaining that it references the care team. This preserves all R4 instances and avoids duplicate fields. Adding `careTeam` alongside deprecated `team` would also be less breaking, but it would introduce unnecessary duplicate same-resource representations."
+      }
+    }
+  ]
+}

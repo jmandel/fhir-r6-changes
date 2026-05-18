@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "HealthcareService",
+  "patches": [
+    {
+      "findingId": "HealthcareService:element-presence:telecom-contact:5d6f0b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `telecom` in base R6 while adding richer `contact` records.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but creates duplicate same-resource contact representations that require reconciliation.",
+        "justificationRationaleMd": "The inferred goal--modeling official service contacts with purpose, address, organization, name, and period--is reasonable and is supported by the move to `ExtendedContactDetail`. A less-breaking base design was possible, but it would leave two normative contact locations on the same resource and would require validators and clients to resolve conflicts. Given those material long-term interoperability costs, the break is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best base-design alternative would have kept `HealthcareService.telecom` as deprecated `0..* ContactPoint` and added `HealthcareService.contact` for richer details, possibly with guidance to migrate simple telecom points into `contact.telecom`. That would preserve old R4-valid instances, but duplicate phone/email/url facts could diverge, and deprecated contact representations might remain indefinitely."
+      }
+    },
+    {
+      "findingId": "HealthcareService:element-presence:availability:4c8a21",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated direct availability fields alongside the new `availability` datatype element.",
+        "alternativeTradeoffSummary": "Preserves old instances but duplicates scheduling semantics and adds validation ambiguity around exceptions and all-day rules.",
+        "justificationRationaleMd": "Reusing a common `Availability` datatype and consolidating availability semantics is a credible R6 goal. The less-breaking approach of retaining `availableTime`, `notAvailable`, and `availabilityExceptions` would preserve R4 data, but the tradeoffs are larger than for a simple alias: the same schedule could be represented in two shapes, exception text would need precedence rules, and conflicts could affect service-discovery or scheduling safety. The breaking consolidation is therefore probably justified.",
+        "backwardCompatibleAlternativeMd": "A base-compatible design could have kept the three R4 direct fields as deprecated aliases while adding `HealthcareService.availability`. That is a real alternative, not merely conversion tooling, but it would require cross-field consistency rules between direct and nested availability, and it risks indefinitely accumulating parallel schedule representations."
+      }
+    },
+    {
+      "findingId": "HealthcareService:terminology:communication:9e31b7",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use extensible/preferred binding or require a BCP-47 coding while allowing supplemental local codings.",
+        "alternativeTradeoffSummary": "Less disruptive for legacy codings but weakens uniform language interoperability or still rejects local-only data.",
+        "justificationRationaleMd": "The goal of making `communication` carry interoperable human-language tags is reasonable because the element specifically describes languages a service is offered in. A less-breaking design could allow local supplemental codings or keep a weaker binding, but that either fails to guarantee BCP-47 language representation or only preserves cases that already include a valid BCP-47 coding. Because the alternatives only partially meet the interoperability goal, the required binding is probably justified.",
+        "backwardCompatibleAlternativeMd": "The strongest less-breaking base design would avoid a fully required binding and instead use an extensible binding or an invariant requiring at least one `urn:ietf:bcp:47` coding while permitting additional local codings. This would reduce failures for mixed CodeableConcepts but would not preserve R4 instances that used only local non-language codes, and a purely preferred binding would not meet the goal of consistent language interoperability."
+      }
+    },
+    {
+      "findingId": "HealthcareService:value-constraint:eligibility:1f0c64",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the reported `value[x]`, `period`, and invariant are optional R6 additions or constraints on new R6 content.",
+        "alternativeTradeoffSummary": "R4 extensions help down-conversion but are migration mitigations, not less-breaking base R6 alternatives.",
+        "justificationRationaleMd": "The inferred goal--making eligibility rules more computable and preventing untyped values--is reasonable. As framed in this finding, the change does not invalidate R4 instances during R4-to-R6 migration because the added fields are optional and `hcs-1` applies when the new value is present. The material issue is R6-to-R4 representability, so the backward-compatible-alternative question for breaking base R6 design is not applicable.",
+        "backwardCompatibleAlternativeMd": "Using R4-compatible extensions or profile conventions could preserve R6 `eligibility.value[x]` and `eligibility.period` when converting down to R4, but that is a cross-version mitigation. Since the base R6 design adds optional expressiveness without removing the R4 `eligibility` shape for old instances, there is no less-breaking base R6 alternative to calibrate for this finding."
+      }
+    },
+    {
+      "findingId": "HealthcareService:type-domain:comment-markdown:7a42bc",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `comment` as `string` and clarify markdown/display expectations, or add a separate optional formatted-comment element.",
+        "alternativeTradeoffSummary": "Preserves R4 wire shape and generated APIs, with only moderate tradeoff in type-level formatting standardization or duplicate display fields.",
+        "justificationRationaleMd": "Allowing richer displayed comments is a reasonable goal, but replacing the primitive type from `string` to `markdown` was not clearly necessary to meet it. The JSON shape remains a string, so the main break is generated type and rendering semantics. Retaining the old primitive with clearer definition text, or adding a separate formatted field, would preserve most R4 usage while still allowing R6 implementations to support markdown display. This makes the break probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have left `HealthcareService.comment` as `string` while stating that implementations may interpret it as markdown for display, or could have added an optional `commentMarkdown`-style element and deprecated the plain field over time. The former weakens machine-readable formatting semantics; the latter duplicates display text. Those are moderate tradeoffs compared with changing the existing element's primitive type."
+      }
+    },
+    {
+      "findingId": "HealthcareService:reference-target:offeredIn:2bb615",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `offeredIn` is an optional additive R6 element and does not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "R4 extensions mitigate down-conversion loss but are not less-breaking alternatives to an optional R6 base addition.",
+        "justificationRationaleMd": "The goal of representing a specific service as offered within a broader HealthcareService is reasonable, and adding an optional self-reference is the normal backward-compatible way to extend the R6 base resource. The risk identified here is loss when converting R6 content back to core R4, not a breaking R4-to-R6 design choice.",
+        "backwardCompatibleAlternativeMd": "An R4 extension or external relationship table could preserve the hierarchy in R4, but that is a down-conversion strategy. Because R4 instances remain valid without `offeredIn`, the calibration question of a less-breaking base R6 design is not applicable for this finding."
+      }
+    },
+    {
+      "findingId": "HealthcareService:element-presence:referralRequired:ad51e0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `referralRequired` is an optional additive R6 element and does not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "Extensions or eligibility-code conventions are R4 preservation strategies, not less-breaking base R6 alternatives.",
+        "justificationRationaleMd": "The inferred goal of separating whether a referral is required from the methods of referral is reasonable, and the R6 design adds a simple optional boolean without changing the existing `referralMethod` element. The compatibility issue is that R6 data may not round-trip to plain R4, not that old R4 instances are broken by the base R6 design.",
+        "backwardCompatibleAlternativeMd": "A profiled eligibility code or extension can carry the boolean meaning in R4, but that is a mitigation for R6-to-R4 conversion. Since the base R6 addition is optional and preserves R4-to-R6 instance validity, there is no less-breaking base R6 alternative to assess for this finding."
+      }
+    }
+  ]
+}

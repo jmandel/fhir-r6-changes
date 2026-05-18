@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MedicinalProductInteraction",
+  "patches": [
+    {
+      "findingId": "MedicinalProductInteraction:ARTIFACT_IDENTITY:root:34e0db",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain a deprecated R6 compatibility resource alongside ClinicalUseDefinition for a transition period.",
+        "alternativeTradeoffSummary": "Preserves legacy wire identity but creates duplicate resource representations and long-lived support burden.",
+        "justificationRationaleMd": "The inferred goal, consolidating related clinical-use concepts under `ClinicalUseDefinition`, is coherent and supported by the R6 type discriminator and interaction branch. The break is large, but avoiding it entirely would require keeping the old resource identity in the base package, which would materially undermine consolidation and force servers, clients, search, profiles, and examples to support two representations of the same interaction knowledge.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have kept `MedicinalProductInteraction` as a deprecated compatibility resource, possibly constrained to map to `ClinicalUseDefinition.type = \"interaction\"`. That would preserve most R4 instances and APIs during transition, but it is only a partial alternative because it duplicates a whole resource model; deprecated resource types can persist indefinitely, fragment interoperability, and accumulate parallel guidance. StructureMap or conversion guidance would help migration but is not itself a backward-compatible base R6 design."
+      }
+    },
+    {
+      "findingId": "MedicinalProductInteraction:VALUE_CONSTRAINT:ClinicalUseDefinition.type:251b80",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make the root discriminator optional when exactly one branch is present, or retain a legacy resource where interaction type is implied.",
+        "alternativeTradeoffSummary": "Reduces migrated-instance failures but weakens uniform classification and creates validation ambiguity for branchless or inconsistent instances.",
+        "justificationRationaleMd": "Once several clinical-use issue types are merged into one base resource, an explicit required `ClinicalUseDefinition.type` and invariants tying branch content to that type are a reasonable way to keep instances unambiguous. The added field is a real migration trap because R4 already had a different `type` element, but the R6 goal of computable branch discrimination is itself sound.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have made `ClinicalUseDefinition.type` `0..1` and inferred `interaction` from the presence of `ClinicalUseDefinition.interaction`, while requiring consistency when the discriminator is supplied. That would preserve transformed legacy interactions missing the new root code, but only partially meets the R6 goal: generalized processors would no longer have a uniform required classifier, branchless instances would be harder to interpret, and profile or conversion rules would still be needed for reliable migration."
+      }
+    },
+    {
+      "findingId": "MedicinalProductInteraction:CARDINALITY:subject:28e057",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep base `subject` optional and preserve a legacy Reference-compatible subject path while adding coded or broader R6 subject support.",
+        "alternativeTradeoffSummary": "Preserves sparse and legacy-reference records only by tolerating subjectless issues, obsolete targets, or duplicate subject representations.",
+        "justificationRationaleMd": "Making the subject explicit is reasonable for a generalized clinical-use resource because the subject identifies what product, substance, device, or other item the interaction applies to. Aligning targets with the R6 definition resources is also consistent with the surrounding product-model restructuring. The breakage is substantial, but full backward compatibility would require more than a simple optional field tweak.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `subject` at `0..*`, retained a Reference-compatible legacy subject representation, and added CodeableReference or additional targets separately. That would preserve some R4 records, especially those with missing subjects or Medication references, but it is incomplete and costly: old `MedicinalProduct` and `Substance` targets depend on resource families that are themselves replaced, and parallel subject forms can disagree or make validation ambiguous. Extensions or profiles are useful mitigations but are not a base-design substitute."
+      }
+    },
+    {
+      "findingId": "MedicinalProductInteraction:ELEMENT_PRESENCE_OR_IDENTITY:description:2ab3dd",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Add an optional `ClinicalUseDefinition.interaction.description` or interaction-level note element.",
+        "alternativeTradeoffSummary": "Low model cost; possible overlap with narrative or structured detail but little validation or interoperability burden.",
+        "justificationRationaleMd": "Favoring more structured interaction detail is reasonable, but the supplied local artifacts do not show why the R4 free-text description had to disappear from the base model. Because the element was optional and non-modifying, retaining an interaction-level text slot would have preserved legacy clinical nuance without preventing use of the R6 coded fields.",
+        "backwardCompatibleAlternativeMd": "The straightforward less-breaking base design is an optional `ClinicalUseDefinition.interaction.description`, `note`, or similarly scoped text element. It would preserve most R4 `description` content as standard structured data, remain easy to ignore when unused, and avoid relying on narrative or extensions for round-trip preservation. The tradeoff is only a modest risk of overlap with generated narrative or coded interaction fields, which is a low-to-moderate long-term cost."
+      }
+    },
+    {
+      "findingId": "MedicinalProductInteraction:REFERENCE_TARGET:interactant.item[x]:4664cd",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep a deprecated root-level interactant alias and temporarily allow legacy product/substance targets in the base model.",
+        "alternativeTradeoffSummary": "Preserves common legacy shapes but duplicates paths and depends on supporting obsolete target resources.",
+        "justificationRationaleMd": "Moving interactants under the interaction branch and aligning targets with `MedicinalProductDefinition` and `SubstanceDefinition` are consistent with the R6 consolidation and product-definition cleanup. The old CodeableConcept, Medication, and ObservationDefinition cases remain conceptually mappable, but old product and substance references are tied to resource families no longer present in the same form.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained a deprecated root-level `interactant` alias on the replacement resource and accepted old `MedicinalProduct` and `Substance` target profiles during transition. That would preserve more R4-shaped data, but only partially: it creates two same-resource paths for the same interactant fact, risks inconsistent duplicate content, and requires retaining or recognizing obsolete target resources. Official maps would reduce migration risk, but maps alone are conversion tooling rather than a backward-compatible base design."
+      }
+    },
+    {
+      "findingId": "MedicinalProductInteraction:TYPE_DOMAIN:effect:aa71db",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the coded effect shape and add a separate optional reference-valued effect instead of replacing it with CodeableReference.",
+        "alternativeTradeoffSummary": "Preserves coded-data compatibility but creates parallel fields for one fact that can disagree or persist indefinitely.",
+        "justificationRationaleMd": "`CodeableReference` is a coherent R6 pattern for allowing either a coded effect or a reference to an `ObservationDefinition`, and it avoids separate code/reference elements in new data. However, it changes the JSON shape for existing coded effects and requires generated code and FHIRPath updates.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `ClinicalUseDefinition.interaction.effect` as `CodeableConcept` for legacy coded content and added a sibling reference element, or used a choice that preserved the old coded representation. This would preserve most R4 coded effects after the broader resource/branch migration, but it is only a partial alternative because parallel code and reference fields can conflict, must be reconciled by validators and business logic, and may remain indefinitely as another duplicate representation."
+      }
+    },
+    {
+      "findingId": "MedicinalProductInteraction:CARDINALITY:management:320e2d",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable because increasing `management` maximum cardinality from `1` to `*` preserves R4 single values in R6.",
+        "alternativeTradeoffSummary": "The tradeoff is an R6-to-R4 downgrade policy for multiple actions, not an R4-to-R6 base compatibility problem.",
+        "justificationRationaleMd": "Allowing multiple management actions is clinically plausible and does not invalidate R4 instances: an old `0..1` value can be represented as a one-item R6 list. The compatibility concern is only reverse conversion when new R6 data uses more than one action.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R4-to-R6 base design is needed for this finding. Keeping `0..1` would improve R6-to-R4 round-tripping but would also block the R6 goal of representing multiple management actions. Extensions or concatenation could support downgrade, but those are mitigation strategies for older versions rather than alternatives to the additive R6 base design."
+      }
+    },
+    {
+      "findingId": "MedicinalProductInteraction:FLAGS_AND_MODIFIERS:status-context:23e539",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable because these are optional R6 context additions that do not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "They create R6-to-R4 downgrade and extension needs, but no less-breaking R4-to-R6 base alternative is required.",
+        "justificationRationaleMd": "Adding optional status, severity, route, population, library, identifier, and category context improves expressiveness without making R4-origin instances invalid. Marking `status` as a modifier is appropriate because current versus retired knowledge changes interpretation.",
+        "backwardCompatibleAlternativeMd": "Because this finding is additive optional R6 content, backward-compatible alternative availability is not applicable under the calibration rules. R4-to-R6 migration can omit these elements. When converting R6 data back to R4, extensions, narrative, or rejection policies may be needed, but those are downgrade mitigations rather than less-breaking base R6 designs."
+      }
+    }
+  ]
+}

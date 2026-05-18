@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Schedule",
+  "patches": [
+    {
+      "findingId": "Schedule:TYPE_DOMAIN:Schedule.serviceType:8f1a3c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Preserve `serviceType` as `CodeableConcept` and add a separate optional `HealthcareService` reference element.",
+        "alternativeTradeoffSummary": "Preserves the R4 wire shape for coded service types, but creates parallel concept/reference representations that need consistency rules and may persist indefinitely.",
+        "justificationRationaleMd": "The inferred R6 goal is reasonable: a schedule can describe either a general service concept or an exact `HealthcareService` instance. The chosen `CodeableReference` design is a real R4-to-R6 representation break for populated `serviceType`, but the main less-breaking base design would duplicate the same fact across separate concept and reference fields. Because that duplication carries material validation, consistency, and long-term interoperability costs, the break is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have kept `Schedule.serviceType` as repeating `CodeableConcept` and added a new optional reference element such as `serviceTypeReference` targeting `HealthcareService`. That would preserve most R4-valid instances and generated APIs while adding the new exact-link capability. The cost is a permanent same-resource dual representation: producers could populate either or both fields, receivers would need precedence and consistency rules, and deprecated parallel content might never disappear."
+      }
+    },
+    {
+      "findingId": "Schedule:REFERENCE_TARGET:Schedule.actor:0e4d92",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; adding `CareTeam` is target widening that preserves R4-valid `actor` references.",
+        "alternativeTradeoffSummary": "No less-breaking R4-to-R6 base design is needed; only R6-to-R4 downgrade needs mapping or extension policy.",
+        "justificationRationaleMd": "Supporting team-owned schedules is a plausible R6 goal, and the base change keeps every R4 target profile while adding `CareTeam`. This is not a breaking R4-to-R6 base-design change; the compatibility issue is only that new R6 `CareTeam` actors cannot be represented natively in strict R4.",
+        "backwardCompatibleAlternativeMd": "Because this is an additive target-domain widening, ordinary backward-compatible alternative analysis does not apply. Indirectly representing a care team through `PractitionerRole`, `HealthcareService`, or an extension would be an R6-to-R4 downgrade mitigation or a weaker modeling choice, not a less-breaking alternative needed to preserve existing R4 instances."
+      }
+    },
+    {
+      "findingId": "Schedule:ELEMENT_PRESENCE_OR_IDENTITY:Schedule.name:2a7b19",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; optional new `Schedule.name` does not break R4-to-R6 validation.",
+        "alternativeTradeoffSummary": "R6-to-R4 preservation may require dropping the value or using an extension, but that is downgrade handling rather than a base R6 compatibility alternative.",
+        "justificationRationaleMd": "A human-readable schedule label is a reasonable usability addition, and adding it as `0..1` optional content does not invalidate any R4 Schedule instance. The fact that R4 systems need an extension or must drop the value on downgrade is not R4-to-R6 breakage.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is required because existing R4 instances remain valid with respect to this optional addition. An extension-only strategy would preserve R6-to-R4 round-tripping, but under the calibration rules that is a backport/downgrade mitigation, not a `Yes` backward-compatible base-design alternative."
+      }
+    },
+    {
+      "findingId": "Schedule:TYPE_DOMAIN:Schedule.comment:5dc8b4",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `comment` as `string` and clarify in the base definition that markdown syntax may be used and rendered.",
+        "alternativeTradeoffSummary": "Preserves primitive type and generated API stability, but gives weaker computable signaling to markdown-aware validators and renderers.",
+        "justificationRationaleMd": "Allowing formatted availability comments is a reasonable goal, but the evidence does not show that changing the primitive type from `string` to `markdown` was necessary to meet it. Both forms serialize as JSON strings, and an R4 `string` can carry markdown-looking text. Retaining the old type with clearer base guidance would have preserved most compatibility with only a moderate loss of datatype-level signaling, so the breaking primitive-type change was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have left `Schedule.comment` as `string` and updated the element definition/comment to say that markdown syntax may be used and should remain readable as plain text. This would preserve existing R4 instances, generated primitive types, schemas, and FHIRPath expectations. The tradeoff is that generic tooling could not infer markdown rendering from the datatype alone; profiles or UI guidance would need to supply that signal where it matters."
+      }
+    },
+    {
+      "findingId": "Schedule:TERMINOLOGY_BINDING:Schedule.specialty:7cbb84",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; weakening a preferred binding to example preserves R4-valid specialty codings.",
+        "alternativeTradeoffSummary": "The change reduces shared base terminology guidance; profiles can restore stronger C80/SNOMED expectations where needed.",
+        "justificationRationaleMd": "Because the R4 binding was preferred rather than required, weakening it to example does not invalidate old instances or create a hard R4-to-R6 break. The likely goal of avoiding an overly strong global specialty terminology recommendation is plausible, though the supplied inputs do not include committee rationale, so `Probably justified` is more appropriate than a stronger verdict.",
+        "backwardCompatibleAlternativeMd": "Backward-compatible alternative analysis is not applicable because there is no R4-to-R6 base-design break to avoid. Keeping the preferred binding would preserve stronger guidance, but it would not be a less-breaking design; it would instead choose a different conformance policy and would only partially meet the apparent R6 flexibility goal. Implementations that still want C80/SNOMED guidance can express that in profiles."
+      }
+    }
+  ]
+}

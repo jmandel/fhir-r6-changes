@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Dosage",
+  "patches": [
+    {
+      "findingId": "Dosage:ELEMENT_PRESENCE_OR_IDENTITY:Dosage.sequence:621bcd",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain optional `Dosage.sequence` as deprecated while adding or promoting richer course or step modeling elsewhere.",
+        "alternativeTradeoffSummary": "Low-to-moderate tradeoff: preserves a weak legacy ordering field and needs precedence guidance if an enclosing course structure also carries order.",
+        "justificationRationaleMd": "The goal of moving beyond a single integer sequence toward richer dosage-course modeling is reasonable, but the supplied evidence does not show that removing the optional R4 field from base `Dosage` was necessary to achieve it. Keeping `sequence` would preserve R4-valid instances and generated APIs while still allowing R6 systems to prefer newer course or step constructs.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have left `Dosage.sequence` at `0..1 integer`, marked it deprecated, clarified that it is only a legacy ordering/concurrency hint, and directed richer sequencing to the relevant R6 course structure. The main cost is lingering legacy semantics and potential precedence rules when both old and new ordering mechanisms are present, but that does not appear to defeat the core R6 goal."
+      }
+    },
+    {
+      "findingId": "Dosage:ELEMENT_PRESENCE_OR_IDENTITY:Dosage.asNeeded:60b14f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated `asNeeded[x]` and add repeating `asNeededFor`, with invariants or guidance for conflicts.",
+        "alternativeTradeoffSummary": "Material duplication: PRN boolean and reason semantics would exist in both the old overloaded choice and the new repeating reason field.",
+        "justificationRationaleMd": "Separating the PRN flag from one or more reasons is a reasonable R6 goal, and the `dos-1` invariant makes the false-with-reason case computable. A less-breaking design exists, but it would preserve the overloaded R4 choice and create two same-resource ways to communicate as-needed reasons, so the chosen break is probably justified.",
+        "backwardCompatibleAlternativeMd": "A partial alternative would have retained `asNeeded[x]` for R4 JSON compatibility while adding `asNeededFor` for multiple coded preconditions. That would preserve old instances, but validators and converters would need rules for `asNeededBoolean=false` with reasons, for `asNeededCodeableConcept` versus `asNeededFor`, and for duplicate or conflicting reason content. The alternative only partly meets the cleanup goal because deprecated PRN representations could persist indefinitely."
+      }
+    },
+    {
+      "findingId": "Dosage:TYPE_DOMAIN:Dosage.site:329ad4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `site` as `CodeableConcept` and add a separate optional BodyStructure reference field.",
+        "alternativeTradeoffSummary": "Material duplication and reconciliation cost: coded and referenced site facts could disagree and generic tooling would not get one unified `CodeableReference` representation.",
+        "justificationRationaleMd": "The R6 goal of supporting either a coded site or a precise `BodyStructure` reference is reasonable and matches the R4 commentary that more precise body-site representation may be needed. A separate reference field would avoid the R4 JSON-shape break, but it would split one clinical fact across parallel fields, so the cleaner `CodeableReference` redesign is probably justified.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would keep `Dosage.site` as `CodeableConcept` and add something like `siteReference` for `BodyStructure`, or formalize use of a body-site extension as transition guidance. The extension/backport approach is only a mitigation, not a base-design alternative. The real base alternative has material tradeoffs because it allows two site representations on the same dosage and requires precedence, consistency, and conversion rules."
+      }
+    },
+    {
+      "findingId": "Dosage:ELEMENT_PRESENCE_OR_IDENTITY:Dosage.maxDose:4f1b9f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `Dosage.safety` while retaining deprecated `maxDosePerPeriod`, `maxDosePerAdministration`, and `maxDosePerLifetime` aliases.",
+        "alternativeTradeoffSummary": "Material safety and validation tradeoffs: duplicate dose-limit representations could conflict, and not all old period ratios map cleanly to the new scoped limit model.",
+        "justificationRationaleMd": "Generalizing dose safety limits into `DosageSafety` is a reasonable and clinically important R6 goal. A staged alias design could preserve old instances, but maximum-dose data is safety-sensitive; allowing old and new representations together would require strict consistency rules and could leave ambiguous or conflicting limits in circulation.",
+        "backwardCompatibleAlternativeMd": "A partial less-breaking design would add `safety.doseLimit` and keep the three R4 `maxDosePer*` fields as deprecated aliases with explicit mappings. This would reduce immediate validation breaks, but it would duplicate safety constraints in the base datatype, require conflict handling when both forms are populated, and still leave edge cases such as unusual `maxDosePerPeriod` ratios, multiple same-scope limits, formula limits, and `ifExceeded` instructions that do not round-trip cleanly."
+      }
+    },
+    {
+      "findingId": "Dosage:TYPE_DOMAIN:Dosage.doseAndRate.Expression:4f04dd",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 only adds `Expression` choices while retaining all R4 dose and rate types.",
+        "alternativeTradeoffSummary": "No less-breaking base R6 alternative is needed for forward compatibility; R6-to-R4 extensions or narrative are conversion mitigations, not base-design alternatives.",
+        "justificationRationaleMd": "The inferred goal of representing formula-based dose and rate instructions is reasonable, and the base R6 change is a type widening that preserves R4-valid `Quantity`, `Range`, and `Ratio` content. The remaining incompatibility is reverse conversion for new R6-only `Expression` content, not avoidable R4-to-R6 breakage.",
+        "backwardCompatibleAlternativeMd": "Because this finding does not invalidate old R4 instances, `backwardCompatibleAlternativeAvailable` is not applicable under the calibration rules. An extension could carry formulas in R4 or during down-conversion, but that is an R6-to-R4 mitigation rather than a less-breaking base R6 design."
+      }
+    },
+    {
+      "findingId": "Dosage:CONVERSION_OR_MAPPING:Dosage.condition:170374",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: optional `Dosage.condition` is additive R6 content and does not invalidate R4 Dosage instances.",
+        "alternativeTradeoffSummary": "The cost is lossy R6-to-R4 conversion policy for new conditional content, not an avoidable R4-to-R6 base-design break.",
+        "justificationRationaleMd": "Representing conditional applicability is a reasonable R6 modeling goal, and adding an optional element is compatible with existing R4 data moving forward. Dropping or backporting conditions can be clinically risky, but that is a reverse-conversion concern rather than evidence that the base R6 addition should have used a different less-breaking shape.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base alternative is needed for R4-to-R6 compatibility because the new element is optional. Carrying conditions in R4 extensions or narrative may be necessary for down-conversion, but those are migration or backport strategies and should not be counted as a `Yes` alternative to the R6 base design."
+      }
+    }
+  ]
+}

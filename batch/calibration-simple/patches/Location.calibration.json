@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Location",
+  "patches": [
+    {
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.telecom:8a20bd",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add optional `Location.contact` but retain deprecated `Location.telecom` for flat contact points.",
+        "alternativeTradeoffSummary": "Would preserve common R4 contacts, but creates overlapping contact representations requiring precedence and conflict rules.",
+        "justificationRationaleMd": "The R6 goal of representing richer grouped contact details is reasonable, and removing the flat field makes `Location.contact` the single canonical contact surface. A less-breaking base design could preserve old instances, but it would duplicate the same fact on the same resource and risk indefinite divergence between `telecom` and `contact.telecom`, so the breakage is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best alternative would add `Location.contact` and keep `Location.telecom` as deprecated for one or more releases, with rules that flat contact points map to `contact.telecom`. That preserves most R4 data and client paths, but it does not fully solve grouped contact metadata and would require reconciliation when both old and new elements are populated."
+      }
+    },
+    {
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.physicalType:7b365f",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `Location.physicalType` with broadened wording and value set, or keep it as a deprecated alias while adding `Location.form`.",
+        "alternativeTradeoffSummary": "The main cost is living with an outdated element name or temporary alias, which is modest compared with a wire-level rename.",
+        "justificationRationaleMd": "Broadening the concept to include virtual forms is reasonable, but the R6 goal did not require removing the R4 path. Under the calibration rules, retaining a nonoptimal old name plus clearer definitions is a serious backward-compatible option, so the rename looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `physicalType` as the base element and updated its definition and example value set to include non-physical or virtual forms. Alternatively, `form` could have been added while `physicalType` remained as a deprecated alias with a simple equivalence rule. Either design would preserve most R4-valid instances with only moderate naming and cleanup tradeoffs."
+      }
+    },
+    {
+      "findingId": "Location:TYPE_DOMAIN:Location.hoursOfOperation:b48fa4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 opening-hours backbone and add a separate Availability-based element or deprecated aliases.",
+        "alternativeTradeoffSummary": "Preserves R4 schedule instances only by maintaining duplicate schedule models, reconciliation rules, and implementation burden.",
+        "justificationRationaleMd": "Using a reusable `Availability` datatype is a coherent R6 design goal, especially where multiple resources need comparable schedule and exception modeling. A less-breaking design exists, but it would leave two same-resource schedule representations and make canonical interpretation harder, so the level of breakage is probably justified if the goal was a clean shared model.",
+        "backwardCompatibleAlternativeMd": "The best alternative would introduce a new optional Availability-valued element, or retain the old `hoursOfOperation` backbone children as deprecated aliases that map into `Availability.availableTime`. This would preserve R4 instances for common opening-hours cases, but it is incomplete for richer R6 availability periods and would create long-term ambiguity when old and new schedule data disagree."
+      }
+    },
+    {
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.availabilityExceptions:e41e40",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `availabilityExceptions` as a free-text shortcut while adding structured `notAvailableTime` entries.",
+        "alternativeTradeoffSummary": "Would preserve old exception text, but leaves two places for closure information and weakens adoption of structured periods.",
+        "justificationRationaleMd": "Moving exception information into `Availability.notAvailableTime` is a reasonable cleanup because exceptions are part of availability, not a separate Location-level concern. Keeping the R4 string would reduce breakage, but it would duplicate closure semantics and create conflict risk with structured periods, so the breaking consolidation is probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `Location.availabilityExceptions` as deprecated text and recommended migration to `hoursOfOperation.notAvailableTime.description`. That covers existing R4 data, but it only handles unstructured exceptions and would require rules for how the deprecated text interacts with multiple R6 `notAvailableTime` entries."
+      }
+    },
+    {
+      "findingId": "Location:TERMINOLOGY_BINDING:Location.type:b08461",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `Location.type` as role/function and add a distinct service-type element for services available at the location.",
+        "alternativeTradeoffSummary": "Adds another classification field, but avoids silent semantic repurposing of an existing path.",
+        "justificationRationaleMd": "The goal of modeling available services is reasonable, but changing the meaning and preferred terminology of the existing `Location.type` path risks semantic breakage for R4 data and consumers. A distinct service-type element would meet the R6 goal while preserving the old role/function semantics with only moderate model-surface cost, so the break appears probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would keep R4 `Location.type` for location role or function, retain or deprecate its old terminology, and add an explicit service classification element for the new service-type value set. This would make migration intent visible instead of overloading a familiar path with changed meaning."
+      }
+    },
+    {
+      "findingId": "Location:TYPE_DOMAIN:Location.description:f3e262",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base alternative is needed because R4 strings remain JSON-string-compatible with R6 markdown.",
+        "alternativeTradeoffSummary": "Generated primitive wrappers and rendering or sanitization behavior may change, but this is not a base R4-to-R6 instance break.",
+        "justificationRationaleMd": "The goal of allowing formatted descriptive text is reasonable, and the wire representation remains a JSON string. Because ordinary R4 `string` values are preserved as R6 `markdown`, this is better calibrated as a low-risk type widening rather than a breaking base-design issue.",
+        "backwardCompatibleAlternativeMd": "Retaining `string` would avoid some code-generation differences, but it would not communicate markdown rendering semantics to tooling. Under the calibration rules, the backward-compatible-alternative question is not applicable because the change preserves R4 instances rather than requiring a less-breaking replacement design."
+      }
+    },
+    {
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.virtualService:4e9d6d",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Optional R6 addition; R4 instances are preserved, and R4 extensions are downgrade mitigations rather than base-design alternatives.",
+        "alternativeTradeoffSummary": "R6-to-R4 downgrade may need extensions or lose data, but the additive R6 element is not an R4-to-R6 base break.",
+        "justificationRationaleMd": "Adding optional virtual-service details is the least disruptive base R6 mechanism for a new capability and does not invalidate R4 Location instances. The reported risk is primarily R6-to-R4 representability, so scoring an R4 extension strategy as a backward-compatible alternative would confuse mitigation with base-design compatibility.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R6 base design is needed for the upgrade direction: absence of `virtualService` in R4 data remains acceptable in R6. Cross-version extensions can preserve this content when downgrading to R4, but they are not a less-breaking alternative to the optional R6 base element."
+      }
+    },
+    {
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.code-characteristic:d5e335",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Optional R6 classification additions; R4-to-R6 compatibility is unaffected.",
+        "alternativeTradeoffSummary": "R4 round-trip may rely on extensions or local mapping, but that is a downgrade concern rather than a less-breaking R6 base alternative.",
+        "justificationRationaleMd": "First-class coded location and characteristic fields are reasonable optional additions for R6 directories and do not reject existing R4 instances. The compatibility issue is that R6-only content has no R4 core target, which is outside the backward-compatible-alternative judgment for R4-to-R6 base breakage.",
+        "backwardCompatibleAlternativeMd": "Standard extensions can help R4 systems carry these classifications, but that is a cross-version mitigation. Since the R6 fields are optional additions and preserve old instances, there is no applicable less-breaking base R6 design to score."
+      }
+    }
+  ]
+}

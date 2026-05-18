@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "CareTeam",
+  "patches": [
+    {
+      "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:CareTeam.encounter:8d0c52",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain optional or deprecated `CareTeam.encounter` while adding `Encounter.careTeam` and guidance on the authoritative link.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but creates bidirectional encounter-team links that need reconciliation.",
+        "justificationRationaleMd": "Moving encounter/team allocation toward `Encounter.careTeam` is a reasonable modeling goal, but complete removal of `CareTeam.encounter` invalidates existing R4 instances that carried encounter context. The available definitions show the new reverse link but do not show why retaining the old optional field for a transition would fail the R6 goal. Because the compatibility-preserving design has real consistency costs but is plausible, the break is not clearly justified rather than clearly necessary.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have kept `CareTeam.encounter` as optional and deprecated while adding or encouraging `Encounter.careTeam`, with narrative or invariants specifying which side is authoritative when both are present. That would preserve most R4 wire instances. The material tradeoff is duplicate cross-resource linkage: systems could disagree about whether the Encounter or the CareTeam is the source of truth, and reconciliation logic could persist indefinitely."
+      }
+    },
+    {
+      "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:reasonCode-reasonReference:3c14bb",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `CareTeam.reason` CodeableReference while temporarily retaining deprecated `reasonCode` and `reasonReference`.",
+        "alternativeTradeoffSummary": "Reduces immediate wire breakage but leaves duplicate reason representations and conflict rules.",
+        "justificationRationaleMd": "The inferred goal is strong: `CodeableReference` lets a reason be a concept, a Condition reference, or both as one item, avoiding the R4 parallel-array pattern. Keeping the old siblings would preserve R4 instances, but it would not fully meet the pairing and simplification goal and could leave implementers with two same-resource ways to express the same reason. Those material ambiguity and long-term cleanup costs make the breaking merge probably justified.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking design would add `CareTeam.reason` and keep `reasonCode` and `reasonReference` as deprecated aliases for a transition, possibly with warnings against using old and new forms together. This would make simple R4 data valid without transformation. The tradeoff is validation and semantic ambiguity: old split arrays cannot preserve an R6 concept/reference pair, and deprecated duplicate fields might remain in production indefinitely."
+      }
+    },
+    {
+      "findingId": "CareTeam:CARDINALITY:participant.role:6f2a19",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `participant.role` repeating but add best-practice guidance or a warning to split multiple roles into multiple participant entries.",
+        "alternativeTradeoffSummary": "Preserves R4 multi-role participants but cannot enforce one role per participant and leaves role-specific metadata ambiguous.",
+        "justificationRationaleMd": "R6 explicitly states that a participant with multiple roles should be represented by multiple participant repetitions. That goal becomes more important with participant-level `effective[x]` and `supportingInfo`, because timing and supporting documentation can be role-specific. A non-breaking warning would preserve old data but only partially achieve the normalized one-role participation model. Given those material semantics, the max-cardinality break is probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have left `role` as `0..*` and added a warning invariant, comment, or profiling guidance that multiple roles SHOULD be split. This would keep all R4 instances valid. Its weakness is that base R6 instances could still put several roles on one participant, making it unclear whether `effective[x]`, `onBehalfOf`, extensions, and `supportingInfo` apply to every role or only some roles."
+      }
+    },
+    {
+      "findingId": "CareTeam:SERIALIZATION_OR_CODEGEN:participant.period-effective:bb412e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `participant.period` and add a separate optional Timing or availability element instead of replacing it with `effective[x]`.",
+        "alternativeTradeoffSummary": "Preserves existing Period wire names but creates two timing fields and one-of-many usage rules.",
+        "justificationRationaleMd": "The R6 requirement for recurring or schedule-like availability is substantive, and a choice element is a clean way to say the effective availability can be either a `Period` or a `Timing`. A less-breaking additive design exists, but it would leave two related participant timing fields and require rules for whether they can coexist. Because those tradeoffs are material, the rename to `effective[x]` is probably justified despite the field-name break.",
+        "backwardCompatibleAlternativeMd": "A base R6 alternative could keep `participant.period` for the R4 case and add `participant.timing` or `participant.availabilityTiming` for recurring schedules. Existing R4 instances would remain valid. The cost is a less coherent model than `effective[x]`: implementers would need to handle both fields, decide precedence when both are present, and accept that FHIRPath and generated APIs expose separate timing concepts rather than one choice."
+      }
+    },
+    {
+      "findingId": "CareTeam:REFERENCE_TARGET:participant-member-onBehalfOf:ef5c21",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "The target-domain widening preserves R4-valid references, so no less-breaking R4-to-R6 base alternative is needed.",
+        "alternativeTradeoffSummary": "R6-to-R4 conversion and old type assumptions need migration policies, not a less-breaking R6 base design.",
+        "justificationRationaleMd": "Broadening `member` and `onBehalfOf` supports a more expressive participant/proxy model, and the old R4 reference targets remain allowed. The change can still affect generated code and business logic that assumed `onBehalfOf` was only an Organization, but it is not an old-valid/new-invalid base instance break. Under the calibration rules, target-domain widening that preserves R4 instances is not a case where a backward-compatible alternative is applicable.",
+        "backwardCompatibleAlternativeMd": "Keeping `onBehalfOf` narrowly Organization-only and adding extensions, profiles, or a separate represented-entity element would be a different design, but it is not needed to preserve R4 wire instances because those instances already remain valid in R6. Such approaches would mainly mitigate R6-to-R4 conversion or old runtime assumptions, so they should not be counted as a `Yes` or `Partial` base compatibility alternative."
+      }
+    },
+    {
+      "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:participant.supportingInfo:97ab2d",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Optional additive R6 content does not break R4-to-R6 base validation.",
+        "alternativeTradeoffSummary": "An R4 extension can mitigate reverse-version loss, but it is not a less-breaking R6 base design.",
+        "justificationRationaleMd": "`participant.supportingInfo` adds an optional standard place for documentation supporting participation, such as legal authority or guardianship. R4 CareTeam instances remain valid because they simply omit the new element. The compatibility concern is R6-to-R4 loss, not an R4-to-R6 breaking base design, so the addition is justified and the alternative question is not applicable.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R6 base design is needed for preserving R4 instances. A shared extension for R4 exchange could help mixed-version ecosystems carry the same information backward, but that is a migration/backport mitigation rather than a reason to mark a backward-compatible base R6 alternative as available."
+      }
+    },
+    {
+      "findingId": "CareTeam:TERMINOLOGY_BINDING:example-value-sets:0f83aa",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Example binding changes do not make base R4 CareTeam instances invalid; expansion notes or ConceptMaps are migration aids.",
+        "alternativeTradeoffSummary": "Local picklists and derived profiles may need comparison, but that is not a base R4-to-R6 design break.",
+        "justificationRationaleMd": "The ValueSet compose definitions changed and no terminology expansions or narrative rationale were available, so the intended refinement cannot be fully assessed. However, the CareTeam bindings remain example strength, meaning base R4 instances should not become invalid solely because their category or role code is outside the R6 example ValueSet. The backward-compatible alternative field is therefore not applicable to base R4-to-R6 validation compatibility.",
+        "backwardCompatibleAlternativeMd": "Publishing expansion comparisons, ConceptMaps, or historical notes would be useful migration guidance for systems that treated the example sets as picklists or profile seeds. Those artifacts do not constitute a less-breaking R6 base design alternative, and keeping the old compose definitions would mainly protect local conventions rather than preserve base-valid R4 instances."
+      }
+    }
+  ]
+}

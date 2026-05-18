@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Specimen",
+  "patches": [
+    {
+      "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.accessionIdentifier:10dc7f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `accessionIdentifier` as a deprecated alias while recommending ACSN-typed entries in `identifier`.",
+        "alternativeTradeoffSummary": "Preserves old instances, but keeps two same-resource locations for accession identifiers and risks inconsistent or indefinite dual use.",
+        "justificationRationaleMd": "The R6 goal of consolidating specimen business identifiers under `identifier` with `Identifier.type = ACSN` is reasonable. A less-breaking base design could have kept the old element temporarily, but that would leave duplicate accession-number representations in the same resource. Given that material interoperability tradeoff, the break is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking option would keep `Specimen.accessionIdentifier` optional and deprecated while documenting ACSN-typed `Specimen.identifier` as preferred. That preserves R4 wire compatibility and supports gradual migration, but it also requires rules for conflicts between `accessionIdentifier` and `identifier[]` and creates a risk that both representations remain in use indefinitely."
+      }
+    },
+    {
+      "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.container:934b19",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add optional `container.device[x]` while retaining the R4 inline container children as deprecated transition fields.",
+        "alternativeTradeoffSummary": "Would preserve legacy containers, but creates competing inline-vs-device representations for the same container facts and weakens normalization.",
+        "justificationRationaleMd": "Normalizing containers around `Device` or `DeviceDefinition` is a plausible R6 goal, especially for reusable device identity and richer device metadata. The less-breaking design is real, but it is incomplete for that goal because old inline fields and new device references could disagree and would need long-term reconciliation. Those material tradeoffs make the breaking remodel probably justified, even though the mandatory `device[x]` requirement is harsh for legacy container-only instances.",
+        "backwardCompatibleAlternativeMd": "A compatible base design could have made `container.device[x]` optional and kept `identifier`, `description`, `type`, `capacity`, and `additive[x]` on `Specimen.container` with deprecation guidance. This would allow most R4 instances to validate unchanged while encouraging migration to device-based modeling. The cost is persistent duplication, validation ambiguity over which representation is authoritative, and extra implementation burden for systems that must compare or synchronize inline fields with referenced device content."
+      }
+    },
+    {
+      "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.processing.procedure:8870a4",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `processing.procedure` and clarify its definition, aliases, and binding to indicate a processing method or technique.",
+        "alternativeTradeoffSummary": "Preserves R4 instances with only the moderate cost of retaining a less precise legacy element name.",
+        "justificationRationaleMd": "The goal of clarifying that this element is a specimen-processing method rather than a full `Procedure` event is reasonable. However, the old path could have been retained with clearer definitions, aliases, and terminology guidance, avoiding a JSON property rename while still communicating the intended meaning. Because that alternative preserves old instances without adding a duplicate base field, the rename appears probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 design would leave the element at `Specimen.processing.procedure`, update the short/definition to say it records the processing method or technique, and add aliases or explanatory text to discourage confusion with the `Procedure` resource. That alternative does not fully improve the name, but living with a nonoptimal R4 name is a moderate long-term tradeoff compared with invalidating all populated R4 `processing.procedure` instances."
+      }
+    },
+    {
+      "findingId": "Specimen:TYPE_DOMAIN:Specimen.collection.bodySite:7c3859",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `bodySite` as `CodeableConcept` and add a separate optional BodyStructure reference element.",
+        "alternativeTradeoffSummary": "Preserves coded R4 body sites, but introduces parallel coded and referenced site representations with consistency ambiguity.",
+        "justificationRationaleMd": "The R6 goal is well supported by the element comment: some collection sites need a specific `BodyStructure` instance or richer structured attributes. A sibling-reference design could have preserved old JSON, but it would create two base elements for the same anatomical site and require rules for when both are present. Because those tradeoffs are material, the CodeableReference change is probably justified, though not the only plausible design.",
+        "backwardCompatibleAlternativeMd": "The less-breaking alternative would keep `Specimen.collection.bodySite` as `CodeableConcept` and add something like an optional `bodyStructure` reference for cases needing a modeled site instance. This preserves R4 instances and supports the core new use case, but it splits one clinical fact across two fields, complicates validation and search, and risks indefinite duplicate representations."
+      }
+    },
+    {
+      "findingId": "Specimen:TYPE_DOMAIN:Specimen.processing.additive:b5ac2d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `processing.additive` as `Reference(Substance)` and add separate coded or definition-based additive element(s).",
+        "alternativeTradeoffSummary": "Preserves old references, but duplicates additive semantics and makes constraints and conversions more complex.",
+        "justificationRationaleMd": "The R6 goal of allowing additive concepts and `SubstanceDefinition` references is reasonable because an additive may be known by code or definition rather than by a concrete `Substance` instance. A less-breaking sibling-element design could cover many cases, but it would leave multiple same-resource representations of the additive fact. The material duplication and modeling inconsistency make the CodeableReference change probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A compatible alternative would keep the existing `processing.additive` reference shape and add separate optional fields for coded additives or substance definitions. That would preserve R4 instances, but it would require precedence and consistency rules when a reference and a code/definition both describe the same additive, and it would diverge from the single CodeableReference pattern used elsewhere in R6."
+      }
+    },
+    {
+      "findingId": "Specimen:SEMANTIC_OR_CONFORMANCE_TEXT:Specimen.subject:9ac738",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain R4 `subject` as the collection source and add a distinct subject-of-record or source/focus element.",
+        "alternativeTradeoffSummary": "Preserves old semantics, but conflicts with broader FHIR `subject` conventions and adds record-target/source modeling complexity.",
+        "justificationRationaleMd": "The R6 split between subject of record and actual collection source addresses real ambiguity for donor, fetus, animal, group, and biologically derived product scenarios. A less-breaking semantic design could preserve the R4 meaning of `subject`, but that would keep Specimen misaligned with the common FHIR use of `subject` as the record target. Because the alternative has significant semantic and interoperability tradeoffs, the change is probably justified, but not so unavoidable that the partial alternative should be ignored.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design would leave `Specimen.subject` meaning the entity from which the specimen came and add a separate subject-of-record element, or add a separate source/focus element without redefining `subject`. That would make old R4 data easier to interpret, but it would require implementers to learn resource-specific subject semantics and could make cross-resource record-target handling less consistent."
+      }
+    },
+    {
+      "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.combined-role-feature:5dbde8",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "The R6 elements are optional additions that already preserve R4 instances; R4 extensions are downgrade mitigations, not a less-breaking R6 base design.",
+        "alternativeTradeoffSummary": "No R4-to-R6 break needs a less-breaking alternative; avoiding the fields would only reduce R6 expressivity.",
+        "justificationRationaleMd": "`combined`, `role`, and `feature` add optional R6 expressivity for specimen grouping, workflow role, and physical feature annotations. Existing R4 instances are not invalidated by these additions, so the backward-compatible-alternative question is not applicable in the R4-to-R6 base-design sense. The remaining issue is R6-to-R4 export loss, which is a conversion concern rather than evidence that R6 should have used a different base shape.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R6 base alternative is needed because the additions are optional. R4 cross-version extensions, profiles, or narrative degradation can mitigate downgrade loss, but those are migration/export strategies for older systems and should not be counted as backward-compatible base-design alternatives."
+      }
+    },
+    {
+      "findingId": "Specimen:VALUE_CONSTRAINT:Specimen.collection.procedure:79a0ad",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Unchanged R4 collector-only instances remain valid; making `spm-1` a warning would be a migration-friendly R6 policy choice, not preservation of invalidated R4 data.",
+        "alternativeTradeoffSummary": "No old R4 instance contains `collection.procedure`; the tradeoff is between strict R6 consistency and enriched-migration flexibility.",
+        "justificationRationaleMd": "The invariant has a reasonable consistency goal: if a Procedure represents the collection event, performer details should live there rather than also on `Specimen.collection.collector`. Because `collection.procedure` is new and optional, the error invariant does not by itself invalidate unchanged R4 instances. A warning-level rule would be friendlier for converters that enrich R4 data with Procedure links while preserving collector, but that is not a backward-compatible alternative for old base R4 instances.",
+        "backwardCompatibleAlternativeMd": "For R4-to-R6 base compatibility, no alternative is applicable because the constrained combination requires a new R6-only element. A softer warning or best-practice invariant could reduce R6 authoring and migration friction, but it would allow duplicated performer facts and is better characterized as an R6 modeling-policy tradeoff than as a less-breaking design for existing R4 content."
+      }
+    },
+    {
+      "findingId": "Specimen:CONVERSION_OR_MAPPING:Specimen.collection-processing-workflow:33a897",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "The workflow changes are optional additions or target/type widenings that preserve R4 instances; R4 extensions only mitigate R6-to-R4 export.",
+        "alternativeTradeoffSummary": "No R4-to-R6 break needs a less-breaking alternative; avoiding the fields would sacrifice useful R6 workflow detail.",
+        "justificationRationaleMd": "R6 adds optional workflow detail such as collection/processing devices, processing performer, broader collector targets, and `Duration` processing times. These changes do not make old R4 instances invalid, and widened targets preserve the old target set. The compatibility burden is primarily downgrade and bidirectional conversion policy, so the backward-compatible-alternative question is not applicable to the R6 base design.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed for R4-to-R6 compatibility because the added fields and widened domains are optional. R4 extensions, derived Procedure/Provenance links, or constrained profiles can help older systems consume R6 information, but those are conversion mitigations rather than alternate R6 base designs."
+      }
+    }
+  ]
+}

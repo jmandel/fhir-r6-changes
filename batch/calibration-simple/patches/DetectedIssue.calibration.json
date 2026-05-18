@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "DetectedIssue",
+  "patches": [
+    {
+      "findingId": "DetectedIssue:TERMINOLOGY_BINDING:DetectedIssue.status:vs-change",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain removed R4 ObservationStatus codes as deprecated legacy codes in the R6 status value set while adding DetectedIssue-specific codes such as mitigated.",
+        "alternativeTradeoffSummary": "Preserves legacy instances but keeps observation-lifecycle concepts on a modifier status and can blur current, mitigated, and error semantics.",
+        "justificationRationaleMd": "A DetectedIssue-specific status lifecycle is a reasonable R6 goal, especially because status is mandatory and a modifier. The less-breaking base option is real, but it is only partial: allowing legacy ObservationStatus values such as `registered`, `amended`, or `cancelled` to remain valid would preserve old data while weakening the semantic cleanup and potentially affecting alert display or suppression logic. The local R6 package also has a `processing-error` text/value-set inconsistency, so the exact terminology still merits review.",
+        "backwardCompatibleAlternativeMd": "The best base-design alternative would include the removed R4 status codes in the R6 required value set as deprecated or legacy concepts while adding `mitigated` and any intended DetectedIssue-specific processing state. A ConceptMap alone would be migration guidance, not a backward-compatible base design. Keeping the old codes valid is only a partial alternative because consumers would still need to interpret observation-oriented lifecycle values safely in a DetectedIssue-specific modifier element."
+      }
+    },
+    {
+      "findingId": "DetectedIssue:ELEMENT_PRESENCE_OR_IDENTITY:DetectedIssue.patient-to-subject:rename",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 `patient` path, broaden its target profiles to the R6 subject set, and update the definition and aliases to associated subject semantics.",
+        "alternativeTradeoffSummary": "Preserves R4 instances without duplicate fields; the cost is a misleading legacy element name and weaker consistency with subject-named Event resources.",
+        "justificationRationaleMd": "Generalizing the associated entity beyond Patient is a reasonable R6 goal, but the hard wire-format rename was not necessary to accomplish it. Because FHIR JSON has no aliasing mechanism, replacing `patient` with `subject` invalidates common R4 payloads and generated APIs. Retaining the old path with broader targets would have met the main functional goal with a moderate naming tradeoff, so the break looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design would leave `DetectedIssue.patient` as the canonical element, broaden its allowed targets to Patient plus the non-patient subject resources, and clarify that the historical name now means the associated subject or record context. Adding a new parallel `subject` while retaining `patient` would be only a partial transition because two same-resource fields could conflict; simply living with the old path avoids that duplication."
+      }
+    },
+    {
+      "findingId": "DetectedIssue:TYPE_DOMAIN:DetectedIssue.severity:code-to-codeableconcept",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated primitive `severity` and add a separate optional CodeableConcept severity element for richer codings.",
+        "alternativeTradeoffSummary": "Preserves old string/enum data but creates duplicate severity representations, precedence rules, and safety-sensitive conflict handling.",
+        "justificationRationaleMd": "Richer severity coding is a credible R6 goal, and a CodeableConcept can carry multiple coding systems, display text, and translations that the R4 primitive cannot. A less-breaking sibling-field design exists, but it would leave two ways to express severity, which is often used for alert priority and triage. Those conflict and implementation costs make the compatibility alternative only partial and the direct redesign probably justified.",
+        "backwardCompatibleAlternativeMd": "The compatible base option would keep `DetectedIssue.severity` as the R4 primitive code, likely deprecated, and add a new element such as `severityConcept` for CodeableConcept content. A choice-type redesign would not preserve the old JSON member because it would introduce suffixed properties. The sibling approach preserves R4 instances but requires rules when both primitive and CodeableConcept severities are present or disagree."
+      }
+    },
+    {
+      "findingId": "DetectedIssue:SEMANTIC_OR_CONFORMANCE_TEXT:DetectedIssue.code:category-split",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep R4 `code` as the high-level category and add a new specific issue-code element, with any repeatable category transition explicitly governed.",
+        "alternativeTradeoffSummary": "Avoids silent semantic drift but leaves awkward naming and either limits category multiplicity or creates overlap with a new category field.",
+        "justificationRationaleMd": "Separating high-level category from specific issue code is a reasonable model improvement. The concern is that R6 reuses the familiar `code` path with changed semantics, so many R4 instances can still validate while being interpreted in the wrong slot. A less-breaking design could have made the new specific-code concept explicit, and the supplied evidence does not show why silent repurposing of `code` was necessary.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would preserve `DetectedIssue.code` for the R4 category/general-type meaning and add a new `specificCode` or equivalent element for the more detailed R6 issue code. This is only a partial alternative because R6 also adds repeatable `category`; supporting multiple categories while keeping the old single `code` path may require an overlapping category element and precedence rules. Even so, it would make migration intent clearer than changing the meaning of an existing path."
+      }
+    },
+    {
+      "findingId": "DetectedIssue:TYPE_DOMAIN:DetectedIssue.identified_x_:timing-added",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `identified[x]` as the initial detection time and add a separate occurrence or occurrenceTiming element for ongoing or recurring timing.",
+        "alternativeTradeoffSummary": "Preserves R4 semantics with modest extra model surface; implementers must distinguish detection time from occurrence timing.",
+        "justificationRationaleMd": "Adding support for recurring or ongoing timing is reasonable, but changing the meaning of `identified[x]` from initial identification to occurrence timing creates avoidable semantic drift. Detection time and occurrence time are related but distinct facts, so a separate occurrence-oriented element would meet the R6 goal while preserving existing interpretation of R4 `identifiedDateTime` and `identifiedPeriod` data.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would retain `identified[x]` with its R4 definition and add a new optional occurrence choice, including Timing, for when the issue occurred or is occurring. This would not require duplicate representations of the same fact; it would model two temporal facts explicitly. The tradeoff is an additional element and the need for guidance when only one of detection time or occurrence timing is known."
+      }
+    },
+    {
+      "findingId": "DetectedIssue:REFERENCE_TARGET:DetectedIssue.author:target-widened",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 widens `author` targets while retaining all R4 author target types.",
+        "alternativeTradeoffSummary": "R6-to-R4 conversion and closed-union client assumptions need policy, but that is not an R4-to-R6 base preservation problem.",
+        "justificationRationaleMd": "Allowing Patient and RelatedPerson authors supports patient- and caregiver-originated detected-issue workflows and does not invalidate R4 author references. The remaining compatibility costs are generated-code/runtime assumptions and downgrade handling for new R6 targets, not a less-breaking R6 base-design question for preserving R4 instances.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base alternative is needed for R4-to-R6 preservation because Practitioner, PractitionerRole, and Device remain valid author targets. Using extensions or a separate reporter field for Patient or RelatedPerson would be a downgrade or R4-backport mitigation, not evidence of a better backward-compatible R6 base design."
+      }
+    },
+    {
+      "findingId": "DetectedIssue:SERIALIZATION_OR_CODEGEN:DetectedIssue.detail:markdown-type",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `detail` typed as `string` and state in the definition or rendering guidance that markdown syntax may be used.",
+        "alternativeTradeoffSummary": "Preserves generated-type compatibility while losing the computable primitive-type signal for markdown rendering and sanitization.",
+        "justificationRationaleMd": "Formatted issue detail text is a reasonable goal, and the wire representation remains a JSON string. However, changing the primitive type still creates type-aware code generation, schema, rendering, and sanitization churn. The same practical formatting goal could mostly be met by retaining `string` with clearer markdown guidance, so the type-level break is not clearly justified by the supplied evidence.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design would leave `DetectedIssue.detail` as `string` and update the definition, comment, or implementation guidance to say that markdown content may appear and should be rendered safely. This preserves R4 instances and generated string properties. The tradeoff is that generic R6 tooling would not infer markdown behavior solely from the primitive type."
+      }
+    },
+    {
+      "findingId": "DetectedIssue:ELEMENT_PRESENCE_OR_IDENTITY:DetectedIssue.r6-only-context:added-fields",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the added R6 context, evidence-quality, medication-class, management, and mitigation-note elements are optional and do not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "Downgrading to unprofiled R4 may need extensions or lose data, but that is an R6-to-R4 conversion issue rather than a less-breaking R6 base alternative.",
+        "justificationRationaleMd": "Adding optional native fields for encounter context, evidence quality, expected onset, medication class, management code, and mitigation notes improves R6 expressivity without creating an old-valid/new-invalid R4-to-R6 break. Native elements are a reasonable base design despite round-trip loss when converting new R6 content back to R4.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R6 base design is needed to preserve R4 instances because these fields are additive and optional. Standardized R4 extensions could help cross-version conversion, but extensions are a backport or downgrade mitigation rather than a backward-compatible alternative to native optional R6 elements."
+      }
+    }
+  ]
+}

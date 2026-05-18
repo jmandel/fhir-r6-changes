@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Claim",
+  "patches": [
+    {
+      "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.patient:6f1b22",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `patient` with Patient or Group targets and clearer recipient wording, or accept it as a deprecated alias during transition.",
+        "alternativeTradeoffSummary": "Keeps a nonoptimal `patient` name for Group claims; aliasing would add duplicate recipient representations.",
+        "justificationRationaleMd": "Generalizing the claim recipient to include groups is reasonable, but renaming a required element breaks essentially every untransformed R4 Claim. The same patient-or-group recipient goal could mostly be met without changing the base member name, and the local evidence does not show that the `subject` rename was necessary.",
+        "backwardCompatibleAlternativeMd": "`Claim.patient` could have been retained as the base recipient element, target-widened to Patient or Group, and documented as the Claim subject. If `subject` was added as the preferred name, the old path could be a deprecated alias with a consistency rule; the cost is lingering duplicate recipient fields and a less tidy model."
+      }
+    },
+    {
+      "findingId": "Claim:TYPE_DOMAIN:Claim.supportingInfo.timing:3c26cf",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the `date` choice while adding `dateTime` and `Timing`.",
+        "alternativeTradeoffSummary": "Adds an extra choice suffix and duplicate date-only representations, but preserves R4 instances.",
+        "justificationRationaleMd": "Adding `dateTime` and `Timing` is a reasonable expressiveness goal. Dropping the existing `date` choice creates a serialized-name break for `timingDate`, and the local definitions do not show why retaining `date` would have prevented the R6 goal.",
+        "backwardCompatibleAlternativeMd": "R6 could have allowed `timingDate`, `timingDateTime`, `timingPeriod`, and `timingTiming`. That would preserve all R4 timing-date instances while still allowing timestamps and repeating schedules. The main cost is a longer choice list and possible duplicate date-only encodings that implementations would need to normalize."
+      }
+    },
+    {
+      "findingId": "Claim:SLICING_AND_CONTENT_MODEL:Claim.item.bodySite:0a3bf9",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add a new detailed repeating body-site element while retaining old `bodySite` and `subSite` during transition.",
+        "alternativeTradeoffSummary": "Avoids an immediate hard break but duplicates anatomy semantics and leaves ambiguous site/sub-site association rules.",
+        "justificationRationaleMd": "The R6 goal of representing multiple body sites, BodyStructure references, and nested sub-sites is reasonable. A less-breaking transitional design exists, but it would leave two same-resource ways to describe the anatomy and would be especially ambiguous when multiple sites and old sibling sub-sites are both present.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept the R4 `item.bodySite` CodeableConcept and sibling `item.subSite`, then added a new optional backbone such as `bodySiteDetail` for repeatable CodeableReference sites with nested sub-sites. This would preserve R4 instances, but deprecated anatomy fields could persist indefinitely and systems would need precedence and consistency rules when both representations appear."
+      }
+    },
+    {
+      "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.diagnosis.packageCode:bb7f11",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated `diagnosis.packageCode` alongside root `diagnosisRelatedGroup`, or provide a repeatable association preserving diagnosis context.",
+        "alternativeTradeoffSummary": "Preserves old per-diagnosis data but conflicts with claim-level DRG semantics and risks inconsistent or multiple codes.",
+        "justificationRationaleMd": "Representing the diagnosis-related group as a claim-level billing grouping is reasonable and matches the R6 root element. Retaining the old nested field would soften migration, but it would also preserve a per-diagnosis representation for a concept that appears intended to be claim-level and would require conflict rules for multiple nested codes.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have retained `Claim.diagnosis.packageCode` as deprecated while adding `Claim.diagnosisRelatedGroup`. That preserves R4 instances and single-code migrations, but if both root and nested values appear, or if multiple diagnoses have different package codes, validators and receivers need nontrivial consistency and precedence rules."
+      }
+    },
+    {
+      "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.careTeam.responsible:91a61a",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the optional `responsible` boolean as deprecated, or define a normative coded role equivalent.",
+        "alternativeTradeoffSummary": "Some overlap with role/provider semantics, but low base-model cost for preserving a simple R4 flag.",
+        "justificationRationaleMd": "The local R6 definitions remove the element without a direct replacement or stated rationale. If the goal was to avoid duplicate responsibility semantics, retaining the optional boolean as deprecated or tying it to a coded role would preserve existing data with modest long-term cost.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `Claim.careTeam.responsible` as an optional deprecated boolean and clarified how it relates to `careTeam.role` or the root provider. That would preserve R4-valid instances and avoid silent loss of lead-practitioner information; the tradeoff is one additional legacy flag that overlaps with richer role coding."
+      }
+    },
+    {
+      "findingId": "Claim:SEMANTIC_OR_CONFORMANCE_TEXT:Claim.careTeam.qualification:54f0d8",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `specialty` while retaining `qualification` for credentials or as a deprecated broad legacy field.",
+        "alternativeTradeoffSummary": "Preserves broad R4 values but creates overlapping qualification/specialty representations and validation ambiguity.",
+        "justificationRationaleMd": "Clarifying that the R6 field is a specialization is reasonable, but the R4 field also covered credentials. The local evidence does not show why credential-capable `qualification` had to be removed or renamed rather than retained with clearer semantics.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have introduced `careTeam.specialty` for specializations while keeping `careTeam.qualification` for credentials or legacy values. This would preserve R4 instances and avoid forcing credential values into a narrower specialty field, but implementations would need rules for old qualification values that are really specialties and for cases where both fields are populated."
+      }
+    },
+    {
+      "findingId": "Claim:CARDINALITY:required-fields-loosened:29db73",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because the change loosens cardinality.",
+        "alternativeTradeoffSummary": "Forward-compatible flexibility shifts burden to profiles and R6-to-R4 converters for missing data.",
+        "justificationRationaleMd": "Lowering minimum cardinalities for `provider`, `priority`, and `insurance` does not invalidate R4 instances. It weakens base guarantees and creates reverse-conversion gaps, but as an R4-to-R6 compatibility question this is not a breaking base-design issue.",
+        "backwardCompatibleAlternativeMd": "For exchanges that need R4-like guarantees, R6 profiles can require these elements and converters can reject or default missing values. Those are policy and conversion controls rather than backward-compatible base-design alternatives, because the base R6 change already preserves R4 instances."
+      }
+    },
+    {
+      "findingId": "Claim:CARDINALITY:Claim.item.productOrService:8671ac",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 compatibility alternative is needed because existing `productOrService` values remain valid.",
+        "alternativeTradeoffSummary": "Range flexibility and optional starts create R6-to-R4 conversion and adjudication-rule burden.",
+        "justificationRationaleMd": "Adding `productOrServiceEnd` and loosening `productOrService` minimum cardinality preserves existing R4 coded line items while enabling code-range scenarios. The compatibility cost is primarily for R6-to-R4 conversion and for R6 processors that must handle omitted or range-based line coding.",
+        "backwardCompatibleAlternativeMd": "R6 profiles can re-require `productOrService` and restrict or ban `productOrServiceEnd` where exact R4-style line coding is required. That is not a backward-compatible base alternative for this finding because the R6 base change does not make R4 instances invalid."
+      }
+    },
+    {
+      "findingId": "Claim:TYPE_DOMAIN:Claim.supportingInfo.value:0f6ac3",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 alternative is needed because the choice set was widened.",
+        "alternativeTradeoffSummary": "Better expressiveness increases generated-code branching and reverse-conversion complexity.",
+        "justificationRationaleMd": "The R4 choice types remain accepted in R6, so this is not a forward instance break. The broader choice set plausibly improves fidelity for supporting information, while the main downside is R6-to-R4 representability and implementation complexity.",
+        "backwardCompatibleAlternativeMd": "Profiles can constrain the R6 choice set to the R4-compatible subset for bidirectional exchanges. A smaller base expansion would reduce code complexity but would also provide less structured support for R6 evidence values; it is not needed to preserve R4 instances."
+      }
+    },
+    {
+      "findingId": "Claim:REFERENCE_TARGET:reference-targets-widened:1db217",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 alternative is needed because reference targets were only widened.",
+        "alternativeTradeoffSummary": "New target resources improve modeling but require R6-to-R4 rejection, substitution, or extension rules.",
+        "justificationRationaleMd": "Adding target resource types preserves all R4-valid references at these paths and is the normal forward-compatible way to broaden a reference. The material compatibility risk is reverse conversion when R6 uses a newly allowed target.",
+        "backwardCompatibleAlternativeMd": "Bidirectional R4-compatible exchanges can constrain R6 profiles to the R4 target subset. That does not count as a less-breaking base R6 design here because target widening itself does not break R4-to-R6 instances."
+      }
+    },
+    {
+      "findingId": "Claim:TERMINOLOGY_BINDING:example-to-preferred-bindings:4c87c2",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base alternative is needed because preferred bindings do not invalidate base instances.",
+        "alternativeTradeoffSummary": "Stronger terminology guidance can produce warnings or QA burden but not required-code validation failure.",
+        "justificationRationaleMd": "Moving example bindings to preferred bindings is a reasonable interoperability signal and remains a weak conformance constraint in the base resource. Since out-of-set CodeableConcepts are not made invalid by a preferred binding, this is not a hard R4-to-R6 breaking design issue.",
+        "backwardCompatibleAlternativeMd": "Keeping example bindings would reduce terminology warnings but would also provide weaker guidance. Implementations and profiles can still decide how strongly to enforce preferred value sets; no base-design alternative is needed to preserve R4 instance validity."
+      }
+    }
+  ]
+}

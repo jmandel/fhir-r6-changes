@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "CoverageEligibilityResponse",
+  "patches": [
+    {
+      "findingId": "CoverageEligibilityResponse:CARDINALITY:CoverageEligibilityResponse.request:8e48f6",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: relaxing `request` from mandatory to optional preserves R4-valid instances; the compatibility issue is R6-to-R4 downgrade only.",
+        "alternativeTradeoffSummary": "Keeping `request` mandatory would preserve R6-to-R4 round trips but would fail the R6 goal of allowing responses without an explicit request resource.",
+        "justificationRationaleMd": "The inferred goal is reasonable: some eligibility responses may not have a stored or representable `CoverageEligibilityRequest`. This is not an R4-to-R6 instance break because every R4 instance with the required `request` remains valid against the weaker R6 cardinality. The breakage is asymmetric downgrade behavior, so the R6 base design is probably justified even though no official change note was available locally.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible alternative is applicable for the forward R4-to-R6 direction. A design that kept `request` at `1..1` would avoid R6-to-R4 downgrade failures, but it would not meet the apparent R6 goal of representing valid responses when no request resource exists. R6-to-R4 transforms must handle missing `request` by locating a real request, synthesizing one where policy allows, or rejecting the downgrade."
+      }
+    },
+    {
+      "findingId": "CoverageEligibilityResponse:ELEMENT_PRESENCE:CoverageEligibilityResponse.event:1c8a55",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `event` is optional additive R6 content, so R4 instances remain valid; extension/backport handling is a downgrade mitigation, not a less-breaking base R6 alternative.",
+        "alternativeTradeoffSummary": "Modeling events only as extensions would improve R6-to-R4 preservation but would sacrifice first-class R6 validation, generated-model support, and consistent semantics.",
+        "justificationRationaleMd": "The inferred goal of representing typed response-related dates or periods beyond `serviced[x]` is reasonable. Because the element is optional, it does not make any R4-valid base instance invalid in R6. The impact is that R6 instances using the new backbone cannot be represented losslessly in base R4, which is a downgrade concern rather than an avoidable R4-to-R6 break.",
+        "backwardCompatibleAlternativeMd": "For R4-to-R6 compatibility, no alternative is needed because the optional addition preserves old instances. A standard extension could be used for R6-to-R4 downgrade or cross-version preservation, but under the calibration rules that is a mitigation/backport strategy rather than a backward-compatible base R6 design alternative."
+      }
+    },
+    {
+      "findingId": "CoverageEligibilityResponse:ELEMENT_PRESENCE:CoverageEligibilityResponse.statusReason:4b9e22",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `statusReason` is optional additive R6 content and does not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "An extension would ease R6-to-R4 round trips but would lose first-class summary, generated-model, and conformance support.",
+        "justificationRationaleMd": "Adding a status-change reason next to a modifier status is a reasonable base-resource improvement, especially because the R6 comment anticipates IGs requiring it for cancelled responses. The change is not an R4-to-R6 base validation break because existing R4 data can omit the new optional element. Its compatibility cost is limited to R6-to-R4 preservation and summary-shape awareness.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible alternative is applicable for preserving R4-to-R6 validity. A cross-version extension can preserve the reason during downgrade to R4, but that is a migration/backport mitigation rather than a less-breaking R6 base design for this optional additive content."
+      }
+    },
+    {
+      "findingId": "CoverageEligibilityResponse:TERMINOLOGY_BINDING:CoverageEligibilityResponse.outcome:7a91bd",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the old `remittance-outcome` binding canonical for the base element while clarifying that the same codes apply to eligibility outcomes.",
+        "alternativeTradeoffSummary": "This would preserve tooling, terminology-cache, and profile compatibility at the cost of living with a less precise historical ValueSet name.",
+        "justificationRationaleMd": "Using an eligibility-specific terminology artifact is a reasonable cleanup goal, but the local evidence shows the same required code values and unchanged outcome semantics. Rebinding a mandatory element to a new canonical therefore creates mostly tooling and metadata churn. Under the calibration rules, retaining a nonoptimal R4 name plus clearer definitions is a serious less-breaking alternative, so the canonical break was probably avoidable unless external evidence shows the old canonical could not safely represent the R6 concept.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep `CoverageEligibilityResponse.outcome` bound to the existing `ValueSet/remittance-outcome` canonical and update the binding name, narrative, or terminology documentation to state that these codes are also the eligibility-response outcomes. R6 could still publish `eligibility-outcome` as an equivalent or successor artifact, but not rebind the base element in a way that breaks generated enums, terminology cache keys, and profile differentials."
+      }
+    },
+    {
+      "findingId": "CoverageEligibilityResponse:TYPE_DOMAIN:CoverageEligibilityResponse.insurance.item.description:2fb5cd",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the base type as `string` and state that markdown may be used, or add a separate markdown extension; both alternatives are incomplete.",
+        "alternativeTradeoffSummary": "Retaining `string` avoids generated-type churn but weakens computable renderer/sanitization signals; a parallel markdown representation risks duplicate divergent descriptions.",
+        "justificationRationaleMd": "The goal of allowing richer formatted benefit descriptions is reasonable, and `markdown` is wire-compatible with a string-valued JSON property in common cases. The less-breaking alternatives have material drawbacks: narrative permission on `string` is not reliably machine-readable, while adding another field or extension for the same text would create duplicate representations. Given those tradeoffs and the low instance-shape impact, the type change is probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could retain `string` and clarify in the element definition that markdown syntax is permitted. That would preserve R4 generated models and avoid primitive-type churn, but renderers and validators would not have a computable signal that markdown handling and sanitization are expected. A separate markdown extension or sibling would provide that signal but at the cost of duplicate same-resource representations that may diverge and never disappear."
+      }
+    },
+    {
+      "findingId": "CoverageEligibilityResponse:TERMINOLOGY_BINDING:benefit-preferred-bindings:aa2609",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep example bindings in the base resource with stronger narrative guidance; profile-only strengthening would cover only adopters.",
+        "alternativeTradeoffSummary": "This would reduce base warning/conformance churn but would provide a weaker, less computable ecosystem-wide signal to use shared benefit terminology.",
+        "justificationRationaleMd": "The inferred goal is to encourage common benefit terminology while still allowing payer-specific codes. Because `preferred` remains non-invalidating, the level of breakage is low and mostly affects warnings, QA gates, and generated guidance. A less-breaking approach exists, but it is incomplete: leaving the base at `example` and relying on narrative or profiles would not communicate the same base-level computable preference to all R6 implementations.",
+        "backwardCompatibleAlternativeMd": "A partial alternative would keep the R4 `example` binding strength and add stronger descriptive guidance recommending the same value sets when applicable, with profiles or IGs strengthening the binding where they need enforceable expectations. That avoids base-level conformance churn for existing local codes, but it does not meet the base R6 goal as well because shared terminology adoption would be profile-dependent and less visible to generic tooling."
+      }
+    },
+    {
+      "findingId": "CoverageEligibilityResponse:FLAGS_AND_MODIFIERS:CoverageEligibilityResponse.error.code:94e1af",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `error.code` out of summary views and require clients to request full resources or explicit elements for error details.",
+        "alternativeTradeoffSummary": "This preserves R4 summary payload shape but does not deliver default summary visibility and may require extra client logic or round trips.",
+        "justificationRationaleMd": "Making processing error codes visible in summary representations is a reasonable operational goal, and the change does not alter instance validity. The less-breaking design is only partial: leaving `isSummary=false` avoids summary-shape churn, but it fails the core goal for clients that rely on default summary payloads. Given the limited breakage and material tradeoff of the alternative, the change is probably justified.",
+        "backwardCompatibleAlternativeMd": "The partial alternative is to leave `isSummary=false` and document that clients needing error details should request the full resource or use explicit element selection. That keeps summary responses closer to R4, but it means summary consumers still lack actionable error codes by default and may implement inconsistent retrieval behavior."
+      }
+    },
+    {
+      "findingId": "CoverageEligibilityResponse:ELEMENT_PRESENCE:CoverageEligibilityResponse.error.expression:5d0f6d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `error.expression` is optional additive R6 content; R4 instances remain valid and downgrade preservation is a separate mitigation problem.",
+        "alternativeTradeoffSummary": "An extension would preserve R6 error-location details in R4 but would be less discoverable and less consistently supported than a core R6 element.",
+        "justificationRationaleMd": "The inferred goal of aligning response errors with FHIRPath-style element-location guidance is reasonable. Since the new element is optional, it does not create an R4-to-R6 base validation break. The only representability issue is for R6 instances that choose to populate the new field and then need to downgrade to R4.",
+        "backwardCompatibleAlternativeMd": "No R4-to-R6 backward-compatible alternative is applicable because old R4 instances are unaffected by the optional addition. R6-to-R4 systems can preserve the expressions in an extension or drop them with data loss, but that is a downgrade strategy rather than a less-breaking base R6 design alternative."
+      }
+    }
+  ]
+}

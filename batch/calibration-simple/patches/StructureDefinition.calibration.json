@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "StructureDefinition",
+  "patches": [
+    {
+      "findingId": "StructureDefinition:TERMINOLOGY_BINDING:StructureDefinition.type:types-vs-fhir-types",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "A version-tolerant base binding could retain historical R4 type names while distinguishing native R6 types.",
+        "alternativeTradeoffSummary": "Preserves legacy metadata but materially weakens the current-release type signal and adds version-aware tooling burden.",
+        "justificationRationaleMd": "The R6 goal of using a unified current `fhir-types` inventory is reasonable for native R6 authoring, validation, and code generation. A less disruptive design is possible, but it is only partial because `StructureDefinition.type` must also tell R6 tooling whether the type is actually available in the R6 model. Treating historical and current type names as one base binding would reduce migration warnings but create ambiguity for generators and registries.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would bind `StructureDefinition.type` to a version-tolerant value set that includes current R6 codes plus retained historical R4 codes, ideally with status/version metadata or a companion current-release profile. That would preserve many R4 definitions, but tools would still need to branch on `fhirVersion` before generating classes or validating native R6 artifacts, so the alternative has material interoperability and implementation cost."
+      }
+    },
+    {
+      "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition-root:sdf30-contentReference",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Allow only legacy constraint differentials whose `contentReference` exactly restates the base recursive structure, or warn first.",
+        "alternativeTradeoffSummary": "Would preserve safe legacy cases but requires base-aware comparison and could keep a confusing deprecated authoring pattern alive.",
+        "justificationRationaleMd": "The goal of preventing constrained profiles from redefining recursive content models is reasonable, and a hard invariant is understandable for clean R6 authoring. The known R4 core hit shows real breakage, so this is not fully cost-free. However, the main less-breaking alternative depends on resolving and comparing base definitions, which is more complex than a self-contained invariant and may not cover profiles that used `contentReference` to change structure.",
+        "backwardCompatibleAlternativeMd": "A partial base-design alternative would permit `contentReference` in a constraint differential only when it is demonstrably equivalent to the inherited base relationship, while rejecting changed or newly introduced recursive references. A warning-only transition would be even less disruptive but would not enforce the R6 rule. These alternatives reduce migration failures for redundant R4 patterns, but they add validator complexity and ambiguity."
+      }
+    },
+    {
+      "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition-root:sdf27-derivation-required",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Warn or infer `derivation` only in narrow, unambiguous legacy cases.",
+        "alternativeTradeoffSummary": "Reduces rare migration failures but risks inconsistent interpretation of whether a definition is a constraint or specialization.",
+        "justificationRationaleMd": "Requiring `derivation` when `baseDefinition` is present addresses a real ambiguity in the StructureDefinition relationship. The local R4 core package had no affected examples, and R4 already exposed the field, so the compatibility cost appears limited. A less-breaking approach exists, but it cannot reliably preserve every omitted-derivation case without guessing author intent.",
+        "backwardCompatibleAlternativeMd": "A partial alternative would keep the base cardinality optional and issue a warning, or infer `constraint`/`specialization` only when type, base, and kind make the answer unambiguous. That would help legacy metadata stores, but ambiguous artifacts would still need manual correction and different tools could infer different meanings."
+      }
+    },
+    {
+      "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition.snapshot.element:sdf28-slicing-description",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use warning-level validation for legacy snapshots with slicing but no discriminator or description.",
+        "alternativeTradeoffSummary": "Preserves incomplete legacy snapshots but lets ambiguous slicing continue to circulate.",
+        "justificationRationaleMd": "The R6 goal is reasonable because slicing without either a computable discriminator or a human description is hard for validators and implementers to understand. The less-breaking option is mainly to warn rather than reject. That preserves R4 artifacts but does not meet the stronger R6 goal of ensuring interpretable slicing in accepted snapshots.",
+        "backwardCompatibleAlternativeMd": "A warning-only invariant would be the best compatibility-preserving base design. It would identify the authoring defect while allowing old snapshots to load. The tradeoff is material: downstream tools could continue consuming slicing declarations that are not computable and not documented, which undermines the conformance-quality goal."
+      }
+    },
+    {
+      "findingId": "StructureDefinition:ELEMENT_PRESENCE_OR_IDENTITY:StructureDefinition.versionAlgorithm:added",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: this optional R6 addition does not invalidate R4 StructureDefinition instances.",
+        "alternativeTradeoffSummary": "R4 extension backports are conversion mitigations, not less-breaking base R6 designs.",
+        "justificationRationaleMd": "Adding optional `versionAlgorithm[x]` is a normal forward-compatible base-model change that supports deterministic version ordering without requiring existing R4 instances to change. The compatibility concern is R6-to-R4 loss, not avoidable R4-to-R6 breakage.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base-design alternative needs to be counted here. Carrying the value in an R4 extension can mitigate down-conversion, but that is ordinary migration tooling rather than evidence that the R6 base model should have avoided the optional element."
+      }
+    },
+    {
+      "findingId": "StructureDefinition:ELEMENT_PRESENCE_OR_IDENTITY:StructureDefinition.copyrightLabel:added",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: this optional R6 field is forward-compatible for R4-to-R6 instances.",
+        "alternativeTradeoffSummary": "R4 extension or `copyright` folding is a reverse-conversion mitigation, not a less-breaking R6 base design.",
+        "justificationRationaleMd": "The R6 goal of separating a compact rendering label from full rights text is reasonable, and the field is optional. It does not make R4 StructureDefinitions invalid in R6; the remaining risk is only loss or parser rejection when projecting R6 content back to R4.",
+        "backwardCompatibleAlternativeMd": "An extension can preserve `copyrightLabel` during R6-to-R4 conversion, but that does not count as a backward-compatible base R6 alternative. The base R6 design uses the least disruptive shape for forward compatibility: an optional non-modifier element."
+      }
+    },
+    {
+      "findingId": "StructureDefinition:TERMINOLOGY_BINDING:StructureDefinition.fhirVersion:r6-codes",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the required value set is widened for newer releases while retaining R4 codes.",
+        "alternativeTradeoffSummary": "Older R4 value sets cannot natively contain future release codes; extensions only mitigate down-conversion.",
+        "justificationRationaleMd": "A FHIR release code system must evolve as new releases appear. Because the R6 binding retains R4 version codes, this is not a less-breaking R4-to-R6 base-design problem; it is an expected one-way terminology evolution that affects R6-to-R4 representation.",
+        "backwardCompatibleAlternativeMd": "There is no relevant less-breaking base R6 alternative to count. Omitting new R6 version codes would fail the goal of declaring R6-targeting StructureDefinitions, while mapping them to R4 extensions or sidecars is a down-conversion strategy rather than a base design alternative."
+      }
+    },
+    {
+      "findingId": "StructureDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:StructureDefinition.jurisdiction:maintainer-semantics",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `jurisdiction` as intended-use jurisdiction and add a distinct maintainer/authority jurisdiction element or profile guidance.",
+        "alternativeTradeoffSummary": "Adds model surface and possible overlap with `useContext`, but avoids silent reinterpretation of existing jurisdiction data.",
+        "justificationRationaleMd": "Clarifying maintainer authority is a reasonable R6 goal, but reusing the existing `jurisdiction` element for a different primary meaning creates a semantic break for R4 registries that stored intended-use jurisdictions. A less-breaking base design could preserve the R4 meaning and add a new maintainer-specific element, so the same goal appears achievable with moderate rather than prohibitive tradeoff.",
+        "backwardCompatibleAlternativeMd": "The best alternative is to leave `StructureDefinition.jurisdiction` with its R4 intended-use meaning and add an optional `maintainerJurisdiction` or similarly named field for the authority's operating jurisdiction, with `useContext` guidance for additional usage contexts. This introduces another jurisdiction-like representation and may require UI/search rules to distinguish the fields, but it preserves existing R4 semantics instead of silently changing what old data means."
+      }
+    },
+    {
+      "findingId": "StructureDefinition:VALUE_CONSTRAINT:StructureDefinition.url:cnl1-warning",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 uses a warning-level canonical URL rule rather than making old instances invalid.",
+        "alternativeTradeoffSummary": "Narrative-only guidance would be quieter but would not provide computable canonical hygiene.",
+        "justificationRationaleMd": "The rule addresses a real parsing ambiguity for canonical references, and R6 calibrated it as a warning. Under base validation this is not an old-valid/new-invalid break, so a less-breaking base alternative is not materially needed.",
+        "backwardCompatibleAlternativeMd": "Keeping the guidance only in narrative text would avoid warnings in strict publication pipelines, but it would also make the rule less visible to tooling. Because the base constraint is already warning-level, this is best treated as a justified compatibility-preserving design rather than a case with a meaningful backward-compatible alternative."
+      }
+    }
+  ]
+}

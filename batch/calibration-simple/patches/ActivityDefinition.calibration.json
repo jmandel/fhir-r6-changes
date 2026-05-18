@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "ActivityDefinition",
+  "patches": [
+    {
+      "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:kind:6a8f2c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep removed R4 `kind` codes as deprecated or warning-only values while adding the R6 request-resource codes.",
+        "alternativeTradeoffSummary": "Preserves legacy instances but continues to validate legacy or removed-resource kinds in a required base value set, weakening the R6 request-only rule.",
+        "justificationRationaleMd": "The R6 comment explicitly narrows `kind` to Request resource types, and two removed R4 codes point to resources absent from the R6 package. That makes the R6 goal reasonable. A less-breaking value-set design could keep the removed codes as deprecated, but doing so would continue to validate values that R6 is trying to exclude, so the breaking choice is probably justified.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would include `AppointmentResponse`, `Contract`, `ImmunizationRecommendation`, and `SupplyRequest` as deprecated or warning-only legacy codes while adding the new R6 codes. This would preserve old instances, but it would also make base R6 validators accept legacy/non-request meanings indefinitely."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:TYPE_DOMAIN:timing-x:ce21a9",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `RelativeTime` while retaining `timingDateTime` and `timingPeriod` as deprecated legacy choices.",
+        "alternativeTradeoffSummary": "Preserves old wire names but leaves multiple timing representations and perpetuates absolute/period forms that are ambiguous in apply-time semantics.",
+        "justificationRationaleMd": "R6 explains `timing[x]` as a definitional apply-time instruction, which is a coherent reason to prefer `Age`, `Duration`, `Range`, `Timing`, and `RelativeTime` over bare `dateTime` and `Period`. Retaining the legacy choices would be less breaking, but it would keep ambiguity about whether absolute dates or periods are schedule bounds, validity windows, or apply-relative timing. With that clinical ambiguity, the break is probably justified.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would add `RelativeTime` and keep `dateTime` and `Period` as deprecated or warning-only choices. This would preserve R4 instances, but it duplicates semantics already expressible through `Timing.event` or `Timing.repeat.boundsPeriod` and could keep unsafe legacy representations alive."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:SERIALIZATION_OR_CODEGEN:location:2df4b0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `location` as `Reference(Location)` and add an optional coded-location sibling for location type concepts.",
+        "alternativeTradeoffSummary": "Avoids the wrapping break but creates duplicate places to represent the same location fact and possible conflicts between reference and concept.",
+        "justificationRationaleMd": "`CodeableReference(Location)` directly models the R4 comment that the location may be either a specific location or a type of location. A sibling coded element would have avoided invalidating existing `Reference`-shaped instances, but it would duplicate the same fact and make conflict handling a permanent base-model concern. The breaking design is therefore probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would retain the R4 `location` Reference and add a separate coded location/type element. This preserves existing instances and supports coded locations, but systems would need rules for cases where both fields are populated or disagree, and the duplicate representation could persist indefinitely."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:TYPE_DOMAIN:requirements:1cbb30",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the Reference requirement arrays and add parallel canonical requirement elements for definitional dependencies.",
+        "alternativeTradeoffSummary": "Preserves old arrays but duplicates dependency links and forces validators and converters to reconcile references, canonicals, and unresolved targets.",
+        "justificationRationaleMd": "Canonical URLs are a better fit for reusable definitional resources such as `SpecimenDefinition` and `ObservationDefinition`, so the R6 goal is reasonable. A transition design could have retained the Reference arrays, but it would create parallel representations for the same dependency and would not guarantee that references can be resolved to stable canonicals. The break is probably justified.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep the R4 Reference elements and add canonical siblings, with guidance to prefer the canonical form. That would preserve R4 instances but at the cost of duplicate same-resource representations, ambiguity when both forms are present, and continued implementation burden for reference resolution."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:REFERENCE_TARGET:product-x:50d1dd",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `Substance` as a deprecated `productReference` target while adding the new R6 product-definition targets.",
+        "alternativeTradeoffSummary": "Allows less precise legacy `Substance` references to remain valid, but does not introduce a new field or wire-shape ambiguity.",
+        "justificationRationaleMd": "The R6 product-definition direction is reasonable, but `Substance` still exists in the R6 package and could have remained an allowed deprecated target while the new targets were added. That would preserve R4-valid `productReference` instances with a low to moderate long-term tradeoff, so the target removal was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A backwards-compatible base design would widen the R6 target list to include `Medication`, `Substance`, `MedicinalProductDefinition`, `Ingredient`, and `SubstanceDefinition`, marking `Substance` as legacy or deprecated where appropriate. This preserves old instances while still enabling the newer product-definition model; the cost is slower migration away from the less precise legacy target."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:participant:79f0a1",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `related-person` as a deprecated alias for `relatedperson` while adding the broader R6 actor fields and codes.",
+        "alternativeTradeoffSummary": "Creates two spellings for the RelatedPerson concept and a normalization burden, but preserves R4 instances without blocking the R6 actor model.",
+        "justificationRationaleMd": "The broader R6 participant actor model is reasonable, but the hard R4-to-R6 break is mainly the removal of the old `related-person` code spelling. Keeping that spelling as a deprecated alias would preserve R4 instances while still permitting `relatedperson`, `typeCanonical`, `typeReference`, and `function`. Because the tradeoff is manageable, this break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would include both `related-person` and `relatedperson` in the required value set, with clear deprecation and normalization guidance for the old spelling. This does not solve every R6-to-R4 issue from the new actor fields, but it directly avoids the R4-to-R6 validation break."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:TYPE_DOMAIN:subject-x:8b2e76",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base alternative is needed for R4-to-R6 because the R6 subject changes are additive and R4 subject forms remain valid.",
+        "alternativeTradeoffSummary": "The main cost is R6-to-R4 preservation of new canonical and product-subject forms, which requires mapping or extensions rather than a base-design alternative.",
+        "justificationRationaleMd": "R6 widens `subject[x]` by adding canonical and product-definition subject forms while retaining the R4 `CodeableConcept` and `Reference(Group)` forms. The supplied R6 comment even cautions limited use of the new canonical form for backward compatibility. Since this is not a breaking R4-to-R6 base-design issue, the additive design is justified.",
+        "backwardCompatibleAlternativeMd": "Standard R4 extensions or down-conversion policies may be needed for `subjectCanonical` and the new reference targets, but those are R6-to-R4 mitigations. They should not be counted as backwards-compatible base R6 alternatives because existing R4 instances already remain representable."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:intent:37af0b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 base alternative is needed because R4 intent codes remain valid and the R6 terminology change is additive for existing instances.",
+        "alternativeTradeoffSummary": "R6-only intent codes and changed definitions still need mapping and business-rule review for down-conversion, but that is not a less-breaking base R6 design.",
+        "justificationRationaleMd": "The R6 code system adds solicitation and offer-response workflow concepts while retaining the R4 intent codes. Existing R4 instances are therefore not invalidated by the added codes, although business logic may need semantic review because some definitions changed. The goal is reasonable and the R4-to-R6 base compatibility alternative question is not applicable.",
+        "backwardCompatibleAlternativeMd": "Cross-version ConceptMaps and migration notes are useful mitigations for R6-to-R4 conversion and runtime rules, but they are not base-design alternatives. For R4-to-R6 validation, the less-breaking design is already achieved by retaining the old codes."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:SERIALIZATION_OR_CODEGEN:usage:0c266d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `usage` typed as `string` and state in the definition or guidance that markdown syntax is allowed or expected.",
+        "alternativeTradeoffSummary": "Avoids generated-type churn but loses the computable primitive-type signal for markdown rendering, sanitization, and validation expectations.",
+        "justificationRationaleMd": "Changing from `string` to `markdown` is low impact for JSON instance compatibility but can affect generated models and UI rendering. Keeping `string` with prose guidance would be less disruptive, but it would only partially meet the R6 goal because consumers could not reliably detect markdown semantics from the base type. The change is therefore probably justified.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would retain the R4 `string` type and strengthen the definition, comments, or best-practice guidance to say that markdown content may be used. This preserves old code generation, but it relies on prose rather than a computable primitive type and gives weaker support for safe rendering and sanitization."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:ELEMENT_PRESENCE_OR_IDENTITY:asNeeded-x:913a65",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 alternative is needed because `asNeeded[x]` is an optional additive R6 element and does not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "R6-to-R4 loss must be handled by an extension or conversion policy; that is a down-conversion mitigation, not a base R6 alternative.",
+        "justificationRationaleMd": "`asNeeded[x]` adds useful optional clinical precondition semantics. Because absent optional content preserves all R4 instances in R6, the base-design breakage question is not applicable and the addition is justified.",
+        "backwardCompatibleAlternativeMd": "Using a standard extension for R4 export is appropriate migration guidance for R6-to-R4 conversion, but it is not a backwards-compatible base R6 design alternative. The R6 base model already uses the compatibility-preserving approach for R4-to-R6 by making the element optional."
+      }
+    },
+    {
+      "findingId": "ActivityDefinition:VALUE_CONSTRAINT:warnings:cab5ad",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base alternative is needed because R6 uses warning-severity constraints rather than making the content invalid.",
+        "alternativeTradeoffSummary": "Compatibility risk comes from local tooling that promotes warnings to errors, not from an unavoidable base validation break.",
+        "justificationRationaleMd": "The R6 constraints improve canonical-resource and related-artifact quality while remaining warning severity. That is already a compatibility-preserving base design: existing content may receive new warnings, but it is not made invalid by the base specification. The change is justified.",
+        "backwardCompatibleAlternativeMd": "The less-disruptive base approach is already present: keep these checks as warnings. Suppressing the warnings entirely would weaken QA, while treating them as fatal is an implementation or publication-policy choice rather than a base R6 alternative."
+      }
+    }
+  ]
+}

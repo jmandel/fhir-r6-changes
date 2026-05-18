@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Endpoint",
+  "patches": [
+    {
+      "findingId": "Endpoint:TERMINOLOGY_BINDING:Endpoint.status:status-codes",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `test` as a deprecated R6 status code while adding `limited` and `environmentType`.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but prolongs mixed environment/status semantics and requires consumers to handle a deprecated status code.",
+        "justificationRationaleMd": "Separating operational availability from environment classification is a reasonable R6 goal, and adding `limited` plus `environmentType` supports that goal. The direct break comes from removing `test` from a required code system on a mandatory modifier element. Because R6 could have retained `test` as deprecated while steering new data to `environmentType=test` plus an operational status, the level of breakage looks probably avoidable rather than necessary.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design would keep `test` in `EndpointStatus` as deprecated or legacy-compatible, add `limited`, and document that new endpoints should represent non-production use with `environmentType`. That is not merely conversion tooling: it would preserve R4-valid `status=test` instances under R6 validation. The cost is that `status` would keep a legacy environment-like code during the transition, so enum handlers and business rules would still need to recognize and discourage it."
+      }
+    },
+    {
+      "findingId": "Endpoint:TYPE_DOMAIN:Endpoint.connectionType:coding-to-codeableconcept",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `connectionType` `Coding` and add a separate optional repeating richer connection-type element.",
+        "alternativeTradeoffSummary": "Preserves the R4 wire shape for common cases but creates duplicate protocol-classification locations that can diverge and burden consumers.",
+        "justificationRationaleMd": "The R6 goal is strong: endpoints may need multiple protocol/profile classifications and a richer `CodeableConcept` representation. A less-breaking design exists, but it would keep the old mandatory `Coding` beside a new richer representation for the same fact. That duplicate same-resource representation is a material long-term interoperability cost, so the breaking clean replacement is probably justified.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would leave `Endpoint.connectionType` as the R4 `Coding` and introduce a new optional repeatable `CodeableConcept` element for richer or multiple connection classifications. Existing R4 instances would remain valid, but R6 consumers would have to merge two fields, decide precedence, and handle disagreement. The old representation also cannot carry multiple codings or text, so the alternative only covers common single-coding cases cleanly."
+      }
+    },
+    {
+      "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.payload:payload-backbone",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add the new `payload` backbone while retaining deprecated top-level `payloadType` and `payloadMimeType` for a transition.",
+        "alternativeTradeoffSummary": "Reduces R4 wire-format breakage but creates duplicate payload metadata and consistency problems between flat and grouped forms.",
+        "justificationRationaleMd": "The R6 payload backbone has a clear modeling goal: group payload type, MIME type, and profile expectations so multiple payload descriptions can be represented coherently. A transition model with both old and new fields would preserve many R4 instances, but it would duplicate the same payload facts and would not fully express grouping/profile semantics through the old flat fields. Those material tradeoffs make the breaking redesign probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design would keep `payloadType` and `payloadMimeType` as deprecated direct children and define them as mapping to a default `payload` entry. This would preserve common R4 data without a required transform. The tradeoff is indefinite duplicate representations: old flat fields and new grouped fields could disagree, consumers would need precedence rules, and profile-specific or multi-group R6 payloads would still not be cleanly represented by the old fields."
+      }
+    },
+    {
+      "findingId": "Endpoint:SEMANTIC_OR_CONFORMANCE_TEXT:Endpoint.managingOrganization:technical-manager",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Preserve the R4 `managingOrganization` meaning and add a distinct optional technical-support or technical-manager organization element.",
+        "alternativeTradeoffSummary": "Adds a new organization reference but avoids silently reinterpreting existing data; long-term cost is moderate model expansion rather than duplicate same-fact encoding.",
+        "justificationRationaleMd": "Clarifying technical help-desk responsibility is a reasonable goal, but changing the conformance meaning of an unchanged field can break directory governance and support workflows without any validation signal. A base R6 design could have introduced an explicit technical-management organization while leaving the R4 field's data-steward/associated-organization meaning intact. That would meet the new goal with relatively modest tradeoff, so the semantic break looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design would retain `managingOrganization` for the R4-era associated organization semantics and add a new optional element for the organization responsible for technical operation or help-desk support. Existing R4 instances would keep their intended meaning, while R6 clients that need the new concept would use the new field. The tradeoff is an additional reference and some transition guidance, but it avoids redefining a populated field in place."
+      }
+    },
+    {
+      "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.environmentType:added",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base R6 alternative is needed because `environmentType` is an optional additive element.",
+        "alternativeTradeoffSummary": "R6-to-R4 preservation may require an extension or policy map, but that is a down-conversion mitigation rather than a base R6 alternative.",
+        "justificationRationaleMd": "A dedicated environment classification is a reasonable improvement, especially because endpoint environment is not the same as operational availability. The element is optional and additive, so it does not invalidate R4 Endpoint instances moving to R6. The breaking aspect of removing `status=test` is handled by the separate status finding.",
+        "backwardCompatibleAlternativeMd": "Backward-compatible alternative analysis is not applicable to the optional addition itself: base R6 already preserves R4 instances with respect to this element. R4 extensions, naming conventions, or status-code mappings can mitigate R6-to-R4 conversion loss, but those are migration/backport strategies, not less-breaking base R6 designs."
+      }
+    },
+    {
+      "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.availability:added",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `availability` while leaving `period`'s broader R4-era meaning intact or only recommending use of `availability` for schedules.",
+        "alternativeTradeoffSummary": "Would reduce semantic disruption for overloaded R4 `period` use but leaves ambiguity between lifecycle period and detailed availability.",
+        "justificationRationaleMd": "Adding `availability` is forward-compatible structurally, but the finding also includes a semantic narrowing of `period` toward planned lifecycle interval rather than temporary downtime or recurring availability. A softer base design could have added `availability` while preserving broader `period` interpretation, but that would weaken the clean separation that generic R6 clients need. Given the ambiguity and limited expressive power of a single `Period`, the R6 clarification is probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design would add the optional `Availability` element and describe it as the preferred or more precise place for business hours and exceptions, without saying that short-term availability is outside `period`. That would preserve R4 systems that treated `period` broadly. The tradeoff is material: `period` cannot represent recurring hours or exception details, and leaving its meaning broad would keep validation and client behavior ambiguous."
+      }
+    }
+  ]
+}

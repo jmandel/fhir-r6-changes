@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "QuestionnaireResponse",
+  "patches": [
+    {
+      "findingId": "QuestionnaireResponse:CARDINALITY:QuestionnaireResponse.questionnaire:0a91b4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `questionnaire` optional in the base resource and require it through profiles, best-practice warnings, or staged invariants.",
+        "alternativeTradeoffSummary": "Preserves legacy R4 instances, but weakens the base R6 guarantee that every response carries form identity or an explicit legacy explanation.",
+        "justificationRationaleMd": "The R6 goal is reasonable: a QuestionnaireResponse is much more interoperable when it identifies the Questionnaire that defines linkIds, answer types, and editing constraints. The base `1..1` cardinality is still a real break for R4 records that omitted `questionnaire`, but the R6 extension-only primitive guidance shows the design tried to reduce legacy harm. Because the less-breaking option would not deliver uniform base traceability, the break is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `questionnaire` at `0..1` and added a best-practice invariant, warning, or required profile for deployments that can supply reliable form identity. That preserves absent legacy data, but it leaves generic R6 consumers unable to assume that the response identifies its form, so the alternative is only partial."
+      }
+    },
+    {
+      "findingId": "QuestionnaireResponse:CARDINALITY:QuestionnaireResponse.item.answer.value_x:1d47c2",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain optional `answer.value[x]` and discourage value-less answer backbones with warnings, profile rules, or a narrower invariant.",
+        "alternativeTradeoffSummary": "Preserves legacy nested-answer containers, but leaves ambiguous answer structures and complicates repeat-answer validation.",
+        "justificationRationaleMd": "It is reasonable for R6 to make each `answer` backbone carry an actual answer value, especially alongside the new repeated-answer rule. The change breaks R4 structures that used `answer` only as a nested container, so the cost is real. However, keeping value-less answers valid in the base model would preserve a representation that is hard for generic validators and transforms to interpret consistently, making the less-breaking alternative incomplete.",
+        "backwardCompatibleAlternativeMd": "A partial alternative would keep `value[x]` at `0..1` and add warning-level guidance or profile constraints for answer backbones that lack a value. A more selective rule could allow legacy value-less answers only when they carry nested items, but that still leaves receivers with two base representations for similar questionnaire semantics."
+      }
+    },
+    {
+      "findingId": "QuestionnaireResponse:TYPE_DOMAIN:QuestionnaireResponse.item.answer.value_x.Quantity:7b93f1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep unprofiled `Quantity` in the base choice and constrain SimpleQuantity only in profiles or warning guidance.",
+        "alternativeTradeoffSummary": "Preserves comparator-bearing R4 answers, but allows comparative quantities where R6 wants simple form-answer values.",
+        "justificationRationaleMd": "The inferred goal, limiting questionnaire quantity answers to simple entered values, is reasonable and improves base validation. Comparator-bearing quantities are probably rare but can be clinically meaningful, so rejecting them is still a meaningful break. A profile-only rule would be less disruptive, but it would not give generic R6 consumers the same base guarantee about quantity-answer shape.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking design would continue to allow plain `Quantity` in the base resource and use Questionnaire-specific profiles, warnings, or IG rules to forbid comparators where simple answers are required. That keeps R4 instances valid but leaves base R6 open to comparative answers, so the alternative is partial rather than a clean substitute."
+      }
+    },
+    {
+      "findingId": "QuestionnaireResponse:VALUE_CONSTRAINT:QuestionnaireResponse.item:qrs-2:aa31e0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make the repeated-answer shape rule warning-level, profile-level, or phased rather than an immediate base error invariant.",
+        "alternativeTradeoffSummary": "Preserves duplicate answered-item representations, but receivers cannot rely on one base representation for repeated questions.",
+        "justificationRationaleMd": "The R6 goal is reasonable because distinguishing repeated groups from repeated answers reduces a known representation ambiguity. The hard error can invalidate R4 responses that duplicated answered question items, and normalization can be clinically unsafe if nested follow-up answers are grouped incorrectly. A warning would ease migration, but it would continue to permit the ambiguity the R6 invariant is trying to remove.",
+        "backwardCompatibleAlternativeMd": "A less-breaking alternative would have introduced `qrs-2` as a best-practice warning or profile constraint first, with base narrative describing the preferred normalized form. That would preserve more R4 data but would not provide a reliable base R6 invariant for generic validation and indexing, so the alternative is only partial."
+      }
+    },
+    {
+      "findingId": "QuestionnaireResponse:VALUE_CONSTRAINT:QuestionnaireResponse.item.linkId:qrs-3:7e2a0d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Warn on non-normalized `linkId` values and require normalized identifiers only in new Questionnaires or profiles.",
+        "alternativeTradeoffSummary": "Preserves unusual legacy identifiers, but leaves visually ambiguous or mistyped structural identifiers valid in base R6.",
+        "justificationRationaleMd": "`linkId` is the structural key that connects a response item to the Questionnaire, so preventing leading, trailing, tab, newline, and repeated-space ambiguity is a strong interoperability goal. The error constraint can break rare R4 data and cannot be fixed safely unless the corresponding Questionnaire identifiers are updated consistently. Because warning-only enforcement would not prevent ambiguous base R6 linkIds, the break is probably justified, but not so clearly necessary that a `Justified` verdict is warranted with a partial alternative.",
+        "backwardCompatibleAlternativeMd": "The less-breaking design would keep the regex as warning-level guidance or a rule for newly authored Questionnaires, while allowing legacy responses with matching legacy Questionnaire linkIds to validate. That avoids some migration breaks but leaves generic R6 processors exposed to ambiguous identifiers, making the alternative partial."
+      }
+    },
+    {
+      "findingId": "QuestionnaireResponse:CARDINALITY:QuestionnaireResponse.identifier:f1ac5e",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: this is an additive max-cardinality widening for R4-to-R6, so all R4-valid instances remain valid.",
+        "alternativeTradeoffSummary": "The tradeoff is lossy R6-to-R4 down-conversion for multiple identifiers, not a less-breaking R6 base-design alternative.",
+        "justificationRationaleMd": "Supporting multiple business identifiers is a reasonable base R6 goal for cross-system propagation, reconciliation, and traceability. The change does not impose R4-to-R6 instance breakage because the R4 `0..1` shape is a subset of the R6 `0..*` shape. Calibration should therefore not treat R4 extensions, backports, or converter policies as backward-compatible alternatives to the R6 base design.",
+        "backwardCompatibleAlternativeMd": "No R4-to-R6 backward-compatible alternative analysis applies. Retaining `max=1` would avoid R6-to-R4 conversion loss only by failing the R6 goal of representing multiple base identifiers. Down-converters may need prioritization rules or extensions, but those are conversion mitigations rather than base-design alternatives."
+      }
+    },
+    {
+      "findingId": "QuestionnaireResponse:CARDINALITY:QuestionnaireResponse.item.definition:c0d2a8",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: this is an additive max-cardinality widening for R4-to-R6, with only an R6-to-R4 representability concern.",
+        "alternativeTradeoffSummary": "Multiple R6 definitions may be lossy in R4, but preserving R4 cardinality would not meet the R6 expressiveness goal.",
+        "justificationRationaleMd": "Allowing multiple definition links is a reasonable traceability improvement and it preserves every R4-valid instance because a single URI remains valid in R6. The compatibility issue arises only when converting richer R6 content back to R4. Under the calibration rules, that is not a backward-compatible base R6 alternative question.",
+        "backwardCompatibleAlternativeMd": "No R4-to-R6 less-breaking alternative is needed. Keeping the base element singular and using extensions for extra definitions would be an R6-to-R4 mitigation or a less expressive R6 design, not a backward-compatible way to satisfy the same base R6 goal."
+      }
+    },
+    {
+      "findingId": "QuestionnaireResponse:REFERENCE_TARGET:QuestionnaireResponse.author:4c2fe1",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding `Group` as an author target is a target-domain widening that preserves R4 instances.",
+        "alternativeTradeoffSummary": "R6 Group authors are hard to down-convert to R4, but that is an R6-to-R4 conversion cost rather than R4-to-R6 breakage.",
+        "justificationRationaleMd": "The R6 comment scopes Group authorship to family, household, or similar Patient/RelatedPerson units, which identifies a real modeling gap in R4. Since all R4 author targets remain allowed, the base change is additive for R4-to-R6 and the R6-to-R4 lossiness does not make ordinary conversion workarounds backward-compatible base alternatives.",
+        "backwardCompatibleAlternativeMd": "No R4-to-R6 backward-compatible alternative applies. Using an extension for Group authorship would help R4 backports, but it would make the R6 base element less expressive and less discoverable for generic consumers; that is a conversion/profile mitigation, not a less-breaking base design for this direction."
+      }
+    },
+    {
+      "findingId": "QuestionnaireResponse:REFERENCE_TARGET:QuestionnaireResponse.source:6b47aa",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding Device and Organization source targets is a widening that preserves R4 instances.",
+        "alternativeTradeoffSummary": "R6 Device or Organization sources may require Provenance or extensions when down-converting to R4, but that is not an R4-to-R6 base-design break.",
+        "justificationRationaleMd": "Representing automated or organizational answer sources directly is a reasonable R6 goal, and the R6 comment carefully distinguishes answer-determining devices from mere capture tools. Existing R4 source references remain valid, so the reported concern is down-conversion and should not be counted as a backward-compatible alternative question for base R6.",
+        "backwardCompatibleAlternativeMd": "No R4-to-R6 less-breaking alternative applies. Modeling Device or Organization source only in Provenance or extensions would preserve R4 backportability, but it would make the source less direct and less visible in R6; those are mitigations for conversion, not base-design alternatives under this calibration."
+      }
+    },
+    {
+      "findingId": "QuestionnaireResponse:TERMINOLOGY_BINDING:QuestionnaireResponse.status:stopped:5d90cc",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Preserve the R4 meaning of `stopped` and add a new terminal status code or explicit terminal qualifier for no-further-changes semantics.",
+        "alternativeTradeoffSummary": "Adds enum and receiver burden, but avoids silently changing the lifecycle meaning of existing `stopped` records.",
+        "justificationRationaleMd": "Clarifying terminal lifecycle semantics is a reasonable goal, but narrowing the meaning of an existing required code is a high-risk semantic break because old R4 `stopped` records can be interpreted as non-resumable in R6. The local inputs do not provide rationale showing why reusing the same code was necessary. A less-breaking base code-system design appears feasible with moderate tradeoff, so the break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The best base alternative would keep `stopped` compatible with its R4 abandoned/uncertain meaning and introduce a distinct terminal code, or a clearly defined terminal qualifier, for responses where no subsequent changes can be made. That preserves existing code semantics while still supporting the R6 lifecycle goal. The tradeoff is that receivers and generated enums must handle an additional status distinction."
+      }
+    }
+  ]
+}

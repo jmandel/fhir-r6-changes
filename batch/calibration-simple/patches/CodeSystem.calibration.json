@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "CodeSystem",
+  "patches": [
+    {
+      "findingId": "CodeSystem:VALUE_CONSTRAINT:CodeSystem.content:csd4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "A warning or profile-only requirement would preserve targetless R4 supplements, but would not make supplements deterministically applicable in the base resource.",
+        "alternativeTradeoffSummary": "Less disruptive for legacy supplements, but targetless supplements remain valid and ambiguous; consumers still need manual resolution and uniform validation is weakened.",
+        "justificationRationaleMd": "The R6 goal is reasonable because a supplement without `supplements` cannot be reliably applied to a target code system. Since the only old-valid/new-invalid cases are targetless supplements and the softer alternative leaves the core ambiguity in place, the error-level invariant is probably justified despite the migration break.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep the R4 shape and make `content = 'supplement'` without `supplements` a warning, best-practice invariant, or profile requirement. That would preserve legacy resources, but it would not satisfy the base R6 goal of making supplement targets unambiguous for all consumers."
+      }
+    },
+    {
+      "findingId": "CodeSystem:TERMINOLOGY_BINDING:CodeSystem.concept.designation.language:required-all-languages",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the BCP 47/all-languages requirement as warning, preferred, or extensible guidance rather than a required binding.",
+        "alternativeTradeoffSummary": "Preserves local or informal R4 language labels, but lets non-BCP-47 tags persist and weakens multilingual interoperability and validator consistency.",
+        "justificationRationaleMd": "Requiring interoperable language tags for designations is a reasonable R6 goal, and the old R4 preferred binding already signaled that these values should be language codes. A softer binding would reduce validation failures for legacy labels, but it materially undercuts the goal of uniform BCP 47 designation language handling.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have retained the R4-style preferred binding, moved to an extensible binding, or added warning-only validation while recommending normalization. That alternative is incomplete because systems could continue exchanging informal labels that cannot be reliably interpreted as languages."
+      }
+    },
+    {
+      "findingId": "CodeSystem:VALUE_CONSTRAINT:CodeSystem.concept:alternateCode-reciprocal",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make reciprocity a warning first, or apply the error only when `alternateCode` is being used as the undeclared FHIR-defined concept property.",
+        "alternativeTradeoffSummary": "Preserves more local R4 `alternateCode` uses, but creates ambiguity around the same property code and can let non-reciprocal alternate-code semantics persist.",
+        "justificationRationaleMd": "The goal of making alternate-code equivalence symmetric is reasonable. The breakage comes from applying the bare code `alternateCode` to all concept properties, including possible R4 local property names with directional or non-standard meaning. A scoped or warning-first rule would be less disruptive, but it would make the standard property harder to enforce uniformly.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could trigger the reciprocal error only when there is no local `CodeSystem.property` declaration for `alternateCode`, consistent with the R6 definition's distinction between local property codes and FHIR-defined concept-properties. That preserves local legacy uses but leaves a permanent same-code ambiguity and weakens the guarantee that `alternateCode` always means reciprocal equivalence."
+      }
+    },
+    {
+      "findingId": "CodeSystem:SEMANTIC_OR_CONFORMANCE_TEXT:CodeSystem.caseSensitive:unknown-guidance",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 tolerant matching guidance when `caseSensitive` is absent and only warn authors to populate the field.",
+        "alternativeTradeoffSummary": "Avoids a runtime behavior change for existing omitted values, but keeps false-positive code matches and locale-sensitive case handling risks.",
+        "justificationRationaleMd": "R6's goal of avoiding silent incorrect code interpretation is reasonable, especially because case-insensitive comparisons can be unsafe or locale-dependent. Keeping R4 Postel-style tolerance would be less disruptive for systems that relied on accepting any case, but it would fail the safety goal that unknown case rules should not silently broaden code matching.",
+        "backwardCompatibleAlternativeMd": "The less-breaking design would preserve the R4 comment's tolerant default and add a warning or profile guidance encouraging explicit `caseSensitive`. That preserves runtime compatibility, but it leaves omission semantics permissive and does not give R6 consumers a safer default."
+      }
+    },
+    {
+      "findingId": "CodeSystem:ELEMENT_PRESENCE_OR_IDENTITY:CodeSystem:r6-only-fields",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: these are optional R6 additions and `additionalUse` does not invalidate R4 instances; the concern is R6-to-R4 conversion.",
+        "alternativeTradeoffSummary": "R4 extensions, duplicated designations, or lossy omission are downgrade mitigations, not less-breaking R6 base-design alternatives.",
+        "justificationRationaleMd": "Adding optional governance, lifecycle, contributor, related-artifact, version algorithm, and designation-use fields is forward-compatible for R4-to-R6 validation. The R6 definition for `additionalUse` explicitly uses a new optional field rather than widening `use` to preserve compatibility. The remaining risk is strict R4 parsing or round-trip loss for new R6 content.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base alternative is needed to preserve R4 instances because absent optional R6 fields remain valid. Keeping all of this information as extensions would make R6 less uniform and less discoverable; extensions and duplicate designations are appropriate downgrade strategies, not evidence of an avoidable R6 base break."
+      }
+    },
+    {
+      "findingId": "CodeSystem:TERMINOLOGY_BINDING:CodeSystem.filter.operator:new-r6-operators",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding `child-of` and `descendent-leaf` widens the required value set while retaining all R4 filter operators.",
+        "alternativeTradeoffSummary": "R4 clients and down-converters need version-aware enum handling, but avoiding standard R6 codes would push interoperable semantics into local extensions or prose.",
+        "justificationRationaleMd": "Standardizing additional hierarchy filter operators is a plausible R6 terminology goal and does not invalidate any R4 CodeSystem whose operators came from the R4 value set. The compatibility concern is for R6-to-R4 representability and generated enum handling when new R6 operators are used.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R6 base design is needed for R4-to-R6 compatibility because this is a value-set widening. Representing the new operations as local extensions or non-standard operators would reduce interoperability and is a downgrade or negotiation concern, not a backward-compatible alternative to the R6 base design."
+      }
+    },
+    {
+      "findingId": "CodeSystem:VALUE_CONSTRAINT:CodeSystem.hierarchyMeaning:csd2-csd3",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 uses warning-severity constraints, so base R6 does not make R4 hierarchical CodeSystems invalid.",
+        "alternativeTradeoffSummary": "Warning-as-error pipelines may need local policy changes, but that is tooling configuration rather than a base validation break.",
+        "justificationRationaleMd": "The goal of making hierarchy semantics explicit is reasonable for subsumption, browsing, and parent/child property interpretation. R6 chose warning severity, which surfaces ambiguity without creating an error-level old-valid/new-invalid break, so the level of disruption is justified.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base alternative is needed. Dropping the warnings would hide real semantic ambiguity, while making `hierarchyMeaning` mandatory or enforcing the constraints as errors would be more breaking. The current warning-level design is already the compatibility-preserving middle ground."
+      }
+    },
+    {
+      "findingId": "CodeSystem:SEMANTIC_OR_CONFORMANCE_TEXT:CodeSystem.concept.property.code:fhir-defined-properties",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: allowing FHIR-defined concept-property codes without local declarations broadens R6 semantics without invalidating R4 content.",
+        "alternativeTradeoffSummary": "Adding local declarations during R6-to-R4 conversion is a migration policy; requiring declarations in R6 would preserve R4 assumptions but reduce standard reuse.",
+        "justificationRationaleMd": "The R6 goal of reducing repeated declarations for standard concept properties is reasonable, and existing R4 instances remain valid. Older tooling may expect every property code to be declared locally, but that is a runtime or R6-to-R4 compatibility concern rather than an old-valid/new-invalid base-design break.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible alternative is needed to preserve R4 instances. R6-to-R4 converters can add explicit `CodeSystem.property` declarations or extensions for standard properties, but those are downgrade mitigations. Keeping a universal declaration requirement in R6 would be more familiar to R4 tools but would weaken the R6 goal of reusable standard concept-property semantics."
+      }
+    }
+  ]
+}

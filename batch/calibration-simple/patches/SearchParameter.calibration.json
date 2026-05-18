@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "SearchParameter",
+  "patches": [
+    {
+      "findingId": "SearchParameter:ELEMENT_PRESENCE_OR_IDENTITY:SearchParameter.xpath:0a7c4e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep optional deprecated `xpath` and `xpathUsage` alongside `processingMode` for a transition.",
+        "alternativeTradeoffSummary": "Preserves legacy registries but leaves XML/XPath semantics and duplicate extraction metadata in base R6.",
+        "justificationRationaleMd": "Moving SearchParameter definitions toward FHIRPath and away from XPath is a reasonable R6 goal. Keeping the R4 XPath fields would preserve many old instances, but it would also require base R6 validators and tooling to keep supporting XML-centric extraction metadata and the R4 spatial modes that do not cleanly map to `processingMode`. Because that tradeoff is material, the break is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking design would retain `xpath` and `xpathUsage` as deprecated optional elements while adding `processingMode`, with warnings discouraging new XPath use. This would preserve most R4 SearchParameter registries during migration, but it would leave two extraction representations in the base resource and could make deprecated XPath content persist indefinitely."
+      }
+    },
+    {
+      "findingId": "SearchParameter:VALUE_CONSTRAINT:SearchParameter.expression:6d42b1",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Make `processingMode` optional with missing meaning `normal`, plus a warning to populate it explicitly.",
+        "alternativeTradeoffSummary": "Less explicit and may hide unusual processing, but avoids mass invalidation without duplicate fields.",
+        "justificationRationaleMd": "Requiring publishers to state how FHIRPath expression results are processed is a sound goal, especially after XPath removal. The hard R6 error is probably avoidable, however, because absent `processingMode` could have been given a normative default of `normal` or treated as a best-practice warning. That alternative would preserve existing R4 instances while still allowing R6 authors and validators to prefer explicit processing modes.",
+        "backwardCompatibleAlternativeMd": "The best alternative is to define missing `processingMode` as `normal` and warn when it is omitted. Systems needing `phonetic` or `other` could still populate it explicitly. The tradeoff is that some legacy parameters with non-normal implementation behavior might be under-specified until reviewed, but this is a moderate migration risk rather than a reason old base instances must fail validation."
+      }
+    },
+    {
+      "findingId": "SearchParameter:VALUE_CONSTRAINT:SearchParameter.comparator:2f91aa",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Introduce the comparator/type rule first as a warning or best-practice invariant.",
+        "alternativeTradeoffSummary": "Preserves rare legacy instances but keeps misleading comparator declarations formally valid.",
+        "justificationRationaleMd": "The R6 rule matches the core search semantics: comparators only make sense for ordered or special search domains. A warning-first rule would be less disruptive, but it would still allow base-conformant metadata that clients could reasonably misread as comparator support for unordered types. Given the semantic correctness of the rule and apparently low core prevalence, the hard invariant is probably justified.",
+        "backwardCompatibleAlternativeMd": "The less-breaking design would keep `comparator` valid on all types for one release and emit a warning when `type` is not `number`, `date`, `quantity`, or `special`. That preserves old instances, but it weakens conformance and leaves unsafe capability metadata available to clients."
+      }
+    },
+    {
+      "findingId": "SearchParameter:VALUE_CONSTRAINT:SearchParameter.code:b8a31f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep legacy `code` values temporarily and add a distinct URL-safe name or warning rule.",
+        "alternativeTradeoffSummary": "Avoids invalidating unusual names but creates ambiguous primary versus URL-safe parameter names.",
+        "justificationRationaleMd": "Forbidding `.`, `$`, `|`, and whitespace directly supports unambiguous FHIR search URL parsing, so the goal is strong. A less-breaking design could preserve legacy codes and introduce a separate safe URL name, but that would duplicate the central naming fact and make it less clear which value clients should use. The hard R6 rule is therefore probably justified despite the partial alternative.",
+        "backwardCompatibleAlternativeMd": "A partial alternative would leave `code` unconstrained for older definitions and add a new constrained URL-safe element or warning-level rule. That would preserve old custom codes, but it would split the parameter identity between two fields and could allow unsafe names to remain in registries indefinitely."
+      }
+    },
+    {
+      "findingId": "SearchParameter:TERMINOLOGY_BINDING:SearchParameter.modifier:5e0bcd",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `ofType` as a deprecated alias while preferring `of-type` and adding the new R6 modifiers.",
+        "alternativeTradeoffSummary": "Preserves R4 metadata but leaves two spellings for the same modifier and complicates canonical comparisons.",
+        "justificationRationaleMd": "Adding new modifier codes and preferring hyphenated spelling are reasonable R6 goals. The hard rejection of the old `ofType` code is not clearly justified by the supplied evidence because the same semantic goal could be met by retaining `ofType` as deprecated with a map to `of-type`. The alternative has real interoperability costs, so it is partial rather than a clean yes.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking design would include both `ofType` and `of-type` in the required R6 value set, mark `ofType` deprecated, and publish a ConceptMap or canonicalization rule. This would preserve R4-valid SearchParameter instances while guiding systems to the R6 spelling. The tradeoff is a long-lived dual spelling for a URL-level modifier, which can complicate enum generation, equality checks, and server/client expectations."
+      }
+    },
+    {
+      "findingId": "SearchParameter:TERMINOLOGY_BINDING:SearchParameter.type:1ca63f",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; R6 widens the `type` value set and preserves R4-to-R6 validity.",
+        "alternativeTradeoffSummary": "The issue is R6-to-R4 downgrade and generated-enum compatibility, not a breaking base R6 design for R4 instances.",
+        "justificationRationaleMd": "Adding `resource` is a standard way to represent new R6 search semantics and does not invalidate any R4 `SearchParameter.type` value. The compatibility concern is that R4 systems and closed enums cannot represent the new R6 code. That is a down-conversion and implementation-update issue, not a backwards-compatible alternative question for an R4-to-R6 break.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is needed for R4-to-R6 validation because the R6 value set is wider. An extension-only representation or lossy mapping to `special` could help old systems consume R6 content, but those are downgrade mitigations rather than base-design alternatives to a breaking change."
+      }
+    },
+    {
+      "findingId": "SearchParameter:TERMINOLOGY_BINDING:SearchParameter.base-target:7d91fe",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Include all R4 resource-type codes as inactive or deprecated entries in the version-independent value set with mappings to current replacements.",
+        "alternativeTradeoffSummary": "Preserves validation but lets obsolete resource targets remain base-valid unless other rules reject or map them.",
+        "justificationRationaleMd": "A version-independent resource-type binding is a reasonable goal, and the local evidence suggests that the R6 value set is not a simple R4 superset. A more compatible value set could preserve R4 codes, but without authoritative expansion and resource-lifecycle mappings it is not possible to tell which exclusions are intentional, necessary, or accidental. The alternative is therefore real but only partial, and the overall justification cannot be fully assessed from the supplied inputs.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking design would include every R4 resource-type code in the R6 version-independent value set, marked inactive or deprecated where appropriate, with ConceptMaps to R6 replacements or retirement guidance. This would reduce hard validation failures for old SearchParameters. The tradeoff is that validators would accept obsolete base or target codes unless profiles, lifecycle metadata, or business rules enforce current-version applicability."
+      }
+    },
+    {
+      "findingId": "SearchParameter:ELEMENT_PRESENCE_OR_IDENTITY:SearchParameter.constraint:4c2b80",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; this optional R6 element does not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "R6-to-R4 preservation may require extensions, but that is downgrade mitigation rather than a less-breaking R6 base design.",
+        "justificationRationaleMd": "The optional `constraint` element fills a real expressivity gap for conditional SearchParameter applicability and does not create an R4-to-R6 validation break. Its compatibility issue is that older R4 systems cannot represent or execute the new metadata without extensions.",
+        "backwardCompatibleAlternativeMd": "Because the element is optional and additive, there is no backwards-compatible alternative needed to preserve R4 instances in R6. A cross-version extension can preserve `constraint` when downgrading to R4, but that is not a base R6 design alternative to a breaking change."
+      }
+    },
+    {
+      "findingId": "SearchParameter:ELEMENT_PRESENCE_OR_IDENTITY:SearchParameter.canonical-metadata:9aa114",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; optional canonical metadata additions preserve R4-to-R6 validity.",
+        "alternativeTradeoffSummary": "R6-to-R4 converters need extensions or accept metadata loss, but no old R4 instance is invalidated.",
+        "justificationRationaleMd": "The added metadata and alias elements are optional and align SearchParameter with richer canonical-resource publication needs. They do not make R4 instances invalid in R6, so extension/backport strategies are relevant only for downgrading R6 content to R4.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is required for R4-to-R6 compatibility. Publishing these concepts only as extensions would help R4 consumers preserve them, but it would reduce their discoverability and interoperability in R6 and is best viewed as a downgrade strategy."
+      }
+    },
+    {
+      "findingId": "SearchParameter:SEMANTIC_OR_CONFORMANCE_TEXT:SearchParameter.chain:eb32d7",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable for R4-to-R6 validation; `chain` remains a string and old instances remain structurally valid.",
+        "alternativeTradeoffSummary": "R6-to-R4 semantic downgrades may require enumeration or extensions because old clients can misread special chain values.",
+        "justificationRationaleMd": "The R6 goal of compactly declaring wildcard, recursive, and dotted chain support is reasonable, and the element shape does not create a hard R4-to-R6 validation break. The main risk is semantic interpretation when R6 declarations are consumed by R4-era clients. That makes the backwards-compatible alternative question not applicable under the R4-to-R6 base-break calibration, even though the design still has downgrade ambiguity.",
+        "backwardCompatibleAlternativeMd": "Separate optional fields for wildcard and recursive chaining could be clearer, but because this finding is mainly about new R6 semantics on an unchanged string element, that is a modeling and downgrade alternative rather than a backwards-compatible alternative to an R4-to-R6 validation break."
+      }
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Consent",
+  "patches": [
+    {
+      "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.scope:0c42a1",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain Consent.scope as optional/deprecated, or define a formal equivalence to category/regulatoryBasis, but only with conflict rules.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but leaves a second high-level consent classification/modifier axis that can conflict with category or policy metadata.",
+        "justificationRationaleMd": "Removing mandatory `Consent.scope` is highly disruptive because essentially all conformant R4 instances carried it and it influenced consent purpose and related constraints. The R6 goal of not requiring a separate scope axis is plausible, but the local evidence does not show that full removal from the base resource was necessary. A staged legacy field would have avoided many validation failures, although the overlap with R6 category/policy modeling is material.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep R4 `Consent.scope` as `0..1`, likely deprecated and no longer required, while adding R6 guidance or invariants mapping former scope codes to `category` or `regulatoryBasis` where applicable. That would preserve R4-valid data and allow new R6 records to omit scope. It is only a partial alternative because processors would need to reconcile scope with category/policy basis, and a stale modifier-style legacy field could persist indefinitely."
+      }
+    },
+    {
+      "findingId": "Consent:TERMINOLOGY_BINDING:Consent.status:6e2d9c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain proposed and rejected as deprecated status codes for one release, with a normative R4-to-R6 ConceptMap.",
+        "alternativeTradeoffSummary": "Preserves validation but weakens lifecycle rationalization and can perpetuate modifier-status values that are not equivalent to not-done or unknown.",
+        "justificationRationaleMd": "Rationalizing Consent lifecycle status is a reasonable goal, and status is a modifier element with direct enforcement consequences. Keeping the removed R4 codes would preserve old instances, but it would also keep old lifecycle states whose semantics are not clean aliases for the new R6 states. Because the alternative has material safety and terminology-precision tradeoffs, the breaking required-binding change is probably justified despite needing explicit migration guidance.",
+        "backwardCompatibleAlternativeMd": "Deprecated aliases in the required ValueSet would be a real base-design alternative, not merely conversion tooling. They would allow R4 instances using `proposed` or `rejected` to validate while new implementations adopt `not-done` and `unknown`. The alternative is incomplete because mappings are context-dependent: for example, `rejected` may not mean the same thing as `not-done`, and required bindings lose precision if legacy modifier statuses remain indefinitely."
+      }
+    },
+    {
+      "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.patient-subject:91ad7f",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 patient element name with a broadened subject-oriented definition/target set, or keep patient as a deprecated Patient-only alias while adding subject.",
+        "alternativeTradeoffSummary": "Main cost is a nonoptimal or duplicate subject representation; that is manageable compared with forcing every patient-only instance to rename.",
+        "justificationRationaleMd": "Broadening Consent beyond patient-only subjects is reasonable, but the wire-path rename from `patient` to `subject` created avoidable breakage for common patient-centered R4 instances. FHIR could have tolerated the imperfect R4 name with clearer definition, broader targets, or profile guidance. If a new `subject` element was still desired, a deprecated `patient` compatibility element plus disagreement rules would have preserved old data.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `Consent.patient` as `0..1` and redefine it as the subject of consent, allowing Patient plus the new subject-like targets despite the awkward name. Another option would retain `patient` as a deprecated alias for Patient subjects and add `subject` for non-patient cases. Both preserve most or all R4 instances; the tradeoff is API terminology awkwardness and some dual-representation risk, not failure of the core R6 goal."
+      }
+    },
+    {
+      "findingId": "Consent:TYPE_DOMAIN:Consent.dateTime-date:34b0ef",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Add Consent.date for executed date while retaining dateTime for legacy statement/indexing timestamp, or clarify dateTime semantics without removing it.",
+        "alternativeTradeoffSummary": "Two temporal fields require consistency guidance, but they preserve timestamp precision and old data with moderate model complexity.",
+        "justificationRationaleMd": "Representing the legally executed consent date is a reasonable R6 goal, but removing and narrowing the R4 `dateTime` field was not clearly necessary. The R4 element already represented a distinct operational timestamp, and preserving it while adding an executed-date field would avoid truncation and validation failure. The less-breaking design has manageable tradeoffs.",
+        "backwardCompatibleAlternativeMd": "A compatible base design could retain `Consent.dateTime` as a deprecated legacy statement or indexing timestamp and add optional `Consent.date` for the executed agreement date. Profiles could require `date` for new records while allowing legacy `dateTime` during transition. This avoids lossy time truncation; the main cost is that implementers must distinguish agreement date from record creation/indexing time."
+      }
+    },
+    {
+      "findingId": "Consent:REFERENCE_TARGET:Consent.performer-organization-participants:bb7a13",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain performer and organization as deprecated aggregate fields while adding explicit grantor, grantee, manager, and controller fields.",
+        "alternativeTradeoffSummary": "Preserves old instances but perpetuates ambiguous actor roles and duplicate or conflicting authority declarations.",
+        "justificationRationaleMd": "Disambiguating consent actors is a strong R6 goal because grantor, grantee, manager, and controller roles affect authority and enforcement. A compatibility aggregate would reduce validation breakage, but it would not recover the missing role semantics from old `performer` content and could continue the ambiguity the redesign is trying to remove. With those material tradeoffs, the split is probably justified.",
+        "backwardCompatibleAlternativeMd": "Base R6 could have accepted old `performer` and `organization` elements for a transition period while encouraging the explicit role-specific fields. That would preserve old instances, but processors would still need to classify each performer as grantor, grantee, or both, and reconcile aggregate actors with role-specific actors. Deprecated aggregate representations could persist indefinitely and create enforcement conflicts."
+      }
+    },
+    {
+      "findingId": "Consent:SERIALIZATION_OR_CODEGEN:Consent.source:2f7b65",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 single source[x] as a primary source and add additive source collections for additional attachments/references.",
+        "alternativeTradeoffSummary": "Would preserve old JSON but creates primary/additional source semantics and duplicate source representations; repeatable choices also burden generators.",
+        "justificationRationaleMd": "Allowing multiple source documents is a reasonable R6 goal. Simply making the old choice repeatable would not fully preserve strict R4 JSON because the cardinality change changes singleton values into arrays. A truly less-breaking base design would need to keep the old singleton choice and add new fields for additional sources, which is awkward and creates overlapping representations. The R6 split is therefore probably justified, though not completely unavoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep the R4 `source[x]` singleton unchanged for a primary or legacy source and add separate additional-source arrays or a new source collection. This preserves old instances while supporting multiple sources. The tradeoff is material: processors must merge primary and additional sources, two representations for the same fact can persist indefinitely, and the model still has choice/repeatability code-generation complexity."
+      }
+    },
+    {
+      "findingId": "Consent:CONSTRAINT:Consent.policy-policyRule:57d421",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain policy and policyRule as deprecated fields while adding regulatoryBasis, policyBasis, and policyText plus profile or best-practice rules for policy presence.",
+        "alternativeTradeoffSummary": "Preserves old data but leaves overlapping policy facts and ambiguous old policyRule semantics.",
+        "justificationRationaleMd": "Separating regulatory basis, computable policy identity, and human-readable policy evidence is a reasonable R6 modeling goal. The R4 fields and invariant were coarse, and old `policyRule` values do not map one-to-one to the new elements. Retaining the old fields would reduce breakage, but it would keep multiple policy representations with unclear precedence. The redesign is probably justified, with the caveat that migration and profile constraints are needed.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could accept R4 `policy` and `policyRule` while adding `regulatoryBasis`, `policyBasis`, and `policyText`. That is a real base-design alternative, but only partial: processors would need precedence and consistency rules across old and new policy elements, deprecated policy representations might persist, and implementations could still disagree about which policy basis is enforceable."
+      }
+    },
+    {
+      "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.verification.date:f1c930",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain verificationDate as a deprecated singleton while adding repeatable date and richer verification metadata.",
+        "alternativeTradeoffSummary": "Duplicate verification-date fields need consistency rules but the tradeoff is moderate and preserves old verification records.",
+        "justificationRationaleMd": "Supporting repeated verification or re-validation events and richer verification metadata is reasonable. The specific rename of `verificationDate` to `date` was avoidable: the old optional element could have been retained for compatibility while new repeatable dates, type, and verifiedBy were added. The duplicate-date tradeoff is manageable compared with invalidating existing verification data.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `Consent.verification.verificationDate` as `0..1` and add `Consent.verification.date` for additional or structured verification dates, with an invariant or guidance that both fields not disagree. This preserves R4 instances and still supports the R6 history use case. The risk is that deprecated and new date representations may both be populated unless profiles or validators constrain them."
+      }
+    },
+    {
+      "findingId": "Consent:FLAGS_AND_MODIFIERS:Consent.provision.type-decision:aa8e74",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add root decision while retaining provision.type for explicit legacy or nested decisions with strict reconciliation rules.",
+        "alternativeTradeoffSummary": "Preserves old instances but creates dangerous dual permit/deny semantics and conflict risk in access-control evaluation.",
+        "justificationRationaleMd": "The R6 goal of making the base permit/deny decision explicit and treating provisions as exceptions is reasonable and safety-relevant. A less-breaking design could retain `provision.type`, but dual explicit and inferred permit/deny semantics would be hard for evaluators to reconcile and could invert access decisions. Because the compatibility alternative has material safety tradeoffs, the breaking modifier redesign is probably justified, provided migration rules are explicit.",
+        "backwardCompatibleAlternativeMd": "Retaining `provision.type` would be a base-design alternative that lets R4 provisions validate while new instances use root `decision`. It is only partial because evaluators would need precedence rules between root `decision`, inferred negation, and explicit nested `provision.type`; if any processor ignored one representation, permit/deny semantics could be reversed. Deprecated decision representations could also accumulate indefinitely."
+      }
+    },
+    {
+      "findingId": "Consent:CARDINALITY:Consent.provision.actor.role-reference:18f399",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 backward-compatible alternative is needed because R6 weakens the actor child cardinalities.",
+        "alternativeTradeoffSummary": "The issue is R6-to-R4 downgrade and data-quality risk for incomplete R6 actors, not preservation of R4 instances.",
+        "justificationRationaleMd": "Changing `role` and `reference` from mandatory to optional does not make R4-valid actor entries invalid in R6. The binding change is also extensible rather than a strict required-code removal. The goal of allowing role-only or reference-only actor descriptions is plausible, and stricter implementations can restore requirements in profiles. This is not a forward R4-to-R6 base-design break.",
+        "backwardCompatibleAlternativeMd": "An invariant requiring at least one of `role` or `reference` may be a good data-quality improvement, but it is not a backward-compatible alternative to an R4-to-R6 break. It would constrain new R6 content for cleaner downgrade and safer processing rather than preserve old R4 instances."
+      }
+    },
+    {
+      "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.provision.class:720d8b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep broad class as deprecated while adding documentType and resourceType with precedence and mapping guidance.",
+        "alternativeTradeoffSummary": "Preserves old instances but keeps ambiguous content-class semantics and requires merging three targeting axes.",
+        "justificationRationaleMd": "Separating document-type constraints from FHIR resource/profile constraints is a reasonable interoperability goal. The old `class` bucket cannot express that distinction without code interpretation, and some old codings may be ambiguous. Keeping `class` would reduce validation failures but prolong the ambiguity the split addresses. The break is therefore probably justified, although it needs ConceptMap-style guidance.",
+        "backwardCompatibleAlternativeMd": "R6 could have accepted deprecated `Consent.provision.class` while adding `documentType` and `resourceType`. That would preserve R4 instances, but processors would need to reconcile broad class codings with the split fields, route uncertain codings, and avoid conflicting content-targeting declarations. The old broad bucket could also persist indefinitely, so the alternative is only partial."
+      }
+    },
+    {
+      "findingId": "Consent:SEMANTIC_OR_CONFORMANCE_TEXT:Consent.provision.securityLabel:58c1de",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not a backward-compatible-alternative case; weakening the binding does not invalidate R4 securityLabel codings.",
+        "alternativeTradeoffSummary": "The tradeoff is lower base interoperability pressure versus jurisdictional flexibility, not R4 instance preservation.",
+        "justificationRationaleMd": "The binding weakening is not an old-valid/new-invalid R4-to-R6 break. The inferred goal of avoiding over-constrained security-label terminology in the base resource is plausible, even though security labels are important for access control. Implementations needing stronger terminology guarantees should use profiles, but backward-compatible alternative availability is not applicable.",
+        "backwardCompatibleAlternativeMd": "Keeping the R4 extensible binding could be a stronger conformance choice, but it is not needed to preserve R4 instances because the R6 example binding is already more permissive. The relevant design question is interoperability and safety policy, not backward compatibility of the base wire format."
+      }
+    },
+    {
+      "findingId": "Consent:CONVERSION_OR_MAPPING:Consent.r6-new-fields:4ad6b0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Optional additive R6 fields are forward-compatible; no less-breaking base R6 alternative is needed for R4-to-R6.",
+        "alternativeTradeoffSummary": "The cost is R6-to-R4 downgrade loss, handled by profiles, extensions, or conversion policy rather than a different R6 base design.",
+        "justificationRationaleMd": "These fields add new optional R6 expressivity and do not invalidate old R4 instances. The downgrade risk is real, especially for computable provision expressions and controller/manager roles, but that is not a backward-compatible base-design problem. The appropriate calibration is therefore `Not applicable`, not `No` based on extension or backport mitigations.",
+        "backwardCompatibleAlternativeMd": "There is no forward-compatibility alternative to assess: avoiding the optional additions would reduce R6 expressivity rather than preserve R4 data. R4 clients may need cross-version extensions, sidecar policy artifacts, or R4-compatible profiles for downgrade, but those are mitigation strategies and not backwards-compatible R6 base designs."
+      }
+    }
+  ]
+}

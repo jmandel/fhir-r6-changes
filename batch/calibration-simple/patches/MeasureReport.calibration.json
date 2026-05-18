@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MeasureReport",
+  "patches": [
+    {
+      "findingId": "MeasureReport:TERMINOLOGY_BINDING:MeasureReport.type:data-collection",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `data-collection` as a deprecated alias while adding `data-exchange` and `other`.",
+        "alternativeTradeoffSummary": "Duplicate codes for the data-of-interest use case could persist and require ConceptMap and invariant handling, but this is a moderate terminology cost.",
+        "justificationRationaleMd": "The R6 goal of clearer data-exchange terminology and an `other` option is reasonable, but removing the R4 required-bound `data-collection` code was not necessary to meet that goal. A base R6 value set could have kept the old code as deprecated or legacy and updated the local invariant to recognize both old and new terms. Because that would preserve R4 instances with manageable terminology debt, the break is probably avoidable.",
+        "backwardCompatibleAlternativeMd": "Add `data-exchange` and `other`, retain `data-collection` as a deprecated alias, and publish equivalence/preferred-use guidance. The no-group invariant could accept either `data-collection` or `data-exchange`. The main tradeoff is supporting two codes for one concept until legacy use fades."
+      }
+    },
+    {
+      "findingId": "MeasureReport:REFERENCE_TARGET:MeasureReport.reporter:Location-removed",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `Location` as a legacy `reporter` target while adding `MeasureReport.location` and preferring it for data-source locations.",
+        "alternativeTradeoffSummary": "Preserves old instances but leaves ambiguous Location-as-reporter versus Location-as-data-source representations and may slow convergence on the cleaner model.",
+        "justificationRationaleMd": "Separating the accountable reporting party from the location for which data is reported is a reasonable R6 goal. Retaining `Location` on `reporter` would be less breaking, but receivers would still have to decide whether a Location reporter is a true reporting entity or an old data-source location. Because that ambiguity is material, the narrowing is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `Location` in the `reporter` target list as deprecated or legacy while adding `MeasureReport.location` for the data-source location. That preserves R4-valid instances, but it creates duplicate same-resource places for location information and leaves durable interpretation ambiguity."
+      }
+    },
+    {
+      "findingId": "MeasureReport:ELEMENT_PRESENCE_OR_IDENTITY:improvementNotation:moved",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain root `improvementNotation` as a deprecated default while adding group-level notation and guidance.",
+        "alternativeTradeoffSummary": "Covers uniform or common reports, but duplicate root and group values require precedence rules; conflicts can invert score interpretation.",
+        "justificationRationaleMd": "Representing improvement notation at group granularity is a strong R6 goal, especially for multi-group measures. A root default would preserve many R4 instances, but it cannot fully express differing per-group directions and would create safety-sensitive conflict rules with a former modifier element. Those material tradeoffs make the breaking move probably justified.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained root `improvementNotation` as a deprecated default copied to each group unless a group value is present. Validators could warn when both root and group values conflict. This is only a partial alternative because duplicate representations may persist and consumers must merge them correctly to avoid misreading scores."
+      }
+    },
+    {
+      "findingId": "MeasureReport:SERIALIZATION_OR_CODEGEN:measureScore-choice",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `measureScore` as Quantity and add a distinct optional choice or backbone for non-Quantity scores.",
+        "alternativeTradeoffSummary": "Preserves common Quantity JSON but creates parallel score representations, non-idiomatic accessors, and conflict or precedence burden.",
+        "justificationRationaleMd": "Supporting non-Quantity measure scores is a reasonable model improvement, but converting the existing Quantity element into a FHIR choice breaks even unchanged Quantity JSON. A less-breaking base design exists, but it would require duplicate or awkward score fields for the same fact, which is a material long-term interoperability and code-generation tradeoff. The breaking choice conversion is therefore probably justified.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept the existing `measureScore` Quantity field and added a new `measureScoreValue[x]` element or score backbone for alternate datatypes, with an invariant preventing conflicting representations. That would preserve R4 Quantity instances but risk indefinite duplicate score representations and more complex client logic."
+      }
+    },
+    {
+      "findingId": "MeasureReport:SERIALIZATION_OR_CODEGEN:stratum-value-choice",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain CodeableConcept `value` for coded strata and add separate optional fields or a backbone for boolean, Quantity, Range, or Reference strata.",
+        "alternativeTradeoffSummary": "Preserves coded stratum instances but creates duplicate ways to represent stratum values and complicates uniqueness and comparison logic.",
+        "justificationRationaleMd": "Support for non-coded stratifier values is reasonable. However, changing `value` to `value[x]` breaks the existing CodeableConcept wire name. A less-breaking same-resource design could keep coded values intact while adding new typed representations, but that duplicates the core stratum value and complicates validators and receivers. The breaking redesign is probably justified because the alternative has material long-term costs.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `value` as CodeableConcept and added a distinct `valueDetail[x]` or parallel typed fields for boolean, Quantity, Range, and Reference strata. This would avoid breaking old coded strata, but duplicate same-resource representations may never disappear and would require conflict rules."
+      }
+    },
+    {
+      "findingId": "MeasureReport:CARDINALITY:group.stratifier.code:max-1",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `group.stratifier.code` at `0..*` and add definition or profile guidance encouraging one CodeableConcept with multiple codings.",
+        "alternativeTradeoffSummary": "Allows atypical repeated CodeableConcepts in the base, but CodeableConcept already supports multiple codings and stricter profiles can enforce one when needed.",
+        "justificationRationaleMd": "Aligning each reported stratifier with the corresponding Measure stratifier is reasonable, but reducing max cardinality is not the only way to express that goal. Keeping the R4 repetition while clarifying that alternate codings should normally be carried in one CodeableConcept would preserve R4-valid instances with modest base-model cost. The hard max-cardinality break is therefore probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The base resource could keep `0..*`, state that a single CodeableConcept is preferred for a single Measure stratifier, and let profiles or implementation guides require `0..1` for stricter ecosystems. This preserves old instances; the tradeoff is that generic base validation would still allow unusual repeated concepts."
+      }
+    },
+    {
+      "findingId": "MeasureReport:VALUE_CONSTRAINT:population-count-xor",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Use a not-both invariant, such as `count.exists().not() or countQuantity.exists().not()`, instead of exact-one `xor`.",
+        "alternativeTradeoffSummary": "Allows absent counts as R4 did; if R6 intended every population to carry a count, that stronger guarantee would need explicit cardinality, wording, or profiles.",
+        "justificationRationaleMd": "Adding `countQuantity` and preventing conflicting integer and Quantity counts is reasonable. The computable `xor` expression, however, enforces exactly one value while the human text says only mutually exclusive. A not-both invariant would preserve R4 no-count populations and still prevent conflicts with minimal downside, so this break is probably avoidable.",
+        "backwardCompatibleAlternativeMd": "Replace `count.exists() xor countQuantity.exists()` with an invariant that rejects only the both-present case. This keeps the new Quantity option and avoids conflicting representations while preserving old instances where the count was omitted."
+      }
+    },
+    {
+      "findingId": "MeasureReport:SEMANTIC_OR_CONFORMANCE_TEXT:Measure-linkId-correspondence",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Accept legacy element `id` correspondence as an explicit transition alternative to `linkId` while adding optional linkId fields.",
+        "alternativeTradeoffSummary": "Preserves legacy matching but requires receivers to support two mechanisms and can perpetuate less-stable id-based correspondence.",
+        "justificationRationaleMd": "Reliable correspondence between MeasureReport content and the referenced Measure is an important interoperability goal. R6 already acknowledges prior id-based practice with backwards-compatibility comments, but making `id` fully equivalent to `linkId` would require durable dual matching and conflict handling. Because that alternative is incomplete and burdens receivers, the stronger linkId direction is probably justified rather than fully avoidable.",
+        "backwardCompatibleAlternativeMd": "Base R6 text could have said `linkId` is preferred and that legacy `id` correspondence is acceptable when `linkId` is absent. This would reduce migration risk for R4-era reports, but it is only a partial alternative because the two mechanisms can disagree and every processor must implement both during the transition."
+      }
+    },
+    {
+      "findingId": "MeasureReport:CONVERSION_OR_MAPPING:R6-only-elements:roundtrip-risk",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: these are optional R6 additions and a reverse-version representability issue, not an R4-to-R6 breaking base-design choice.",
+        "alternativeTradeoffSummary": "R4 consumers need extensions or rejection policies for R6-only content, but that is conversion planning rather than a less-breaking R6 base alternative.",
+        "justificationRationaleMd": "Adding optional elements is the standard R4-to-R6-compatible way to evolve a FHIR resource, and no R4-valid instance becomes invalid solely because these fields exist. The R6-to-R4 lossiness is real for mixed-version exchange, but it cannot be solved by choosing a less-breaking R6 base design against already-published R4. The finding is justified as conversion risk, with backward-compatible alternative availability not applicable.",
+        "backwardCompatibleAlternativeMd": "No backwards-compatible base R6 alternative applies to this finding. Cross-version extensions, backports, or explicit rejection of unsupported fields are useful mitigations for R6-to-R4 conversion, but they are not base-design alternatives that would preserve R4-to-R6 compatibility."
+      }
+    },
+    {
+      "findingId": "MeasureReport:SEMANTIC_OR_CONFORMANCE_TEXT:evaluatedResource:individual-only",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make individual-report use a SHOULD or profile-level rule while still permitting legacy Bundle/audit references in the base.",
+        "alternativeTradeoffSummary": "Preserves legacy aggregate-report traceability but weakens R6's resource-size bound and leaves large-report risk to profiles or operations.",
+        "justificationRationaleMd": "The R6 definition gives a concrete goal: evaluated resources are limited to individual reports to keep MeasureReport size bounded. A softer base rule would be less breaking for legacy Bundle-oriented or aggregate-report audit patterns, but it would not fully enforce that size bound and could create operational risk. The less-breaking path is therefore partial, and the R6 semantic tightening is probably justified.",
+        "backwardCompatibleAlternativeMd": "R6 could have treated individual-report use as a SHOULD or profile-level rule and allowed non-individual evaluatedResource use for legacy audit bundles. That preserves more R4 behavior, but it does not meet the bounding goal as strongly and requires downstream systems to police payload size themselves."
+      }
+    }
+  ]
+}

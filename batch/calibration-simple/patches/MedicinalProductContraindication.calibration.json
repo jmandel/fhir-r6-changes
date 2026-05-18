@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MedicinalProductContraindication",
+  "patches": [
+    {
+      "findingId": "MedicinalProductContraindication:ARTIFACT_IDENTITY:root:7c2a1e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain a deprecated MedicinalProductContraindication resource alongside ClinicalUseDefinition.",
+        "alternativeTradeoffSummary": "Preserves R4 payloads but leaves parallel same-domain resources, references, searches, and profiles to support indefinitely.",
+        "justificationRationaleMd": "Consolidating medicinal-product indication, contraindication, interaction, undesirable-effect, and warning content into `ClinicalUseDefinition` is a coherent R6 modeling goal. The breakage is substantial because the R4 resource type disappears, but a compatibility resource would also create a long-lived duplicate representation of contraindication facts rather than a simple alias.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have kept `MedicinalProductContraindication` as a deprecated or compatibility resource while adding `ClinicalUseDefinition` for new content. That would preserve most R4-valid instances, but implementers would need to handle two resource identities, duplicated search/reference surfaces, and potentially divergent profiles for the same clinical safety content."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:VALUE_CONSTRAINT:ClinicalUseDefinition.type:1abf6c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `type` optional when exactly one branch is populated, or avoid it by retaining the old resource.",
+        "alternativeTradeoffSummary": "Reduces enrichment burden but weakens explicit classification, search consistency, and validation of branch/category mismatches.",
+        "justificationRationaleMd": "Once R6 uses a merged clinical-use resource, an explicit required discriminator is a safety-oriented design choice because it prevents a contraindication from being processed as another issue type. A less-breaking inferred-type rule is plausible, but it is incomplete for empty or metadata-only resources and would make category handling less explicit.",
+        "backwardCompatibleAlternativeMd": "A base design could have allowed `ClinicalUseDefinition.type` to be omitted when one branch, such as `contraindication`, is present and unambiguous. That would ease migration from a resource whose type already implied contraindication, but it adds validation ambiguity and makes indexing, search, and client branching depend on inferred structure rather than a mandatory code."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:CARDINALITY:subject:4b8d23",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `subject` optional and retain an R4-compatible reference representation while adding coded-subject support.",
+        "alternativeTradeoffSummary": "Preserves incomplete historical records but weakens a clinically important base guarantee and risks duplicate subject representations.",
+        "justificationRationaleMd": "Requiring a subject is clinically reasonable for contraindication knowledge because an unscoped safety rule can be unsafe or unusable. The CodeableReference expansion also has a plausible R6 goal, but preserving all R4 instances would require keeping optionality and an old reference shape, which carries meaningful safety and modeling tradeoffs.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have left `subject` at `0..*`, kept an R4-compatible reference element, and added a separate coded or broader subject element for new R6 use cases. That would preserve old instances, including records with no subject, but it would reduce the assurance that every base R6 clinical-use definition identifies what it applies to and could leave multiple subject representations for the same fact."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:ELEMENT_PRESENCE_OR_IDENTITY:contraindication-backbone:9d4e61",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep old contraindication fields as top-level compatibility elements while adding the branch.",
+        "alternativeTradeoffSummary": "Avoids path rewrites but duplicates branch and top-level representations and complicates invariants and generated APIs.",
+        "justificationRationaleMd": "Moving details under `ClinicalUseDefinition.contraindication` follows from the merged-resource design and gives each issue type a clear branch. A base R6 model could have retained old top-level fields, but that would make contraindication the exceptional branch and create two places for the same facts.",
+        "backwardCompatibleAlternativeMd": "The less-breaking option is not ordinary conversion tooling or extensions; it would require the base R6 resource to accept the old top-level fields alongside the new `contraindication` backbone. That would preserve many R4-shaped payloads after resource-type migration, but it risks conflicting branch and top-level values and a compatibility surface that may never disappear."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:clinical-condition-fields:af03d7",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain CodeableConcept fields and add separate reference alternatives for reusable definitions.",
+        "alternativeTradeoffSummary": "Preserves R4 concept values but loses the uniform CodeableReference pattern and may duplicate concept/reference forms.",
+        "justificationRationaleMd": "Allowing condition and status values to point to reusable definitions is a reasonable expressiveness goal, and `CodeableReference` is the R6 idiom for concept-or-reference content. A less-breaking base shape could preserve old CodeableConcept values, but it would be less uniform and would need rules to avoid competing concept and reference representations.",
+        "backwardCompatibleAlternativeMd": "A base R6 design could have kept the CodeableConcept-valued condition/status elements and added optional reference siblings for ObservationDefinition-based cases. This would preserve old values without wrapping, but it introduces the long-term risk of two same-fact representations and more complex validation or code generation than a single `CodeableReference` element."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:therapeuticIndication:52c7fe",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Permit a reference-valued indication relationship as well as inline indication content.",
+        "alternativeTradeoffSummary": "Preserves R4 link semantics but creates inline-versus-referenced duplication and possible conflict.",
+        "justificationRationaleMd": "Inlining the indication context may support self-contained clinical-use definitions, but the supplied artifacts do not show why the old reference relationship had to disappear completely. Because indication resources may have their own identity, provenance, and reuse, the level of breakage is not clearly justified by the available evidence.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have added an optional reference relationship, for example to an indication `ClinicalUseDefinition`, while also allowing inline indication content for self-contained cases. This is only a partial alternative because it would require rules for when inline and referenced indication data coexist and how conflicts are resolved, but it would preserve more R4 reference-based workflows than the current inline-only model."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:otherTherapy:6e19aa",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 child names and `medication[x]` choice while broadening definitions and targets.",
+        "alternativeTradeoffSummary": "Leaves a nonideal `medication` name for broader treatments but avoids most wire-format and generated-accessor breakage.",
+        "justificationRationaleMd": "Reusing a common other-therapy backbone and broadening therapy targets are reasonable goals, but the R4 shape already had a concept-or-reference choice that could have been evolved. Renaming `therapyRelationshipType` and replacing `medication[x]` with `treatment` appears more avoidable than necessary, especially because retaining a nonoptimal old name is a legitimate compatibility tradeoff.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained `therapyRelationshipType` and `medication[x]`, clarified that the medication field covers other treatments in this context, and broadened or renamed target profiles such as MedicinalProductDefinition and SubstanceDefinition. This would meet most of the R6 modeling goal with moderate naming debt, without adding a duplicate same-resource field for the same fact."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:TYPE_DOMAIN:population:0f6b92",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep inline Population and add a Group reference option for reusable populations.",
+        "alternativeTradeoffSummary": "Preserves R4 inline criteria but creates two population representations and extra validation and reconciliation burden.",
+        "justificationRationaleMd": "Using `Group` can improve reuse and align population criteria with a general resource, but the available package evidence does not explain why inline `Population` had to be removed. The break forces creation or discovery of Group resources and can be lossy, so the breakage is not clearly justified without stronger rationale.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained the inline `Population` element and added an optional `Reference(Group)` element for reusable or externally maintained populations. This is only partial because duplicate inline and referenced population criteria can diverge, and the deprecated inline representation might persist indefinitely, but it would preserve R4 population-bearing instances better than a reference-only model."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:FLAGS_AND_MODIFIERS:status:c7832b",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: optional R6 status is not an R4-to-R6 base validation break.",
+        "alternativeTradeoffSummary": "The remaining concern is lossy R6-to-R4 down-conversion, not a less-breaking R6 base design.",
+        "justificationRationaleMd": "`ClinicalUseDefinition.status` is optional for R4-to-R6 migration and provides a first-class modifier for lifecycle state that can affect safe use of clinical knowledge. The compatibility issue is that R4 has no equivalent local field when converting R6 content back, not that R4-valid instances are rejected by R6.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base alternative is needed for the R4-to-R6 direction because R4 instances can omit this optional element. R4 extensions or sidecar metadata may mitigate down-conversion loss, but those are migration/backport strategies rather than less-breaking R6 base designs."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:TERMINOLOGY_BINDING:local-bindings:dd45a0",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: example and preferred bindings do not invalidate base R4-coded content.",
+        "alternativeTradeoffSummary": "Low base-conformance risk; stricter downstream profiles or UI policies may still require terminology migration.",
+        "justificationRationaleMd": "Adding non-required terminology guidance is a reasonable way to improve interoperability without creating a hard base validation break. Because the bindings are example or preferred rather than required, the base R6 design already avoids rejecting legacy codes solely for non-membership.",
+        "backwardCompatibleAlternativeMd": "There is no meaningful less-breaking base alternative to calibrate because the R6 bindings are guidance-level. Implementers may need terminology mapping when local profiles strengthen these bindings, but that is a profile or migration concern rather than a base R6 backward-compatible alternative."
+      }
+    },
+    {
+      "findingId": "MedicinalProductContraindication:ELEMENT_PRESENCE_OR_IDENTITY:new-r6-elements:3fd8b4",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: optional added R6 elements do not break R4-to-R6 base validation.",
+        "alternativeTradeoffSummary": "R6 gains expressiveness; R6-to-R4 conversion is lossy unless mappings or extensions are defined.",
+        "justificationRationaleMd": "The added identifier, category, management, applicability, and library elements are optional and make the successor resource more identifiable and computable. They do not require old R4 instances to change in order to validate after the main structural migration.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R6 base design is needed for optional additions in the R4-to-R6 direction. Standard extensions or external metadata may be useful when representing R6-only content in R4, but those are down-conversion mitigations, not backward-compatible alternatives to the R6 base model."
+      }
+    }
+  ]
+}

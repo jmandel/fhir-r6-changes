@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Library",
+  "patches": [
+    {
+      "findingId": "Library:ELEMENT_PRESENCE_OR_IDENTITY:Library.versionAlgorithm[x]:1d7a80",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: this is an optional R6-only addition, not an R4-to-R6 base-shape break.",
+        "alternativeTradeoffSummary": "No less-breaking R4-to-R6 base design is needed; extension/backport handling is an R6-to-R4 migration concern.",
+        "justificationRationaleMd": "The goal of making canonical version ordering explicit is reasonable, and the base R6 design does not invalidate existing R4 `Library` instances because `versionAlgorithm[x]` is optional. The compatibility issue is reverse-direction round-tripping into R4, so extension or drop policies are mitigations rather than evidence of a backward-compatible base-design alternative.",
+        "backwardCompatibleAlternativeMd": "Under the calibration rules, additive optional R6 content is not a breaking R4-to-R6 base-design issue. Modeling the value only as an extension would improve R6-to-R4 round-trip behavior but would make the version-ordering signal less discoverable and less uniformly supported by native R6 tooling."
+      }
+    },
+    {
+      "findingId": "Library:ELEMENT_PRESENCE_OR_IDENTITY:Library.copyrightLabel:8b3d22",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: this is an optional R6-only display/legal metadata addition.",
+        "alternativeTradeoffSummary": "R4-to-R6 instances are preserved; R6-to-R4 preservation requires extension use or merging into existing copyright text.",
+        "justificationRationaleMd": "Separating a concise copyright label from full copyright markdown is a reasonable R6 goal and the element is optional. It therefore does not create a base R4-to-R6 validation break; the remaining issue is how to export R6-only content to R4 without losing the display label.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base-design alternative is applicable for R4-to-R6 compatibility because old instances remain valid. A cross-version extension or convention in `copyright` is a migration/backport strategy, not a less-breaking R6 base design."
+      }
+    },
+    {
+      "findingId": "Library:TYPE_DOMAIN:Library.usage:2a6e43",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `usage` as `string` and allow markdown by convention, or add a separate optional markdown element while retaining `usage`.",
+        "alternativeTradeoffSummary": "The convention-only path weakens computable rendering semantics; a second field duplicates the same prose and risks divergence.",
+        "justificationRationaleMd": "The goal of allowing formatted usage guidance is reasonable. Changing `usage` from `string` to `markdown` is not a normal JSON instance-shape break, but it can affect generated models and rendering/sanitization logic. Less-breaking designs exist, but they either fail to give R6 tooling a reliable markdown type or split one semantic fact across two fields, so the breakage appears probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained `Library.usage` as `string` with clarified text saying markdown may appear, preserving existing generated APIs. Another option would add `usageMarkdown` and leave `usage` untouched. The first alternative is incomplete because consumers still cannot know from the type that markdown rendering is intended; the second creates duplicate same-resource representations that may never converge."
+      }
+    },
+    {
+      "findingId": "Library:TERMINOLOGY_BINDING:Library.subject[x]:57f6ad",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Include old `resource-types` subject codings in the R6 value set during transition while adding the new `fhir-types` participant codings.",
+        "alternativeTradeoffSummary": "Accepting both systems reduces warnings but prolongs duplicate codings for the same participant concepts and leaves terminology equivalence ambiguous.",
+        "justificationRationaleMd": "Broadening coded subjects to participant resource types is a reasonable goal, and the extensible binding avoids a hard base validation failure. A less-breaking value-set design could have accepted the old R4 codings too, but that would preserve two systems for the same common concepts and complicate terminology validation and search normalization.",
+        "backwardCompatibleAlternativeMd": "The best base-design alternative is not merely a ConceptMap, which is migration guidance, but an R6 value set that explicitly includes both the old `http://hl7.org/fhir/resource-types` codings and the new `http://hl7.org/fhir/fhir-types` participant codings. That would preserve more R4 terminology validation behavior, but it has material long-term costs because old and new codings for Patient, Practitioner, Organization, Location, and Device could coexist indefinitely."
+      }
+    },
+    {
+      "findingId": "Library:TERMINOLOGY_BINDING:Library.type:3f0f8c",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the old value set canonical in the binding while moving stewardship/package ownership to terminology.hl7.org.",
+        "alternativeTradeoffSummary": "Preserves cached validators and generated binding metadata, at the cost of less uniform terminology.hl7.org URL naming and alias management.",
+        "justificationRationaleMd": "Centralizing terminology stewardship is reasonable, but the supplied local inputs do not show that changing the binding canonical URL was necessary to achieve it. Because `Library.type` is required on every Library and the R6 value set was not present locally, changing the canonical can disrupt terminology resolution and generated metadata even when instance codings are unchanged.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 base design could have continued binding to `http://hl7.org/fhir/ValueSet/library-type` while publishing or maintaining that value set from the terminology package. That would satisfy the stewardship goal with low to moderate tradeoff. A ConceptMap or ordinary migration note alone would not be enough; the less-breaking point is that the base binding URL itself could have remained stable."
+      }
+    },
+    {
+      "findingId": "Library:SEMANTIC_OR_CONFORMANCE_TEXT:Library.jurisdiction:0f71bd",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `jurisdiction` as intended-use jurisdiction and add a distinct maintainer-jurisdiction element or additive useContext guidance.",
+        "alternativeTradeoffSummary": "Adds another metadata surface and may leave duplicate jurisdiction-of-use representations during transition, but avoids reinterpreting existing data.",
+        "justificationRationaleMd": "The R6 goal of distinguishing maintainer jurisdiction from jurisdiction of use is reasonable, but changing the meaning of the existing `jurisdiction` element creates a semantic break for old data that remains structurally valid. A less-breaking base design could have preserved the R4 meaning and added the new maintainer concept explicitly, so this level of breakage appears probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The strongest alternative is to leave `Library.jurisdiction` as the R4 intended-use jurisdiction and introduce a new field for the authority that maintains the Library, with optional guidance to also populate `useContext` for jurisdiction-of-use search. This retains a nonoptimal legacy shape but prevents silent semantic inversion. The tradeoff is another canonical metadata field and possible long-lived duplication if both direct jurisdiction and `useContext` are used for the same intended-use fact."
+      }
+    },
+    {
+      "findingId": "Library:VALUE_CONSTRAINT:Library.url:9ce42d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the forbidden-character guidance as narrative text instead of a computable warning invariant.",
+        "alternativeTradeoffSummary": "Narrative-only guidance avoids warning churn but is much less effective for automated canonical URL hygiene.",
+        "justificationRationaleMd": "Avoiding `|`, `#`, and spaces in canonical URLs is a reasonable interoperability goal, and R6 chose warning severity rather than an error. A narrative-only alternative would be less disruptive for warning-as-error pipelines, but it would not give validators a standard machine-checkable signal for a known canonical-resolution problem.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have left this as prose or best-practice guidance outside the base invariant set. That alternative only partially meets the goal because problematic canonical URLs would be harder to detect consistently. The warning-level constraint is therefore a compatibility-conscious compromise rather than an avoidable hard break."
+      }
+    },
+    {
+      "findingId": "Library:VALUE_CONSTRAINT:Library.relatedArtifact:87f4ab",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Put the dependency/component resource-reference expectation in narrative guidance or a profile-specific warning instead of the base StructureDefinition.",
+        "alternativeTradeoffSummary": "Profile-only or narrative guidance preserves quieter validation but weakens interoperable dependency resolution for executable Libraries.",
+        "justificationRationaleMd": "The goal is strong for Library: dependencies and components often need to be computably resolvable. Because the new invariant is warning-level, it does not make older content hard-invalid, while still making unresolved dependency modeling visible to tooling. Less-breaking alternatives exist but materially weaken the base interoperability signal.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking alternative would keep the expectation out of the base resource and express it in profiles, implementation guides, or prose. That would reduce validation churn for old descriptive related artifacts, but systems calculating dependencies would lose a common warning that applies broadly to Library rather than only to specialized profiles."
+      }
+    },
+    {
+      "findingId": "Library:VALUE_CONSTRAINT:Library.name:4d6c19",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Use the harmonized `cnl-0` warning with the old-compatible `{0,254}` length rule, or retain the old `lib-0` key during transition.",
+        "alternativeTradeoffSummary": "Preserves one-character names and warning suppressions; tradeoff is slightly weaker harmonization and possible temporary duplicate warning keys.",
+        "justificationRationaleMd": "Machine-usable names are a reasonable goal, but the R4 warning already addressed that goal and one-character uppercase identifiers can still be machine-usable. The evidence supports harmonizing wording or keys, but not clearly the tighter minimum length or the abrupt warning-key change for warning-sensitive tooling.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 base design could have used `name.exists() implies name.matches('^[A-Z]([A-Za-z0-9_]){0,254}$')`, preserving the old allowed value set while adding anchoring and absent-name handling. If a shared `cnl-0` key was essential, a transition strategy retaining `lib-0` as an alias would also reduce breakage, though duplicate invariant keys can clutter suppression lists and may persist longer than intended."
+      }
+    },
+    {
+      "findingId": "Library:SEMANTIC_OR_CONFORMANCE_TEXT:Library.experimental:aa9e31",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 current-artifact meaning and add a separate canonical-lifecycle signal or best-practice rule for permanent non-production artifacts.",
+        "alternativeTradeoffSummary": "Avoids semantic reinterpretation but adds governance complexity and potentially two non-production indicators.",
+        "justificationRationaleMd": "Clarifying experimental status across versions is a reasonable governance goal, but the supplied evidence does not show that reinterpreting the existing boolean was necessary. The change can affect publication workflows that legitimately moved a Library from experimental to production under R4 semantics.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could preserve `experimental` as the R4 version/current-artifact signal and add a distinct element, extension, or warning-level governance rule for resources that should never become production. That alternative is only partial because multiple lifecycle indicators can conflict, require coordinated tooling support, and make production filtering more complex."
+      }
+    }
+  ]
+}

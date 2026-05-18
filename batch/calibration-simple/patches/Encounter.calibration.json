@@ -1,0 +1,149 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Encounter",
+  "patches": [
+    {
+      "findingId": "Encounter:TERMINOLOGY_BINDING:Encounter.status:status-codes",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated legacy status aliases while adding subjectStatus/businessStatus for the R6 distinctions.",
+        "alternativeTradeoffSummary": "Preserves old status values but leaves patient-state and lifecycle concepts mixed in a required modifier code.",
+        "justificationRationaleMd": "The R6 goal is reasonable: `arrived` and `triaged` fit subject state better than encounter lifecycle, while `completed`, `discharged`, and `discontinued` provide clearer lifecycle stages. A less-breaking base design exists for some codes, but keeping all old codes valid would materially weaken the semantic cleanup of a required modifier element.",
+        "backwardCompatibleAlternativeMd": "The best base alternative would retain deprecated R4 aliases such as `finished`, `onleave`, `arrived`, and `triaged` in the required value set while adding the new R6 codes and the new subject/business status elements. That would preserve R4 instances, but it is only partial because `arrived` and `triaged` would remain valid lifecycle statuses even though R6 is trying to separate subject state from encounter status. ConceptMaps and conversion rules are useful migration aids, not by themselves backward-compatible base designs."
+      }
+    },
+    {
+      "findingId": "Encounter:TYPE_DOMAIN:Encounter.class:coding-to-codeableconcept",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain R4 `class` as a deprecated Coding and add a separate repeatable CodeableConcept classification element.",
+        "alternativeTradeoffSummary": "Preserves common R4 data but creates duplicate classification representations and conflict rules.",
+        "justificationRationaleMd": "Supporting multiple richer encounter classifications is a plausible R6 goal, and normalizing on one repeatable `CodeableConcept` path avoids long-term ambiguity. The less-breaking option would preserve a very common R4 field, but it would leave R6 with two same-resource ways to represent encounter class.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `Encounter.class` as the R4 single `Coding` during a transition and add a new optional repeatable classification element for CodeableConcepts. That would accept existing R4 JSON, but implementations would need precedence and reconciliation rules when the old Coding and new concepts both appear, and producers might continue populating both indefinitely."
+      }
+    },
+    {
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.period:actualPeriod",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `period` as the actual encounter period and add optional plannedStartDate/plannedEndDate.",
+        "alternativeTradeoffSummary": "Preserves old instances with low cost, but keeps a less explicit historical name for actual timing.",
+        "justificationRationaleMd": "Separating actual and planned timing is useful, but the breaking rename from `period` to `actualPeriod` was not necessary to achieve that goal. R6 could have clarified that the existing `period` means actual time and added planned date fields without invalidating R4 instances.",
+        "backwardCompatibleAlternativeMd": "The strongest less-breaking base design would retain `Encounter.period` with updated wording such as \"actual start and end time\" and add the planned date elements beside it. This preserves nearly all R4 data and FHIRPath/codegen paths. The main tradeoff is a nonideal element name, which is modest compared with a direct path break."
+      }
+    },
+    {
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.histories:removed",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep statusHistory/classHistory as deprecated inline histories until the external history model is clearly available.",
+        "alternativeTradeoffSummary": "Preserves historical data but can bloat Encounter and duplicate EncounterHistory or resource-version history.",
+        "justificationRationaleMd": "The apparent R6 goal of moving historical state out of the current Encounter is plausible, and R6 comments mention EncounterHistory for historical business statuses. However, the local package evidence did not include an EncounterHistory StructureDefinition or official migration guidance, so the proportionality of fully removing the inline R4 histories cannot be confidently assessed.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could retain the R4 `statusHistory` and `classHistory` backbones as deprecated compatibility fields while adding or documenting the preferred external history model. That is only a partial alternative because it perpetuates large Encounter resources and duplicate historical representations, especially if EncounterHistory or resource version history is intended to become the authoritative location."
+      }
+    },
+    {
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.hospitalization:admission",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `hospitalization` and old nested preference children while adding the new admission/root-level shape.",
+        "alternativeTradeoffSummary": "Avoids old-path rejection but creates duplicate admission and preference locations with consistency risk.",
+        "justificationRationaleMd": "Renaming the backbone to `admission` and promoting preferences that apply to the whole Encounter are reasonable model clarifications. A compatibility alias could reduce breakage, but preserving both the old nested structure and the new root-level preference elements would create persistent duplicate locations.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would accept `hospitalization` as a deprecated alias for `admission` and continue accepting nested diet, special-arrangement, and special-courtesy data while introducing the R6 root elements. That would preserve R4 instances, but implementations would need to reconcile old nested values with new root-level values and decide which representation controls when they diverge."
+      }
+    },
+    {
+      "findingId": "Encounter:REFERENCE_TARGET:Encounter.participant.individual:actor",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `participant.individual` and broaden its definition and target profiles to cover the R6 actor domain.",
+        "alternativeTradeoffSummary": "Preserves R4 paths with no duplicate field, but leaves an awkward name for devices, groups, and services.",
+        "justificationRationaleMd": "The goal of allowing non-practitioner participants is reasonable, and `actor` is a clearer name. Still, the base R6 goal could largely have been met by retaining the R4 path and broadening its allowed targets and definition, so the path break is not clearly necessary.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would keep `Encounter.participant.individual` and update its definition to mean the participating person, patient/group, device, or service, with the expanded R6 target set. This would preserve R4 instances and avoid duplicate representations. The cost is a misleading legacy name, especially for non-individual actors, but FHIR could mitigate that with clearer definitions and deprecation guidance rather than changing the wire path."
+      }
+    },
+    {
+      "findingId": "Encounter:VALUE_CONSTRAINT:Encounter.participant:enc-1-enc-2",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Introduce enc-1/enc-2 as warnings or profile constraints before making them base errors.",
+        "alternativeTradeoffSummary": "Reduces validation breakage but leaves ambiguous or misleading participant entries base-valid.",
+        "justificationRationaleMd": "The constraints serve a real data-quality goal: participant entries should identify an actor or role, and patient/group actors should not be role-typed as if they were other participants. A warning or profile-first rollout would be less disruptive, but it would not enforce the same invariant for all base-valid R6 Encounter data.",
+        "backwardCompatibleAlternativeMd": "The less-breaking alternative would make these rules best-practice warnings or move them to profiles during a transition. That would preserve R4 participant repetitions that contain only timing or extensions, but it is only partial because base R6 would still allow participant records that are hard to interpret or semantically misleading."
+      }
+    },
+    {
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.reason:merged",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `reasonCode` and `reasonReference` while adding `reason.value` CodeableReference and `reason.use`.",
+        "alternativeTradeoffSummary": "Preserves old reason paths but risks duplicate or conflicting reason lists for a clinically important field.",
+        "justificationRationaleMd": "Unifying coded and referenced reasons and adding reason-use classification is a reasonable R6 modeling goal. The alias approach would preserve old instances, but it would leave multiple same-resource representations of the reason for the encounter and complicate safety-relevant interpretation.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `reasonCode` and `reasonReference` as deprecated aliases while adding the new `reason` backbone for CodeableReference values and use codes. That is only a partial alternative: clients would need to merge old and new reason lists, handle duplicate facts, and resolve conflicts. It also would not fully solve target changes such as the dropped ImmunizationRecommendation target and added DiagnosticReport target."
+      }
+    },
+    {
+      "findingId": "Encounter:TYPE_DOMAIN:Encounter.diagnosis.condition:remodel",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep Procedure target and rank as deprecated compatibility content while adding CodeableReference Condition support.",
+        "alternativeTradeoffSummary": "Preserves old billing/procedure data but duplicates newer Condition, reason, and Account-based diagnosis semantics.",
+        "justificationRationaleMd": "The R6 goal appears to narrow Encounter diagnosis to coded diagnoses or Condition references and move billing rank concerns to Account, which is a reasonable cleanup. The break remains high impact, especially for Procedure references and rank, but retaining all old content would undermine the clearer division between diagnoses, reasons/procedures, and billing-account ranking.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could retain `diagnosis.rank` and the Procedure target as deprecated compatibility features while allowing repeatable CodeableReference(Condition) values. This would preserve R4 instances, but it is only partial because rank would compete with Account-based billing diagnosis ranking, and Procedure-as-diagnosis would overlap with reason/procedure representations. Conversion extensions are mitigation, not a base-design alternative."
+      }
+    },
+    {
+      "findingId": "Encounter:TYPE_DOMAIN:Encounter.serviceType:codeableReference",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep CodeableConcept `serviceType` and add a separate optional HealthcareService reference element.",
+        "alternativeTradeoffSummary": "Preserves old coded service types but splits one service-type fact across concept and reference fields.",
+        "justificationRationaleMd": "Allowing service type to be represented either as a concept or a HealthcareService reference, and allowing multiple values, is a reasonable R6 goal. A sibling reference field would avoid rejecting R4 JSON, but it would not provide a single normalized serviceType representation.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep R4 `serviceType` as CodeableConcept, optionally make it repeatable, and add a separate HealthcareService reference element. That would preserve old instances and support references, but implementations would need to search and reconcile both fields and handle cases where a coded type and referenced HealthcareService disagree."
+      }
+    },
+    {
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.location.physicalType:form",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `location.physicalType` and update its wording/value set to cover the R6 form concept.",
+        "alternativeTradeoffSummary": "Avoids the path break with low cost, but keeps a narrower legacy element name.",
+        "justificationRationaleMd": "The R6 `form` name is cleaner and broader, but the element's type and cardinality are unchanged and the old field already carried the same basic location-form fact. The supplied evidence does not show that changing the wire path was necessary.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would retain `Encounter.location.physicalType` and clarify its definition to include bed, room, ward, virtual, or other form values, possibly with the updated `location-form` binding. This preserves R4 instances with only modest naming cost; an alias would also work but would add duplicate paths."
+      }
+    },
+    {
+      "findingId": "Encounter:REFERENCE_TARGET:Encounter.basedOn:expanded",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; R6 widens basedOn targets while preserving the R4 ServiceRequest target.",
+        "alternativeTradeoffSummary": "No R4-to-R6 base-design break; R6-to-R4 exchange must constrain or map newly allowed request targets.",
+        "justificationRationaleMd": "The inferred goal of allowing additional request resources to initiate an Encounter is reasonable, and the R6 target set keeps ServiceRequest. Existing R4-valid `basedOn` references therefore remain valid in the R4-to-R6 direction.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is needed for old-instance preservation because the base R6 design is already additive here. Extensions, rejection rules, or profiles may be needed for R6-to-R4 conversion of new targets, but those are down-conversion mitigations rather than backward-compatible base-design alternatives."
+      }
+    },
+    {
+      "findingId": "Encounter:CONVERSION_OR_MAPPING:Encounter.r6Only:workflow-fields",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; these are optional R6 additions and do not invalidate R4 Encounter instances.",
+        "alternativeTradeoffSummary": "No R4-to-R6 break; R6-to-R4 conversion may require extensions, related resources, or lossy omission.",
+        "justificationRationaleMd": "Adding optional workflow, subject-state, care-team, virtual-service, and planned-time fields is a compatibility-friendly way to expand R6 expressiveness. The risk is real for reverse conversion, but it is not evidence of an avoidable breaking base R6 design.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base alternative is needed to preserve R4 instances because old data can simply omit the new optional elements. R4 extensions or profile rules are useful for carrying this R6-only content back to R4 systems, but they are migration mitigations rather than base-design alternatives."
+      }
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "NutritionOrder",
+  "patches": [
+    {
+      "findingId": "NutritionOrder:VALUE_CONSTRAINT:NutritionOrder:4c82d3",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the invariant as a warning in the base resource and require strict enforcement only in profiles that need it.",
+        "alternativeTradeoffSummary": "Preserves sparse historical instances, but weakens the base guarantee that a NutritionOrder contains an oral diet, supplement, or enteral formula.",
+        "justificationRationaleMd": "The inferred goal is reasonable: a `NutritionOrder` with none of `oralDiet`, `supplement`, or `enteralFormula` has little clinical utility. Promoting `nor-1` from warning to error is a real R4-to-R6 validation break, but the old-valid/new-invalid pattern should be sparse and the base-resource guarantee is clinically meaningful, so the break is probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design would leave `nor-1` as a warning in the base resource and enforce the SHALL through profiles or implementation policy. That is only a partial alternative because it preserves old instances by giving up universal base validation."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.patient:ea414c",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the base `patient` element, broaden its target to Patient or Group, and update its definition to cover an individual or group requiring nutrition.",
+        "alternativeTradeoffSummary": "Preserves mandatory R4 JSON and typed APIs, but leaves a nonoptimal `patient` name for Group orders and diverges from the common workflow `subject` pattern.",
+        "justificationRationaleMd": "The goals of allowing Group nutrition orders and aligning with workflow subject naming are reasonable. However, most or all R4-valid instances could have remained valid if R6 had kept `patient` and broadened its target/definition. Because living with the older name would still meet the main capability goal with only moderate naming cost, the mandatory property rename is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design is not just a migration alias: keep `patient` as the normative element, allow Reference(Patient|Group), and clarify that it identifies the individual or group needing nutrition. The tradeoff is long-term terminology awkwardness, especially for Group, but it avoids invalidating every R4 instance that uses the required `patient` field."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.orderer:3a4348",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `orderer` as the base element and clarify that it is the requester/legal ordering practitioner.",
+        "alternativeTradeoffSummary": "Preserves existing instances and generated APIs, at the cost of less consistency with the broader `requester` naming pattern.",
+        "justificationRationaleMd": "The workflow naming goal is understandable, but this appears to be a same-role rename rather than a new capability. Retaining the R4 element name with clearer definition text would have met the semantic goal for NutritionOrder with a modest consistency tradeoff, so the break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible R6 base design could keep `orderer` and update the definition or aliases to align it with Request.requester semantics. Adding conversion guidance or tooling is not needed to make that base design work; the main downside is carrying a resource-specific older name."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.instantiates:3d5ea1",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the optional `instantiates*` elements, at least as deprecated fields, or add a replacement protocol-definition element while keeping the old fields valid.",
+        "alternativeTradeoffSummary": "Preserves protocol and order-set provenance, but leaves extra optional workflow/provenance surface in the resource.",
+        "justificationRationaleMd": "The computable definitions do not show an equivalent local replacement for the R4 protocol/definition references, and `basedOn` is not the same fact. Since the removed fields were optional, retaining them would not have blocked R6 workflow additions and would have preserved R4 instances, so the removal is not clearly justified from a compatibility perspective.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would keep `instantiatesCanonical`, `instantiatesUri`, and `instantiates` as optional deprecated elements, or introduce a clearer successor while keeping the old fields valid for a transition. The tradeoff is model clutter and some overlap with other workflow links, not a fundamental failure to meet the R6 goal."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:SERIALIZATION_OR_CODEGEN:NutritionOrder.schedule:6fd881",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the existing `schedule` Timing shape and add optional `asNeeded` and `asNeededFor` siblings at the affected scheduling locations.",
+        "alternativeTradeoffSummary": "Preserves R4 schedule JSON, but splits schedule qualifiers across siblings instead of one cohesive backbone.",
+        "justificationRationaleMd": "Supporting as-needed nutrition scheduling is a reasonable R6 goal, but wrapping every populated `schedule` in a new backbone is not the only way to reach it. Optional sibling qualifiers would preserve old Timing arrays while adding the new as-needed semantics, so the wire-format break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could leave `oralDiet.schedule`, `supplement.schedule`, and `enteralFormula.administration.schedule` as Timing elements and add `asNeeded`/`asNeededFor` alongside them. That design is less tidy than the R6 wrapper, but it avoids a structural transform for all existing schedules and has only moderate long-term tradeoff."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.productTypes:e433e2",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 CodeableConcept product-type fields and old enteral names, and add optional NutritionProduct reference fields for concrete products.",
+        "alternativeTradeoffSummary": "Preserves R4 instances while adding product-resource expressiveness, but is less compact and less idiomatic than `CodeableReference`.",
+        "justificationRationaleMd": "The R6 goal of linking nutrition requests to concrete `NutritionProduct` resources is reasonable. Still, replacing existing CodeableConcept fields with `CodeableReference` and renaming enteral product paths was not the only base design available; separate optional references could have provided the new capability without invalidating old concept-shaped data.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design would keep `supplement.type`, `enteralFormula.baseFormulaType`, and `enteralFormula.baseFormulaProductName` in their R4 shapes and add optional reference elements for `NutritionProduct`. The tradeoff is a split concept/reference model and less use of the R6 `CodeableReference` idiom, but it would preserve most R4-valid instances."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.additive:83d26a",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the enteral additive fields while adding the generalized root `additive` backbone for oral diet, supplement, and enteral use.",
+        "alternativeTradeoffSummary": "Preserves old enteral additive data, but creates duplicate same-resource representations for enteral additives with reconciliation and safety risk.",
+        "justificationRationaleMd": "The R6 goal is substantively broader than a rename: modular additives can apply beyond enteral formula and can carry quantity and route. Retaining the R4 enteral-only fields would reduce breakage, but it would also leave two places to express the same enteral additive and could create clinical ambiguity if both are populated. Given those material tradeoffs, the breaking normalization is probably justified.",
+        "backwardCompatibleAlternativeMd": "The partial alternative is to keep `enteralFormula.additiveType` and `enteralFormula.additiveProductName` as deprecated fields while adding root `additive`. That covers old instances but risks indefinite duplicate representations and requires clear precedence/reconciliation rules."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.routeofAdministration:800d5b",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `routeofAdministration` spelling while widening cardinality and relaxing the binding strength.",
+        "alternativeTradeoffSummary": "Preserves R4 JSON and still supports multiple routes, but carries forward an inconsistent camelCase spelling.",
+        "justificationRationaleMd": "The R6 cardinality and binding changes are compatibility-friendly, and the multiple-route goal could have been achieved on the existing element. The breaking part is primarily the spelling/case correction, so retaining the old name with updated cardinality and definition would have been a plausible low-tradeoff base design.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design could keep `routeofAdministration` as the element name, change max to `*`, use the preferred binding, and clarify the definition. The downside is preserving an awkward spelling, but that is a moderate naming cost rather than a reason old instances had to become invalid."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.maxVolumeToDeliver:e9a57d",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `maxVolumeToDeliver` and clarify in the definition that the limit is on administered volume.",
+        "alternativeTradeoffSummary": "Preserves old path compatibility, but retains wording that is less precise than `maxVolumeToAdminister`.",
+        "justificationRationaleMd": "The semantic clarification is understandable, but the R4 definition already described the maximum quantity administered to the subject. Because the same clinical meaning could be expressed by improving the definition while retaining the element name, the property-level break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would keep `enteralFormula.maxVolumeToDeliver`, update the short/definition text to emphasize administration, and apply any Quantity widening separately. That avoids duplicate fields and preserves existing instances, with only a naming-precision tradeoff."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.oralDiet.fluidConsistencyType:b2bbc5",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `fluidConsistencyType` as a deprecated base element while broadening `oralDiet.texture` to cover liquid texture.",
+        "alternativeTradeoffSummary": "Preserves explicit liquid-consistency data, but creates duplicate paths for liquid texture and needs safety-sensitive reconciliation rules.",
+        "justificationRationaleMd": "Unifying solid and liquid texture handling may be clinically reasonable, but the supplied definitions do not prove that R4 liquid-consistency codes map cleanly to the R6 texture structure. Removing the field without a clear base replacement or computable mapping is safety-sensitive and not clearly justified.",
+        "backwardCompatibleAlternativeMd": "The partial base-design alternative is to retain `oralDiet.fluidConsistencyType` as deprecated while allowing liquid texture in `oralDiet.texture`. A ConceptMap would help migration, but it is not itself a backward-compatible base design. The retained-field option reduces breakage but risks indefinite duplicate liquid-texture representations."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.oralDiet.texture.foodType:9227a5",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `oralDiet.texture.foodType` while updating its binding strength and definition for the broader solid-or-liquid texture context.",
+        "alternativeTradeoffSummary": "Preserves old instances and APIs, but keeps a longer, less streamlined name inside the texture backbone.",
+        "justificationRationaleMd": "The binding and definition changes can be applied without renaming the element. Since `foodType` already described the target of the texture modification and could be broadened to solid or liquid food types, the path rename to `type` was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would keep `texture.foodType`, use the R6 preferred binding if desired, and clarify that it covers the food or liquid type affected by the texture modification. The tradeoff is only naming neatness within the backbone."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.quantity:c55511",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: widening from SimpleQuantity-profiled Quantity to unconstrained Quantity preserves R4-valid Quantity instances.",
+        "alternativeTradeoffSummary": "No less-breaking R4-to-R6 design is needed; retaining SimpleQuantity would mainly improve R6-to-R4 down-conversion while reducing R6 expressiveness.",
+        "justificationRationaleMd": "This is not a breaking R4-to-R6 base-design change because values valid under the R4 SimpleQuantity profile remain valid when R6 accepts the broader Quantity type. The only material issue is that new R6 Quantity features may not down-convert cleanly to R4.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible alternative is needed for forward compatibility. Keeping the SimpleQuantity profile would be a down-conversion-oriented constraint, not a less-breaking way to preserve R4 instances."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:TERMINOLOGY_BINDING:NutritionOrder.nutritionBindings:2a9600",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep example binding strength in the base resource while publishing the R6 value sets as recommendations or profile requirements.",
+        "alternativeTradeoffSummary": "Preserves weaker legacy terminology expectations, but provides less computable pressure toward interoperable nutrition coding.",
+        "justificationRationaleMd": "Moving many nutrition concept bindings from example to preferred is a modest conformance tightening rather than a hard validation break, and the interoperability goal is reasonable. The exact code-level impact is still limited by absent expansions or ConceptMaps, but preferred bindings are a relatively low-breakage way to signal stronger terminology expectations.",
+        "backwardCompatibleAlternativeMd": "The partial base-design alternative is to retain example bindings and move stronger terminology expectations into profiles or guidance. Guidance and ConceptMaps alone are migration aids, not a `Yes` alternative; the actual less-breaking base choice would be weaker binding strength, which only incompletely meets the interoperability goal."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:TERMINOLOGY_BINDING:NutritionOrder.status-intent:3704e1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the required status and intent value sets were expanded rather than narrowed, so R4 codes remain valid in R6.",
+        "alternativeTradeoffSummary": "New R6 codes need R6-to-R4 mapping policy, but that is a down-conversion issue rather than a less-breaking R6 base design.",
+        "justificationRationaleMd": "The added request lifecycle and offer/response codes increase R6 expressiveness without invalidating existing R4 `status` or `intent` codes. Definition changes may affect business rules, but the primary compatibility risk is for older R4 receivers that cannot represent new R6 codes.",
+        "backwardCompatibleAlternativeMd": "No R4-to-R6 backward-compatible alternative is applicable. Official ConceptMaps or extensions can mitigate R6-to-R4 conversion, but they are conversion aids rather than evidence that the R6 base value sets should avoid additive codes."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:CONVERSION_OR_MAPPING:NutritionOrder.new-r6-fields:7b2690",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the listed R6 elements are optional additions and do not invalidate R4 NutritionOrder instances.",
+        "alternativeTradeoffSummary": "Adds R6 expressiveness at the cost of R4 round-trip fidelity; older-receiver handling is conversion policy, not a base-design alternative.",
+        "justificationRationaleMd": "Optional additions are the normal backward-compatible way to add workflow, performer, device, calorie-density, and policy details. This finding is mainly an R6-to-R4 representability concern, not evidence of a breaking R4-to-R6 base design.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R4-to-R6 base alternative is needed because old instances remain valid without the new elements. Cross-version extensions or explicit loss policy can support down-conversion, but those are mitigations rather than base-design alternatives."
+      }
+    },
+    {
+      "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.enteralFormula.administrationInstruction:130fd2",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `markdown` remains serialized as a JSON string, so R4 string values remain wire-compatible in R6.",
+        "alternativeTradeoffSummary": "R6 gains formatted-text signaling; generated types and renderers may need updates, but this is not a base instance break.",
+        "justificationRationaleMd": "The type change supports richer formatted feeding instructions while preserving the string-like JSON representation. Existing R4 primitive values remain representable, so the compatibility issue is primarily code generation or rendering behavior rather than old-valid/new-invalid instances.",
+        "backwardCompatibleAlternativeMd": "No R4-to-R6 backward-compatible alternative is required. Keeping `string` would reduce type churn but would also fail to signal markdown-capable rendering; it is not needed to preserve R4 instance validity."
+      }
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "AuditEvent",
+  "patches": [
+    {
+      "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.period:0b2c7a",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep R4 `period` for Period values and add a separate optional instant/dateTime field, with guidance or an invariant against using both.",
+        "alternativeTradeoffSummary": "Preserves old Period instances but creates two event-time representations and leaves the less clear R4 name in the base model.",
+        "justificationRationaleMd": "The R6 goal appears reasonable: express either a point time or a period under a clearer event-occurrence name. A less-breaking design could preserve R4 `period`, but it would not provide a single clean `occurred[x]` choice and would need rules to prevent conflicting time fields. Because that duplicate-representation risk is material, the break is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best alternative would retain `AuditEvent.period` unchanged for existing Period content and add an optional new dateTime-bearing element for instantaneous events. That would preserve R4 instances, but implementers would have to reconcile `period` versus the new instant field, and the deprecated R4 representation could remain indefinitely."
+      }
+    },
+    {
+      "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.outcome:91e4d0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain primitive `outcome` and `outcomeDesc` while adding optional structured outcome coding/detail fields.",
+        "alternativeTradeoffSummary": "Would preserve R4 wire format, but splits one outcome across legacy primitive and richer structured representations.",
+        "justificationRationaleMd": "R6 adds a richer outcome model with a mandatory `outcome.code` Coding and repeatable details, which better supports alternate code systems and precise outcome information. Preserving the R4 primitive shape would be possible only by running parallel old and new outcome representations or by weakening the structured model. Given the high conflict and downgrade ambiguity around success/failure semantics, the breaking design is probably justified.",
+        "backwardCompatibleAlternativeMd": "A staged design could keep `outcome` as the R4 code, keep `outcomeDesc`, and add new optional structured detail/coding elements. That would avoid invalidating R4 instances, but systems would need precedence rules when both the primitive and structured outcome are populated, and the legacy low-granularity representation might never disappear."
+      }
+    },
+    {
+      "findingId": "AuditEvent:CARDINALITY:AuditEvent.agent.who:44a87c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `agent.who` optional in the base resource and require or warn on it through profiles, best-practice rules, or implementation guidance.",
+        "alternativeTradeoffSummary": "Avoids invalidating anonymous R4 agents but fails to guarantee agent identity in base R6 AuditEvents.",
+        "justificationRationaleMd": "The R6 goal of stronger accountability is reasonable: `agent.who` ties the audit event to a specific actor or identifier. A profile-only or warning-only alternative would preserve R4 instances without `who`, but it would not deliver the same base-level identity guarantee and could perpetuate anonymous audit records. That accountability tradeoff is material, so the break is probably justified.",
+        "backwardCompatibleAlternativeMd": "The less-breaking alternative is to leave `agent.who` at 0..1 and use profiles, conformance expectations, or best-practice invariants to require it where identity is known. This preserves R4 data but gives base R6 consumers less assurance that each agent is attributable."
+      }
+    },
+    {
+      "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.agent.rework:2c8691",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `altId`, `name`, `media`, and/or the old network backbone while adding the new `who` and `network[x]` guidance.",
+        "alternativeTradeoffSummary": "Preserves common legacy agent details, but creates overlapping identity and network representations with conflict-resolution burden.",
+        "justificationRationaleMd": "The R6 cleanup toward `who.identifier`, `who.display`, and `network[x]` is coherent, but the local evidence does not show that removing every optional R4 field was necessary. Several old fields could have remained deprecated without blocking the R6 model, especially `media` and `network.type`, which do not have exact same-path replacements. Because the less-breaking alternative is incomplete and duplicative but still plausible, the break is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "A staged base design could retain the old optional scalar fields as deprecated, add or prefer `who` and `network[x]`, and document precedence when both old and new fields are present. The cost is a larger agent model and possible divergence between `altId`/`name` and `who`, or between the old network backbone and `network[x]`."
+      }
+    },
+    {
+      "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.authorization:6aa7df",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `purposeOfEvent` and `agent.purposeOfUse` with broadened definitions/bindings, or add `authorization` while accepting the old names during transition.",
+        "alternativeTradeoffSummary": "Retains less precise R4 names, but avoids a same-type rename break with modest long-term cost.",
+        "justificationRationaleMd": "The R6 goal of recording broader authorization/security context is reasonable, but the changed fields keep the same CodeableConcept shape and largely preserve the old global-versus-agent split. Because the goal could be met by broadening the existing fields' definitions and bindings, living with the less ideal R4 names would have avoided invalidating old instances. The rename therefore looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible R6 base design could keep `purposeOfEvent` and `agent.purposeOfUse`, update their definitions to cover authorization/security context beyond purpose-of-use, and weaken the bindings as R6 did. If a clearer `authorization` name was still desired, it could be added as a companion with explicit precedence rules, but ordinary migration guidance alone should not be counted as the alternative."
+      }
+    },
+    {
+      "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.coded-classifiers:37c9b5",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep R4 Coding elements and loosen bindings while adding companion CodeableConcept fields only where alternate codings/text are needed.",
+        "alternativeTradeoffSummary": "Preserves direct R4 Coding JSON but duplicates classifier representations and weakens consistent querying.",
+        "justificationRationaleMd": "The R6 goal is substantial: classifier fields become CodeableConcepts and several bindings are relaxed so systems can carry multiple codings, text, and locally sliced terminology. Keeping the R4 Coding shape would preserve old instances but would only partly meet the goal unless parallel CodeableConcept fields were introduced. That duplicate classifier model would create selection and search ambiguity, so the breaking design is probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could leave `type`, `subtype`, `source.type`, `entity.role`, and `entity.securityLabel` as Coding while weakening bindings, then add companion CodeableConcept elements where needed. This would preserve R4 wire shape, but consumers would have to decide which classifier representation is authoritative when both are present."
+      }
+    },
+    {
+      "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.source.site:12b6c8",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `source.site` as a string and add a separate optional Location reference for systems that can identify the site resource.",
+        "alternativeTradeoffSummary": "Preserves legacy site labels but introduces possible divergence between textual and referenced site values.",
+        "justificationRationaleMd": "Replacing the site string with `Reference(Location)` improves resolvability, but the R4 string already captured a logical site label and could have remained valid. The source.observer target widening is not itself R4-to-R6 breaking. A companion Location reference would meet much of the R6 goal with less breakage, though it would require reconciliation rules when both string and reference are present, so the change is not clearly justified rather than plainly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best alternative would keep `AuditEvent.source.site` as the legacy string and add a new optional Location reference, or otherwise permit a textual site alongside a resolvable Location. This preserves R4 instances but carries a material risk that the text and Location reference disagree or that implementations keep using only the weaker string."
+      }
+    },
+    {
+      "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.entity.removals:f4a911",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep optional `entity.type`, `entity.lifecycle`, and `entity.name` as deprecated elements while preferring `what`, `role`, security labels, or detail conventions where appropriate.",
+        "alternativeTradeoffSummary": "Leaves some redundant entity descriptors, but preserves audit semantics that otherwise need local extensions or conventions.",
+        "justificationRationaleMd": "The local definitions show important R4 audit semantics, especially lifecycle, with no exact R6 replacement. Removing optional fields invalidates old instances and risks data loss, while retaining them as deprecated would not block the R6 guidance to use `entity.what.display` or more structured references. Because the compatibility-preserving design appears practical with moderate tradeoff, this break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep the three R4 elements, mark them deprecated or discouraged, and clarify preferred R6 mappings. `entity.name` could remain a legacy textual descriptor, while `entity.type` and `entity.lifecycle` could preserve legacy audit classifications until implementations adopt more structured conventions. The tradeoff is that duplicate descriptors may persist, but that is less disruptive than losing lifecycle/type information."
+      }
+    },
+    {
+      "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.entity.detail:bc01e3",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep mandatory string `detail.type` and add an optional coded detail-type element while retaining the added R6 value[x] types.",
+        "alternativeTradeoffSummary": "Preserves old detail tags but duplicates tag semantics and complicates validation when both string and coded tags are present.",
+        "justificationRationaleMd": "The value[x] broadening is mostly additive for R4-to-R6, but changing mandatory `detail.type` from string to CodeableConcept makes every legacy detail repetition invalid. A coded detail tag is a reasonable R6 goal, yet an optional companion coding could have captured that goal while preserving old string tags. Because the alternative is duplicative but localized and practical, the break is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could retain `entity.detail.type` as the R4 string and add a companion CodeableConcept field for interoperable coded tags, while still adding the new value[x] choices. The material tradeoff is duplicate tag fields and the need to define whether the string, the code, or both are required when both are present."
+      }
+    },
+    {
+      "findingId": "AuditEvent:CONVERSION_OR_MAPPING:AuditEvent.r6-additions:a7fd29",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; these are optional R6 additions and do not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "R6-to-R4 extensions or backports are downgrade mitigations, not less-breaking base R6 alternatives.",
+        "justificationRationaleMd": "This finding is a pure R6-to-R4 representability concern. Adding optional R6 fields for severity, workflow, patient, encounter, and entity attribution does not make any R4-valid AuditEvent invalid in R6. The R6 goal is reasonable and the compatibility issue belongs to downgrade policy rather than a backwards-compatible base-design alternative.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible R4-to-R6 base alternative is needed for optional R6 additions. Systems that must downgrade to R4 can define extensions or loss policies, but those are migration mitigations rather than evidence that the R6 base design was unnecessarily breaking."
+      }
+    },
+    {
+      "findingId": "AuditEvent:FLAGS_AND_MODIFIERS:AuditEvent.summary-flags:8be7d2",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; summary flag changes affect summary/runtime behavior, not R4 instance validity.",
+        "alternativeTradeoffSummary": "Keeping R4 summary behavior would be a runtime compatibility choice, not a less-breaking instance-design alternative.",
+        "justificationRationaleMd": "No R4-valid AuditEvent becomes invalid because local elements were newly marked summary in R6. The change may affect `_summary` payloads, generated summary views, or clients, but it is not a breaking R4-to-R6 base wire-format issue. Marking the alternative as not applicable better matches the calibration rules.",
+        "backwardCompatibleAlternativeMd": "There is no relevant backwards-compatible base-design alternative for instance preservation. R6 could have retained the old summary flags to avoid runtime surprises, but that would trade off the R6 summary-use goal and is not the same as preserving R4 instance validity."
+      }
+    }
+  ]
+}

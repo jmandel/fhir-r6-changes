@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "EffectEvidenceSynthesis",
+  "patches": [
+    {
+      "findingId": "EffectEvidenceSynthesis:ARTIFACT_IDENTITY:root:6d2f4a",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep a deprecated R6 core EffectEvidenceSynthesis resource while adding the broader Evidence model.",
+        "alternativeTradeoffSummary": "Preserves the old resourceType, but leaves overlapping core resource identities and old low-maturity semantics in place.",
+        "justificationRationaleMd": "The inferred goal is reasonable: R4 `EffectEvidenceSynthesis` was trial-use/FMM 0, and R6 `Evidence` now covers variables, statistics, and certainty in one model. A base R6 compatibility resource could have reduced breakage, but it would also perpetuate a separate resource identity for the same evidence facts and complicate APIs, search, validation, and eventual convergence. On the local evidence, the removal is probably justified, though not proven by an official rationale.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have retained `EffectEvidenceSynthesis` in R6 as a deprecated concrete resource with the R4-compatible shape, while encouraging migration to `Evidence`. That is a real base-design alternative, not merely tooling. It is only a partial alternative because it preserves most R4 instances at the cost of indefinitely supporting two overlapping resource types for effect evidence."
+      }
+    },
+    {
+      "findingId": "EffectEvidenceSynthesis:CONVERSION_OR_MAPPING:variables:1e9b7c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated named population, exposure, exposureAlternative, and outcome fields while adding role-coded variableDefinition.",
+        "alternativeTradeoffSummary": "Would preserve common R4 PICO references, but duplicates variable representations and needs consistency rules with observed/intended role-coded entries.",
+        "justificationRationaleMd": "The R6 goal of a flexible role-coded variable list is reasonable because it supports covariates, Group targets, and observed-versus-intended variables that the old four-field model could not express. Keeping the old named fields in the base model would help R4 data, but it would create two ways to represent the same population/exposure/outcome facts and raise safety-relevant ambiguity when the aliases diverge from `variableDefinition` entries. Those tradeoffs make the breaking redesign probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have kept the R4 named elements as deprecated aliases, perhaps with broader targets and clearer comparator guidance, while also adding `Evidence.variableDefinition`. This would cover the common R4 four-reference pattern but would not cover the full R6 model and would burden validators and implementers with duplicate variable channels and non-trivial consistency checks."
+      }
+    },
+    {
+      "findingId": "EffectEvidenceSynthesis:CONVERSION_OR_MAPPING:statistics:93c8ad",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated sampleSize, resultsByExposure, and effectEstimate backbones alongside Evidence.statistic.",
+        "alternativeTradeoffSummary": "Preserves many old measurements, but duplicates safety-critical statistics and may require also preserving RiskEvidenceSynthesis.",
+        "justificationRationaleMd": "The generalized R6 `Evidence.statistic` model is a reasonable goal because it can represent point estimates, intervals, event counts, affected counts, and model characteristics in one extensible structure. A compatibility backbone could preserve common R4 content, but it would duplicate the same effect-size facts and leave unclear how old `resultsByExposure.riskEvidenceSynthesis` should work when `RiskEvidenceSynthesis` is also removed. Given those material consistency and safety tradeoffs, the breaking remodel is probably justified.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have retained the old statistical backbones as deprecated fields on a compatibility resource or on `Evidence`, while introducing `Evidence.statistic` for the new model. That would reduce R4-to-R6 data loss for common effect estimates but is incomplete for richer R6 statistics and risks divergent duplicate values for clinically important quantities, units, intervals, and per-exposure risk links."
+      }
+    },
+    {
+      "findingId": "EffectEvidenceSynthesis:CARDINALITY:certainty-rating:58f1de",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep Evidence.certainty.rating repeatable while adding type, rater, and subcomponent structure.",
+        "alternativeTradeoffSummary": "Preserves old multi-rating entries with only moderate ambiguity about whether repeated ratings describe one aspect or several aspects.",
+        "justificationRationaleMd": "The R6 goal of a more structured certainty model is reasonable, but the local evidence does not show why `rating` had to narrow from `0..*` to `0..1`. R6 already permits repeated `certainty` entries and uses an example-strength binding, so retaining repeatable ratings would preserve R4-valid certainty data while still allowing type, rater, and subcomponent modeling. This specific cardinality break therefore looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A base R6 design could have left `Evidence.certainty.rating` at `0..*`, added the new `type`, `rater`, and recursive subcomponent fields, and used definitions or best-practice guidance to prefer one rating per typed aspect. This would preserve most R4 instances without introducing a duplicate element; the main cost is looser normalization and some validation ambiguity for multiple ratings in one certainty entry."
+      }
+    },
+    {
+      "findingId": "EffectEvidenceSynthesis:CONVERSION_OR_MAPPING:metadata:7ab6e0",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain optional jurisdiction, effectivePeriod, topic, and relatedArtifact fields on base R6 Evidence while adding relatesTo and newer metadata.",
+        "alternativeTradeoffSummary": "Mostly additive optional fields preserve R4 metadata; the main cost is overlap between relatedArtifact and relatesTo plus a larger Evidence surface.",
+        "justificationRationaleMd": "Aligning `Evidence` with newer metadata and relationship patterns is a reasonable goal, but the removed R4 metadata fields were optional applicability, topic, and citation/relationship carriers. Keeping them as deprecated optional base elements would have preserved most R4 metadata without preventing use of `relatesTo`, `citeAs`, or other R6 fields. Without evidence that these fields would undermine the R6 model, this break appears probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have carried forward `jurisdiction`, `effectivePeriod`, `topic`, and `relatedArtifact` on `Evidence`, with clearer definitions and deprecation guidance for cases superseded by `relatesTo` or newer metadata. This is more than a profile or extension workaround and would preserve R4-valid metadata. The tradeoff is that deprecated relationship fields may coexist with `relatesTo` indefinitely, requiring implementation guidance to prevent inconsistent duplicate relationship representations."
+      }
+    }
+  ]
+}

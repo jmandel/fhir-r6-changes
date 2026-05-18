@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "OrganizationAffiliation",
+  "patches": [
+    {
+      "findingId": "OrganizationAffiliation:ELEMENT_PRESENCE_OR_IDENTITY:OrganizationAffiliation.telecom:8f7c2a",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated `telecom` while adding `contact`, but that creates duplicate same-resource contact representations.",
+        "alternativeTradeoffSummary": "Preserves most R4 instances, but creates long-lived duplication, precedence ambiguity, and possible inconsistent contact data.",
+        "justificationRationaleMd": "The inferred R6 goal is reasonable: `ExtendedContactDetail` supports contact purpose, names, addresses, responsible organization, and periods that R4 `telecom` could not carry. A less-breaking transition was possible, but it would put two official contact paths on the same resource for the same business fact. That material duplication tradeoff makes the breaking replacement probably justified, though not fully proven by the supplied artifacts.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would have retained `OrganizationAffiliation.telecom` as an optional deprecated `ContactPoint` element and added optional `OrganizationAffiliation.contact` for richer details. This would preserve old wire-format instances and clients while enabling the R6 model. The cost is not just migration guidance: validators, serializers, profiles, and business rules would need precedence rules when both paths are populated, and the deprecated representation might persist indefinitely."
+      }
+    },
+    {
+      "findingId": "OrganizationAffiliation:VALUE_CONSTRAINT:OrganizationAffiliation.contact:bb84d1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a warning-level base invariant or best-practice rule before enforcing `home` as a base error.",
+        "alternativeTradeoffSummary": "Warnings preserve historical data but do not provide the same uniform guarantee that organization contacts are not home contacts.",
+        "justificationRationaleMd": "The policy goal is plausible because OrganizationAffiliation contacts are official organizational contacts, not personal home contact points. The break is conditional and likely rare, but an error-level invariant is the design that actually enforces the base guarantee. A warning would be less disruptive yet materially weaker, so the breaking constraint is probably justified with explicit migration review for historical `home` values.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have made `org-3` and `org-4` warning-level or best-practice constraints, allowing migrated R4 `use='home'` contacts to remain valid while being flagged. That alternative only partially meets the same goal: systems could ignore the warning, and profile-only enforcement would fragment behavior across implementations."
+      }
+    },
+    {
+      "findingId": "OrganizationAffiliation:FLAGS_AND_MODIFIERS:OrganizationAffiliation.contact:12c9ef",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Mark `contact` as summary=true, or retain a summary-capable deprecated `telecom`, but either path has material tradeoffs.",
+        "alternativeTradeoffSummary": "Preserving summary behavior risks larger or more sensitive summary payloads, or else duplicates contact data across old and new paths.",
+        "justificationRationaleMd": "The computable artifacts show the summary-flag break but not the R6 rationale. Avoiding richer `ExtendedContactDetail` content in summary views is a plausible goal, yet the old R4 summary behavior exposed affiliation telecoms and some clients may rely on that. Because the best less-breaking designs have meaningful payload, privacy, or duplication costs, the availability is partial rather than a clean yes.",
+        "backwardCompatibleAlternativeMd": "The direct base alternative would set `OrganizationAffiliation.contact` to summary=true so summary-mode responses can still include affiliation contact details. That preserves the old expectation but can pull richer purpose, name, address, organization, and period data into summary responses. A narrower alternative would keep a deprecated summary `telecom` alongside `contact`, but that repeats the duplicate-representation problem from the main contact-model change."
+      }
+    },
+    {
+      "findingId": "OrganizationAffiliation:TERMINOLOGY_BINDING:OrganizationAffiliation.specialty:df7a33",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No backward-compatible alternative is needed because weakening a preferred binding to example does not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "Retaining the preferred binding would preserve stronger vocabulary convergence but would be a conformance-policy choice, not a compatibility-preserving alternative.",
+        "justificationRationaleMd": "The inferred goal of allowing broader specialty coding is reasonable, and the change is not a hard R4-to-R6 instance break: both preferred and example bindings permit codes outside the value set in base validation. The main cost is weaker interoperability guidance, which implementers can address with profiles when C80/SNOMED specialty coding is required.",
+        "backwardCompatibleAlternativeMd": "Backward-compatible alternative analysis is not applicable here because the R6 base design is already permissive for existing R4 data. Keeping the R4 preferred binding would be a different interoperability signal, not a less-breaking base design needed to preserve R4-valid instances."
+      }
+    },
+    {
+      "findingId": "OrganizationAffiliation:SEMANTIC_OR_CONFORMANCE_TEXT:OrganizationAffiliation.network:5a7d09",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No backward-compatible alternative is needed because the element shape and targets are unchanged and R4 instances remain valid.",
+        "alternativeTradeoffSummary": "Keeping insurance-specific wording would protect older assumptions but would leave the base model less reusable for non-insurance networks.",
+        "justificationRationaleMd": "Generalizing `network` beyond health-insurance provider networks is a plausible R6 goal, and it was accomplished without changing cardinality, type, or reference target. The remaining risk is semantic interpretation of newer R6 uses by R4-era systems, not an R4-to-R6 validation break. On that basis the change is probably justified and the backward-compatible alternative question is not applicable.",
+        "backwardCompatibleAlternativeMd": "A conservative design could have kept the R4 insurance-specific wording and handled non-insurance networks through profiles or documentation, but that would not be a backward-compatible base alternative needed to preserve R4-valid instances. It would mainly preserve an older, narrower interpretation at the cost of the R6 generalization."
+      }
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Questionnaire",
+  "patches": [
+    {
+      "findingId": "Questionnaire:TERMINOLOGY_BINDING:Questionnaire.item.type:item-type-useable",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep choice, open-choice, and question as legacy or deprecated codes while adding coding and answerConstraint.",
+        "alternativeTradeoffSummary": "Preserves many old forms but leaves duplicate coded-answer representations and keeps the generic question code ambiguous.",
+        "justificationRationaleMd": "The R6 goal is reasonable: coded-answer datatype and open/closed answer semantics are clearer when `coding` and `answerConstraint` are separate. The break is still material because a required binding invalidates common R4 `choice` and `open-choice` instances. A legacy-code path could reduce the break, but the duplicate semantics and ambiguous `question` code make the R6 breaking design probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained the R4 `choice`, `open-choice`, and possibly `question` codes in the R6 required value set as deprecated legacy codes while adding `coding` and `answerConstraint`. That would keep many R4 questionnaires valid. The cost is that renderers, validators, and authors would need to support both old encoded semantics and the new normalized representation indefinitely, and `question` still would not identify a concrete answer datatype."
+      }
+    },
+    {
+      "findingId": "Questionnaire:TERMINOLOGY_BINDING:Questionnaire.subjectType:resource-types",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a union or historical resource-type value set that retains legacy R4 resource codes.",
+        "alternativeTradeoffSummary": "Preserves old subjectType values but permits references to resources not present in R6 and obscures renamed, split, or merged resource semantics.",
+        "justificationRationaleMd": "Keeping `subjectType` aligned with the release-specific resource inventory is a reasonable R6 goal because it lets validators know whether a named subject resource exists in that FHIR version. A less-breaking union value set is possible, but it would weaken that guarantee and would not resolve resource renames, removals, and semantic replacements. Given those material tradeoffs, the required-binding break is probably justified.",
+        "backwardCompatibleAlternativeMd": "A base R6 alternative could have included historical R4 resource-type codes or used a version-independent value set. That would preserve R4 questionnaires that name R4-only subject types. However, it would allow R6 `Questionnaire.subjectType` to name resources that are not valid R6 resources, forcing every validator and workflow engine to understand cross-version resource history. ConceptMaps or extensions help migration but are mitigations, not backwards-compatible base R6 designs."
+      }
+    },
+    {
+      "findingId": "Questionnaire:ELEMENT_PRESENCE_OR_IDENTITY:Questionnaire.item.answerConstraint:added",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding optional answerConstraint does not invalidate R4 Questionnaire instances.",
+        "alternativeTradeoffSummary": "Populated R6 answerConstraint values create downgrade loss, but extensions or backports are mitigations rather than less-breaking R6 base designs.",
+        "justificationRationaleMd": "The inferred goal is reasonable: R6 needs an explicit way to represent whether listed answers are closed, open by type, or open by string. Because the element is optional, the base R6 design does not make R4-valid questionnaires invalid. The compatibility issue is mainly R6-to-R4 representability, so a backward-compatible alternative judgment is not applicable under the calibration rules.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is needed for R4-to-R6 compatibility because existing R4 content can omit the new element. A cross-version extension could preserve `answerConstraint` during downgrade to R4, but that is a conversion/backport mitigation, not a backwards-compatible base R6 design alternative."
+      }
+    },
+    {
+      "findingId": "Questionnaire:CARDINALITY:Questionnaire.item.definition:max-repeatable",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: increasing max cardinality preserves R4 instances with zero or one definition.",
+        "alternativeTradeoffSummary": "R6-to-R4 downgrade and generated scalar models need policy for multiple definitions, but that is not a forward compatibility alternative.",
+        "justificationRationaleMd": "Allowing more than one definition URI is a reasonable traceability improvement, especially where an item relates to multiple formal sources. The change widens the base cardinality and does not invalidate R4 instances. The break described here is a downgrade and model-shape concern, so the backward-compatible alternative question is not applicable for R4-to-R6 base design.",
+        "backwardCompatibleAlternativeMd": "Keeping `item.definition` at `0..1` and placing extra definitions in an extension would make downgrade easier, but the R6 change does not need such an alternative to preserve R4-valid instances. The material tradeoff is for R6 authors and R4 downgrades: multiple R6 values require either loss, rejection, or an extension convention when converted back to R4."
+      }
+    },
+    {
+      "findingId": "Questionnaire:TYPE_DOMAIN:Questionnaire.item.answerOption.value:added-types",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding answerOption value types widens the R6 type domain and preserves R4 instances.",
+        "alternativeTradeoffSummary": "New R6 option datatypes are not losslessly R4-representable, but that is a downgrade issue rather than a less-breaking forward design issue.",
+        "justificationRationaleMd": "The R6 goal of supporting enumerated options for additional answer datatypes is reasonable and internally consistent with broader Questionnaire item typing. Since no R4 answerOption value type is removed, R4-valid instances remain valid in this respect. The compatibility concern is R6-to-R4 conversion of newly expressible content, so the alternative availability judgment is not applicable.",
+        "backwardCompatibleAlternativeMd": "An extension-only approach could have carried decimal, dateTime, uri, or SimpleQuantity options in R4, but that is a downgrade or backport strategy. For the R6 base design, the widened type list is not a forward-breaking change that requires a less-breaking alternative."
+      }
+    },
+    {
+      "findingId": "Questionnaire:TYPE_DOMAIN:Questionnaire.item.enableWhen.answer:uri-attachment-simplequantity",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep unprofiled Quantity in the base while adding guidance or warnings against comparator use.",
+        "alternativeTradeoffSummary": "Preserves comparator-bearing R4 quantities but leaves ambiguous executable comparison semantics or requires all implementations to define comparator behavior.",
+        "justificationRationaleMd": "The added uri and Attachment branches are forward-compatible widenings, but profiling Quantity to SimpleQuantity can invalidate R4 comparator-bearing quantities. The R6 goal of deterministic enableWhen and initial-value semantics is reasonable. A less-breaking Quantity design exists, but it would either tolerate ambiguous comparisons such as `<5 mg` in form logic or force every renderer to implement extra comparator interpretation. Those material tradeoffs make the break probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have left `enableWhen.answerQuantity` and `initial.valueQuantity` as unprofiled Quantity and introduced warnings, best-practice guidance, or explicit comparator semantics. That would preserve more R4 instances. It is incomplete because warning-only validation does not prevent ambiguous executable logic, while defining comparator behavior would add implementation burden and potential safety risk."
+      }
+    },
+    {
+      "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.linkId:whitespace",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Stage the whitespace rule as a warning or best-practice invariant instead of an error.",
+        "alternativeTradeoffSummary": "Preserves old linkIds but leaves invisible or fragile identifiers in conformant data and complicates references, responses, and extraction maps.",
+        "justificationRationaleMd": "Constraining hard-to-see whitespace in `linkId` is a reasonable interoperability goal because linkIds are used as stable join keys. A warning-only rule would avoid old-valid/new-invalid failures, but it would not prevent conformant R6 questionnaires from continuing to use identifiers that are easy to trim, collide, or mis-reference. Because those risks are real and the alternative is incomplete, the hard error is probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have made the new pattern warning-only for at least one release. That would preserve R4 questionnaires with leading, trailing, tab, newline, or repeated whitespace in linkIds. The tradeoff is that consumers would still need to accept and faithfully preserve visually ambiguous identifiers, and any later normalization could break `enableWhen.question`, `QuestionnaireResponse.item.linkId`, extraction logic, and external references."
+      }
+    },
+    {
+      "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.enableWhen:enableBehavior-threshold",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a warning-only rule or define a default enableBehavior for exactly two enableWhen clauses.",
+        "alternativeTradeoffSummary": "Warning-only leaves conditional logic ambiguous; defaulting to all or any can silently change runtime behavior for forms that intended the other meaning.",
+        "justificationRationaleMd": "The R6 goal is to make multiple enableWhen conditions deterministic. This appears to fix the R4 computable expression so it matches the human rule for more than one condition. Although less-breaking alternatives exist, they fail the core safety goal: a warning preserves ambiguity, and a default may silently render or suppress items contrary to author intent. A hard validation error is therefore justified despite the Partial alternative.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have kept the R4 `> 2` threshold, warned for exactly two clauses, or specified an implicit default when `enableBehavior` is absent. Those options preserve more R4 instances, but none is fully satisfactory. Warning-only validation leaves implementations to guess, while an implicit default can be clinically or operationally wrong when the author intended the opposite `all` or `any` behavior."
+      }
+    },
+    {
+      "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.answerOption-initial:alignment-defaults",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Introduce the new alignment and initialSelected rules first as warnings.",
+        "alternativeTradeoffSummary": "Preserves structurally valid but internally inconsistent R4 forms, forcing renderers and responders to handle ambiguous or impossible defaults.",
+        "justificationRationaleMd": "The goal of preventing answerOption and initial-value type mismatches is reasonable because such forms can fail at rendering or response validation time. A staged warning would reduce immediate breakage, but it would continue to allow base-conformant questionnaires whose answers do not match their declared item type or whose defaults are inconsistent with non-repeating behavior. With those material tradeoffs and no official rationale reviewed, the hard invariants are probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have added warning-level invariants before making these conditions errors. That would preserve R4 instances that are structurally valid but semantically inconsistent. The alternative is incomplete because renderers, validators, and QuestionnaireResponse producers would still need local policies for mismatched answer datatypes and multiple selected defaults on non-repeating questions."
+      }
+    },
+    {
+      "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.answerValueSet-maxLength:context-rules",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the old answerValueSet and maxLength contexts with warnings and clearer definitions.",
+        "alternativeTradeoffSummary": "Preserves older modeling patterns but keeps ambiguous terminology semantics for numeric, date/time, and quantity answers and odd length semantics such as boolean maxLength.",
+        "justificationRationaleMd": "The R6 goal of clarifying where answer value sets and maximum lengths are meaningful is reasonable. A less-breaking design could have tolerated the R4 contexts, but the old rules allowed patterns whose semantics are difficult to interpret consistently across validators and renderers. Because retaining them would carry ongoing ambiguity and implementation cost, the stricter R6 constraints are probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have kept the R4-permitted contexts for `answerValueSet` and `maxLength` while warning when the semantics are questionable. That would preserve questionnaires using primitive, date/time, quantity, or boolean patterns now rejected by R6. The tradeoff is that base R6 would continue to allow answer-set and length rules whose interpretation is unclear or inconsistent, shifting the burden to profiles and implementations."
+      }
+    },
+    {
+      "findingId": "Questionnaire:CONVERSION_OR_MAPPING:Questionnaire.item.group-empty:inactive-r6",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 relaxes empty-group validation for non-active questionnaires and does not break R4-to-R6 instances.",
+        "alternativeTradeoffSummary": "The compatibility cost is R6-to-R4 downgrade handling for draft or inactive empty groups, not a less-breaking forward R6 design choice.",
+        "justificationRationaleMd": "The inferred R6 goal is reasonable: draft, retired, or otherwise non-active questionnaires may be incomplete during authoring. Since this change weakens an R4 error for non-active resources, it does not make R4-valid instances invalid in R6. The issue is a pure downgrade concern, so backward-compatible alternative availability is not applicable under the calibration rules.",
+        "backwardCompatibleAlternativeMd": "Keeping the R4 error for all statuses would avoid this R6-to-R4 downgrade mismatch, but that is not a less-breaking alternative for R4-to-R6 compatibility because R6 is relaxing the rule. Downgrade tools still need to reject, remove, fill, or extension-preserve inactive empty groups when producing valid R4."
+      }
+    },
+    {
+      "findingId": "Questionnaire:ELEMENT_PRESENCE_OR_IDENTITY:Questionnaire.item.disabledDisplay:added",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: optional disabledDisplay does not invalidate R4 Questionnaire instances.",
+        "alternativeTradeoffSummary": "Populated R6 disabledDisplay values require downgrade policy, but extension/backport preservation is a mitigation rather than a base-design alternative.",
+        "justificationRationaleMd": "Standardizing disabled-item rendering behavior is a reasonable R6 goal. Because `disabledDisplay` is optional and newly added, existing R4 questionnaires can remain valid when interpreted as R6 with respect to this element. The compatibility concern is lossless R6-to-R4 representation and renderer behavior, so a backward-compatible alternative judgment is not applicable.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is needed for forward instance compatibility. An R4 extension can preserve `disabledDisplay` during downgrade, but that is a conversion strategy. Leaving the concept extension-only in R6 would reduce standard renderer interoperability without preserving any R4 instance that the optional element would otherwise break."
+      }
+    },
+    {
+      "findingId": "Questionnaire:FLAGS_AND_MODIFIERS:Questionnaire.summary:description-derivedFrom",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: changing summary flags does not invalidate R4 Questionnaire instances.",
+        "alternativeTradeoffSummary": "Runtime summary projections may include more metadata; clients needing fixed payloads can request explicit elements, but this is not an R4-to-R6 instance-shape alternative.",
+        "justificationRationaleMd": "The goal of exposing useful Questionnaire description and derivation metadata in summary views is reasonable, and the change does not affect full-resource instance validity. Under this calibration, the finding is a runtime projection compatibility concern rather than a breaking R4-to-R6 base instance-design issue. The backward-compatible alternative availability judgment is therefore not applicable.",
+        "backwardCompatibleAlternativeMd": "A server or client can use `_elements` or other explicit projection controls when it needs stable summary payloads, but that is operational mitigation. Because no R4 instance becomes invalid and no R4 element representation is removed or narrowed, there is no less-breaking base R6 instance-design alternative to assess."
+      }
+    }
+  ]
+}

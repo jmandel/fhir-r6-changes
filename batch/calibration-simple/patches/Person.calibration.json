@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Person",
+  "patches": [
+    {
+      "findingId": "Person:SERIALIZATION_OR_CODEGEN:active-order:a7b0c1",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Preserve the R4 position of Person.active and insert optional new R6 elements without moving existing children.",
+        "alternativeTradeoffSummary": "Stable ordering preserves XML and generated-code compatibility; moving active earlier may improve status visibility and harmonization with related models.",
+        "justificationRationaleMd": "The inferred goal of placing the active/status modifier earlier is reasonable, but the changed order creates XML sequence and generated-code churn for an otherwise unchanged element. The supplied evidence does not show that R6 needed to move `Person.active` to add the new optional elements or clarify its semantics, so this level of breakage looks avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have kept `Person.active` after `Person.managingOrganization` as in R4 and inserted the new optional R6 elements without reordering existing children. That would preserve R4-valid XML ordering and old generated property order while still supporting `deceased[x]`, `maritalStatus`, `communication`, and other R6 model growth. The tradeoff is less harmonized ordering if other demographic resources place active/status fields near identifiers."
+      }
+    },
+    {
+      "findingId": "Person:ELEMENT_PRESENCE_OR_IDENTITY:Person.deceased[x]:b43a10",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: this is optional R6 content that preserves R4-to-R6 base instance validity.",
+        "alternativeTradeoffSummary": "R6 gains native deceased status/date support; mixed-version exchange still needs extension or conversion policy, which is mitigation rather than a base-design alternative.",
+        "justificationRationaleMd": "The goal of representing deceased status or date directly on `Person` is reasonable for demographic and administrative use. Because `Person.deceased[x]` is optional, existing R4 instances are not made invalid in R6; the material risk is loss or rejection when R6 content is projected back into R4.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible base-design alternative is applicable for the R4-to-R6 direction because the addition itself is optional. Publishing an R4 extension, cross-version map, or conversion rule would be important interoperability mitigation for R6-to-R4 exchange, but those are not less-breaking R6 base designs. Omitting the element from base R6 would avoid down-conversion pressure but would not meet the goal of native R6 representation."
+      }
+    },
+    {
+      "findingId": "Person:ELEMENT_PRESENCE_OR_IDENTITY:Person.maritalStatus:5d2f41",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: an optional R6 maritalStatus element does not create a breaking R4-to-R6 base-design issue.",
+        "alternativeTradeoffSummary": "R6 improves native civil-status modeling; R6-to-R4 preservation requires extensions or policy-specific conversion, not a less-breaking base R6 alternative.",
+        "justificationRationaleMd": "The inferred goal of supporting civil or domestic-partnership status on a generic person record is plausible, and the element is optional with unchanged validity for R4 instances that omit it. The compatibility concern is principally reverse exchange and terminology policy for R6 data, not forward R4-to-R6 invalidation.",
+        "backwardCompatibleAlternativeMd": "A standard R4 extension or conversion map can reduce data loss when sending R6 `maritalStatus` to R4 systems, but that is a backport/mitigation path rather than a base R6 design alternative. Keeping marital status out of base R6 would be less expressive and would not satisfy the goal of making the concept discoverable in the R6 Person model."
+      }
+    },
+    {
+      "findingId": "Person:ELEMENT_PRESENCE_OR_IDENTITY:Person.communication:9c8e23",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the new communication backbone is optional, so old R4 Person instances remain valid in R6.",
+        "alternativeTradeoffSummary": "R6 gains native language-preference structure; R6-to-R4 conversion still needs an extension or carefully scoped role-resource mapping.",
+        "justificationRationaleMd": "The goal of recording communication languages and preferences on `Person` is reasonable and follows a common demographic pattern. The required `communication.language` child applies only when a new R6 communication entry is present, so it does not make existing R4 instances invalid.",
+        "backwardCompatibleAlternativeMd": "For R4-to-R6 compatibility, no less-breaking base R6 alternative is needed because the backbone is optional. R4 extensions or mappings to linked Patient, Practitioner, or RelatedPerson resources can help preserve R6 data during down-conversion, but those are mitigations and may be semantically unsafe without context. Omitting the R6 backbone would avoid reverse-version data loss but would not meet the native R6 modeling goal."
+      }
+    },
+    {
+      "findingId": "Person:CARDINALITY:Person.photo:0f2b84",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: widening Person.photo from 0..1 to 0..* preserves R4-valid instance content in R6.",
+        "alternativeTradeoffSummary": "R6 supports multiple photos natively; R4 down-conversion and generated API shape changes still need explicit handling.",
+        "justificationRationaleMd": "Supporting multiple person photos is a plausible model improvement, and the cardinality widening does not invalidate R4 instances with zero or one photo. The remaining disruption is generated-model shape change and inability to represent multiple R6 photos in base R4, not a forward validation break.",
+        "backwardCompatibleAlternativeMd": "Because this is a widening that preserves old instance cardinalities, a backward-compatible alternative is not applicable in the R4-to-R6 base-design sense. A design that kept `photo` singleton and added a separate additional-photo field would reduce generated API churn but introduce duplicate same-resource representations and ambiguity about primary versus additional photos. R4 extensions or truncation rules are down-conversion mitigations, not reasons to classify an R6 base alternative as available."
+      }
+    },
+    {
+      "findingId": "Person:FLAGS_AND_MODIFIERS:summary-flags:41c0a2",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the base summary flags unchanged and rely on _elements, profiles, or implementation-guide summary rules for clients that need identifier and address.",
+        "alternativeTradeoffSummary": "This preserves old summary/privacy expectations but weakens default R6 summary usefulness and creates more opt-in variability.",
+        "justificationRationaleMd": "The goal of making identifiers and addresses available in summary representations is reasonable for matching and display, but it changes runtime and privacy expectations for systems that derive summaries from `isSummary`. A less-breaking approach exists, though it would not deliver the same uniform default summary behavior across base R6 systems.",
+        "backwardCompatibleAlternativeMd": "A partially backward-compatible base design would leave `Person.identifier` and `Person.address` out of the base summary set and direct clients to request them with `_elements` or profiles where needed. That preserves R4-era summary payload expectations and reduces accidental exposure of sensitive demographics. The tradeoff is material: clients cannot rely on base `_summary=true` to include key matching fields, and implementations may fragment through local summary conventions."
+      }
+    },
+    {
+      "findingId": "Person:SEMANTIC_OR_CONFORMANCE_TEXT:telecom-identifier-user-identity:d18e77",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "No",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base design was identified; R6 already uses non-validating guidance rather than structural constraints.",
+        "alternativeTradeoffSummary": "Omitting or weakening the guidance preserves ambiguous R4 practice but fails the security/privacy clarification; enforcing it structurally would be more breaking.",
+        "justificationRationaleMd": "Separating contact points from user identities is a reasonable security and privacy goal. R6 implements that goal with comments and guidance instead of changing cardinality, type, binding, or adding a hard invariant, so old instances generally remain valid even if implementations need semantic review.",
+        "backwardCompatibleAlternativeMd": "The current design is already close to the least disruptive base approach: it warns against using `telecom` for user identities and points implementers toward `identifier` without making validators reject existing contact points. Keeping the R4 text unchanged would be less disruptive only by failing the R6 clarification goal, while a hard invariant or required migration to `identifier` would be substantially more breaking."
+      }
+    }
+  ]
+}

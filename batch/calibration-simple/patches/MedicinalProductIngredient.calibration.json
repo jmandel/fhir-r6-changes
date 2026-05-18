@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MedicinalProductIngredient",
+  "patches": [
+    {
+      "findingId": "MedicinalProductIngredient:ARTIFACT_IDENTITY:root:0f4b9a",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `MedicinalProductIngredient` resource name/canonical in base R6 while improving definitions, aliases, and child content as needed.",
+        "alternativeTradeoffSummary": "Keeps a longer medicinal-product-specific name, but avoids a wire-format resourceType break without creating duplicate resource names.",
+        "justificationRationaleMd": "The R6 successor has the same high-level description and R6 explicitly marks `MedicinalProductIngredient` as an old type, so the replacement appears intentional. The local evidence does not show that shortening the resource name to `Ingredient` was necessary enough to justify making every R4 instance fail at the resourceType/canonical level before element migration even starts.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have kept `MedicinalProductIngredient` as the canonical resource type and used title, aliases, descriptions, and profile guidance to communicate the broader or cleaner R6 model. That would preserve R4 parser and endpoint compatibility for the resource identity. Adding both `MedicinalProductIngredient` and `Ingredient` as parallel core resources would have a larger duplication risk, but simply retaining the old name while evolving the content is a plausible low-to-moderate tradeoff."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIngredient:ELEMENT_PRESENCE_OR_IDENTITY:Ingredient.status:a4c2ef",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `status` optional in the base resource, with a best-practice invariant or stricter profiles requiring it where lifecycle governance is needed.",
+        "alternativeTradeoffSummary": "Preserves old data but weakens the base guarantee that all ingredients can be filtered by active/retired lifecycle status.",
+        "justificationRationaleMd": "A lifecycle status is a reasonable R6 goal for definitional medication content, and making it a modifier ensures consumers consider retired or unknown content. The break is still real because R4 has no local status value to migrate mechanically. The less-breaking alternative is incomplete because it would allow base R6 Ingredient records with no lifecycle state.",
+        "backwardCompatibleAlternativeMd": "A base `0..1` `status`, optionally paired with a warning or best-practice invariant, would keep R4-origin records base-valid while still enabling systems that know the lifecycle state to populate it. Profiles for regulated publication workflows could require `status`. This is only a partial alternative because consumers would lose the uniform R6 guarantee that every base Ingredient declares whether it is active, retired, draft, or unknown."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIngredient:SERIALIZATION_OR_CODEGEN:manufacturer:7d61aa",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `manufacturer` as `Reference(Organization)` and add optional base association-role metadata by a separate keyed/backbone element.",
+        "alternativeTradeoffSummary": "Avoids breaking existing reference arrays but creates alignment and duplication risks between manufacturer references and role metadata.",
+        "justificationRationaleMd": "The R6 backbone cleanly attaches role metadata to each manufacturer association, which is a reasonable modeling improvement. A less-breaking design could preserve the direct reference shape, but doing so would make it harder to express whether each organization is actual, possible, or allowed without ambiguous parallel arrays or duplicate association structures.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained `manufacturer` as the repeating Organization reference and introduced an optional `manufacturerAssociation` or keyed role element that points at a manufacturer reference. That would preserve R4 wire shape for common data. It is only a partial alternative because the added role must stay synchronized with the referenced organization; duplicate direct-reference and association forms could persist indefinitely and produce validation or interpretation ambiguity."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIngredient:CARDINALITY:substance:3e18d5",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `substance` optional and preserve `substance.code` as CodeableConcept while adding an optional SubstanceDefinition reference or separate richer identity field.",
+        "alternativeTradeoffSummary": "Preserves many R4 instances but permits incomplete ingredients and creates parallel code/reference representations.",
+        "justificationRationaleMd": "Making the ingredient substance explicit and linkable to `SubstanceDefinition` is domain-plausible, especially because substance identity is central to the resource. The base break is significant, but the best less-breaking design would not fully meet the R6 goal of a mandatory, single substance identity and would carry duplicate code/reference patterns.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have left `substance` at `0..1`, kept the existing `CodeableConcept` serialization at `substance.code`, and added an optional `substance.definition` reference for richer SubstanceDefinition linkage. That preserves R4 coded substances and instances relying on other branches. It is partial because base R6 would still allow ingredients without a substance and would need rules for reconciling coded and referenced substance identities."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIngredient:ELEMENT_PRESENCE_OR_IDENTITY:specifiedSubstance:bc91a7",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated optional `specifiedSubstance` content or add explicit base R6 fields for its group, confidentiality, and repeated specified-substance semantics.",
+        "alternativeTradeoffSummary": "Improves lossless migration but preserves the old two-branch model and risks duplicate substance representations.",
+        "justificationRationaleMd": "Simplifying around one R6 substance backbone is a reasonable goal, but the local evidence does not show an adequate base replacement for R4 `specifiedSubstance.group`, `confidentiality`, or multiple specified substances in one resource. Because those fields can be regulatory or disclosure-sensitive, the level of loss and ambiguity is not clearly justified by the supplied artifacts.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `specifiedSubstance` as a deprecated optional backbone for transition, or moved its group/confidentiality semantics into explicit optional R6 elements under the new substance model. This is only a partial alternative: retaining the old branch would continue duplicate ways to describe substance identity and strength, and repeated specified substances may conflict with R6's apparent one-Ingredient-per-substance direction."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIngredient:SERIALIZATION_OR_CODEGEN:strength-presentation:1bf6c0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the old Ratio fields and low-limit fields while adding distinct optional range, quantity, code, and text strength fields.",
+        "alternativeTradeoffSummary": "Preserves common R4 strength JSON but creates overlapping quantitative representations with safety-sensitive inconsistency risk.",
+        "justificationRationaleMd": "The R6 choice/range model is a reasonable way to support RatioRange, Quantity, coded, and text strength representations while removing modifier low-limit fields. A less-breaking additive design exists, but the tradeoffs are material because strength data is clinically sensitive and duplicate representations could diverge.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained `presentation`, `presentationLowLimit`, `concentration`, and `concentrationLowLimit` and added new fields such as presentation/concentration range, quantity, code, or text variants under distinct names. That would keep R4 Ratio instances valid. It is partial because the same strength could then be represented in old Ratio fields, new range fields, text, or quantity fields, increasing implementation burden and the risk of contradictory dose/composition meaning."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIngredient:CARDINALITY:referenceStrength-substance:5c0e73",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `referenceStrength.substance` optional in base R6 with a warning or profile requirement, and add richer reference/range forms without replacing the old Ratio shape immediately.",
+        "alternativeTradeoffSummary": "Eases migration but allows semantically incomplete reference strengths and overlapping strength encodings.",
+        "justificationRationaleMd": "Requiring the reference substance is clinically reasonable because a reference strength without the referenced substance is ambiguous. The less-breaking path is incomplete: it would preserve old incomplete records but would weaken the semantic guarantee R6 appears to be adding, and it would also leave old Ratio and new choice/range representations side by side.",
+        "backwardCompatibleAlternativeMd": "A base optional `referenceStrength.substance`, perhaps with an error only in stricter profiles or a warning in the base resource, would preserve R4 reference strengths that omit the substance. Separately, R6 could have added new range/reference fields alongside the old Ratio field. This is partial because it tolerates ambiguous active-moiety/salt-base expressions and duplicate strength encodings in a safety-sensitive area."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIngredient:VALUE_CONSTRAINT:Ingredient.ing-1:de3a45",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-preserving base alternative is needed because R4 coded substances can migrate to `CodeableReference.concept` without triggering `ing-1`.",
+        "alternativeTradeoffSummary": "Changing the invariant to a warning would ease some enriched migrations but would allow duplicate or conflicting allergen assertions.",
+        "justificationRationaleMd": "The invariant supports a reasonable single-source-of-truth rule: if a rich `SubstanceDefinition` is referenced, allergen information should live there. This is not a direct R4 instance-preservation problem because R4 has coded substance concepts, and those can migrate as `CodeableReference.concept` while keeping `allergenicIndicator` valid.",
+        "backwardCompatibleAlternativeMd": "A warning-level invariant would be less strict for migrations that choose to normalize old coded substances into `SubstanceDefinition` references while retaining the Ingredient allergen flag. That is a conformance relaxation, not a backward-compatible base-design alternative needed to preserve R4-valid instances. Keeping the error avoids two possible locations for the same allergen assertion when a referenced SubstanceDefinition is available."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIngredient:CONVERSION_OR_MAPPING:r6-only-fields:8aa027",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "The optional R6 additions and identifier widening already preserve R4-origin instances; the issue is R6-to-R4 export loss, not an R4-to-R6 breaking base design.",
+        "alternativeTradeoffSummary": "Avoiding the additions would preserve backward export fidelity only by forgoing useful R6 expressivity.",
+        "justificationRationaleMd": "Adding optional fields is the standard backward-compatible way to evolve a base resource in the forward direction, and widening `identifier` from `0..1` to `0..*` does not invalidate R4 instances. The remaining concern is that R6-native content may be lossy when converted down to R4.",
+        "backwardCompatibleAlternativeMd": "There is no relevant less-breaking R6 base design for R4-to-R6 compatibility because these fields do not need to be populated for migrated R4 data. R6-to-R4 systems can use extensions or documented loss policies, but those are backward-export mitigations rather than alternatives to the R6 base additions."
+      }
+    },
+    {
+      "findingId": "MedicinalProductIngredient:TERMINOLOGY_BINDING:role-and-codes:cd6209",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking alternative is needed for the example bindings; required bindings on `status` and optional `manufacturer.role` are covered by their structural findings.",
+        "alternativeTradeoffSummary": "Example bindings improve guidance with minimal validation impact; stronger required bindings on migrated fields would have been more disruptive.",
+        "justificationRationaleMd": "R6 mostly uses example-strength bindings for role, function, and substance guidance, which does not by itself invalidate legacy codes. The required bindings mentioned in this finding attach to newly added or optional R6 elements addressed elsewhere, so this terminology finding is not an independent R4-to-R6 breaking base-design issue.",
+        "backwardCompatibleAlternativeMd": "The backward-compatible design is effectively what R6 does for the main retained coded concepts: provide example bindings rather than required ones. Systems may map local codes for interoperability, but no base-design alternative is required to preserve R4-valid role or substance codes."
+      }
+    }
+  ]
+}

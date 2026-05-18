@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Organization",
+  "patches": [
+    {
+      "findingId": "Organization:ELEMENT_PRESENCE_OR_IDENTITY:Organization.telecom:6bb8d1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated top-level `Organization.telecom` while adding `Organization.contact.telecom` and normalization guidance.",
+        "alternativeTradeoffSummary": "Preserves most R4 instances, but creates duplicate official-telecom locations with persistent ambiguity for validation, search, and updates.",
+        "justificationRationaleMd": "The inferred goal is reasonable: R6 consolidates official organization contact data into `ExtendedContactDetail`, where telecom can be grouped with purpose, address, period, and handling organization context. A deprecated top-level alias could have softened the wire-format break, but it would leave two base locations for the same official telecom facts. Because that duplication creates material interoperability and lifecycle tradeoffs, the breaking design is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have kept `Organization.telecom` as `0..* ContactPoint`, marked it deprecated, and introduced `Organization.contact.telecom` as the preferred representation. Existing R4 instances would then continue to validate. The tradeoff is substantial: servers, validators, search parameters, and update logic would need rules for duplicate or conflicting telecom data, and the deprecated representation might persist indefinitely."
+      }
+    },
+    {
+      "findingId": "Organization:ELEMENT_PRESENCE_OR_IDENTITY:Organization.address:4e9a21",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated top-level `Organization.address` while adding `Organization.contact.address` and explicit grouping/search rules.",
+        "alternativeTradeoffSummary": "Preserves most R4 address instances, but duplicates address-bearing fields and complicates grouping, search indexing, and conflict handling.",
+        "justificationRationaleMd": "The R6 goal of treating organization addresses as official contact details is coherent, especially because `ExtendedContactDetail` can group an address with purpose, telecom, period, and handler context. Keeping the old top-level address would avoid much R4 validation breakage, but it would also preserve a competing same-resource representation for the same address facts. That material duplication makes the R6 break probably justified, though not unavoidable in a narrow technical sense.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have kept `Organization.address 0..*` as deprecated and added `Organization.contact.address` for the new contact model. This would preserve old R4 JSON, but implementers would need to decide whether top-level and contact addresses are duplicates or distinct contacts, how to apply the no-home invariant, and how address search should index both locations. The risk is that both representations remain permanently active."
+      }
+    },
+    {
+      "findingId": "Organization:SERIALIZATION_OR_CODEGEN:Organization.contact:9c0b72",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 local contact backbone shape and add optional missing context fields, or add a parallel ExtendedContactDetail-based element.",
+        "alternativeTradeoffSummary": "Preserves old JSON/API shape, but either loses the shared datatype goal or creates parallel contact models with mapping ambiguity.",
+        "justificationRationaleMd": "Replacing the local backbone with `ExtendedContactDetail` advances a legitimate cross-resource reuse and consistency goal, but it is disruptive for generated models and for `contact.name` serialization. A less-breaking local backbone could represent many of the same facts while preserving R4 instances, yet it would not actually achieve the reusable datatype model and would require duplicate maintenance of similar contact structures. A parallel alias would add even more same-resource duplication. Those tradeoffs support a `Partial` alternative and a probably justified verdict.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained the R4 `Organization.contact` backbone, kept `contact.name` as a singleton, and added optional fields such as contact period or handling organization locally. That would protect old instances and codegen. However, it would forgo the main modeling benefit of a common `ExtendedContactDetail` datatype, or else require a second parallel contact representation and conversion rules between the two."
+      }
+    },
+    {
+      "findingId": "Organization:VALUE_CONSTRAINT:Organization.contact:no-home:fc4a8e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a warning/best-practice invariant or profile-level rule before enforcing no-home contact use in the base resource.",
+        "alternativeTradeoffSummary": "Preserves rare legacy home-use contact data, but weakens the base guarantee that Organization contacts are official/business contacts.",
+        "justificationRationaleMd": "The restriction aligns with the R6 definition of `Organization.contact` as official organization contact details rather than personal home contact details. The break is real but narrow: only R4 nested contact telecom/address values using `home` are affected. A warning-first or profile-only path would be less disruptive, but it would not give base R6 consumers a reliable official-only contact invariant, so the stricter base rule is probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have introduced the no-home rule as a warning or best-practice invariant, or left error-level enforcement to profiles that require official-only organization contact data. That would let edge-case R4 instances continue to validate during transition. The tradeoff is that base R6 instances could still carry home-use organization contacts, undermining the semantic cleanup the new contact model appears to seek."
+      }
+    },
+    {
+      "findingId": "Organization:CONVERSION_OR_MAPPING:Organization.description:0f73ac",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base design is needed because `Organization.description` is an optional additive R6 element.",
+        "alternativeTradeoffSummary": "R4 extensions or narrative mappings can mitigate downgrade loss, but they are conversion/backport strategies rather than backward-compatible base R6 alternatives.",
+        "justificationRationaleMd": "The goal of adding human-readable disambiguation for organizations is reasonable, and the field is optional, so R4-valid instances are not invalidated by this base R6 design. The compatibility concern is R6-to-R4 downgrade loss when R6 instances use the new field, not R4-to-R6 breakage. That makes the change justified for this calibration purpose.",
+        "backwardCompatibleAlternativeMd": "`backwardCompatibleAlternativeAvailable` is `Not applicable` because this finding is an additive optional R6 feature that preserves R4 instances. Representing the value in an R4 extension or narrative can be useful migration guidance for downgrades, but it is not a less-breaking base R6 design alternative under the calibration rules."
+      }
+    },
+    {
+      "findingId": "Organization:CONVERSION_OR_MAPPING:Organization.qualification:ab18d4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base design is needed because `Organization.qualification` is an optional additive R6 backbone.",
+        "alternativeTradeoffSummary": "R4 extensions or related-resource mappings can preserve downgrade round trips, but they are mitigation strategies rather than backward-compatible base R6 alternatives.",
+        "justificationRationaleMd": "Structured organization qualifications, accreditations, licenses, status, period, and issuer are a plausible core R6 need, especially for directory and regulatory workflows. Because the backbone is optional, it does not make R4 Organization instances invalid in R6. The main risk is loss or governance complexity when converting R6 content back to R4, so the change is probably justified while requiring explicit downgrade policy.",
+        "backwardCompatibleAlternativeMd": "`backwardCompatibleAlternativeAvailable` is `Not applicable` for the R4-to-R6 base-design question because this is optional new R6 content. A standard R4 extension, profile, or related-resource mapping may be necessary for round-trip exchange, but those are ordinary R6-to-R4 mitigation/backport mechanisms and should not be counted as a `Yes` or `Partial` base-design alternative."
+      }
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "AdverseEvent",
+  "patches": [
+    {
+      "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.status:5b5f9d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Make `status` optional in base R6 and require it through profiles, warnings, or implementation guides.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but weakens the universal modifier signal for entered-in-error and lifecycle state.",
+        "justificationRationaleMd": "Adding lifecycle status is a reasonable R6 goal because `entered-in-error` changes whether the event should be treated as valid clinical information. The breakage from making it mandatory is substantial, but an optional base element would leave generic R6 consumers unable to rely on seeing this safety-relevant modifier.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have introduced `AdverseEvent.status` as `0..1` with strong guidance or profiles requiring it. That would preserve existing R4 instances, but it only partially meets the R6 goal because absence of status would remain base-valid and downstream systems could not uniformly detect completed, in-progress, unknown, or entered-in-error events."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.event-code:7c0f6a",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `event` as the base element, or keep it deprecated while adding `code` as a preferred alias.",
+        "alternativeTradeoffSummary": "The main cost is carrying a non-preferred old name or temporarily reconciling duplicate `event`/`code` values.",
+        "justificationRationaleMd": "Normalizing the primary adverse-event concept to the common `code` name is understandable, but this is an optional same-type rename. The R6 clinical goal could mostly have been met by clarifying the existing `event` definition or by staging a deprecated alias, so strict wire-format breakage is not clearly necessary.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design could have kept `AdverseEvent.event` at `0..1 CodeableConcept` and updated its short/definition and terminology guidance, or added `AdverseEvent.code` while retaining `event` with an invariant or guidance that both must not diverge. This preserves R4-valid instances with only moderate long-term cost: either the model keeps a less conventional name or it carries duplicate concept representations during transition."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.date-effect:0ce119",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add effect timing while retaining deprecated `date` for legacy event/effect dateTime values.",
+        "alternativeTradeoffSummary": "Preserves old payloads but leaves ambiguity between event timing and effect timing and creates overlapping timing fields.",
+        "justificationRationaleMd": "The R6 goal of representing when the adverse effect occurred, including an interval, is clinically reasonable. A retained `date` would reduce validation breakage, but the R4 field's event-timing wording is not identical to the R6 effect-timing concept.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `AdverseEvent.date` as a deprecated `dateTime` and added `effect[x]` or an effect-period field for richer cases. That alternative protects common R4 instances but only partially meets the semantic cleanup goal because systems would need precedence and interpretation rules when both legacy event timing and new effect timing are present."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.resultingCondition-resultingEffect:bc89ef",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `resultingCondition` while adding `resultingEffect` for Observation and concept-only effects.",
+        "alternativeTradeoffSummary": "Preserves R4 Condition references but duplicates resulting-effect representation and requires conflict handling.",
+        "justificationRationaleMd": "Broadening resulting effects from Condition-only references to CodeableReference(Condition|Observation) and concept-only findings is a useful R6 improvement. The compatible design is incomplete because it would leave two same-resource ways to communicate a Condition effect.",
+        "backwardCompatibleAlternativeMd": "A less-breaking transition could have kept `AdverseEvent.resultingCondition` as `0..* Reference(Condition)` and added `resultingEffect` for the broader R6 model. This would preserve R4 instances, but duplicate Condition-effect paths could diverge and deprecated representations might persist indefinitely, increasing validation and interoperability burden."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.severity:3a91de",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain optional `severity` as deprecated with guidance to prefer severity on the resulting Condition or Observation.",
+        "alternativeTradeoffSummary": "Keeps a legacy event-level severity field that may remain ambiguous, but preserves clinically important R4 data.",
+        "justificationRationaleMd": "Separating event seriousness from severity of the resulting clinical effect is a reasonable goal, but the supplied computable definitions do not show that removing the R4 severity slot was necessary. Because R6 has no direct local replacement, outright removal risks losing clinically significant mild/moderate/severe information.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `AdverseEvent.severity` at `0..1 CodeableConcept`, mark it deprecated or legacy, and state that new R6 content should express effect severity on the resulting Condition or Observation where possible. This would preserve R4-valid instances with moderate tradeoff: legacy event-level severity might linger and need careful interpretation, but the R6 semantic clarification would still be available."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.contributor-participant:9d2755",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `participant` while retaining deprecated `contributor` as a shortcut for participant actor entries.",
+        "alternativeTradeoffSummary": "Preserves simple R4 references but duplicates participant representation and lacks function semantics on the old field.",
+        "justificationRationaleMd": "The R6 participant backbone reasonably captures who was involved and how, with broader actor types and optional function. A retained `contributor` shortcut would help old payloads but would not fully meet the role/function goal and would require reconciliation if both fields appeared.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained `AdverseEvent.contributor` and mapped it to participant entries with absent or contributor-like `function`. This covers common R4 cases, but it only partially meets the R6 design because `participant.function` and expanded actor roles are central to the new model, and duplicate actor paths could accumulate indefinitely."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:CONVERSION_OR_MAPPING:AdverseEvent.history-supportingInfo:2e6fd4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `subjectMedicalHistory` and `referenceDocument` while adding the more specific R6 CodeableReference fields.",
+        "alternativeTradeoffSummary": "Preserves old broad buckets but weakens the semantic split and creates duplicate or conflicting classifications.",
+        "justificationRationaleMd": "Separating supporting information from contributing factors and preventive or mitigating actions is a meaningful modeling improvement. The less-breaking path would preserve old instances, but it would also keep broad catch-all fields that obscure the distinction R6 is trying to make.",
+        "backwardCompatibleAlternativeMd": "A transitional base design could keep the R4 history/document reference lists as deprecated and add `supportingInfo`, `contributingFactor`, `preventiveAction`, and `mitigatingAction`. That alternative is incomplete because the old buckets cannot express the R6 clinical role and may conflict with the new buckets, requiring duplicate-detection and classification rules."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.suspectEntity.instance:6f8204",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `instance` as Reference and add a concept-valued sibling or choice for non-resource suspect entities.",
+        "alternativeTradeoffSummary": "Avoids wrapping old references but splits suspect-entity representation and creates consistency risks.",
+        "justificationRationaleMd": "Supporting coded suspect entities and additional targets is a strong R6 goal, especially when no concrete resource instance exists. A less-breaking design could preserve the bare Reference shape for R4 instances, but it would not provide the same unified CodeableReference pattern.",
+        "backwardCompatibleAlternativeMd": "R6 could have widened the existing Reference target list and added a separate coded suspect-entity element for concept-only cases. This would preserve R4-valid JSON, but the alternative is only partial because concept and reference forms would be separate fields for the same fact, with potential conflicts and extra implementation burden compared with one CodeableReference element."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:CARDINALITY:AdverseEvent.suspectEntity.causality:420e7a",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep causality repeatable and preserve old child names as aliases or deprecated fields while adding clearer names.",
+        "alternativeTradeoffSummary": "Maintains a more complex backbone, but avoids data loss for multiple clinically meaningful causality assessments.",
+        "justificationRationaleMd": "Clarifying causality child names is reasonable, but the computable evidence does not justify reducing `causality` from many entries to one or removing legacy fields in a way that can discard independent assessments. The most breaking part appears avoidable unless R6 intentionally requires a single authoritative causality statement, which is not shown here.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `AdverseEvent.suspectEntity.causality` at `0..*`, retain `assessment`, `method`, and `productRelatedness` as deprecated or alias fields, and add clearer `entityRelatedness` and `assessmentMethod` guidance. This preserves R4-valid instances and still supports clearer R6 semantics, at the manageable cost of a larger backbone and alias-handling rules."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.category:114ac2",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the binding is weakened to example and does not invalidate R4 category instances.",
+        "alternativeTradeoffSummary": "The remaining risk is semantic and downgrade mapping ambiguity, not preservation of old R4 instances in R6.",
+        "justificationRationaleMd": "Loosening category terminology and updating the example categories is plausibly intended to support broader categorization. Exact code-level rationale remains limited without the external R6 terminology expansion, but the change is not a strict R4-to-R6 validation break because old CodeableConcept values remain structurally allowed.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed to preserve R4 instances because the R6 binding is weaker, not stronger. A ConceptMap or retained compatibility value set would help migration and analytics, but that is terminology guidance for semantic consistency rather than a backwards-compatible base-design alternative."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.outcome:788a13",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: outcome cardinality and terminology are widened, preserving R4-to-R6 validity.",
+        "alternativeTradeoffSummary": "Multiple or SNOMED-coded R6 outcomes create downgrade loss, but that is not an R4-preservation alternative.",
+        "justificationRationaleMd": "Allowing multiple and richer outcome concepts is reasonable, especially given the R4 binding description questioned requiredness. This does not make existing R4 outcome instances invalid in R6; the main impact is that new R6 outcomes may not fit R4's single required-code slot.",
+        "backwardCompatibleAlternativeMd": "Because the R6 base change widens max cardinality and weakens the binding, there is no less-breaking R4-to-R6 design to identify. Official ConceptMaps or compatibility guidance would reduce R6-to-R4 ambiguity, but they are migration aids rather than base alternatives for preserving old instances."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.actuality:51f0c4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding `unknown` widens the required value set and keeps R4 `actual` and `potential` valid.",
+        "alternativeTradeoffSummary": "R4 enum and downgrade handling are affected, but extension-only handling would optimize reverse compatibility rather than avoid an R4-to-R6 break.",
+        "justificationRationaleMd": "The R6 comment says `unknown` is included for legacy data and strongly discouraged, which is a plausible compatibility goal. Since existing R4 values remain valid, the change is not a breaking R4-to-R6 base-design issue.",
+        "backwardCompatibleAlternativeMd": "No R4-preserving alternative is needed for forward compatibility. A data-absent-reason or profile extension could avoid introducing a new base code for downgrade consumers, but that would make the unknown state less visible in R6 and addresses R6-to-R4 compatibility rather than preserving R4 instances."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:CARDINALITY:AdverseEvent.identifier:d68180",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: increasing `identifier` max from 1 to * preserves all R4 instances.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 identifier selection or extension handling, not an R4-to-R6 validation break.",
+        "justificationRationaleMd": "Supporting multiple business identifiers is consistent with the element comment and common FHIR identifier patterns. The widening is forward-compatible for existing R4 data, though generated R6 models and downgrade conversions must handle a collection.",
+        "backwardCompatibleAlternativeMd": "Because the base cardinality is widened, no less-breaking design is needed to preserve R4 instances. Keeping max `1` would improve R4 round-tripping but would block the R6 expressivity goal rather than avoid a forward compatibility break."
+      }
+    },
+    {
+      "findingId": "AdverseEvent:CONVERSION_OR_MAPPING:AdverseEvent.new-optional-fields:aa0998",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: these are optional additive R6 fields and do not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "R4 extensions or sidecars support downgrade, but they are mitigations rather than less-breaking base R6 alternatives.",
+        "justificationRationaleMd": "Adding optional fields for research expectation, notes, suspect-entity occurrence, and action details improves R6 expressivity without creating an R4-to-R6 validation break. The compatibility concern is only that new R6 content may lack a native R4 home.",
+        "backwardCompatibleAlternativeMd": "No less-breaking forward design is required for optional additions. Keeping these concepts only in extensions would simplify R4 round-tripping, but it would reduce their discoverability and consistency in the R6 base resource."
+      }
+    }
+  ]
+}

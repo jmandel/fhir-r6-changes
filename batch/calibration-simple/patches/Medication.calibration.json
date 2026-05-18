@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Medication",
+  "patches": [
+    {
+      "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.manufacturer:mah-rename",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep optional `manufacturer` as a deprecated or clarified Organization role and add optional `marketingAuthorizationHolder` for the regulatory holder role.",
+        "alternativeTradeoffSummary": "Retains an older role name and requires guidance for manufacturer/MAH consistency, but avoids invalidating R4 instances with moderate long-term cost.",
+        "justificationRationaleMd": "Modeling the marketing authorization holder is a reasonable R6 regulatory-product goal, but it did not require removing the R4 manufacturer role. Because manufacturer and MAH are not semantically equivalent, forcing a rename can create incorrect migrations when the physical manufacturer differs from the legal holder. A less-breaking base design could preserve old instances while adding the more precise R6 role, so the removal looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The best base-design alternative would keep `Medication.manufacturer` valid, update its definition if needed to distinguish it from distributor and MAH, and add `Medication.marketingAuthorizationHolder` as the new regulatory role. Profiles or invariants could warn about conflicting or duplicate Organizations. This is not just migration guidance: it would allow unconverted R4 instances to remain valid in base R6 while still supporting the R6 MAH concept."
+      }
+    },
+    {
+      "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.form:doseform-rename",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `form` as the base element name and clarify that it means dose form, or retain it as a deprecated alias if `doseForm` is added.",
+        "alternativeTradeoffSummary": "Keeps a shorter legacy name or, if both names exist, needs duplicate-field conflict rules; avoiding the rename has low compatibility cost.",
+        "justificationRationaleMd": "The R6 name is clearer, but the cardinality, type, binding, and descriptive text otherwise match the R4 element. This is a pure local wire rename, so preserving the R4 name with clearer wording would have met the apparent goal with much less breakage.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design could leave `Medication.form` as `0..1 CodeableConcept` and revise the short/definition to say dose form. If R6 also wanted the `doseForm` spelling, `form` could remain a deprecated alias with an invariant prohibiting both. The first option preserves all R4 instances without adding duplicate representations."
+      }
+    },
+    {
+      "findingId": "Medication:SERIALIZATION_OR_CODEGEN:Medication.amount:package-size",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `packageSize` while retaining deprecated `amount` for simple package-amount cases.",
+        "alternativeTradeoffSummary": "Preserves R4 package amounts, but creates overlapping package-size representations and cannot fully express R6 number-of-items plus amount-per-item semantics in the old `Ratio`.",
+        "justificationRationaleMd": "The R6 package-size backbone addresses a real ambiguity in the R4 single `Ratio`, especially where package count and per-item amount are distinct. A less-breaking base design exists, but retaining `amount` beside `packageSize` would leave duplicate ways to state package size and require conflict rules for operationally important quantity data. Those material tradeoffs make the breaking redesign probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would keep `Medication.amount` valid and add `Medication.packageSize` for richer R6 content. Simple R4 amounts would continue to validate, while new R6 instances could use `numberOfItems` and `amountPerItem`. The cost is persistent same-resource duplication: validators and applications would need rules for cases where both `amount` and `packageSize` are populated or disagree, and the old field would still not represent all R6 package-size facts."
+      }
+    },
+    {
+      "findingId": "Medication:TYPE_DOMAIN:Medication.ingredient.item:codeable-reference",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain R4 `ingredient.item[x]` as a deprecated compatibility path while adding or preferring the R6 CodeableReference representation.",
+        "alternativeTradeoffSummary": "Preserves old ingredient identities, but creates duplicate required ingredient representations and cannot fully match CodeableReference cases that carry both concept and reference.",
+        "justificationRationaleMd": "Using `CodeableReference` for ingredient identity is a coherent R6 modeling goal and aligns with broader R6 concept-or-reference patterns. A less-breaking base design could keep the old choice elements valid, but for a required ingredient field it would create competing representations for clinically important identity data and complicate validation, generated models, and interoperability. Those tradeoffs make the alternative only partial.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would keep `itemCodeableConcept` and `itemReference` valid, possibly widen `itemReference` to include `SubstanceDefinition`, and add `item` CodeableReference as the preferred R6 form. That would preserve common R4 instances, but systems would need precedence and consistency rules when old and new ingredient identities are both present, and the R4 choice shape cannot natively represent a single CodeableReference containing both `concept` and `reference`."
+      }
+    },
+    {
+      "findingId": "Medication:TYPE_DOMAIN:Medication.ingredient.strength:choice-expanded",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `strength` as Ratio and add separate optional coded or quantity strength fields instead of converting the existing path into `strength[x]`.",
+        "alternativeTradeoffSummary": "Preserves R4 Ratio strengths, but leaves multiple mutually exclusive strength fields and possible conflict rules for safety-relevant strength data.",
+        "justificationRationaleMd": "Supporting quantity and coded strengths is a reasonable R6 clinical-modeling improvement, and the R6 choice form is a clean way to express one logical strength with several datatypes. A compatible design could have kept the old Ratio path, but it would be less regular than a FHIR choice and would need strong rules to prevent conflicting strength representations. Because ingredient strength is safety-relevant, those tradeoffs are material.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would retain `Medication.ingredient.strength` as `0..1 Ratio` and add distinct optional elements for coded or simple-quantity strength, with an invariant that only one strength representation may be present. This preserves unconverted R4 Ratio instances but does not give the same tidy `strength[x]` model and risks long-lived ambiguity if deprecated and new strength fields are both supported."
+      }
+    },
+    {
+      "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.ingredient.role:added",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; `ingredient.role` is an optional R6 addition and does not invalidate R4 Medication instances.",
+        "alternativeTradeoffSummary": "The compatibility issue is lossy R6-to-R4 projection of new role data, not a less-breaking R6 base design needed for R4-to-R6 compatibility.",
+        "justificationRationaleMd": "Adding an optional coded ingredient role is the normal forward-compatible way to expand the base resource. It preserves R4-to-R6 validity and only creates a downgrade concern when populated R6 role data must be represented in R4.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed to preserve R4 instances because the element is optional and additive. R4-facing systems may use extensions, profiles, or explicit loss policy for `ingredient.role`, but those are down-conversion mitigations rather than backward-compatible base-design alternatives."
+      }
+    },
+    {
+      "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.batch:instance-rename",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `batch` and add `batch.identifier`, or retain `batch` as a deprecated compatibility backbone if `instance` is introduced.",
+        "alternativeTradeoffSummary": "Keeps the older, narrower batch label or requires conflict rules if both backbones exist, but most R4 lot/expiration instances could remain valid.",
+        "justificationRationaleMd": "Supporting physical-instance identifiers is reasonable, but the local definitions do not show why the existing `batch` backbone had to be removed. The old container already held package-specific lot and expiration data, and it could have been broadened or extended with an identifier. The rename therefore looks avoidable for the R4-to-R6 base design.",
+        "backwardCompatibleAlternativeMd": "The strongest less-breaking base design would keep `Medication.batch` as the package or physical-instance details backbone, add `batch.identifier` for serial or physical-instance identifiers, and update definitions to clarify the broader meaning. If R6 also introduced `instance`, `batch` could remain deprecated with mutual-exclusion guidance, but simply extending the existing backbone would preserve R4 instances without duplicate lot/expiration paths."
+      }
+    },
+    {
+      "findingId": "Medication:REFERENCE_TARGET:Medication.definition:definition-targets",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable; `definition` is an optional R6 addition and does not invalidate R4 Medication instances.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 loss or extension/external-link handling for new product-definition references, not a forward base-design break.",
+        "justificationRationaleMd": "Connecting Medication to richer definitional product resources is a plausible R6 expressiveness improvement, and making the reference optional is forward-compatible for R4 instances. The fact that R4 lacks the element and target resources is a downgrade concern rather than evidence of an avoidable R4-to-R6 break.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed for R4-to-R6 compatibility because old Medication instances remain valid with respect to this optional field. R4-facing exchange may preserve populated `definition` references through extensions, external association tables, or profile-specific mappings, but those are conversion mitigations rather than base R6 alternatives."
+      }
+    },
+    {
+      "findingId": "Medication:TERMINOLOGY_BINDING:Medication.status:status-meaning",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the old availability-oriented code meanings and add a separate record-currency/status element or terminology distinction for the R6 concept.",
+        "alternativeTradeoffSummary": "Avoids silent semantic reuse of the same codes, but adds terminology/model complexity and may preserve ambiguity between product availability and record currentness.",
+        "justificationRationaleMd": "Clarifying `Medication.status` as record currentness and suitability for reference is a reasonable goal, and the same code literals continue to validate, so there is no raw instance break. However, changing required-code definitions under stable codes can surprise business logic that treated status as medication availability. A less-breaking design exists, but it would add a separate concept or terminology layer and make status modeling more complex, so the current approach is probably justified but not fully unavoidable.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would preserve the R4 code definitions for `active`, `inactive`, and `entered-in-error` and introduce a distinct element or code system for record currency/reference suitability. That would better protect existing runtime semantics, but it would require implementations to manage two related status dimensions and would not provide the same simple single modifier status in base R6. Documentation or ConceptMaps alone would be mitigation, not a base-design alternative."
+      }
+    }
+  ]
+}

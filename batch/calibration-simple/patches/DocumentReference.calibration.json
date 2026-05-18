@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "DocumentReference",
+  "patches": [
+    {
+      "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.masterIdentifier:7b1f9c",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `masterIdentifier` as a deprecated base element while adding `identifier` and `version` guidance.",
+        "alternativeTradeoffSummary": "Keeps a legacy identity slot that may linger and confuse identifier/version conventions, but the compatibility cost is manageable.",
+        "justificationRationaleMd": "The R6 goal of clarifying document identity is reasonable, but outright removal of a common version-specific Identifier is not clearly required. R4 already separated `masterIdentifier` from other `identifier` values, so preserving the old field as deprecated would mostly retain existing semantics while steering new implementations to the R6 model.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could keep `DocumentReference.masterIdentifier` at `0..1` as deprecated, define its relationship to `identifier` and `version`, and recommend the new fields for new content. The tradeoff is continued legacy identity ambiguity and a field that might persist indefinitely, but it would preserve R4-valid instances with low to moderate long-term cost."
+      }
+    },
+    {
+      "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.authenticator:2c8a91",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep a deprecated `authenticator` shortcut while adding structured `attester`.",
+        "alternativeTradeoffSummary": "Creates duplicate attestation representations, and the old shortcut lacks required mode/time semantics.",
+        "justificationRationaleMd": "The R6 goal of supporting multiple attesters with explicit attestation mode is reasonable. A retained alias would preserve old JSON, but it would leave legal/professional attestation split between a simple reference and the richer backbone, requiring reconciliation rules and risking inconsistent trust semantics.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained `authenticator` as deprecated and mapped it to `attester.party` for migration. That only partially meets the goal because `attester.mode` is mandatory and semantically important; defaulting or inferring it in the base model would be unsafe, while allowing both fields would duplicate attestation indefinitely."
+      }
+    },
+    {
+      "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.content.format:4e6d20",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `content.profile` while keeping deprecated `content.format` for Coding-valued formats.",
+        "alternativeTradeoffSummary": "Preserves common R4 Coding cases but duplicates format/profile metadata and cannot cover URI or canonical profile values.",
+        "justificationRationaleMd": "The R6 goal of representing document constraints, templates, and FHIR profiles more flexibly is reasonable. Keeping `content.format` would reduce R4 validation breakage, but it would leave two same-resource carriers for overlapping format/profile facts and create conflict-handling obligations.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could keep `content.format` as a deprecated Coding alias and add `content.profile` for the richer R6 cases. This would preserve old instances but only partially meet the R6 model: URI and canonical profiles still need the new field, and duplicate Coding values could diverge from `content.profile.valueCoding`."
+      }
+    },
+    {
+      "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context:6f42aa",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a new encounter-context reference path and retain the old `context` backbone as deprecated.",
+        "alternativeTradeoffSummary": "Avoids same-name/different-type breakage but preserves a large duplicate context model that must be reconciled with root fields.",
+        "justificationRationaleMd": "Flattening clinical context and making encounter/workflow context a direct reference is a coherent R6 goal. The less-breaking path would have been technically possible, but retaining the old backbone alongside new root fields would duplicate many context facts and make validation and search semantics ambiguous.",
+        "backwardCompatibleAlternativeMd": "R6 could have introduced a new reference element, such as an encounter-context field, while leaving the R4 `context` backbone valid but deprecated. That would preserve old instances, but implementers would then have to reconcile `context.encounter`, new encounter references, root `event`, root `period`, root `facilityType`, root `practiceSetting`, and related-resource fields, with a high risk that deprecated representations never disappear."
+      }
+    },
+    {
+      "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context.event:23ed5b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `context.event` while adding root `event` as CodeableReference.",
+        "alternativeTradeoffSummary": "Preserves old coded events but duplicates event representation and cannot represent R6 reference-valued events on the old path.",
+        "justificationRationaleMd": "Allowing an event to be either a concept or a reference is a reasonable R6 goal. A deprecated old path would protect R4 instances, but it would only handle the concept side of the new model and would conflict with the broader context-flattening design.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could keep `context.event` as a deprecated CodeableConcept list and add root `event` for CodeableReference. This preserves R4-coded events, but it leaves two event carriers in the same resource and still requires new representation for reference-valued events, so the alternative is incomplete and operationally messy."
+      }
+    },
+    {
+      "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context.related:8c0f31",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Allow the old `context.related` reference list or a reference shorthand alongside `related.target`.",
+        "alternativeTradeoffSummary": "Preserves simple R4 references but creates two relationship shapes and loses the R6 relationship code on the old shape.",
+        "justificationRationaleMd": "Adding typed related-resource relationships is a reasonable goal. A compatibility shorthand would reduce parser breakage for old instances, but it would duplicate related-resource representation and leave the old form unable to carry the new relationship code.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained `context.related` as deprecated or allowed `related` to accept a direct Reference shorthand. That would preserve simple R4 references, but systems would need rules for conflicts between shorthand references and `related.target`, and R6 `related.code` would remain unrepresentable in the old shape."
+      }
+    },
+    {
+      "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.context.sourcePatientInfo:aa0d77",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the old `context.sourcePatientInfo` path as a deprecated base field during the context transition.",
+        "alternativeTradeoffSummary": "Keeps a narrow legacy provenance field and some context-refactor baggage, but avoids losing source-patient snapshot data.",
+        "justificationRationaleMd": "Simplifying context is reasonable, but removing source-patient snapshot information without a base replacement appears avoidable. The field is not semantically equivalent to `subject`, and an extension or profile workaround would be only a migration mitigation, not a backwards-compatible base R6 design.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could retain `DocumentReference.context.sourcePatientInfo` as deprecated as part of a transitional context backbone, with clear guidance that new R6 content should use a more explicit provenance pattern if one is standardized. This would preserve R4-valid instances and important historical-demographic semantics at modest cost."
+      }
+    },
+    {
+      "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.relatesTo.code:b3146e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the primitive code as a deprecated alias or add a separate CodeableConcept relationship field.",
+        "alternativeTradeoffSummary": "Reduces primitive-string breakage but duplicates lifecycle relationship representation and cannot fully support richer codings on the old field.",
+        "justificationRationaleMd": "Richer relationship coding and additional lifecycle semantics are reasonable R6 goals. The old primitive code could be preserved for compatibility, but doing so would split a safety-relevant lifecycle fact between primitive and CodeableConcept representations.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could keep `relatesTo.code` as the primitive required code and add a new optional CodeableConcept field, or retain the primitive as a deprecated alias. That would preserve R4 instances but only partially meet the R6 goal because multiple codings, text, and extensible terminology semantics would still require the new representation, with conflict rules for duplicate fields."
+      }
+    },
+    {
+      "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.date:1dd80f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because R4 `instant` values remain valid R6 `dateTime` values.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 precision downgrade, not preservation of old R4 instances.",
+        "justificationRationaleMd": "Allowing less precise dates when an exact instant is unavailable is a reasonable R6 goal, and the type widening should not invalidate R4 instances. The main compatibility risk is that new reduced-precision R6 values cannot be served back to R4 as `instant` without a lossy policy.",
+        "backwardCompatibleAlternativeMd": "Because this is a widening for R4-to-R6 validation, `backwardCompatibleAlternativeAvailable` is not applicable. Keeping `instant` or adding a separate approximate date field would preserve R4 downgrade behavior but would sacrifice or split the R6 capture/search model rather than avoid an R4-to-R6 break."
+      }
+    },
+    {
+      "findingId": "DocumentReference:REFERENCE_TARGET:DocumentReference.subject-author:dc2bb4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because the reference target sets were widened.",
+        "alternativeTradeoffSummary": "All R4 targets remain allowed; the tradeoff is only that some R6 targets cannot validate in R4.",
+        "justificationRationaleMd": "Broadening the types of resources that can be document subjects or authors is a reasonable expressive change. Since R4-valid target types remain valid in R6, this is not a breaking R4-to-R6 base-design issue.",
+        "backwardCompatibleAlternativeMd": "The only way to avoid the R6-to-R4 downgrade gap would be to keep the R4 target lists, which would block the R6 expressiveness goal. That is not a backwards-compatible alternative for preserving old R4 instances because those instances are already preserved."
+      }
+    },
+    {
+      "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.docStatus:cd0e9a",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep existing code meanings, especially `preliminary`, and add new codes for narrower lifecycle distinctions.",
+        "alternativeTradeoffSummary": "Adds or retains more lifecycle codes and still needs downgrade policy, but avoids changing the meaning of legacy data.",
+        "justificationRationaleMd": "A more granular document lifecycle code system is reasonable, but narrowing the semantics of an existing R4 code is not clearly justified by the local evidence. Existing `preliminary` instances can remain code-valid while being interpreted differently, which is the kind of semantic break that could have been avoided by adding new codes rather than redefining the old one.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could preserve the R4 meaning of `preliminary` and add separate R6 codes for the newly distinguished states, such as verified early results or broader partial availability. This keeps old data semantics stable with only moderate terminology complexity; ConceptMaps help migration but are not a base-design alternative."
+      }
+    },
+    {
+      "findingId": "DocumentReference:SEMANTIC_OR_CONFORMANCE_TEXT:DocumentReference.content:d81a55",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep permissive R4 repetition semantics and add advisory guidance or profile warnings for version packing.",
+        "alternativeTradeoffSummary": "Preserves old multi-version packing patterns but weakens the R6 guarantee that repetitions are alternate forms of the same document.",
+        "justificationRationaleMd": "The R6 goal of preventing different document versions from being hidden inside one `DocumentReference.content` list is clinically and operationally reasonable. A softer advisory path would be less disruptive, but it would not give base R6 consumers a reliable same-document invariant.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could leave the R4 semantics intact and add best-practice guidance, a warning, or a profile recommendation to use separate DocumentReferences with `relatesTo` for versions. That is only a partial alternative because systems could still legitimately pack multiple versions in the base resource, undermining the interoperability and safety goal."
+      }
+    },
+    {
+      "findingId": "DocumentReference:VALUE_CONSTRAINT:DocumentReference.docRef-constraints:928a2d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use clearer SHOULD/best-practice guidance or profile-level warnings instead of base SHALL warning constraints.",
+        "alternativeTradeoffSummary": "Avoids warning-as-error ambiguity but gives validators and reviewers a weaker, less uniform signal.",
+        "justificationRationaleMd": "Avoiding duplicate facility/practice metadata when an Encounter supplies it is a plausible R6 goal, and warning severity keeps the normal validation break limited. The main concern is the mismatch between SHALL wording and warning behavior, so a less-breaking alternative exists but would reduce toolable conformance pressure.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could phrase the rule as SHOULD/best-practice narrative or leave enforcement to profiles that know whether Encounter-derived metadata is reliable. That would reduce migration uncertainty for R4 data but only partially meet the R6 goal because base validators would have less consistent ability to flag duplicated context metadata."
+      }
+    },
+    {
+      "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.securityLabel:35aa7e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because weakening the binding does not invalidate R4 security labels.",
+        "alternativeTradeoffSummary": "Keeping the extensible binding could improve uniform policy guidance, but that is conformance strictness rather than R4 instance preservation.",
+        "justificationRationaleMd": "Clarifying that `securityLabel` applies to the referenced document while `meta.security` applies to metadata is a reasonable R6 goal. The binding-strength decrease may affect policy expectations, but it does not make R4-valid instances invalid in R6.",
+        "backwardCompatibleAlternativeMd": "Retaining the R4 extensible binding while updating the definition would have preserved stronger terminology guidance, but this is not a backwards-compatible base-design alternative in the R4-to-R6 instance sense: old codes remain allowed under the weaker example binding. The remaining risk is policy/runtime interpretation."
+      }
+    },
+    {
+      "findingId": "DocumentReference:SEMANTIC_OR_CONFORMANCE_TEXT:DocumentReference.status:0c5d66",
+      "justification": {
+        "justificationVerdict": "Cannot assess",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "This is not a confirmed R4-to-R6 base compatibility issue; R4 did not allow `unknown`, and the R6 required ValueSet still does not.",
+        "alternativeTradeoffSummary": "Correcting the short text is compatible; adding `unknown` would create a new R6-to-R4 downgrade issue.",
+        "justificationRationaleMd": "The local R6 artifacts conflict: the short text mentions `unknown`, but the required terminology artifacts still list only the R4 codes. Without ballot notes or a later package, the intended goal cannot be assessed, and no R4-valid status value is shown to become invalid.",
+        "backwardCompatibleAlternativeMd": "The compatible fix is to align the short text with the required ValueSet if `unknown` was accidental. If R6 intended to add `unknown`, that would be an R6-to-R4 expansion concern rather than a less-breaking alternative for preserving R4 instances."
+      }
+    },
+    {
+      "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.category-type:91e3ba",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because the bindings remain preferred/example.",
+        "alternativeTradeoffSummary": "Old picklists and profiles may need local retention, but base validation does not reject old codes.",
+        "justificationRationaleMd": "Modernizing terminology guidance for document type and category is reasonable, and the retained non-required binding strengths avoid a hard R4-to-R6 validation break. The migration work is mainly in UIs, analytics, and profiles that copied the old guidance.",
+        "backwardCompatibleAlternativeMd": "Because preferred and example binding changes do not make old base instances invalid, `backwardCompatibleAlternativeAvailable` is not applicable. Implementations that need the old value sets can retain them in profiles or local configuration, but that is not a less-breaking base-design alternative."
+      }
+    },
+    {
+      "findingId": "DocumentReference:CONVERSION_OR_MAPPING:DocumentReference.root-r6-additions:bb5a01",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because the grouped R6 fields are optional additions or downgrade-only concerns.",
+        "alternativeTradeoffSummary": "R4 downgrade and round-trip fidelity still require policy, but avoiding the fields would block useful R6 expressiveness.",
+        "justificationRationaleMd": "Adding optional metadata for workflow, modality, body structure, attestation, relationships, and profiles is a reasonable R6 goal and does not invalidate R4 instances moving forward. The identified risk is R6-to-R4 representability, not a breaking R4-to-R6 base-design issue.",
+        "backwardCompatibleAlternativeMd": "Cross-version extensions or projections can mitigate R6-to-R4 loss, but they are downgrade mechanisms rather than base-design alternatives. Since the fields are optional additions, the backwards-compatible R4-to-R6 alternative question is not applicable."
+      }
+    }
+  ]
+}

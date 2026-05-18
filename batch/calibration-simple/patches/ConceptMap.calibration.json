@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "ConceptMap",
+  "patches": [
+    {
+      "findingId": "ConceptMap:ELEMENT_PRESENCE_OR_IDENTITY:sourceScope-targetScope:4b50c2",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `source[x]` and `target[x]` element names in base R6 and clarify in definitions that they are value-set scopes.",
+        "alternativeTradeoffSummary": "This leaves less precise names and some confusion with group source/target, but avoids a wire-format break without duplicating representations.",
+        "justificationRationaleMd": "The clarity goal is reasonable: top-level `source[x]` and `target[x]` are value-set scopes, not the group code systems. But the R6 elements kept the same cardinality and types, so the main break is a rename. Because the same goal could mostly be met by retaining the R4 names with clearer short/definition text and examples, the hard instance break looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design is not a conversion tool or extension; it is to keep `ConceptMap.source[x]` and `ConceptMap.target[x]` as the canonical base elements and update their definitions to say source scope and target scope. Adding parallel `sourceScope[x]` aliases would also preserve old instances, but it would create two same-resource ways to say the same thing and deprecated spellings might linger indefinitely."
+      }
+    },
+    {
+      "findingId": "ConceptMap:TYPE_DOMAIN:group-source-version:2f91aa",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `sourceVersion` and `targetVersion` alongside canonical `group.source` and `group.target`, with explicit precedence rules for versioned canonicals.",
+        "alternativeTradeoffSummary": "This preserves old version data but creates duplicate version locations and conflict-handling requirements.",
+        "justificationRationaleMd": "Aligning group source and target with canonical CodeSystem references is a reasonable R6 goal. A less-breaking base design could preserve the removed version siblings, but version information can change terminology translation results; allowing both canonical `|version` syntax and separate version fields creates validation ambiguity and interoperability risk. Those material tradeoffs make the simplifying break probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would keep `ConceptMap.group.sourceVersion` and `ConceptMap.group.targetVersion` as deprecated optional elements while encouraging canonical CodeSystem references in `group.source` and `group.target`. That would preserve R4 instances with explicit version strings, but R6 would need rules for whether `group.source` may include a version suffix, which value wins on conflict, and how systems round-trip or compare the two representations."
+      }
+    },
+    {
+      "findingId": "ConceptMap:TERMINOLOGY_BINDING:target.relationship:8e57d4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `relationship` for new source-to-target semantics while retaining legacy `equivalence` as a deprecated mutually exclusive alternative during transition.",
+        "alternativeTradeoffSummary": "This preserves old target entries but leaves two modifier elements, two code systems, and opposite reading directions in the base resource.",
+        "justificationRationaleMd": "The R6 goal of source-to-target relationship names is reasonable and addresses a real R4 ambiguity. A base R6 design could have accepted legacy `equivalence`, but old ten-code equivalence semantics do not map cleanly to the R6 five-code relationship system, and the reading direction changes. Keeping both modifier representations would carry a meaningful safety and interoperability burden, so the breaking redesign is probably justified.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would model the target relationship as accepting either the old `equivalence` element or the new `relationship` element, with an invariant that only one appears. This is only a partial alternative: implementations would still need to understand old target-to-source semantics, distinguish close-but-not-identical codes such as `equal` and `equivalent`, and handle legacy codes such as `inexact` and `unmatched`. A cross-version ConceptMap would help migration, but by itself it is conversion guidance rather than a backward-compatible base R6 design."
+      }
+    },
+    {
+      "findingId": "ConceptMap:SLICING_AND_CONTENT_MODEL:dependsOn:6d0ef1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `additionalAttribute` and typed `value[x]`/`valueSet` while retaining R4 `dependsOn.property`, `system`, `value`, and `display` as deprecated legacy children.",
+        "alternativeTradeoffSummary": "This keeps old conditional maps valid but creates two condition models and weakens the typed declaration guarantees.",
+        "justificationRationaleMd": "The R6 model is materially clearer: dependencies are declared once, referenced by code, and can carry typed values or value-set membership. Retaining the R4 tuple would reduce migration pain, but the R4 free-string `value` and URI `property` do not provide the same validation or reusable attribute semantics. Because supporting both shapes would add ambiguity and implementation burden for translate behavior, the break is probably justified.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would allow the old `property`/`system`/`value`/`display` children as deprecated legacy fields while adding the R6 declaration and typed-value model. That would preserve R4 instances, but R6 would need conflict rules when both legacy and typed fields appear, guidance for deriving `additionalAttribute` declarations from arbitrary URIs, and handling for old string values that are really codes, paths, text, or value-set identifiers."
+      }
+    },
+    {
+      "findingId": "ConceptMap:VALUE_CONSTRAINT:element-target-code-valueset:09c8c7",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `valueSet` and `noMap` but make the code-or-valueSet rules warnings, or permit constrained legacy entries that omit both fields.",
+        "alternativeTradeoffSummary": "This preserves permissive R4 maps but keeps ambiguous mapping and no-map semantics in the base resource.",
+        "justificationRationaleMd": "Supporting source and target value sets and an explicit `noMap` flag is a reasonable model improvement. The breaking part is the new error-level requirement that mapping entries identify exactly one code or value set. A less-breaking design could accept older omitted-code patterns, but that would undercut the R6 guarantee that each rule precisely identifies what it maps, and ambiguity around empty targets versus no-map assertions can affect translation behavior.",
+        "backwardCompatibleAlternativeMd": "The partial base alternative would add the new R6 fields while relaxing `cmd-5` and `cmd-7` to warnings or carving out legacy cases where neither `code` nor `valueSet` is present. This is not merely migration tooling; it would preserve old instances in the base validator. The tradeoff is that R6 consumers would still have to interpret underspecified source or target entries and distinguish incomplete data from deliberate no-map behavior."
+      }
+    },
+    {
+      "findingId": "ConceptMap:VALUE_CONSTRAINT:unmapped:5bb75b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `provided` and `url` as deprecated aliases and allow legacy fixed/provided defaults without `relationship`, or define an explicit legacy default.",
+        "alternativeTradeoffSummary": "Aliases preserve some old data, but accepting or guessing missing relationships weakens default mapping semantics and can change translate results.",
+        "justificationRationaleMd": "Clarifying unmapped behavior and requiring an explicit default relationship for fixed or source-code defaults is a reasonable R6 goal. A less-breaking base design could preserve the old mode code and old fallback-map element name, but preserving all R4 instances also means accepting R4 defaults that lack the new `relationship`. That missing modifier value is semantically important, so the alternative is only partial and carries operational risk.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would accept `mode=provided` as a deprecated alias for `use-source-code` and `unmapped.url` as a deprecated alias for `otherMap`. For `other-map`, that mostly preserves old content. For `fixed` and `provided`, however, preserving old instances requires either making `relationship` optional for legacy content or assigning a default relationship; both choices can misstate the intended translation relationship and leave validators with special-case legacy rules."
+      }
+    },
+    {
+      "findingId": "ConceptMap:CONVERSION_OR_MAPPING:properties-additionalAttribute:ab4d12",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable because optional R6 `property`, `target.property`, and `additionalAttribute` content does not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "R6-to-R4 export may need extensions or data loss; that is a conversion mitigation, not a less-breaking base R6 alternative.",
+        "justificationRationaleMd": "First-class typed mapping properties and declared additional attributes are reasonable R6 additions. This finding is not an old-valid/new-invalid base-design break: ordinary R4 ConceptMap instances remain valid with respect to these optional additions. The reported risk is R6-to-R4 round-trip loss, so backward-compatible alternative availability for the R4-to-R6 base design is not applicable.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed to preserve R4 instances for this finding. Omitting the new elements would fail the R6 goal of native typed mapping metadata, while R4 extensions or cross-version transforms can reduce down-conversion loss but are mitigations outside the base R6 content model."
+      }
+    }
+  ]
+}

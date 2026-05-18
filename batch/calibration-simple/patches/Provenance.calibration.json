@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Provenance",
+  "patches": [
+    {
+      "findingId": "Provenance:ELEMENT_PRESENCE_OR_IDENTITY:Provenance.reason:be90a8",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain R4 `reason` as the coded authorization/security-context element, with a clearer definition, and add `why` only for textual rationale.",
+        "alternativeTradeoffSummary": "Preserves most R4 instances but keeps a less precise legacy name and may leave some historically broad reasons semantically ambiguous.",
+        "justificationRationaleMd": "Separating authorization/security context from a human-readable rationale is a reasonable R6 goal, but the hard break comes from removing the R4 path. Because R4 `reason` already had the same repeated CodeableConcept shape and PurposeOfUse binding family as R6 `authorization`, the goal could likely have been met by clarifying the old element rather than invalidating existing instances.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `Provenance.reason` as the 0..* coded authorization or purpose-of-use field, marked it deprecated or given it an authorization alias, and added `Provenance.why` for markdown rationale. That avoids a duplicate coded same-resource field if `authorization` is not also introduced; the tradeoff is living with the older, less specific name and relying on definitions and guidance to narrow its semantics."
+      }
+    },
+    {
+      "findingId": "Provenance:TERMINOLOGY_BINDING:Provenance.entity.role:54055e",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `derivation` as a deprecated valid code while adding R6 `instantiates` and `other`.",
+        "alternativeTradeoffSummary": "The old broad code would persist in the required binding and may delay precise mapping, but preserving it is a low-cost compatibility path.",
+        "justificationRationaleMd": "Clarifying entity roles and adding more precise choices is reasonable, but removing a code from a required binding directly invalidates R4 instances that used `derivation`. Keeping the old code available while encouraging newer codes would have preserved validation compatibility without blocking the R6 vocabulary expansion.",
+        "backwardCompatibleAlternativeMd": "The base R6 CodeSystem/ValueSet could have retained `derivation` with deprecated or legacy wording and added `instantiates` and `other` as preferred alternatives. Implementers could then migrate broad `derivation` uses gradually. The main downside is that the less precise code might remain in data and picklists longer, but that tradeoff is moderate compared with a required-binding validation break."
+      }
+    },
+    {
+      "findingId": "Provenance:REFERENCE_TARGET:Provenance.agent.onBehalfOf:6c650f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain Device and RelatedPerson during transition, or add a delegation-specific successor while keeping legacy `onBehalfOf`.",
+        "alternativeTradeoffSummary": "Preserves legacy data but leaves ambiguous delegation semantics, duplicate representations, and accountability risk.",
+        "justificationRationaleMd": "The R6 goal of making `onBehalfOf` specifically mean delegated authority is reasonable for audit accountability. A less-breaking design exists, but retaining the old broad target set would continue to validate assertions that may not represent delegation at all, so the breaking target cleanup is probably justified even though official intent evidence was not supplied.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would decouple the semantic change from the target-list cleanup: keep Device and RelatedPerson as deprecated targets with warning guidance, or add a new delegation-specific element while preserving the old `onBehalfOf` shape. That would protect old instances, but it creates same-resource ambiguity about which representation carries the delegator and risks old non-delegation usage persisting indefinitely."
+      }
+    },
+    {
+      "findingId": "Provenance:REFERENCE_TARGET:Provenance.agent.who:4cafcc",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking base alternative is needed because R6 retains every R4 `agent.who` target and only adds new targets.",
+        "alternativeTradeoffSummary": "New targets create R6-to-R4 mapping work for older consumers but do not invalidate R4 instances.",
+        "justificationRationaleMd": "Allowing CareTeam, Group, and HealthcareService as Provenance agents is a reasonable expressiveness improvement, and the R6 base target widening preserves R4-valid instances. The remaining issue is older R4 consumers receiving newer R6 data, not avoidable R4-to-R6 breakage.",
+        "backwardCompatibleAlternativeMd": "Backport extensions or conversion policies can help R4 recipients carry the new actor types, but those are migration mitigations. They are not backward-compatible alternatives to a breaking base R6 design because this change is already forward-compatible for R4 instances."
+      }
+    },
+    {
+      "findingId": "Provenance:VALUE_CONSTRAINT:Provenance.agent:eda0a8",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Introduce prov-1 through prov-4 first as warnings or profile constraints before making them base error constraints.",
+        "alternativeTradeoffSummary": "Warnings preserve legacy data but do not guarantee clean delegation semantics; base errors can reject rare but misleading historical assertions.",
+        "justificationRationaleMd": "Preventing self-delegation and circular delegation is a reasonable accountability goal. The stricter error constraints can invalidate some R4 instances, but a softer rollout would leave misleading delegation assertions conformant in the base resource, so the breakage is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "A partial alternative would define these checks as warning or best-practice constraints, or enforce them only in R6 profiles initially. That would reduce migration failures for legacy data, but validators and trading partners could not rely on base Provenance to exclude the problematic delegation patterns."
+      }
+    },
+    {
+      "findingId": "Provenance:CARDINALITY:Provenance.recorded:bdb567",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: relaxing `recorded` from mandatory to optional preserves R4 instances and primarily affects R6-to-R4 conversion.",
+        "alternativeTradeoffSummary": "R6 can represent unknown or externally recorded timestamps; R4 consumers need an explicit policy for missing `recorded`.",
+        "justificationRationaleMd": "The R6 definition indicates a plausible goal of allowing Provenance when the recording time is unknown or captured outside the FHIR instance. Because this is a cardinality relaxation, it does not make R4-valid instances invalid in R6; the compatibility concern is downstream conversion to R4.",
+        "backwardCompatibleAlternativeMd": "Keeping `recorded` at min=1 would preserve easier R4 round-tripping, but it is not a less-breaking R4-to-R6 alternative because the R6 change is already forward-compatible. It would instead block the R6 goal of allowing provenance records without a known in-resource recorded instant."
+      }
+    },
+    {
+      "findingId": "Provenance:ELEMENT_PRESENCE_OR_IDENTITY:Provenance.basedOn|Provenance.patient|Provenance.encounter:be7e3f",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: optional R6 context additions do not invalidate R4 instances.",
+        "alternativeTradeoffSummary": "Native context fields improve R6 interoperability but need extension mapping, loss policy, or rejection when sending R6 data to R4.",
+        "justificationRationaleMd": "Making workflow, patient, and encounter context explicit on Provenance is a reasonable R6 design goal, and adding these elements as optional content is forward-compatible for R4-to-R6 validation. The break is only for R6 content moving back into an R4 base model.",
+        "backwardCompatibleAlternativeMd": "R4 extensions and cross-version transforms are useful migration tools for carrying these new context links to older systems, but they are not less-breaking alternatives to a base R6 design. The base R6 additions already preserve old R4 instances."
+      }
+    },
+    {
+      "findingId": "Provenance:FLAGS_AND_MODIFIERS:Provenance._summary:db610e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: summary flags affect projection/API behavior, not instance validity.",
+        "alternativeTradeoffSummary": "More useful summaries may increase payload size and privacy exposure; explicit `_elements` or server policy can manage exact projections.",
+        "justificationRationaleMd": "The elements newly marked as summary carry important provenance context, so exposing them in summary views is reasonable. Since the flags do not change the validity of R4 instances or the base wire shape, this is not an avoidable R4-to-R6 base-design break.",
+        "backwardCompatibleAlternativeMd": "Servers and clients can mitigate runtime surprises by documenting summary behavior or requesting explicit `_elements`, but those are operational controls. There is no backward-compatible base-design alternative to assess for old-instance validation because no R4 instance is invalidated."
+      }
+    },
+    {
+      "findingId": "Provenance:SEMANTIC_OR_CONFORMANCE_TEXT:Provenance.agent.role:e028f2",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the element shape and example binding do not by themselves make R4 `agent.role` instances invalid.",
+        "alternativeTradeoffSummary": "Terminology picklists, audit logic, and authorization logic still need review, but retaining broader local code sets is migration policy rather than a less-breaking base design.",
+        "justificationRationaleMd": "Clarifying the distinction between structural role and functional participation role is a reasonable R6 goal. Because `agent.role` remains a CodeableConcept with an example binding, the change is a semantic and runtime migration concern rather than a hard R4-to-R6 validation break.",
+        "backwardCompatibleAlternativeMd": "Implementers may keep broader local role value sets, ConceptMaps, or compatibility picklists while adopting the R6 structural-role interpretation. Those mitigations can reduce operational churn, but they are not backward-compatible alternatives to a breaking base R6 design because the base R6 element does not reject R4 role codings solely due to the example binding."
+      }
+    },
+    {
+      "findingId": "Provenance:TERMINOLOGY_BINDING:Provenance.activity|Provenance.agent.type:2eaefe",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: weakening the bindings to example means R4 codes are not invalidated by base R6 terminology validation.",
+        "alternativeTradeoffSummary": "Terminology picklists, enums, analytics, and mappings may need updates; transitional value sets or ConceptMaps are migration aids.",
+        "justificationRationaleMd": "Aligning activity and agent type with lifecycle and functional-role terminology is a reasonable goal, and weakening the binding strength avoids a hard terminology validation break. The remaining compatibility risk is semantic/runtime behavior in systems that generated closed code lists or applied local extensible-binding policy.",
+        "backwardCompatibleAlternativeMd": "A transitional union value set or official ConceptMap would make migration safer, but that would be supporting guidance rather than a necessary less-breaking base design. Since R6 uses example bindings here, the base resource already avoids invalidating R4 instances on terminology membership alone."
+      }
+    },
+    {
+      "findingId": "Provenance:SEMANTIC_OR_CONFORMANCE_TEXT:Provenance.entity.agent:2cf303",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Broaden the definition to explicitly cover both generated-entity attribution and responsibility for use, or add a separate element while keeping the old semantics.",
+        "alternativeTradeoffSummary": "A transitional semantic bridge would reduce surprise but leaves ambiguous or duplicate attribution relationships in a resource focused on entities used in the activity.",
+        "justificationRationaleMd": "Because `Provenance.entity` is an entity used in the activity, the R6 wording is a plausible correction or clarification. Existing systems that relied on the R4 generated-entity sentence can still experience semantic breakage, but preserving that wording unchanged would undermine the clearer R6 interpretation.",
+        "backwardCompatibleAlternativeMd": "A partial base alternative would have described `entity.agent` as covering both responsibility for the entity's prior generation and responsibility for its use in the current activity, or introduced a distinct optional relationship while leaving the old interpretation intact. That would soften migration but at the cost of durable ambiguity and possible duplicate representations of attribution."
+      }
+    }
+  ]
+}

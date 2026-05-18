@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Account",
+  "patches": [
+    {
+      "findingId": "Account:ELEMENT_PRESENCE_OR_IDENTITY:Account.partOf:7a6a56",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `Account.partOf` with clearer wording, or add `parent` while keeping `partOf` deprecated during transition.",
+        "alternativeTradeoffSummary": "Keeping only `partOf` preserves compatibility but leaves a less direct name; keeping both names risks duplicate same-resource representations that may persist indefinitely.",
+        "justificationRationaleMd": "The goal of clarifying the account hierarchy as a parent/sub-account relationship is reasonable, but the R4 and R6 elements have the same cardinality, type, target, and role. The available evidence makes this primarily a wire-name and generated-property rename, so the hard instance and codegen break was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have kept `Account.partOf` and improved its short/definition to say it identifies the parent Account. If `Account.parent` was strongly preferred, R6 could have retained `partOf` as a deprecated synonym for at least one release and added an invariant or guidance discouraging both fields on the same instance. That duplication has real cleanup risk, but the simpler option of retaining the old field name would preserve R4 instances with low long-term cost."
+      }
+    },
+    {
+      "findingId": "Account:SERIALIZATION_OR_CODEGEN:Account.description:2df66e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `description` as `string` while documenting that markdown syntax is permitted, or add a separate markdown-capable representation.",
+        "alternativeTradeoffSummary": "Keeping `string` preserves R4 codegen and wire compatibility but weakens typed markdown semantics; a sibling or choice representation would duplicate one description fact.",
+        "justificationRationaleMd": "Allowing formatted explanatory text is a reasonable goal, and using the FHIR `markdown` primitive gives R6 consumers a clear rendering/sanitization signal. The change is mostly a generated-model and semantic break rather than a JSON scalar break, because ordinary R4 string values remain string-shaped.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained the `string` type and clarified that implementations may include markdown syntax in the value. That would preserve most R4 code and instances, but it would not give validators, generated models, or UIs an explicit `markdown` datatype. Adding a parallel markdown field or choice would make the alternative more explicit, but would split one description across competing representations that might never fully converge."
+      }
+    },
+    {
+      "findingId": "Account:CARDINALITY:Account.guarantor.party:5fb2ad",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: lowering `guarantor.party` from `1..1` to `0..1` and adding optional guarantor details preserves R4-valid Account instances.",
+        "alternativeTradeoffSummary": "The main cost is R6-to-R4 conversion and runtime null-handling; an invariant requiring `party` or `account` would reduce ambiguity but is semantic hardening, not an R4-to-R6 compatibility alternative.",
+        "justificationRationaleMd": "The R6 goal appears to be support for account-based guarantor responsibility plus percentage, limit, and rank details. That is a reasonable billing capability, and the base change does not make existing R4 guarantor entries invalid in R6 because R4 entries with `party` remain allowed.",
+        "backwardCompatibleAlternativeMd": "Under the calibration rules this is not a backward-compatible-alternative case: it is a weakening plus optional R6 additions, not an R4-to-R6 base-design break. Keeping `party` mandatory would preserve older runtime assumptions and make R6-to-R4 conversion easier, but it would fail the account-only guarantor use case. A formal `party.exists() or account.exists()` invariant could improve R6 data quality, yet it is not needed to preserve R4 instances."
+      }
+    },
+    {
+      "findingId": "Account:CONVERSION_OR_MAPPING:Account.diagnosis-procedure-covers:cc31bd",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `covers`, `diagnosis`, and `procedure` are optional R6 additions, so R4 Account instances can remain valid without them.",
+        "alternativeTradeoffSummary": "Base elements standardize common billing context for R6 but create R6-to-R4 representability gaps; extensions or related-resource mappings are migration/down-conversion strategies rather than backward-compatible base alternatives.",
+        "justificationRationaleMd": "Representing billing-relevant encounters, episodes, diagnoses, and procedures on Account is a plausible core R6 goal, and R6 implemented it without requiring new data from existing R4 instances. The breakage described here is mainly for mixed-version consumers and R6-to-R4 round-tripping.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is needed for R4-to-R6 validation because the new content is optional. Keeping this information solely in extensions, Claim, Encounter, Condition, or Procedure links could preserve the R4 base shape, but that is an alternate modeling or conversion strategy with weaker standardization, not a backward-compatible alternative to an actual R4-to-R6 break."
+      }
+    },
+    {
+      "findingId": "Account:CONVERSION_OR_MAPPING:Account.billing-balance:91e303",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: billing status, currency, balance, and calculated-at fields are optional R6 additions and do not invalidate R4 Account instances.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 data loss or extension use for populated financial fields; avoiding base fields would reduce down-conversion gaps but weaken R6 standardization of financial state.",
+        "justificationRationaleMd": "Structured billing lifecycle, currency, balance, and calculation timestamp data are natural Account capabilities for financial systems. Because R6 adds them optionally, the design preserves forward validation for R4 instances while increasing expressivity for R6 producers.",
+        "backwardCompatibleAlternativeMd": "This is not a backward-compatible-alternative issue under the calibration rules because the finding is about optional R6-only content and down-conversion risk. Extensions or a separate finance resource could be used as migration or alternate modeling approaches, but they are not evidence that a less-breaking base design was required for R4-to-R6 compatibility."
+      }
+    },
+    {
+      "findingId": "Account:SEMANTIC_OR_CONFORMANCE_TEXT:Account.subject:a9450f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: the `subject` cardinality and reference targets are unchanged, and the change is explanatory guidance rather than an R4-to-R6 validation break.",
+        "alternativeTradeoffSummary": "Inline guidance improves discoverability but may require review of local patient-identity assumptions; narrative-only guidance would be less visible, not a compatibility-preserving base alternative.",
+        "justificationRationaleMd": "Clarifying that billing demographics may require a different linked Patient resource is a reasonable conformance goal, and it was accomplished without changing the Account.subject wire shape. The compatibility risk is behavioral for systems with stricter local assumptions, not a base instance-validity break.",
+        "backwardCompatibleAlternativeMd": "Because no R4 Account instance becomes invalid and no R6-only field is introduced on `subject`, there is no backward-compatible base alternative to assess. Keeping the shorter R4 comment and moving the billing-demographics discussion to narrative or implementation-guide text could reduce generated-documentation churn, but it would also make the intended semantics easier to miss."
+      }
+    }
+  ]
+}

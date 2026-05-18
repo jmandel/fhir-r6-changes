@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "CommunicationRequest",
+  "patches": [
+    {
+      "findingId": "CommunicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:CommunicationRequest.intent:9a4b7d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `intent` as optional in the base resource first, with profile or warning-based requiredness before a later mandate.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but leaves base R6 consumers unable to rely on the modifier authority semantics.",
+        "justificationRationaleMd": "The inferred goal is strong: CommunicationRequest becomes a workflow Request with explicit authority and intentionality, and R6 treats that distinction as modifier semantics. A less-breaking base design could avoid immediate validation failure, but it would not guarantee that every base R6 instance carries the intent needed for safe interpretation. Given that material semantic and safety tradeoff, the mandatory break is probably justified, though official change notes would be needed for a firmer verdict.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would make `CommunicationRequest.intent` optional in R6, then require it in profiles, best-practice invariants, or a later release. That would preserve unchanged R4 instances and let new senders supply intent. It is only a partial alternative because missing intent is not just incomplete administrative data: receivers would still need local policy before acting on a request whose proposal/order/plan/option status is unknown. Conversion defaults or migration tooling are mitigations, not backwards-compatible base design alternatives."
+      }
+    },
+    {
+      "findingId": "CommunicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:CommunicationRequest.reason:0d6f52",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `reason` CodeableReference while temporarily retaining deprecated `reasonCode` and `reasonReference`.",
+        "alternativeTradeoffSummary": "Preserves R4 reason data but leaves duplicate reason paths, merge/order rules, and conflict handling.",
+        "justificationRationaleMd": "Unifying coded and referenced reasons with `CodeableReference` is a coherent R6 modeling goal and aligns with the concept-or-reference pattern used elsewhere. Retaining the R4 siblings would preserve old wire instances, but it would also keep parallel same-resource representations and would not cleanly express a single reason that has both a concept and a reference. Those long-term ambiguity and cleanup costs make the breaking merge probably justified.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `reasonCode` and `reasonReference` as optional deprecated aliases while adding `reason`. This would cover common R4 instances by mapping old codes to `reason.concept` and old references to `reason.reference`. The alternative is partial because validators and consumers would need precedence, ordering, and duplication rules if old and new forms coexist, and deprecated reason fields could persist indefinitely instead of converging on the R6 `CodeableReference` shape."
+      }
+    },
+    {
+      "findingId": "CommunicationRequest:ELEMENT_PRESENCE_OR_IDENTITY:CommunicationRequest.informationProvider:7fd91c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain scalar `sender` as a deprecated compatibility alias while adding repeating `informationProvider`.",
+        "alternativeTradeoffSummary": "Covers existing single-sender instances but duplicates source/provider semantics and needs conflict rules.",
+        "justificationRationaleMd": "Clarifying that the resource names entities being asked to provide or share information, and allowing more than one such entity, is a reasonable R6 goal. A compatibility alias could preserve many R4 instances, but it would leave two ways to represent the same source-party fact and would not by itself normalize the old scalar shape into the new repeating provider model. Because those duplicate-representation and reconciliation costs are material, the rename and remodel are probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would keep `CommunicationRequest.sender` with its R4 0..1 wire shape as a deprecated alias and add `informationProvider` for the R6 preferred repeating representation. This preserves old instances that name one source, while new instances can use multiple providers and new targets. It is only partial: if both fields are populated, systems need rules for whether they must match, whether `sender` is copied into the provider list, and how long the deprecated representation remains valid. Simply relying on conversion tooling or R4 backport extensions would be mitigation, not a base R6 alternative."
+      }
+    },
+    {
+      "findingId": "CommunicationRequest:TYPE_DOMAIN:CommunicationRequest.payload.content:42a8d1",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `contentString` as an allowed choice while adding `contentCodeableConcept`.",
+        "alternativeTradeoffSummary": "Preserves string payloads; R6 would need guidance on when to use string versus CodeableConcept text/codings.",
+        "justificationRationaleMd": "Adding codified payload content is reasonable, but removing the primitive string choice was not necessary to meet that goal. The existing choice element could have accepted both the old textual arm and the new CodeableConcept arm, preserving R4 string payloads while enabling coded payloads. Because the tradeoff is mainly dual textual representations within a max-one choice, the hard `contentString` wire break looks probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design could leave `CommunicationRequest.payload.content[x]` with `string`, `Attachment`, and `Reference(Resource)` and add `CodeableConcept` as another choice type. R4 `contentString` instances would remain valid, while R6 senders could use `contentCodeableConcept` for codified or text-plus-code payloads. The cost is implementation guidance and search/conversion rules for the overlap between `contentString` and `contentCodeableConcept.text`, but that is a moderate tradeoff and does not require duplicate simultaneous fields because the choice remains single-valued per payload."
+      }
+    },
+    {
+      "findingId": "CommunicationRequest:TERMINOLOGY_BINDING:CommunicationRequest.status:6cf043",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding `ended` does not invalidate any R4 status code in base R6.",
+        "alternativeTradeoffSummary": "The issue is downgrade and closed-enum handling for R6-only status values, not preservation of R4 instances.",
+        "justificationRationaleMd": "The `ended` code addresses a plausible semantic gap for requests that are no longer actionable without specifying completion or revocation. Because all R4 status codes remain valid, this is not a breaking R4-to-R6 base-design issue under the calibration rules. The compatibility concern is R6-to-R4 representability and runtime handling in older required-binding enums.",
+        "backwardCompatibleAlternativeMd": "No backwards-compatible R4-to-R6 base alternative is needed to preserve old instances: R4 `status` values still validate in R6. Systems that must downgrade can use local mapping rules, extensions, or rejection policies for `ended`, but those are migration mitigations rather than evidence that the R6 base design could have achieved the same goal with less forward breakage."
+      }
+    },
+    {
+      "findingId": "CommunicationRequest:REFERENCE_TARGET:requester-recipient:aa21be",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: requester Group and recipient Endpoint are target additions that preserve R4-valid references in R6.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 downgrade policy and older allow-list handling, not old-instance preservation.",
+        "justificationRationaleMd": "Allowing family/household Groups as requesters and Endpoints as recipients is a plausible communication-workflow improvement, and the target-domain change is additive for R4-to-R6 validation. Existing R4 requester and recipient target types remain allowed, so the backwards-compatible alternative question is not applicable for preserving R4 instances.",
+        "backwardCompatibleAlternativeMd": "Because this is a forward-compatible target widening, there is no less-breaking base R6 design needed for R4-to-R6 instance preservation. Profiles can restrict the new targets for ecosystems that require R4 round-tripping, and downgrade transforms can reject or extension-map Group requester or Endpoint recipient references, but those are constraints or conversion mitigations rather than base-design alternatives."
+      }
+    }
+  ]
+}

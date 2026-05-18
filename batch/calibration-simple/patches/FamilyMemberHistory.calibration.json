@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "FamilyMemberHistory",
+  "patches": [
+    {
+      "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:instantiates:7f2c10",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the optional R4 protocol-instantiation elements in base R6, marked deprecated or legacy, while directing new use to the preferred provenance or workflow mechanism.",
+        "alternativeTradeoffSummary": "Preserves old instances with only resource-surface clutter, but leaves legacy metadata fields that may persist indefinitely.",
+        "justificationRationaleMd": "Removing optional `instantiatesCanonical` and `instantiatesUri` creates a hard R4-to-R6 validation break without evidence in the local definitions that the protocol metadata was unsafe or impossible to keep. The likely cleanup goal is reasonable, but the same transition could have been staged in the base resource by retaining the elements as deprecated legacy content.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design is to keep both optional elements in R6, clarify their legacy status, and recommend a preferred R6 mechanism for new protocol/provenance metadata. A cross-version extension or conversion rule would only mitigate migration; it would not preserve R4-valid base instances. The tradeoff of the base-retention alternative is a larger resource surface and the risk that deprecated protocol fields never disappear."
+      }
+    },
+    {
+      "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:estimatedAge:0d9b62",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep optional `estimatedAge` in base R6 as deprecated legacy content while preferring `Range`, approximate `Age`, or text where suitable.",
+        "alternativeTradeoffSummary": "Avoids validation failure and semantic loss, but preserves a resource-specific qualifier alongside other approximate-age representations.",
+        "justificationRationaleMd": "The R4 element was optional but carried clinically relevant precision information; its removal makes old instances invalid and can lose whether an age was explicitly estimated. The local StructureDefinitions show no reason that the R6 model needed to reject the old boolean rather than deprecate it.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would retain `estimatedAge` with legacy/deprecated guidance and keep any updated age-representation recommendations for new content. This is more than migration tooling because the old wire element would remain valid in base R6. The tradeoff is continued ambiguity between a separate estimate flag and approximate values represented as `Range` or string."
+      }
+    },
+    {
+      "findingId": "FamilyMemberHistory:VALUE_CONSTRAINT:age-deceased:fhs3:4a60ab",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a warning/best-practice invariant or a narrower hard rule that targets clearly conflicting age-at-death representations instead of forbidding every `age[x]` plus `deceased[x]` combination.",
+        "alternativeTradeoffSummary": "Preserves more old records but weakens the base guarantee against ambiguous live-age versus death-age data.",
+        "justificationRationaleMd": "The R6 invariant has a coherent modeling goal: `age[x]` is the relative's age when the history is recorded, while `deceased[x]` can carry death status or age/date at death. Making the rule a base error is disruptive, but the alternatives leave material ambiguity and safety risk when both fields are present.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have started with a warning invariant, profile-level constraint, or a narrower rule that allows `deceasedBoolean` with `age[x]` while prohibiting combinations that encode competing age facts. That would preserve common R4 records, but it would not fully achieve the R6 base goal of forcing one unambiguous representation for deceased relatives."
+      }
+    },
+    {
+      "findingId": "FamilyMemberHistory:CONVERSION_OR_MAPPING:reason:8e41d0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `reasonCode` and `reasonReference` alongside the new `reason: CodeableReference` during a transition.",
+        "alternativeTradeoffSummary": "Reduces immediate wire/API breakage but creates duplicate same-resource representations and synchronization ambiguity.",
+        "justificationRationaleMd": "Standardizing on `CodeableReference` is a reasonable R6 goal and can represent an associated concept/reference in one repeated item, which the old parallel arrays did not model cleanly. A compatibility transition was possible, but the duplicate-field tradeoff is substantial enough that the breaking merge is probably justified.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would keep the two R4 fields, mark them deprecated, and add `reason` for new CodeableReference-style content with guidance or invariants to avoid conflicting use. This covers existing R4 instances but only partially meets the R6 unification goal, because systems would need to support two representations of the same reason indefinitely and decide how to synchronize or prioritize them."
+      }
+    },
+    {
+      "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:procedure:2d75a4",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not an R4-to-R6 breaking base-design issue: optional R6 `procedure` content preserves all R4-valid instances.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 round-trip loss; extension or profile approaches are down-conversion mitigations, not backwards-compatible base R6 alternatives.",
+        "justificationRationaleMd": "Adding an optional procedure backbone expands the R6 resource for a plausible clinical use case and does not invalidate R4 instances. The compatibility concern is mainly that R6 procedure history cannot be represented natively in R4.",
+        "backwardCompatibleAlternativeMd": "Because this is additive optional R6 content, no less-breaking base R6 design is needed for R4-to-R6 compatibility. Not adding the element, or using only an extension, would reduce R6-to-R4 down-conversion pressure but would also fail the apparent R6 goal of making family-history procedures discoverable and standardized in the base resource."
+      }
+    },
+    {
+      "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:recorder-asserter:11c09f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not an R4-to-R6 breaking base-design issue: optional `recorder` and `asserter` additions preserve all R4-valid instances.",
+        "alternativeTradeoffSummary": "The cost is R6-to-R4 actor-provenance loss; Provenance or extensions are mitigations rather than less-breaking base alternatives.",
+        "justificationRationaleMd": "Direct recorder and asserter fields support a reasonable accountability/source goal and are optional, so they do not create old-valid/new-invalid instances. The remaining compatibility issue is how to down-convert or ignore new R6 actor details in R4 systems.",
+        "backwardCompatibleAlternativeMd": "The backward-compatible-alternative label is not applicable because the base R6 additions do not break R4 instances. A Provenance-only or extension-only approach could have helped cross-version round-tripping, but it would trade away the usability and uniformity of direct base elements rather than preserve an otherwise broken R4-to-R6 path."
+      }
+    },
+    {
+      "findingId": "FamilyMemberHistory:SEMANTIC_OR_CONFORMANCE_TEXT:condition.code:6b8f20",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not an R4-to-R6 instance-breaking issue: the path, type, cardinality, and binding are unchanged, so existing R4 instances remain structurally valid.",
+        "alternativeTradeoffSummary": "A separate allergy/intolerance model would reduce semantic ambiguity but adds model surface; it is a clearer R6 design alternative, not a backwards-compatible rescue for invalid R4 instances.",
+        "justificationRationaleMd": "The goal of representing family allergy or intolerance history is plausible, but the local evidence does not explain why that meaning was widened under a path named `condition`. The change preserves wire compatibility for old data yet can mislead R4-era consumers that attach condition-specific business rules to this element.",
+        "backwardCompatibleAlternativeMd": "Since no R4 instance becomes invalid, `backwardCompatibleAlternativeAvailable` is not applicable under the calibration rubric. A clearer R6 design could add a distinct allergy/intolerance backbone or classifier, but that is a semantic clarity tradeoff rather than an alternative needed to preserve R4-valid instances."
+      }
+    },
+    {
+      "findingId": "FamilyMemberHistory:FLAGS_AND_MODIFIERS:condition-summary:de33ac",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not an R4-to-R6 instance-breaking issue: changing `isSummary` affects summary behavior, not base instance validity.",
+        "alternativeTradeoffSummary": "Leaving flags unchanged would avoid runtime surprise but make default summaries less clinically useful; this is a summary-behavior tradeoff rather than an instance-preserving base alternative.",
+        "justificationRationaleMd": "Making the core family-history condition and code available in summaries is a reasonable R6 goal because they are central to the resource. The change can affect sparse payloads and privacy expectations, but it does not make old instances invalid.",
+        "backwardCompatibleAlternativeMd": "The alternative-availability label is not applicable because the finding is runtime behavior only. R6 could have left the flags unchanged and relied on `_elements`, profiles, or server policy for summary inclusion, but that would reduce default summary usefulness rather than preserve structurally broken R4 content."
+      }
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MessageHeader",
+  "patches": [
+    {
+      "findingId": "MessageHeader:TYPE_DOMAIN:MessageHeader.response.identifier:fe8312",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add a new Bundle-level Identifier element while retaining the R4 primitive response identifier for one transition release.",
+        "alternativeTradeoffSummary": "This preserves old instances but leaves two correlation identifiers with safety and interoperability risk if they disagree.",
+        "justificationRationaleMd": "Correlating responses to the original message `Bundle.identifier` is a reasonable R6 goal, and a full `Identifier` is more robust than the R4 `MessageHeader.id` string. A less-breaking design exists, but it would not fully enforce the new correlation model and could permit conflicting acknowledgement identities, so the in-place break is probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep `response.identifier` as the R4 primitive id for the original `MessageHeader`, add a new `response.bundleIdentifier` or similar `Identifier`, and define precedence or migration rules. That would preserve old JSON, but it creates parallel response-correlation mechanisms and leaves legacy messages semantically short of the R6 Bundle-identifier goal."
+      }
+    },
+    {
+      "findingId": "MessageHeader:SERIALIZATION_OR_CODEGEN:MessageHeader.source.endpoint:32fe8b",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `source.endpoint` as the URL form and add an optional `source.endpointReference` for Endpoint resources.",
+        "alternativeTradeoffSummary": "Less idiomatic than a FHIR choice and may leave a permanent legacy URL property, but an at-most-one rule can control ambiguity.",
+        "justificationRationaleMd": "Supporting Endpoint references and allowing absent source endpoint information are reasonable goals, but replacing the required URL child with `endpoint[x]` forces every R4 source endpoint to be renamed. The same base R6 goal could have been met while preserving R4 instances by keeping the old URL child and adding a reference child, so this level of R4-to-R6 breakage was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A compatible design would keep `source.endpoint` as `0..1 url`, add `source.endpointReference` as `0..1 Reference(Endpoint)`, and add an invariant or conformance rule that at most one is populated. That supports Endpoint resources and optional routing while preserving old R4 messages. The cost is a less elegant non-choice shape and the risk that the legacy URL representation persists indefinitely."
+      }
+    },
+    {
+      "findingId": "MessageHeader:SERIALIZATION_OR_CODEGEN:MessageHeader.destination.endpoint:5b9d79",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain `destination.endpoint` as the URL form and add an optional `destination.endpointReference` for Endpoint resources.",
+        "alternativeTradeoffSummary": "This preserves existing routing URLs but keeps two endpoint representations that require mutual-exclusion and precedence guidance.",
+        "justificationRationaleMd": "The R6 goal of supporting Endpoint resources and optional destination routing is sound, but the choice conversion is not the only base-design path. Keeping the R4 URL element and adding a separate Endpoint reference would preserve existing destination-bearing messages while still enabling the new reference form, making the hard wire-format break probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would keep `destination.endpoint` as `0..1 url`, add `destination.endpointReference` as `0..1 Reference(Endpoint)`, and state that systems should use only one representation. The tradeoff is model clutter and possible long-lived duplicate endpoint representations, but those costs are moderate compared with invalidating every R4 destination URL property."
+      }
+    },
+    {
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.sender:620c70",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep root `MessageHeader.sender`, broaden its target types, and clarify that it represents the source-side sender.",
+        "alternativeTradeoffSummary": "Retains a less tidy root-level placement and may delay convergence on `source.sender` or Task, but avoids a path break.",
+        "justificationRationaleMd": "Tying sender identity to the message source and allowing Device or Patient senders are reasonable goals. However, the R4 root `sender` already represented the real-world sender for trust/routing purposes, so R6 could have broadened that element and updated its definition or deprecation status without moving the path. The breaking move is therefore probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The strongest compatible alternative is to retain `MessageHeader.sender` as `0..1 Reference` and add the new Device and Patient targets there, with text clarifying that it is the source-side sender and that future workflows may prefer Task or Provenance. If R6 also added `source.sender`, it would need at-most-one and precedence rules; simply living with the old path is the lower-risk compatibility option."
+      }
+    },
+    {
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.destination.target:ac5149",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep optional `destination.target` as deprecated while adding Endpoint-based routing and receiver guidance.",
+        "alternativeTradeoffSummary": "Retains a legacy routing concept that can overlap with Endpoint or receiver and needs precedence guidance, but preserves multi-hop target data.",
+        "justificationRationaleMd": "Simplifying destination routing around Endpoint and receiver references is a plausible goal, but the local R6 model has no exact replacement for the R4 intermediary target device. Because `destination.target` was optional, retaining it as deprecated would have preserved old instances while allowing R6 guidance to prefer the newer routing model. The hard removal is probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A compatible base design would keep `destination.target` as `0..1 Reference(Device)`, mark it legacy or deprecated, and define how it relates to `destination.endpoint[x]`, `endpointReference`, and `receiver`. Profiles could discourage new use. The tradeoff is continued model clutter and possible routing ambiguity, but it avoids losing or rejecting explicit multi-hop target data."
+      }
+    },
+    {
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.enterer:e7493e",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain optional `enterer` as deprecated and recommend Provenance or Task for richer attribution.",
+        "alternativeTradeoffSummary": "Allows duplicated attribution between MessageHeader and workflow/provenance resources, requiring reconciliation rules, but preserves old audit data.",
+        "justificationRationaleMd": "Moving data-entry attribution toward Provenance, Task, or event-specific workflow resources is reasonable. The supplied artifacts do not show that R6 needed to reject existing `enterer` data in the base resource, and the element was optional, so a deprecated compatibility field could have supported gradual migration. The removal was therefore probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design would leave `MessageHeader.enterer` as an optional legacy element and document a preferred `Provenance.agent` or Task mapping for new R6 implementations. This preserves R4 validation and audit traceability while implementations migrate. The main cost is overlapping attribution locations and the possibility that the deprecated field remains in use."
+      }
+    },
+    {
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.author:751682",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain optional `author` as deprecated and publish a preferred Provenance or Task mapping.",
+        "alternativeTradeoffSummary": "Preserves legacy authorship but can duplicate or conflict with richer workflow/provenance attribution unless precedence is profiled.",
+        "justificationRationaleMd": "It is reasonable for R6 to encourage authorship and decision attribution outside MessageHeader. Still, the R4 `author` element carried a distinct role, was optional, and could have remained valid while newer resources became the preferred representation. Without an exact local replacement, the hard removal was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "The compatible base design is to keep `MessageHeader.author` as an optional deprecated element and define a recommended mapping to `Provenance.agent`, Task requester/owner, or event-specific resources. This would preserve R4 messages and let profiles tighten future use. The tradeoff is a longer period with duplicate authorship representations and possible inconsistencies."
+      }
+    },
+    {
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.responsible:123c41",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain optional `responsible` as deprecated and define a standard mapping to Provenance, Task, or event-specific responsibility.",
+        "alternativeTradeoffSummary": "Keeps overlapping accountability representations but avoids rejecting potentially compliance-relevant responsibility data.",
+        "justificationRationaleMd": "Shifting responsibility attribution into workflow or provenance resources is a reasonable modeling direction, but `responsible` captures accountability that is not necessarily equivalent to sender, receiver, author, or endpoint. Because the R6 artifacts do not provide an exact replacement, retaining the optional element during transition would have preserved old instances with manageable tradeoffs. The removal was probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design would keep `MessageHeader.responsible` as `0..1 Reference` with deprecated/legacy guidance and publish mappings to Provenance, Task, or the focus resource where appropriate. That preserves old accountability data while steering new implementations away from header-level responsibility. The cost is continued overlap and the need for rules when both legacy and richer responsibility data are present."
+      }
+    },
+    {
+      "findingId": "MessageHeader:TYPE_DOMAIN:MessageHeader.event[x]:9f80be",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding `eventCanonical` preserves R4 Coding and uri instances.",
+        "alternativeTradeoffSummary": "The cost is R6-to-R4 conversion loss and codegen updates, not a less-breaking R4-to-R6 base-design issue.",
+        "justificationRationaleMd": "Adding a canonical choice for EventDefinition or SubscriptionTopic is a reasonable way to make message events more computable. Since R4 `eventCoding` and `eventUri` values remain valid in R6, this finding is not an old-valid/new-invalid base-design break. The residual compatibility issue is reverse conversion and runtime handling of a new R6 choice arm.",
+        "backwardCompatibleAlternativeMd": "No backward-compatible alternative is needed to preserve R4-to-R6 validity because the change is additive. A URI-only design would make R6-to-R4 projection easier, but it would lose the stronger canonical target-profile semantics that the R6 choice provides."
+      }
+    },
+    {
+      "findingId": "MessageHeader:REFERENCE_TARGET:MessageHeader.destination.receiver:b03b53",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 widens receiver target profiles while retaining all R4 target profiles.",
+        "alternativeTradeoffSummary": "R6-to-R4 converters must handle new target types, but old R4 receiver references are preserved.",
+        "justificationRationaleMd": "Allowing Device, Patient, and RelatedPerson receivers is a reasonable base R6 expressivity improvement, and it does not invalidate any R4 `destination.receiver` instance because all prior target profiles are retained. The breakage is limited to reverse conversion or R4-era generated validators that cannot accept the widened R6 domain.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed for R4-to-R6 preservation. Keeping the new receiver types only in profiles or extensions would improve R6-to-R4 projection, but it would reduce base interoperability for recipient types that R6 deliberately made first-class."
+      }
+    }
+  ]
+}

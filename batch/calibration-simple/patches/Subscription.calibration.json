@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Subscription",
+  "patches": [
+    {
+      "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:criteria-topic:7f3a1d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Allow a deprecated R4 `criteria` element as an alternative to `topic`/`filterBy` during a base R6 transition.",
+        "alternativeTradeoffSummary": "Would preserve many R4 criteria instances but would keep arbitrary search-string triggers beside the new topic model and risk indefinite duplicate trigger representations.",
+        "justificationRationaleMd": "The R6 goal is reasonable: reusable `SubscriptionTopic` definitions and topic-scoped filters make subscription behavior more computable than arbitrary inline R4 search criteria. Accomplishing that by removing `criteria` is probably justified because keeping arbitrary criteria as equal base semantics would materially weaken the conformance model and leave servers with two different trigger languages to support.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have retained `Subscription.criteria` as deprecated and allowed either `criteria` or `topic` for a transition, with `topic` preferred for new R6 subscriptions. That would preserve old instances for this part of the model, but it is only a partial alternative: criteria strings can be server-specific, may not map to any `SubscriptionTopic.canFilterBy`, and the deprecated representation might never disappear."
+      }
+    },
+    {
+      "findingId": "Subscription:SERIALIZATION_OR_CODEGEN:channel-channelType:8b2c6e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `channel` backbone as deprecated while adding the R6 top-level `channelType` and `endpoint` fields.",
+        "alternativeTradeoffSummary": "Would preserve old channel shape but duplicate transport configuration and require conflict rules between primitive `channel.type` and Coding `channelType`.",
+        "justificationRationaleMd": "Flattening channel data and using `Coding` for channel type fit the broader R6 subscription redesign and terminology model. The break is severe for every R4 instance, but the less-breaking base design would introduce material ambiguity because the same delivery configuration could be expressed twice and with different datatype semantics.",
+        "backwardCompatibleAlternativeMd": "R6 could have allowed the R4 `channel` backbone for legacy instances and required that systems populate either the old backbone or the new top-level fields, not contradictory values in both. This is a partial alternative rather than a clean one: validators, serializers, and servers would need no-conflict invariants and conversion precedence, and deprecated channel backbones could accumulate indefinitely."
+      }
+    },
+    {
+      "findingId": "Subscription:CONVERSION_OR_MAPPING:payload-content:3c9d44",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `channel.payload` or another deprecated shorthand for R4 MIME payloads while adding `contentType` and `content`.",
+        "alternativeTradeoffSummary": "Would preserve common R4 payload settings but would encode policy assumptions about empty, id-only, and full-resource payloads and duplicate payload configuration.",
+        "justificationRationaleMd": "Separating payload format from payload amount is a reasonable R6 goal because it makes privacy- and delivery-relevant behavior explicit. The old R4 element combined MIME type with an implicit no-payload/full-payload distinction, so preserving it as first-class semantics would hide policy choices that R6 intentionally exposes.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have treated `channel.payload` as a deprecated alias for `contentType` plus a defined default `content`, such as `full-resource` when a MIME type is present and `empty` when absent. That preserves many R4 instances, but it is incomplete because R4 server behavior was not guaranteed to match those defaults, and keeping both old and new payload controls creates duplicate representations for a security-sensitive setting."
+      }
+    },
+    {
+      "findingId": "Subscription:SERIALIZATION_OR_CODEGEN:header-parameter:5aa91b",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `channel.header` strings alongside structured `parameter` name/value rows.",
+        "alternativeTradeoffSummary": "Would preserve simple header strings but retain ambiguous free-form sensitive data and duplicate channel-parameter representations.",
+        "justificationRationaleMd": "The R6 goal of structured channel parameters is reasonable because it supports validation and non-HTTP channel conventions better than a list of free-form strings. The break is probably justified because many R4 header strings need security-sensitive parsing, and treating both formats as equal base fields would preserve ambiguity.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `channel.header` as a deprecated legacy field and introduced `parameter` for structured use. That would help old instances with simple `Name: value` headers, but it would not solve arbitrary non-header strings and would create two places to carry credentials or routing data, increasing conflict and leakage risk."
+      }
+    },
+    {
+      "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:error-status-resource:1f4e80",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `Subscription.error` as a legacy last-error string while adding `SubscriptionStatus.error` for richer status events.",
+        "alternativeTradeoffSummary": "Would preserve R4 error data but risks stale or conflicting operational truth between Subscription and SubscriptionStatus.",
+        "justificationRationaleMd": "Separating mutable delivery status and error information from the subscription request is a reasonable R6 design goal. A less-breaking base field could preserve old instances that populated `Subscription.error`, but the tradeoff is material because status/error state is operational and can become inconsistent if represented both on the request resource and in separate status resources.",
+        "backwardCompatibleAlternativeMd": "The best base alternative is not merely an extension or conversion guide: R6 could have kept an optional deprecated `Subscription.error` string for legacy last-error text while encouraging `SubscriptionStatus.error` for current status reporting. This is only partial because it preserves an older lifecycle model, cannot represent R6's repeatable coded errors, and may encourage systems to continue relying on a stale same-resource error field."
+      }
+    },
+    {
+      "findingId": "Subscription:TERMINOLOGY_BINDING:status-entered-in-error:ab42d0",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: adding `entered-in-error` preserves all R4 status codes and does not create an R4-to-R6 instance break.",
+        "alternativeTradeoffSummary": "No less-breaking base R6 design is needed for R4-to-R6; the remaining issue is reverse-direction enum and validation handling.",
+        "justificationRationaleMd": "The added status code is consistent with modifier-status semantics and does not invalidate existing R4 `Subscription.status` values. The breakage described here is for R6 consumers or R6-to-R4 conversion, not for preserving R4-valid instances in base R6.",
+        "backwardCompatibleAlternativeMd": "Because the R4 code domain is widened rather than narrowed, backward-compatible alternative analysis is not applicable. ConceptMaps, extensions, or rejection policies may help R6-to-R4 down-conversion, but those are migration mitigations rather than less-breaking base R6 alternatives."
+      }
+    },
+    {
+      "findingId": "Subscription:CARDINALITY:reason-min-decreased:e32b57",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: lowering `reason` from 1..1 to 0..1 preserves all R4-valid instances.",
+        "alternativeTradeoffSummary": "No R4-to-R6 base-design alternative is needed; R6-to-R4 round-tripping may require a profile or explicit defaulting policy.",
+        "justificationRationaleMd": "Relaxing a required R4 element is not an R4-to-R6 breaking change. The R6 goal of not requiring free-text reason in every base instance is reasonable, and any compatibility concern is confined to reverse conversion when an R6 instance omits `reason`.",
+        "backwardCompatibleAlternativeMd": "Backward-compatible alternative analysis is not applicable for the R4-to-R6 direction because every R4-valid instance already has `reason` and remains compatible with the relaxed R6 cardinality. Requiring `reason` in an R6 profile can support R4 round-trip needs, but that is not a base-design alternative to avoid R4 breakage."
+      }
+    },
+    {
+      "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:new-r6-only-fields:64c0ad",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: these are optional R6 additions that do not invalidate R4 Subscription instances.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 data loss unless extensions or profiles are used; that is a round-trip mitigation issue, not an R4-to-R6 alternative.",
+        "justificationRationaleMd": "Adding optional identifiers, management metadata, and delivery-control fields is a backward-compatible way to add R6 capability for the R4-to-R6 direction. The reported risk is real for mixed-version stores and down-conversion, but it is not a breaking base R6 design choice for old instances.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 design is needed because R4 instances can simply omit these optional fields. R4 extensions can preserve the same data during down-conversion, but extension/backport strategies are migration mitigations and should not be counted as a `Yes` base-design alternative."
+      }
+    },
+    {
+      "findingId": "Subscription:VALUE_CONSTRAINT:filterBy-scr1:91e7ac",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `filterBy` is new optional R6 content, and its invariant does not directly reject an R4-valid instance.",
+        "alternativeTradeoffSummary": "The compatibility burden belongs to criteria-to-topic migration; the new filter constraint itself is an R6 validation rule rather than a less-breaking base alternative question.",
+        "justificationRationaleMd": "The `scr-1` invariant is reasonable because a structured filter row with both comparator and modifier would be ambiguous. This finding is not itself a breaking R4-to-R6 base-design issue; the R4-breaking design choice is the removal of `criteria`, which is covered separately.",
+        "backwardCompatibleAlternativeMd": "Backward-compatible alternative analysis is not applicable to the new optional `filterBy` constraint. A normative parser or mapping guide for R4 criteria would be useful migration support, but under the calibration rules that is tooling/guidance rather than a less-breaking base R6 design for this specific finding."
+      }
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "GuidanceResponse",
+  "patches": [
+    {
+      "findingId": "GuidanceResponse:ELEMENT_PRESENCE_OR_IDENTITY:GuidanceResponse.reason:4b9f2a",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain `reasonCode` and `reasonReference` as deprecated aliases while adding `reason` as the preferred `CodeableReference` representation.",
+        "alternativeTradeoffSummary": "This would preserve most R4 wire instances, but it creates duplicate same-resource representations, reconciliation rules, validation ambiguity, and a risk that legacy reason fields persist indefinitely.",
+        "justificationRationaleMd": "The inferred goal is reasonable: `CodeableReference` is a better R6 pattern for information that may be either coded or referential, and it avoids the artificial R4 split between `reasonCode` and `reasonReference`. The breakage is still significant because old property names disappear, but the best less-breaking base design has material long-term costs rather than being a clean substitute.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 base design could have kept `reasonCode` and `reasonReference` as deprecated elements and added `reason` for the new `CodeableReference` pattern. That would let existing R4 instances validate with little or no transform. The cost is two overlapping ways to represent the same reason on the same resource; if both old and new fields appear, validators, search extractors, FHIRPath users, and converters need precedence and consistency rules, and deprecated representations may accumulate rather than disappear."
+      }
+    },
+    {
+      "findingId": "GuidanceResponse:CARDINALITY:GuidanceResponse.evaluationMessage:6c2d1f",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `evaluationMessage` as `0..*` in the base resource and recommend one aggregate `OperationOutcome`, with profiles constraining to `0..1` where needed.",
+        "alternativeTradeoffSummary": "The alternative preserves all R4-valid repeated messages; the main tradeoff is slightly looser base uniformity and continued consumer responsibility for multiple diagnostics.",
+        "justificationRationaleMd": "The goal of encouraging one aggregate evaluation outcome is understandable, but the supplied evidence does not show why the base resource needed to prohibit multiple references. Reducing max cardinality from `*` to `1` is a direct hard break for existing R4 instances with repeated messages, and the same practical goal could have been pursued through guidance or profiles.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design would leave `GuidanceResponse.evaluationMessage` at `0..* Reference(OperationOutcome)` and update the definition to say producers should prefer a single aggregate `OperationOutcome` when possible. Implementations or IGs that need exactly one diagnostic bundle could constrain the element in a profile. This preserves R4 data while still steering R6 producers toward aggregation."
+      }
+    },
+    {
+      "findingId": "GuidanceResponse:REFERENCE_TARGET:GuidanceResponse.result:0e77aa",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain a legacy `RequestGroup` target, or loosen target profiling enough for legacy references, while adding `RequestOrchestration` and the broader R6 request target set.",
+        "alternativeTradeoffSummary": "This only partially solves compatibility because it requires retaining an obsolete or compatibility-only target, or weakens target validation and creates RequestGroup/RequestOrchestration interoperability burden.",
+        "justificationRationaleMd": "The R6 goal is reasonable: `result` represents proposed actions, and the broader target list plus `RequestOrchestration` aligns the resource with the R6 request model. A less-breaking design is imaginable, but it depends on cross-artifact legacy support for `RequestGroup` or on less precise target constraints; ordinary conversion guidance alone would not be a base-design alternative.",
+        "backwardCompatibleAlternativeMd": "The least disruptive base design would have allowed `RequestGroup` as a deprecated legacy target if R6 also retained a compatible `RequestGroup` definition or profile. Another possible design would make `result` target profiling broader so old `RequestGroup/...` references are not rejected by the `GuidanceResponse` element itself. Both alternatives have material costs: they either keep a replaced workflow resource alive in the core model or reduce the value of target-profile validation for proposed actions."
+      }
+    },
+    {
+      "findingId": "GuidanceResponse:CARDINALITY:GuidanceResponse.result:3a51e8",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: increasing `result` max from `1` to `*` preserves R4-valid cardinalities; the concern is R6-to-R4 round-trip and generated API shape.",
+        "alternativeTradeoffSummary": "Keeping a singleton would preserve old codegen and down-conversion expectations, but it would block or obscure the R6 goal of directly returning multiple proposed actions.",
+        "justificationRationaleMd": "Allowing multiple result references is consistent with a GuidanceResponse producing multiple proposed actions, and it does not make any R4-valid instance invalid in R6 on cardinality grounds. The compatibility concern is real for scalar-to-list APIs and R6-to-R4 conversion, but it is not a breaking R4-to-R6 base-design issue for existing instances.",
+        "backwardCompatibleAlternativeMd": "Backward-compatible alternative analysis is not applicable in the R4-to-R6 instance-validation sense because every absent or singleton R4 `result` still fits R6 `0..*`. A singleton-plus-aggregation design could avoid R6-to-R4 loss and scalar/list code changes, but it would fail or dilute the R6 expressiveness goal and should be treated as a conversion policy tradeoff rather than an R4-preserving base alternative."
+      }
+    },
+    {
+      "findingId": "GuidanceResponse:ELEMENT_PRESENCE_OR_IDENTITY:GuidanceResponse.location:9d0c44",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: `location` is an optional R6 addition, so it does not invalidate R4 instances; R4 extension mapping is a down-conversion mitigation.",
+        "alternativeTradeoffSummary": "The tradeoff is for R6-to-R4 round-trips only: R4 needs an extension or accepts loss of populated location context.",
+        "justificationRationaleMd": "Adding optional event-location context is a reasonable and forward-compatible way to increase R6 expressiveness. Because the element is `0..1`, existing R4 GuidanceResponse instances are not made invalid by the base R6 design.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is needed for R4-to-R6 compatibility. An R4 extension can preserve populated R6 `location` during down-conversion, but that is an extension/backport mitigation rather than evidence of a different backward-compatible R6 base design."
+      }
+    },
+    {
+      "findingId": "GuidanceResponse:FLAGS_AND_MODIFIERS:summary-context-fields:f2a8b1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 summary flags unchanged and rely on `_elements`, profiles, or implementation guidance for clients that need subject, encounter, and timing context.",
+        "alternativeTradeoffSummary": "This preserves exact R4 summary payload expectations, but only partially meets the R6 goal because the context would not appear in default summary responses.",
+        "justificationRationaleMd": "The newly summarized fields are important context for a GuidanceResponse, so including them in R6 summaries is understandable and does not affect full-resource instance validity. The less-breaking design would avoid runtime surprises for clients with strict summary-payload expectations, but it would weaken the usefulness of the standard summary view.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have left `subject`, `encounter`, and `occurrenceDateTime` out of the summary set and documented that clients should request them explicitly with `_elements` or use profiles/IG guidance. That avoids changing default summary payload shape, but it does not fully meet the same R6 goal of making key context available in normal summary representations."
+      }
+    }
+  ]
+}

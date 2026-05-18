@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Practitioner",
+  "patches": [
+    {
+      "findingId": "Practitioner:TYPE_DOMAIN:Practitioner.communication:ca8305",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 CodeableConcept shape and add preference support through a companion base element or core-defined extension.",
+        "alternativeTradeoffSummary": "This would preserve old JSON but create duplicate or split same-resource representations and weaker first-class validation/search support.",
+        "justificationRationaleMd": "The R6 backbone shape addresses a real modeling gap: a bare repeating `CodeableConcept` cannot carry per-language metadata such as `preferred` as a first-class base element. The change is still a hard wire-format break, so it is only probably justified absent official rationale. The best less-breaking base design would avoid invalidating R4 `communication` arrays, but it would leave implementations with both legacy language entries and richer preference-bearing entries to reconcile.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 design could have kept `Practitioner.communication` as the R4 repeating `CodeableConcept` and added a separate optional preference mechanism, such as a companion base element identifying preferred languages or a core-defined extension on each communication CodeableConcept. That preserves most R4 instances. It is only a partial alternative because per-language facts could become duplicated or inconsistent, old and new representations might persist indefinitely, and generic R6 clients would have weaker ability to validate, search, and process preference consistently."
+      }
+    },
+    {
+      "findingId": "Practitioner:TERMINOLOGY_BINDING:Practitioner.communication:435fa0",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the base binding preferred or extensible and require BCP 47 only through profiles, warnings, or best-practice guidance.",
+        "alternativeTradeoffSummary": "Less disruptive for text/local codes, but materially weakens the uniform base guarantee that communication languages use BCP 47.",
+        "justificationRationaleMd": "Requiring `all-languages` gives R6 a clear interoperable language-code contract, and the R6 element comments still acknowledge that some systems store language as free text. Because the R4 binding was only preferred, strict required binding can invalidate migrated legacy text-only or locally coded entries. A less-breaking path exists, but it would not provide the same base-level conformance strength.",
+        "backwardCompatibleAlternativeMd": "The less-breaking design would retain the R4 preferred binding, or at most move to a softer constraint such as extensible binding plus best-practice warnings, while letting implementation guides require BCP 47 where appropriate. That would preserve more R4-valid data during migration. It is only partial because base R6 validators and generic clients would no longer be able to rely on every `communication.language` carrying a code from the required all-languages value set."
+      }
+    },
+    {
+      "findingId": "Practitioner:SEMANTIC_OR_CONFORMANCE_TEXT:Practitioner.communication:44f3d5",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Preserve the R4 patient-communication meaning and add separate role-specific or administrative-language guidance/elements.",
+        "alternativeTradeoffSummary": "Avoids semantic surprise for old data, but leaves overlapping locations and ambiguity about global versus role-specific language capability.",
+        "justificationRationaleMd": "The R6 goal is conceptually reasonable: patient-facing language capability often depends on role, organization, or service context, while Practitioner can carry correspondence language for the person. Changing the meaning of an existing path is disruptive because structurally valid migrated data can still say the wrong thing. A less-breaking design could have staged the separation, but the tradeoff is persistent ambiguity.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could have kept the R4 `Practitioner.communication` meaning for patient communication, added clearer guidance that `PractitionerRole.communication` is preferred for role-specific publication, and introduced any administrative/correspondence language as a separate optional element or extension. This would preserve old semantics for existing instances. It is only partial because consumers would then face duplicate or overlapping language fields, uncertain precedence between Practitioner and PractitionerRole, and a longer-lived deprecated representation."
+      }
+    },
+    {
+      "findingId": "Practitioner:FLAGS_AND_MODIFIERS:Practitioner.active:3506e5",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "No",
+        "backwardCompatibleAlternativeSummary": "No equally effective less-breaking base design was identified; narrative guidance alone would not provide modifier semantics.",
+        "alternativeTradeoffSummary": "Keeping `isModifier=false` would preserve generated-model behavior but allow safety-relevant inactive status to be ignored by generic processors.",
+        "justificationRationaleMd": "`active` already meant the practitioner record might not be usable, including records created in error. Marking it as a modifier formalizes that existing safety and workflow meaning without changing instance wire format or cardinality. The compatibility cost is runtime/conformance behavior, and that cost is reasonable for a status element that can negate ordinary use of the resource.",
+        "backwardCompatibleAlternativeMd": "The obvious alternative is to leave `active` as a non-modifier and strengthen the definition or comments. That is not a real backward-compatible alternative to the R6 goal because generic FHIR processors, generated models, and modifier-aware safety checks would still be permitted to ignore the element. No lower-breakage base design was identified that gives equivalent modifier-aware processing."
+      }
+    },
+    {
+      "findingId": "Practitioner:ELEMENT_PRESENCE_OR_IDENTITY:Practitioner.deceased[x]:def16a",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 backward-compatible alternative is needed because the new element is optional and preserves R4 instances.",
+        "alternativeTradeoffSummary": "The main tradeoff is R6-to-R4 downgrade loss, which requires an extension or policy but is not a less-breaking base R6 design alternative.",
+        "justificationRationaleMd": "Representing deceased status directly is a reasonable R6 goal because it affects whether the Practitioner record should be used only historically. The addition does not invalidate R4 Practitioner instances moving to R6; the risk is that R6 instances containing the new modifier choice cannot be represented losslessly in base R4. Given the safety relevance, adding the optional modifier element is justified despite downgrade handling needs.",
+        "backwardCompatibleAlternativeMd": "This finding is not a breaking R4-to-R6 base-design issue: R4 instances remain valid with the optional R6 element absent. Using an R4 extension during downgrade is a migration mitigation, not a backward-compatible base R6 alternative. An extension-only R6 design would reduce R6-to-R4 round-trip friction, but it would also make a safety-relevant deceased status less visible to R6-native generic clients."
+      }
+    },
+    {
+      "findingId": "Practitioner:ELEMENT_PRESENCE_OR_IDENTITY:Practitioner.qualification.status:c77ef5",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 backward-compatible alternative is needed because this is an optional R6 addition.",
+        "alternativeTradeoffSummary": "R6-to-R4 conversion may need an extension or lossy omission, but that is downgrade mitigation rather than an alternative to an R4-to-R6 break.",
+        "justificationRationaleMd": "Qualification status captures lifecycle information that `period` and `code` do not reliably express, including suspended, revoked, pending, or in-progress states. Because the element is optional, non-modifier, and does not invalidate R4 instances on upgrade, the base R6 addition is justified. The compatibility concern is mainly loss of information when converting R6 data back to base R4.",
+        "backwardCompatibleAlternativeMd": "This is not an R4-to-R6 breaking base-design issue under the calibration rules. Existing R4 `Practitioner.qualification` entries can migrate without populating `status`; only R6 data that chooses to use the new field needs downgrade handling. Carrying the value in an R4 extension is a reasonable conversion strategy, but it is not a backward-compatible alternative to a forward-breaking R6 design."
+      }
+    }
+  ]
+}

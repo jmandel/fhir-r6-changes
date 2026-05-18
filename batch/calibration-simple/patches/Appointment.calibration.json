@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "Appointment",
+  "patches": [
+    {
+      "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.cancelationReason:637652",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 `cancelationReason` element in base R6 with corrected definitions and invariants, documenting the misspelling as historical.",
+        "alternativeTradeoffSummary": "Preserves a misspelled core element name, but avoids a hard wire-format break and avoids duplicate reason fields.",
+        "justificationRationaleMd": "Correcting the spelling is understandable, but the breakage is disproportionate for a spelling-only element rename. Retaining the nonoptimal R4 name while fixing the definition text and invariant would preserve existing instances and still keep the same clinical meaning.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would leave `Appointment.cancelationReason` as the canonical element in R6 and update narrative, comments, and invariants around it. A second correctly spelled alias could also be added, but that would create duplicate same-resource representations for the same fact; simply living with the old spelling is the cleaner compatibility path."
+      }
+    },
+    {
+      "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.reason:ad289d",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `reason` CodeableReference while retaining deprecated `reasonCode` and `reasonReference` for a transition period.",
+        "alternativeTradeoffSummary": "Would preserve old payloads but create duplicate reason representations and conflict-resolution rules.",
+        "justificationRationaleMd": "Unifying coded and referenced reasons as CodeableReference is a coherent R6 modeling goal. A less-breaking transition was possible, but keeping the old parallel elements beside the new one would preserve exactly the duplication and disagreement risk the new model is trying to remove.",
+        "backwardCompatibleAlternativeMd": "The partial alternative is to keep `reasonCode` and `reasonReference` valid in base R6 and add `reason` for new content. That covers existing R4 instances, but implementers and validators would need rules for cases where old and new reason fields both appear, and the deprecated representations might persist indefinitely."
+      }
+    },
+    {
+      "findingId": "Appointment:REFERENCE_TARGET:Appointment.reasonReference:3e175f",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Add DiagnosticReport as an R6 reason target while retaining ImmunizationRecommendation from R4.",
+        "alternativeTradeoffSummary": "Keeps a broader target list, but avoids invalidating R4 reason references without duplicate fields.",
+        "justificationRationaleMd": "Adding DiagnosticReport appears reasonable, but the supplied computable evidence does not explain why ImmunizationRecommendation had to be removed. Because reference target widening could have preserved the R4 target and still added the new R6 target, the breaking portion is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design is a widened R6 target set: Condition, Procedure, Observation, ImmunizationRecommendation, and DiagnosticReport. The tradeoff is a looser semantic boundary for appointment reasons, but that is a moderate conformance cost compared with rejecting valid R4 ImmunizationRecommendation reason references."
+      }
+    },
+    {
+      "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.comment:b23c03",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add repeating `note` Annotation while retaining deprecated `comment` string.",
+        "alternativeTradeoffSummary": "Avoids immediate breaks but leaves overlapping comment fields with ordering, metadata, and conflict ambiguity.",
+        "justificationRationaleMd": "Moving from a single string to Annotation supports multiple notes and note metadata, which is a reasonable model improvement. A transition design could preserve old instances, but it would carry two comment mechanisms with overlapping semantics.",
+        "backwardCompatibleAlternativeMd": "The partial alternative is to keep `comment` valid and introduce `note` for richer content. That preserves simple R4 comments, but base R6 would need reconciliation rules when both appear, and deprecated free-text comments might continue to accumulate rather than moving to Annotation."
+      }
+    },
+    {
+      "findingId": "Appointment:TYPE_DOMAIN:Appointment.participant.required:fab0b1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 code element or add a new boolean while keeping the code for transition, with `information-only` deprecated and redirected to `subject` guidance.",
+        "alternativeTradeoffSummary": "Preserves old data but keeps tri-state attendance semantics and subject-vs-attendee ambiguity.",
+        "justificationRationaleMd": "The R6 goal of separating actual attendance from subject-of-discussion is reasonable, especially for the former `information-only` code. A compatibility path exists, but it would continue to allow the old mixed semantic model that R6 is explicitly trying to clean up.",
+        "backwardCompatibleAlternativeMd": "A less-breaking design could keep the required/optional/information-only code and add guidance or a separate boolean. This is only a partial alternative because it either keeps `information-only` participants valid or creates parallel boolean/code states, both of which can confuse validation and scheduling behavior."
+      }
+    },
+    {
+      "findingId": "Appointment:TYPE_DOMAIN:Appointment.priority:eb7081",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep the unsigned integer priority and add an optional coded priority element or choice-like extension point.",
+        "alternativeTradeoffSummary": "Preserves numeric compatibility but creates parallel urgency representations without a universal numeric-to-code map.",
+        "justificationRationaleMd": "Moving toward coded priority concepts is reasonable, but the available evidence does not provide a canonical mapping from the R4 iCalendar-style number to the R6 CodeableConcept. Because an additive coded element could have supported richer priorities while preserving numeric instances, the hard type replacement is not clearly justified.",
+        "backwardCompatibleAlternativeMd": "The partial alternative is to leave `priority` as unsignedInt and add a distinct coded priority element for R6 adopters. This would preserve R4 payloads, but systems would need precedence and consistency rules when both numeric and coded priorities are present, and cross-system analytics would still need mapping guidance."
+      }
+    },
+    {
+      "findingId": "Appointment:TYPE_DOMAIN:Appointment.patientInstruction:4e33f3",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 string and add a richer repeating CodeableReference or reference field for structured instructions.",
+        "alternativeTradeoffSummary": "Preserves simple text but leaves duplicate patient-instruction channels and safety-sensitive reconciliation issues.",
+        "justificationRationaleMd": "Richer and externally referenced patient instructions are a plausible R6 goal, and a single CodeableReference-based model is clearer for new implementations. The less-breaking alternative would preserve old strings, but it would introduce overlapping ways to carry patient-facing instructions.",
+        "backwardCompatibleAlternativeMd": "The partial alternative is to keep the string field valid and add a new rich instruction element. It protects R4 free text, but R6 validators and applications would need to handle conflicts, ordering, and possible duplication between string instructions and referenced or coded instructions."
+      }
+    },
+    {
+      "findingId": "Appointment:TYPE_DOMAIN:Appointment.serviceType:80ece0",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `serviceType` as CodeableConcept and add an optional HealthcareService reference element for the new linkage use case.",
+        "alternativeTradeoffSummary": "Adds a coordination rule between a service type code and a concrete service reference, but avoids breaking existing coded serviceType instances.",
+        "justificationRationaleMd": "Allowing an appointment to reference a HealthcareService is a reasonable improvement, but replacing the existing CodeableConcept wire shape was not the only way to achieve it. A separate optional reference would preserve common R4 serviceType data while still supporting the core new R6 capability.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would leave `Appointment.serviceType` unchanged for coded service types and add a new optional reference such as a HealthcareService link. The tradeoff is that code and reference values can diverge, but that coordination burden is moderate and familiar compared with forcing every R4 coded value through a new CodeableReference wrapper."
+      }
+    },
+    {
+      "findingId": "Appointment:VALUE_CONSTRAINT:Appointment.app-5:caf303",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Introduce the start/end ordering rule first as a warning or best-practice invariant.",
+        "alternativeTradeoffSummary": "Avoids hard validation failures but permits negative-duration appointments to remain valid base R6 data.",
+        "justificationRationaleMd": "The R6 goal is basic temporal consistency, and an appointment whose start is after its end is usually erroneous scheduling data. A warning would be less breaking but would not satisfy the base-model goal of making reversed intervals invalid, so the error-level invariant is justified despite rejecting some bad historical R4 data.",
+        "backwardCompatibleAlternativeMd": "The partial alternative is a warning-level invariant or implementation-guide rule. That would flag the same records without invalidating them, but it is incomplete because systems could still exchange base-valid R6 appointments with negative duration."
+      }
+    },
+    {
+      "findingId": "Appointment:REFERENCE_TARGET:Appointment.basedOn:0f4605",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 compatibility alternative is needed because R6 widens the target list while retaining ServiceRequest.",
+        "alternativeTradeoffSummary": "The issue is downgrade and round-trip loss, not breakage of R4-valid base instances.",
+        "justificationRationaleMd": "The R6 goal of allowing appointments to be based on more request resource types is reasonable, and it does not invalidate R4 `basedOn` references because ServiceRequest remains allowed. The remaining concern is R6-to-R4 representability.",
+        "backwardCompatibleAlternativeMd": "This finding is not a breaking R4-to-R6 base-design issue. Extensions or downgrade policies may mitigate R6-to-R4 conversion for the added request targets, but those are conversion mitigations rather than backward-compatible base R6 alternatives."
+      }
+    },
+    {
+      "findingId": "Appointment:REFERENCE_TARGET:Appointment.participant.actor:3af788",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 compatibility alternative is needed because R6 only adds Group and CareTeam actor targets.",
+        "alternativeTradeoffSummary": "The change preserves R4 actor targets; only R6-to-R4 downgrade of new targets is lossy.",
+        "justificationRationaleMd": "Supporting group and care-team participants is a reasonable R6 expansion, and the R4 actor targets remain valid. The break described by this finding is therefore a downgrade/round-trip concern, not an R4-to-R6 base compatibility problem.",
+        "backwardCompatibleAlternativeMd": "Because the target set is widened, the calibrated base-design alternative status is not applicable. Preserving Group or CareTeam actors in R4 extensions or expanding them into individual participants are migration strategies, not less-breaking R6 base designs."
+      }
+    },
+    {
+      "findingId": "Appointment:CONVERSION_OR_MAPPING:Appointment.recurrenceTemplate:151d1c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 compatibility alternative is needed because the recurrence and series fields are optional R6 additions.",
+        "alternativeTradeoffSummary": "Native R6 recurrence creates R6-to-R4 conversion loss, but it does not invalidate R4 instances.",
+        "justificationRationaleMd": "Native recurrence and appointment-series support addresses a real scheduling gap and is added without making R4 instances invalid in R6. The compatibility issue is that R4 lacks equivalent base fields for downgrades.",
+        "backwardCompatibleAlternativeMd": "This is additive optional R6 content and a pure R6-to-R4 representability concern. R4 extensions or external scheduling metadata can mitigate downgrade loss, but those are backport strategies rather than backward-compatible alternatives to the R6 base design."
+      }
+    }
+  ]
+}

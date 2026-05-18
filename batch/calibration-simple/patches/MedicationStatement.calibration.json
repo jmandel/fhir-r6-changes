@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "MedicationStatement",
+  "patches": [
+    {
+      "findingId": "MedicationStatement:TERMINOLOGY_BINDING:MedicationStatement.status:00a9d2",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "A less-breaking design could have retained the R4 medication-use `status` and added a separate recording-lifecycle element, or temporarily accepted legacy status codes while adding `adherence`.",
+        "alternativeTradeoffSummary": "Preserves many R4 instances, but leaves a required modifier status with legacy semantics and risks duplicate or ambiguous status/adherence representations.",
+        "justificationRationaleMd": "Separating record lifecycle from patient medication-use/adherence state is a reasonable R6 goal, and the old required modifier `status` mixed those concerns. Because the field is mandatory and safety-relevant, a clean semantic split is plausibly worth substantial migration cost. The break is not fully unavoidable, though, because R6 could have used a transitional base design that retained the old status shape while adding clearer lifecycle/adherence structure.",
+        "backwardCompatibleAlternativeMd": "The strongest base-design alternative would have kept the R4 `status` codes valid and introduced a distinct recording-lifecycle element, or accepted legacy status codes as deprecated while new instances used `adherence`. That would preserve most R4 payloads, but it would make status semantics harder to validate and could leave two competing same-resource ways to communicate taking/not-taking state indefinitely."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:ELEMENT_PRESENCE_OR_IDENTITY:MedicationStatement.statusReason:982bba",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain top-level repeatable `statusReason` with a revised definition tied to adherence/use status, instead of removing it and reducing the reason cardinality to one.",
+        "alternativeTradeoffSummary": "Keeps a less tidy legacy name and a top-level reason outside the adherence backbone, but avoids raw instance breakage and repeat-reason data loss.",
+        "justificationRationaleMd": "Moving status reasons closer to the new adherence model is understandable, but the local evidence does not show that the old top-level path or `0..*` cardinality had to be removed. The R6 goal could largely be met by clarifying the old element's meaning while adding `adherence.code`, so the level of breakage appears avoidable.",
+        "backwardCompatibleAlternativeMd": "A backward-compatible base design could keep `MedicationStatement.statusReason` as `0..*` CodeableConcept, update its definition to mean reason for current adherence/use state, and optionally discourage it in favor of a newer pattern. That preserves R4 instances and multiple reasons with only moderate modeling untidiness."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:ELEMENT_PRESENCE_OR_IDENTITY:MedicationStatement.basedOn:f8e368",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep optional `basedOn` in the base resource, possibly deprecated or with narrower guidance, while recommending newer workflow/provenance links where appropriate.",
+        "alternativeTradeoffSummary": "Retains an older workflow-link field and possible overlap with other linkage mechanisms, but the compatibility cost is low because the element is optional.",
+        "justificationRationaleMd": "The inferred simplification goal may be reasonable, but removing an optional workflow link creates a direct validation break and no exact R6 replacement is evident in the local definitions. Preserving the old element with guidance would have met compatibility needs with limited long-term burden.",
+        "backwardCompatibleAlternativeMd": "R6 could have left `MedicationStatement.basedOn` as `0..* Reference(MedicationRequest|CarePlan|ServiceRequest)` and marked it deprecated or constrained by profiles. That would preserve order/plan fulfillment links in existing R4 data while allowing implementations to migrate toward `derivedFrom`, Provenance, Task, or other workflow patterns."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:TYPE_DOMAIN:MedicationStatement.medication:240097",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `medication[x]` choice as a deprecated transition path, or add a parallel CodeableReference element while keeping the old choice valid.",
+        "alternativeTradeoffSummary": "Would preserve old wire format, but creates duplicate medication-identity representations and complicates validation, serializers, generated models, and long-term interoperability.",
+        "justificationRationaleMd": "Using CodeableReference for concept-or-reference medication identity is a coherent R6 modeling goal, especially because it can carry concept and reference together. A less-breaking base design exists, but it would keep two same-resource representations of the required medication fact, which is a material long-term tradeoff.",
+        "backwardCompatibleAlternativeMd": "The best base alternative is not merely a transform; it would be to keep `medicationCodeableConcept`/`medicationReference` valid for a transition or introduce a new CodeableReference field alongside them. That reduces migration churn but risks persistent disagreement between legacy and new medication representations."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:REFERENCE_TARGET:MedicationStatement.context:61f0fe",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep `context` with Encounter and EpisodeOfCare targets, clarifying that Encounter is the preferred interpretation, or retain it as a deprecated alias when adding `encounter`.",
+        "alternativeTradeoffSummary": "Leaves a broader and less precise legacy name/target set, but preserves valid R4 contexts with modest validation and documentation cost.",
+        "justificationRationaleMd": "Clarifying that the common context is an Encounter is reasonable, but the R4 `context` name and EpisodeOfCare target could have been retained while documenting the preferred R6 use. The local artifacts do not show why raw compatibility had to be broken for this rename and target narrowing.",
+        "backwardCompatibleAlternativeMd": "A less-breaking R6 base design could continue to allow `MedicationStatement.context` as `Reference(Encounter|EpisodeOfCare)` with updated wording, or add `encounter` while keeping `context` deprecated. This would preserve R4 instances, including EpisodeOfCare contexts, while still steering new implementations toward Encounter-specific use."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:REFERENCE_TARGET:MedicationStatement.partOf:373837",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `partOf` target profiles in base R6 and use deprecation, warnings, or profile guidance to discourage targets considered semantically weak.",
+        "alternativeTradeoffSummary": "Preserves old references but keeps a broader parent-event domain and may perpetuate ambiguous part-of relationships or summary-response expectations.",
+        "justificationRationaleMd": "Narrowing `partOf` may reflect a reasonable desire for tighter event semantics, but the supplied definitions do not explain why MedicationAdministration, MedicationDispense, and Observation targets had to become invalid in the base resource. A less-breaking base design could have preserved those targets while documenting preferred alternatives.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `partOf` as `Reference(MedicationAdministration|MedicationDispense|MedicationStatement|Procedure|Observation)` and introduced guidance or profile constraints for stricter use. That would preserve R4 data and allow gradual convergence, at the cost of weaker base validation and possible continued use of broad parent links."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:ELEMENT_PRESENCE_OR_IDENTITY:MedicationStatement.reason:d00d09",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `reasonCode` and `reasonReference` as deprecated aliases, or add `reason` CodeableReference in parallel while retaining the old fields.",
+        "alternativeTradeoffSummary": "Preserves old instances, but creates duplicate reason representations, ordering ambiguity, and possible divergence between coded and referenced reasons.",
+        "justificationRationaleMd": "Unifying coded and referenced reasons with CodeableReference is a reasonable R6 model improvement and also permits the added Procedure target. The less-breaking base alternative would require keeping parallel old and new representations of the same reason facts, which is a substantial interoperability and validation tradeoff.",
+        "backwardCompatibleAlternativeMd": "A base-design alternative could leave `reasonCode` and `reasonReference` valid and introduce `reason` as the preferred CodeableReference form. It would reduce R4-to-R6 breakage, but implementers would need rules to prevent or reconcile duplicate reasons and to preserve ordering and concept/reference pairing."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:TYPE_DOMAIN:MedicationStatement.dosage:9e0d91",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add a new `dosageDetails` element or transition choice while retaining the R4 repeating `dosage` Dosage array in base R6.",
+        "alternativeTradeoffSummary": "Would preserve old dosage arrays, but two dosage models for the same patient-safety content could conflict and indefinitely burden validation, rendering, and clinical review.",
+        "justificationRationaleMd": "The R6 DosageDetails model appears to pursue a clinically important goal: one complete rendered instruction plus structured steps. Existing R4 dosage arrays are common and safety-sensitive, but retaining them alongside DosageDetails would create material ambiguity about the authoritative dosage instruction. That makes the break probably justified despite high migration cost.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could have kept `MedicationStatement.dosage` as `0..* Dosage` and added an optional `dosageDetails` or choice-based transition path. This would preserve R4 wire format, but systems would need robust reconciliation rules whenever both old and new dosage forms appear, and deprecated dosage representations might persist indefinitely."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:TERMINOLOGY_BINDING:MedicationStatement.category:1920c3",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because R6 widens cardinality and weakens the binding, preserving R4 category instances structurally.",
+        "alternativeTradeoffSummary": "The tradeoff is R6-to-R4 and semantic/terminology ambiguity, not a forward base-design break.",
+        "justificationRationaleMd": "Allowing multiple categories and using an example binding is forward-compatible for R4 instances, so this finding is not a breaking R4-to-R6 base-design issue. The R6 terminology remains somewhat unsettled, so the model change is best treated as probably reasonable rather than definitively justified.",
+        "backwardCompatibleAlternativeMd": "Because R4 `category` content remains valid in R6, backward-compatible alternative analysis does not apply in the calibration sense. Migration concern is mainly backward conversion: multiple R6 categories and request-category codes may need selection, mapping, or extension preservation when converting to R4."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:TYPE_DOMAIN:MedicationStatement.effective[x]:886827",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because adding `Timing` preserves existing R4 `dateTime` and `Period` instances.",
+        "alternativeTradeoffSummary": "The only material tradeoff is lossy R6-to-R4 conversion for new `effectiveTiming` content.",
+        "justificationRationaleMd": "This is an additive type widening in the forward direction. It supports richer timing assertions without invalidating R4 instances, so the calibration question about a less-breaking R6 base design is not applicable.",
+        "backwardCompatibleAlternativeMd": "R4-to-R6 compatibility is already preserved by keeping the existing choice types. R6-to-R4 conversion needs separate policy for `effectiveTiming`, but an extension or approximation for older releases is a conversion mitigation rather than a base R6 alternative."
+      }
+    },
+    {
+      "findingId": "MedicationStatement:REFERENCE_TARGET:MedicationStatement.informationSource-author:8d5ed5",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No less-breaking R4-to-R6 base alternative is needed because `informationSource` is widened and `author` is optional.",
+        "alternativeTradeoffSummary": "The tradeoff is lossy R6-to-R4 conversion for multiple sources, Device/Group sources, and author, not forward breakage.",
+        "justificationRationaleMd": "Separating authorship from information source and allowing additional source targets is a reasonable additive refinement. Existing R4 instances remain valid with respect to these fields, so this is not a breaking R4-to-R6 base-design issue.",
+        "backwardCompatibleAlternativeMd": "The R6 base design already preserves R4-to-R6 compatibility for this area. Backward conversion may need a primary-source rule plus Provenance or extensions for additional source/author content, but those are down-conversion mitigations rather than less-breaking R6 base alternatives."
+      }
+    }
+  ]
+}

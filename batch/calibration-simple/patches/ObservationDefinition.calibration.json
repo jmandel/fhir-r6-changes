@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "ObservationDefinition",
+  "patches": [
+    {
+      "findingId": "ObservationDefinition:CARDINALITY:ObservationDefinition.status:5e4f0c",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add `status` as optional with missing meaning `unknown`, or use a transition warning before later requiring it.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but leaves lifecycle state absent or ambiguous on base R6 definitions and weakens uniform modifier handling.",
+        "justificationRationaleMd": "Making lifecycle state explicit is a reasonable R6 goal for a definitional resource, especially because inactive or unknown definitions can affect safe use. The immediate `1..1` modifier requirement is a hard R4-to-R6 validation break, but a fully optional base element would not meet the same uniform lifecycle guarantee. The break therefore looks probably justified, with a real but incomplete less-breaking path.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could have introduced `ObservationDefinition.status` as `0..1` with missing meaning `unknown` and a best-practice or warning invariant, then raised the base cardinality in a later release. That would preserve old R4 instances. The tradeoff is that base R6 consumers would have to handle absent status indefinitely, and profile-only requiredness would be migration mitigation rather than the same base-resource guarantee."
+      }
+    },
+    {
+      "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.metadata:1b7a92",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 compatibility alternative applies; the new publication and derivation metadata fields are optional additions.",
+        "alternativeTradeoffSummary": "R6-to-R4 downgrade remains lossy unless extensions are used, but extensions are mitigation, not a less-breaking R6 base design.",
+        "justificationRationaleMd": "The added canonical metadata supports governance, discovery, versioning, and derivation, and it does not invalidate R4 instances because the fields are optional. This finding is mainly an R6-to-R4 representability concern rather than a breaking R4-to-R6 base-design issue.",
+        "backwardCompatibleAlternativeMd": "The native R6 design is already forward-compatible for R4 instances: old resources can omit these optional fields. Carrying the same metadata in R4 extensions or sidecar records may help downgrade exchange, but that is a cross-version mitigation and should not be counted as a backward-compatible alternative to the R6 base model."
+      }
+    },
+    {
+      "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.quantitativeDetails:be80d1",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Retain deprecated `quantitativeDetails` alongside `permittedUnit`, or keep explicit unit, precision, and conversion fields while adding a repeatable unit list.",
+        "alternativeTradeoffSummary": "Preserves R4 instances but creates overlapping unit representations and ambiguity around precision, conversion, and preferred-vs-permitted unit semantics.",
+        "justificationRationaleMd": "The R6 goal of simplifying allowed-unit modeling and supporting multiple permitted units is reasonable, but removing `quantitativeDetails` makes R4 instances invalid and can lose decimal precision, conversion factor, and SI/customary distinctions. A less-breaking design exists, but it would keep an old backbone with semantics that overlap the new model and might be inconsistently maintained. That makes the breaking cleanup probably justified rather than clearly avoidable.",
+        "backwardCompatibleAlternativeMd": "R6 could have kept `quantitativeDetails` as a deprecated base element while adding `permittedUnit`, or could have retained native replacement fields for `customaryUnit`, `conversionFactor`, and `decimalPrecision`. This would preserve more R4 data. The material tradeoff is duplicate same-resource unit representations: deprecated `quantitativeDetails.unit` and new `permittedUnit` could conflict, validators would need reconciliation rules, and the older representation might persist indefinitely."
+      }
+    },
+    {
+      "findingId": "ObservationDefinition:VALUE_CONSTRAINT:ObservationDefinition.permittedUnit:7a6bd5",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Use a warning or best-practice invariant during transition instead of an error-level rule.",
+        "alternativeTradeoffSummary": "A warning eases automated migration but allows R6 instances where units imply Quantity while `permittedDataType` omits it.",
+        "justificationRationaleMd": "The invariant is logically consistent: declaring permitted units only makes sense when Quantity results are permitted. It is not a direct break for untouched R4 wire content because `permittedUnit` is new, but it can break naive migrations from old unit metadata. A softer rule would be less disruptive for transformed content, yet would materially weaken R6 validation.",
+        "backwardCompatibleAlternativeMd": "The less-breaking base design would make `obd-0` warning-level or transitional instead of an error. That is only a partial alternative because correct migrations can add `permittedDataType=Quantity`, while genuinely inconsistent R6 resources should be rejected rather than normalized silently."
+      }
+    },
+    {
+      "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.qualifiedInterval:df3c29",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 `qualifiedInterval` path and broaden its definition and children to cover qualified values.",
+        "alternativeTradeoffSummary": "Preserves R4 instances with a nonoptimal name and some semantic awkwardness, but avoids duplicate representations if the old path is broadened rather than paralleled.",
+        "justificationRationaleMd": "Generalizing interval ranges into qualified values is a reasonable goal, but the wire-path rename from `qualifiedInterval` to `qualifiedValue` appears more breaking than necessary. Living with the older name while clarifying the definition and adding the new coded-value capabilities would preserve most R4 instances with modest long-term cost.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would retain `ObservationDefinition.qualifiedInterval` as the native backbone, keep its existing children valid, rename only definitions and short text, and add the R6 qualitative value-set children there. Keeping both old and new backbones would introduce duplicate representations, but simply broadening the old path would meet the core R6 goal without invalidating old instances."
+      }
+    },
+    {
+      "findingId": "ObservationDefinition:TYPE_DOMAIN:ObservationDefinition.codedValueSets:ad09c3",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep deprecated top-level `Reference(ValueSet)` fields for unqualified global value sets while adding contextual canonical fields under `qualifiedValue`.",
+        "alternativeTradeoffSummary": "Covers common global R4 cases but duplicates the same fact, leaves Reference-vs-canonical ambiguity, and cannot express multiple context-specific R6 value sets in the old shape.",
+        "justificationRationaleMd": "Context-scoped value sets and canonical references are reasonable R6 goals for definitional content. A less-breaking path could preserve common unqualified R4 value-set references, but it would not cover the full contextual model and would create parallel places to say the same thing. The current break is therefore probably justified, with a partial alternative for common cases.",
+        "backwardCompatibleAlternativeMd": "R6 could have retained `validCodedValueSet`, `normalCodedValueSet`, `abnormalCodedValueSet`, and `criticalCodedValueSet` at the resource root as deprecated aliases for global value sets, while adding the new `qualifiedValue.*CodedValueSet` canonical fields for context-specific values. This preserves old instances in the simple case. The tradeoff is persistent duplicate same-resource representations and ambiguity when both the old global Reference and the new unqualified canonical are populated."
+      }
+    },
+    {
+      "findingId": "ObservationDefinition:ELEMENT_PRESENCE:ObservationDefinition.contextAndComponents:c8416f",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No R4-to-R6 breaking alternative applies; subject, performer, body structure, specimen, device, group, and component fields are optional R6 additions.",
+        "alternativeTradeoffSummary": "R6-to-R4 exchange may need extensions or data loss, but that is downgrade mitigation rather than a less-breaking R6 base design.",
+        "justificationRationaleMd": "The new fields fill real modeling gaps for panels, components, devices, specimens, and applicability context, and they do not invalidate R4 instances because they are optional. The compatibility concern is chiefly that R6 instances using the new model cannot be downgraded losslessly to R4.",
+        "backwardCompatibleAlternativeMd": "No less-breaking R6 base design is needed for forward compatibility: old R4 instances can simply omit the optional fields. R4 extensions or external catalog records can preserve these concepts for downgrade exchange, but those are mitigation strategies rather than alternatives to the R6 base resource shape."
+      }
+    },
+    {
+      "findingId": "ObservationDefinition:TERMINOLOGY_BINDING:ObservationDefinition.code:2f0a64",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "No base-design break to avoid because the binding remains `example` strength and R4 codes remain structurally valid.",
+        "alternativeTradeoffSummary": "The narrower example value set can change pick lists and guidance; narrative-only guidance would reduce tooling churn but is not needed for validity.",
+        "justificationRationaleMd": "Guiding `ObservationDefinition.code` toward LOINC concepts usable for observations appears reasonable, and the binding strength did not increase. Without a terminology expansion the practical pick-list impact is uncertain, but base FHIR validation should not reject R4 codes solely because an example binding changed.",
+        "backwardCompatibleAlternativeMd": "Because this is not a hard R4-to-R6 validation break, backward-compatible alternative availability is not applicable. R6 could have kept the broader example value set and described the ORDER_OBS filter in narrative or profiles, but that would be a tooling-guidance tradeoff rather than a base-design compatibility requirement."
+      }
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "calibration-patch-simple-v1",
+  "artifactName": "PaymentReconciliation",
+  "patches": [
+    {
+      "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.type:32b8fd",
+      "justification": {
+        "justificationVerdict": "Not clearly justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Add root `type` as optional and retain required allocation/detail type during transition, or require root `type` only in profiles.",
+        "alternativeTradeoffSummary": "Preserves old instances but weakens the base guarantee of a single payment category and risks duplicate root-vs-line type representations.",
+        "justificationRationaleMd": "Representing an overall payment category is a reasonable R6 goal, but the local evidence does not show why every base instance had to supply a new mandatory root element. A less-breaking design could preserve most R4 data, yet it would not give all base R6 resources the same normalized category guarantee and would need conflict rules when line-level and root-level categories differ.",
+        "backwardCompatibleAlternativeMd": "The strongest less-breaking base design would introduce `PaymentReconciliation.type` as `0..1`, keep the old per-line category path required or otherwise valid, and use profiles or best-practice guidance where a single root category is required. That is only a partial alternative because no-detail and mixed-detail R4 instances still need policy decisions, and allowing both root and line categories can leave two same-resource representations for related payment-classification facts indefinitely."
+      }
+    },
+    {
+      "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.paymentDate-date:54a1d6",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 wire name `paymentDate` with the same date semantics and clarify the definition if needed.",
+        "alternativeTradeoffSummary": "Preserves old instances with only a modest naming cost; `date` is shorter but not semantically necessary.",
+        "justificationRationaleMd": "The inferred goal is a cleaner or more general root date name, but the type, cardinality, summary flag, and definition are otherwise the same. Retaining the R4 name would have preserved essentially all R4-valid instances while still communicating the payment-issued date, so the direct path break appears probably avoidable.",
+        "backwardCompatibleAlternativeMd": "A backwards-compatible base R6 design could simply leave the element as `PaymentReconciliation.paymentDate` and update wording or aliases to explain that it is the payment date. Supporting both `paymentDate` and `date` as same-resource fields would also preserve data, but keeping the old name alone has lower duplication risk and only carries forward a nonoptimal legacy name."
+      }
+    },
+    {
+      "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.paymentAmount-amount:57bc7d",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Retain the R4 `paymentAmount` element and, if R6 needs absent amounts, relax that same element to `0..1`.",
+        "alternativeTradeoffSummary": "Keeps a longer legacy name but avoids the R4-to-R6 path break while still allowing R6 instances without an amount.",
+        "justificationRationaleMd": "Allowing payment reconciliations without a known amount may be a reasonable R6 goal, but renaming the element was not necessary to accomplish it. Keeping `paymentAmount` and relaxing cardinality would preserve R4 instances and support the substantive R6 cardinality change with low long-term cost.",
+        "backwardCompatibleAlternativeMd": "The best less-breaking base design would keep `PaymentReconciliation.paymentAmount` as the total payment amount and change its base cardinality from `1..1` to `0..1` if optionality is desired. That would not solve R6-to-R4 export of omitted amounts, but that reverse-direction gap is inherent in relaxing cardinality and does not justify rejecting existing R4 wire names."
+      }
+    },
+    {
+      "findingId": "PaymentReconciliation:ELEMENT_PRESENCE_OR_IDENTITY:PaymentReconciliation.detail-allocation:414cc4",
+      "justification": {
+        "justificationVerdict": "Probably avoidable",
+        "backwardCompatibleAlternativeAvailable": "Yes",
+        "backwardCompatibleAlternativeSummary": "Keep the R4 `detail` backbone and add the richer R6 allocation children under that existing path.",
+        "alternativeTradeoffSummary": "Preserves R4 paths and instances with low to moderate cost, but keeps a less precise legacy backbone name.",
+        "justificationRationaleMd": "Using allocation terminology and adding richer allocation details are reasonable R6 goals, but the old `detail` backbone already represented settlement distribution and could have hosted the new children. The break from `detail[]` to `allocation[]` therefore appears more like avoidable model cleanup than a necessary base incompatibility.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base R6 design could retain `PaymentReconciliation.detail` with clarified text such as settlement allocation details, then add `target`, `targetItem[x]`, `encounter`, `account`, and `noteNumber` under that same backbone. This avoids duplicate backbones and preserves FHIRPath/codegen paths. The tradeoff is carrying a less expressive legacy name, which is modest compared with invalidating every R4 instance that contains `detail`."
+      }
+    },
+    {
+      "findingId": "PaymentReconciliation:REFERENCE_TARGET:PaymentReconciliation.detail.request-response:bc0f2e",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep broad `Reference(Resource)` links as deprecated compatibility fields or express the narrowed targets as warnings/preferred profiles.",
+        "alternativeTradeoffSummary": "Preserves broad R4 references but materially weakens computable payment-subject semantics or creates duplicate old/new linkage paths.",
+        "justificationRationaleMd": "The R6 goal of distinguishing payable subjects and ClaimResponse commitments is reasonable and materially improves computability. A less-breaking base design exists, but keeping unconstrained `Reference(Resource)` in the base would continue accepting references that R6 is trying to classify more precisely, while preserving both old request/response and new target/response fields would require conflict and precedence rules.",
+        "backwardCompatibleAlternativeMd": "The best alternative is not conversion tooling but an R6 base shape that either leaves the old broad references valid with preferred-profile guidance, or keeps deprecated request/response compatibility fields beside the new allocation target model. This is only partial because broad references undermine uniform validation of payment targets, and duplicate linkage fields could diverge or persist indefinitely."
+      }
+    },
+    {
+      "findingId": "PaymentReconciliation:TERMINOLOGY_BINDING:PaymentReconciliation.outcome:286176",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: inspected primitive outcome codes appear unchanged, so this is not an R4-to-R6 base instance-compatibility break.",
+        "alternativeTradeoffSummary": "Terminology aliases or ConceptMaps can reduce runtime/canonical churn, but they are governance and migration mitigations rather than a less-breaking instance-shape design.",
+        "justificationRationaleMd": "Renaming the outcome terminology from remittance to payment is a plausible cleanup, and the local code sets inspected for the required binding use the same four lexical codes. Existing R4 instance values should therefore remain acceptable in R6; the remaining risk is for generated terminology metadata, cached canonicals, and systems that key logic on the old value-set identity.",
+        "backwardCompatibleAlternativeMd": "Under the calibration rules, no backward-compatible base-design alternative is applicable for preserving R4 instances because the JSON code values appear preserved. Keeping the old canonical as an alias or publishing an explicit ConceptMap would be useful for terminology tooling, but that is not the same as a less-breaking base R6 resource design."
+      }
+    },
+    {
+      "findingId": "PaymentReconciliation:REFERENCE_TARGET:PaymentReconciliation.paymentIssuer:788cdc",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: R6 widens `paymentIssuer` targets while preserving the R4 Organization target.",
+        "alternativeTradeoffSummary": "No R4-to-R6 base-design break; R6-to-R4 exchange must constrain or map newly allowed Patient and RelatedPerson issuers.",
+        "justificationRationaleMd": "Allowing patient or related-person payment issuers is a reasonable R6 goal, and the widened target set keeps the R4 Organization target valid. Existing R4 instances are preserved in the R4-to-R6 direction, so the compatibility issue is limited to reverse conversion and organization-only implementation assumptions.",
+        "backwardCompatibleAlternativeMd": "No less-breaking base R6 alternative is needed for old-instance preservation because the base design is already additive for R4 data. Extensions, rejection policies, or profiles may be needed when exporting R6 Patient/RelatedPerson issuers to R4, but those are down-conversion mitigations rather than backwards-compatible base-design alternatives."
+      }
+    },
+    {
+      "findingId": "PaymentReconciliation:TYPE_DOMAIN:PaymentReconciliation.processNote.text:87efd3",
+      "justification": {
+        "justificationVerdict": "Probably justified",
+        "backwardCompatibleAlternativeAvailable": "Partial",
+        "backwardCompatibleAlternativeSummary": "Keep `processNote.text` as `string` and allow markdown by convention, or add a separate optional markdown note field.",
+        "alternativeTradeoffSummary": "Convention-only markdown weakens computable rendering semantics; a second field duplicates the same note text and risks divergence.",
+        "justificationRationaleMd": "Formatted process-note text is a reasonable goal, and the change does not appear to be a normal JSON wire-shape break because markdown still serializes as a string. Less-breaking designs exist for generated APIs and strict type models, but they either fail to signal markdown semantics computably or split one note text across duplicate fields.",
+        "backwardCompatibleAlternativeMd": "A less-breaking base design could retain `PaymentReconciliation.processNote.text` as `string` with documentation that markdown may be used. That preserves R4 codegen assumptions but leaves consumers unable to infer from the type that markdown rendering and sanitization rules apply. Adding a sibling markdown field would make the signal computable but creates duplicate same-resource representations for the same explanatory note."
+      }
+    },
+    {
+      "findingId": "PaymentReconciliation:CONVERSION_OR_MAPPING:PaymentReconciliation.optional-r6-payment-details:236b63",
+      "justification": {
+        "justificationVerdict": "Justified",
+        "backwardCompatibleAlternativeAvailable": "Not applicable",
+        "backwardCompatibleAlternativeSummary": "Not applicable: these are optional R6 additions and do not invalidate R4 PaymentReconciliation instances.",
+        "alternativeTradeoffSummary": "No R4-to-R6 base break; R6-to-R4 conversion may require extensions, sidecar storage, or lossy omission.",
+        "justificationRationaleMd": "Adding optional payment-source, instrument, authorization, tendered/returned amount, process-note, and allocation metadata is a compatibility-friendly way to increase R6 expressiveness. The report correctly identifies reverse-conversion risk, but that is not evidence that the R6 base design broke old R4 instances.",
+        "backwardCompatibleAlternativeMd": "No backwards-compatible base alternative is needed to preserve R4 instances because old data can simply omit these optional R6 elements. Standard extensions or profile-specific backports may be appropriate for R6-to-R4 exchange, but those are migration mitigations, not a less-breaking base R6 design."
+      }
+    }
+  ]
+}
