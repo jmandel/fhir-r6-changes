@@ -66,6 +66,7 @@ export function FindingPage({ findingId }: { findingId: string }) {
       </Crumb>
 
       <main className="detail-page">
+        {/* Keep this visual detail layout in sync with buildLlmMarkdown() in llmMarkdown.ts. */}
         <header className="detail-h">
           <h1>{f.title}</h1>
           <dl className="detail-meta">

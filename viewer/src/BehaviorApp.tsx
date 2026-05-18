@@ -424,6 +424,7 @@ function BehaviorFindingPage({ finding, reportKey, findingId, view, onBack }: {
       </Crumb>
 
       <main className="detail-page">
+        {/* Keep this visual detail layout in sync with behaviorFindingMarkdown() below. */}
         <header className="detail-h">
           <div className="eyebrow">
             <span className="resource">{finding.family}</span>
