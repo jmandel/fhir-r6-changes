@@ -15,6 +15,12 @@ const reviewDir = reviewDirSetting && ["none", "off", "false", "0"].includes(rev
 const behaviorDir = process.env.BEHAVIOR_DATA_DIR
   ? resolve(process.env.BEHAVIOR_DATA_DIR)
   : join(dataDir, "behavior");
+const resourceReviewDir = process.env.RESOURCE_REVIEW_DIR
+  ? resolve(process.env.RESOURCE_REVIEW_DIR)
+  : join(dataDir, "resource-reviews");
+const resourceReviewIndexPath = process.env.RESOURCE_REVIEW_INDEX
+  ? resolve(process.env.RESOURCE_REVIEW_INDEX)
+  : join(dataDir, "resource-reviews.index.json");
 
 const baseTsvPath = join(root, "agent-inputs", "r4-base-resources-and-datatypes.tsv");
 let baseArtifacts: { name: string; kind: string; abstract: boolean }[] = [];
@@ -90,6 +96,39 @@ try {
 }
 behaviorReports.sort((a, b) => String(a._reportKey ?? "").localeCompare(String(b._reportKey ?? "")));
 
+const resourceReviewParseFailures: { file: string; error: string }[] = [];
+let resourceReviewIndex: any = null;
+const resourceReviews: any[] = [];
+try {
+  resourceReviewIndex = JSON.parse(await readFile(resourceReviewIndexPath, "utf8"));
+} catch (e) {
+  resourceReviewParseFailures.push({ file: resourceReviewIndexPath, error: (e as Error).message });
+}
+try {
+  const reviewFiles = (await readdir(resourceReviewDir)).filter((f) => f.endsWith(".resource-review.json")).sort();
+  for (const f of reviewFiles) {
+    const p = join(resourceReviewDir, f);
+    try {
+      const [txt, st] = await Promise.all([readFile(p, "utf8"), stat(p)]);
+      const parsed = JSON.parse(txt);
+      if (parsed.schemaVersion !== "fhir-r4-r6-resource-review/v1") {
+        resourceReviewParseFailures.push({ file: p, error: `unexpected schemaVersion ${JSON.stringify(parsed.schemaVersion)}` });
+        continue;
+      }
+      parsed._mtimeMs = st.mtimeMs;
+      parsed._sourcePath = p;
+      resourceReviews.push(parsed);
+    } catch (e) {
+      resourceReviewParseFailures.push({ file: p, error: (e as Error).message });
+      console.error(`failed to parse resource review ${p}:`, (e as Error).message);
+    }
+  }
+  console.log(`loaded ${resourceReviews.length} resource review(s) from ${resourceReviewDir}`);
+} catch {
+  console.warn(`No resource review directory at ${resourceReviewDir}; resources view will be empty until reviews are generated.`);
+}
+resourceReviews.sort((a, b) => String(a.resourceType ?? "").localeCompare(String(b.resourceType ?? "")));
+
 const freshReviewParseFailures: { file: string; error: string }[] = [];
 const freshReviewByFindingId: Record<string, any> = {};
 if (reviewDir) {
@@ -129,14 +168,18 @@ const payload = {
   generatedAt: new Date().toISOString(),
   sourceDir: dataDir,
   behaviorSourceDir: behaviorDir,
+  resourceReviewSourceDir: resourceReviewDir,
   freshReviewSourceDir: reviewDir ?? "embedded",
   baseArtifacts,
   r4Maturity,
   parseFailures,
   behaviorParseFailures,
+  resourceReviewParseFailures,
   freshReviewParseFailures,
   reports,
   behaviorReports,
+  resourceReviewIndex,
+  resourceReviews,
 };
 
 await mkdir(dirname(targetFile), { recursive: true });

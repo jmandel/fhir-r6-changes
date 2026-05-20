@@ -2,7 +2,7 @@
 // flattened list of findings for the explore view.
 
 import { bundle as raw } from "../data-bundle";
-import type { BehaviorFinding, BehaviorReport, Finding, R4Maturity } from "../types";
+import type { BehaviorFinding, BehaviorReport, Finding, R4Maturity, ResourceReview } from "../types";
 
 export const bundle = raw;
 
@@ -45,6 +45,8 @@ export interface FlatBehaviorFinding extends BehaviorFinding {
 }
 
 export const behaviorReports = raw.behaviorReports ?? [];
+export const resourceReviews: ResourceReview[] = raw.resourceReviews ?? [];
+export const resourceReviewIndex = raw.resourceReviewIndex ?? null;
 
 export const behaviorFlat: FlatBehaviorFinding[] = (() => {
   const out: FlatBehaviorFinding[] = [];
@@ -76,6 +78,10 @@ export function behaviorReportLabel(report: BehaviorReport): string {
     return assigned.slice("OperationDefinition:".length);
   }
   return behaviorFamily(report);
+}
+
+export function resourceReviewByName(resourceType: string): ResourceReview | undefined {
+  return resourceReviews.find((review) => review.resourceType === resourceType);
 }
 
 /** Distinct values for a coded field, sorted by count desc. */

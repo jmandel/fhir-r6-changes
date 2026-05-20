@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ENTRIES = [
   "index.html",
+  "resources/index.html",
   "operations/index.html",
   "pages/index.html",
 ];
@@ -27,6 +28,8 @@ pipeProcessOutput(upstream.stderr, "");
 
 const aliases = new Map([
   ["/index.html", "/"],
+  ["/resources/", "/resources"],
+  ["/resources/index.html", "/resources"],
   ["/operations/", "/operations"],
   ["/operations/index.html", "/operations"],
   ["/pages/", "/pages"],
@@ -71,7 +74,7 @@ const server = Bun.serve({
 
 console.log(`Viewer dev server: http://${host}:${server.port}/`);
 console.log(`Bun HTML upstream: http://127.0.0.1:${upstreamPort}/`);
-console.log("Aliases: /index.html, /operations/index.html, /pages/index.html");
+console.log("Aliases: /index.html, /resources/index.html, /operations/index.html, /pages/index.html");
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {

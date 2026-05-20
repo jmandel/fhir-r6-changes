@@ -10,6 +10,7 @@ export function TopBar() {
         <span className="build-tag">R4 → R6 Breaking Changes</span>
         <nav className="top-nav" aria-label="Primary">
           <a href={`${base}index.html`}>Structure</a>
+          <a href={`${base}resources`}>Resources</a>
           <a href={`${base}operations`}>Operations</a>
           <a href={`${base}pages`}>Pages/API</a>
         </nav>
@@ -52,6 +53,7 @@ export function Footer() {
           <a href="https://build.fhir.org/" target="_blank" rel="noopener">build.fhir.org</a>.
         </span>
         <a href={`${base}index.html`}>Structure explorer</a>
+        <a href={`${base}resources`}>Resource reviews</a>
         <a href={`${base}operations`}>Operations</a>
         <a href={`${base}pages`}>Pages/API</a>
       </div>
@@ -61,7 +63,7 @@ export function Footer() {
 
 function navBase(): string {
   if (typeof location === "undefined") return "./";
-  return /\/(?:operations|pages)\/(?:index\.html)?$/.test(location.pathname)
+  return /\/(?:operations|pages|resources)\/(?:index\.html)?$/.test(location.pathname)
     ? "../"
     : "./";
 }

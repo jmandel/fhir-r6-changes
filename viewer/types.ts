@@ -24,14 +24,18 @@ export interface BundleData {
   generatedAt: string;
   sourceDir?: string;
   behaviorSourceDir?: string;
+  resourceReviewSourceDir?: string;
   freshReviewSourceDir?: string;
   baseArtifacts?: { name: string; kind: string; abstract: boolean }[];
   r4Maturity?: Record<string, R4Maturity>;
   parseFailures?: { file: string; error: string }[];
   behaviorParseFailures?: { file: string; error: string }[];
+  resourceReviewParseFailures?: { file: string; error: string }[];
   freshReviewParseFailures?: { file: string; error: string }[];
   reports: Report[];
   behaviorReports?: BehaviorReport[];
+  resourceReviewIndex?: ResourceReviewsIndex | null;
+  resourceReviews?: ResourceReview[];
 }
 
 export interface Report {
@@ -221,4 +225,98 @@ export interface ImpactAssessment {
   expectedPrevalence?: string;
   safetyOrBusinessRisk?: string;
   safetyOrBusinessRiskMd?: string;
+}
+
+export type MajorMigrationAlreadyUnavoidable = "Yes" | "Partial" | "No" | "Unknown";
+export type ResourceMigrationShape =
+  | "removed-or-replaced-resource"
+  | "major-model-remodel"
+  | "moderate-targeted-remodel"
+  | "mostly-stable-with-local-breaks"
+  | "low-material-change"
+  | "not-enough-evidence";
+export type CompatibilityLeverageConclusion =
+  | "migration-program-dominates"
+  | "preserve-where-low-cost-but-expect-resource-migration"
+  | "preserve-compatibility-per-change"
+  | "no-special-break-avoidance-needed"
+  | "not-enough-evidence";
+export type StabilityPressure = "Strong" | "Meaningful" | "Neutral" | "Weak" | "Unknown";
+export type FindingRole =
+  | "drives-resource-conclusion"
+  | "important-but-local"
+  | "context-only"
+  | "discounted"
+  | "needs-follow-up";
+
+export interface ResourceReviewsIndex {
+  schemaVersion?: string;
+  generatedAt?: string;
+  source?: {
+    reviewDir?: string;
+    manifestPath?: string | null;
+    reviewCount?: number;
+    expectedResourceCount?: number | null;
+  };
+  summary?: {
+    resourceCount?: number;
+    majorMigrationAlreadyUnavoidable?: Record<string, number>;
+    resourceMigrationShape?: Record<string, number>;
+    compatibilityLeverage?: Record<string, number>;
+    confidence?: Record<string, number>;
+    r4StabilityPressure?: Record<string, number>;
+  };
+  resources?: any[];
+}
+
+export interface ResourceReview {
+  _mtimeMs?: number;
+  _sourcePath?: string;
+  schemaVersion: "fhir-r4-r6-resource-review/v1";
+  resourceType: string;
+  reviewMethod?: {
+    contextPath?: string;
+    structureReportPath?: string;
+    deterministicAggregatePath?: string;
+    behaviorReportPaths?: string[];
+    reviewedStructureFindingCount?: number;
+    reviewedDirectBehaviorFindingCount?: number;
+    reviewedSharedBehaviorContextCount?: number;
+    methodNotesMd?: string;
+  };
+  r4Maturity?: {
+    fmm?: number;
+    standardsStatus?: string;
+    workGroup?: string;
+    stabilityPressure?: StabilityPressure;
+    effectMd?: string;
+  };
+  overall?: {
+    majorMigrationAlreadyUnavoidable?: MajorMigrationAlreadyUnavoidable;
+    resourceMigrationShape?: ResourceMigrationShape;
+    compatibilityLeverage?: CompatibilityLeverageConclusion;
+    confidence?: ConfidenceLevel;
+    oneLineConclusion?: string;
+  };
+  reasoning?: {
+    thesisMd?: string;
+    migrationShapeMd?: string;
+    compatibilityLeverageMd?: string;
+    lessBreakingAlternativesMd?: string;
+    behaviorImpactMd?: string;
+    comparisonToDeterministicAggregateMd?: string;
+    uncertaintyMd?: string;
+  };
+  findingConsiderations?: Array<{
+    sourceSurface?: "StructureDefinition" | "OperationDefinitions" | "SearchParameters" | "HttpRestBehavior" | "SharedBehaviorContext";
+    findingId?: string;
+    title?: string;
+    role?: FindingRole;
+    reasonMd?: string;
+  }>;
+  recommendedNextActions?: Array<{
+    priority?: "High" | "Medium" | "Low";
+    actionMd?: string;
+  }>;
+  caveats?: string[];
 }
