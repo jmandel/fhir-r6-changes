@@ -40,6 +40,16 @@ The current review intentionally focuses on R4-to-R6 compatibility. Reverse
 R6-to-R4 downgrade loss is noted only when it helps explain the migration
 tradeoff.
 
+Resource-level aggregate assessments are also generated in:
+
+- `output/resource-change-assessments.index.json`
+- `output/resource-change-assessments/*.resource-assessment.json`
+
+These reorganize the existing findings by resource and assess whether each
+resource already needs enough migration work that individual break prevention
+has reduced leverage. The rubric is in
+`docs/resource-change-assessment-rubric.md`.
+
 ## Repository Layout
 
 - `output/`: report JSON consumed by the published viewer.
@@ -47,6 +57,8 @@ tradeoff.
 - `agent-inputs/`: prompts and contracts for operation/search/REST behavior
   review batches.
 - `docs/fresh-review-judgment-framework.md`: the FMM-aware review rubric.
+- `docs/resource-change-assessment-rubric.md`: the resource-level aggregation
+  rubric.
 - `docs/behavior-batch-plan.md`: pipeline plan for non-StructureDefinition
   behavior reviews.
 - `scripts/`: batch runners, source preparation, merge/reduce scripts, and
@@ -109,6 +121,12 @@ node scripts/audit_embedded_fresh_review.mjs \
 
 This verifies that every expected structure finding has embedded review data
 and that the review judgments conform to the current rubric.
+
+Regenerate the resource-level aggregate assessments:
+
+```bash
+node scripts/generate_resource_change_assessments.mjs --quiet
+```
 
 ## Deployment
 
