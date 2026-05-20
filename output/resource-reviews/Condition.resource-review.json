@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Condition",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Condition.resource-review-context.json",
+    "structureReportPath": "output/Condition.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Condition.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 8,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "I reviewed the resource-review contract, resource assessment rubric, fresh-review framework, supplied Condition context, deterministic aggregate, full Condition structure report, and the R4/R6 Condition StructureDefinitions for the status, evidence, stage, body-location, actor, and category deltas. I also checked the behavior reports for findings whose affectedResources include Condition; none were direct Condition behavior findings. Shared Resource/DomainResource behavior findings were considered only as context, consistent with the contract."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pc",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Condition is a mature trial-use clinical resource. FMM 3 does not freeze the model, but it creates meaningful pressure to avoid avoidable hard instance breaks, especially where status semantics can affect clinical interpretation, decision support, quality reporting, or problem-list workflows."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Condition keeps its identity but has targeted hard breaks around status, entered-in-error handling, evidence, and stage assessment, so migration work is likely while low-cost compatibility preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "Condition is not removed or replaced, and most of the resource remains recognizable across R4 and R6. The resource-level migration burden is nevertheless real because R6 requires `clinicalStatus`, removes the R4 entered-in-error exception, rewrites `Condition.evidence` from an R4 backbone to `CodeableReference`, and narrows `stage.assessment` by dropping `ClinicalImpression`. That combination justifies planning a targeted Condition migration program, but it does not make every additional break irrelevant.",
+    "migrationShapeMd": "The actual migration shape is a moderate targeted remodel. Status governance is the central workstream: R4 instances with omitted `clinicalStatus` need policy-driven values, and entered-in-error records need special handling because R4 forbade the field while R6 requires it. Evidence requires a structural transform from grouped `code`/`detail` backbone entries to R6 `CodeableReference` entries, with possible loss of grouping semantics. Stage assessment references to `ClinicalImpression` require remediation. The remaining findings are mostly additive, widening, weakening, or reverse-direction issues rather than R4-to-R6 hard breaks.",
+    "compatibilityLeverageMd": "A migration program is already plausible for serious Condition implementers, but compatibility leverage remains meaningful. For changes tied to a coherent R6 design goal, such as a universal modifier-status guarantee or reuse of `CodeableReference`, local migration may be the right cost. For changes that could be preserved with modest base-model cost, especially the entered-in-error status exception and the `ClinicalImpression` target, preventing the break still has high value even though other Condition migration work exists.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking alternatives are narrow: keep `clinicalStatus` optional only when `verificationStatus` is entered-in-error, and retain `ClinicalImpression` as an allowed `stage.assessment` target while discouraging or profiling it where needed. Keeping `clinicalStatus` optional for all Conditions would preserve more R4 data but would weaken the R6 modifier-status guarantee. Keeping both the old evidence backbone and new `CodeableReference` shape would create duplicate representations and precedence questions, so that break is more plausibly a local migration chore once the R6 remodel is accepted.",
+    "behaviorImpactMd": "No direct OperationDefinition, SearchParameter, or HTTP behavior finding applied to Condition. The 11 shared Resource/DomainResource behavior findings are relevant to generic FHIR clients and server conformance, but they are not Condition-specific resource migration drivers under the supplied contract.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate's `Partial` major-migration conclusion, `moderate-targeted-remodel` shape, and `preserve-where-low-cost-but-expect-resource-migration` posture match my independent judgment. The important nuance is that `Partial` should not be read as a reason to discount the two avoidable local breaks; it means the unavoidable work is targeted rather than a whole-resource replacement.",
+    "uncertaintyMd": "Confidence is high for the structural deltas because the R4 and R6 StructureDefinitions were available locally. The main uncertainty is terminology detail for the R6 clinical-status value set because the local package does not include the full external CodeSystem expansion, and implementation prevalence of `evidence` grouping or `ClinicalImpression` stage references is not measured here."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Condition:CARDINALITY:Condition.clinicalStatus:0d4f73",
+      "title": "Condition.clinicalStatus is now mandatory",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a common, high-impact old-valid/new-invalid break: R4 allowed many Conditions to omit `clinicalStatus`, while R6 requires it. It drives the need for a status-audit migration workstream. I do not treat it as clearly avoidable at resource level because R6 has a credible safety/computability rationale for requiring an explicit modifier status or `unknown`."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Condition:VALUE_CONSTRAINT:Condition.entered-in-error:64d0aa",
+      "title": "Entered-in-error Conditions changed from forbidding clinicalStatus to requiring it",
+      "role": "needs-follow-up",
+      "reasonMd": "This is the strongest avoidable compatibility concern. R4's entered-in-error pattern and R6's mandatory status are directly incompatible, and a low-cost less-breaking design appears available: keep the R4 exception or require status conditionally only outside entered-in-error. This matters even if general status migration is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Condition:ELEMENT_PRESENCE_OR_IDENTITY:Condition.evidence:4c8e21",
+      "title": "Condition.evidence changed from a BackboneElement with code/detail to CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The evidence rewrite is a non-mechanical hard break for wire format, generated models, FHIRPath, and grouping semantics. It materially contributes to the targeted migration program, but a parallel legacy backbone would create duplicate same-resource evidence representations, so this looks more like an accepted remodel chore than a low-cost preservation candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Condition:REFERENCE_TARGET:Condition.stage.assessment:8af942",
+      "title": "Condition.stage.assessment no longer allows ClinicalImpression references",
+      "role": "needs-follow-up",
+      "reasonMd": "Dropping `ClinicalImpression` creates a hard break for existing references while retaining the target in base R6 would be a narrow, low-cost compatibility mechanism. Unless there is a strong safety or semantic rationale for excluding it, this should remain standards-review-worthy rather than being dismissed as part of the broader Condition migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Condition:TERMINOLOGY_BINDING:Condition.clinicalStatus:37e412",
+      "title": "Condition.clinicalStatus required binding now documents an `unknown` status",
+      "role": "important-but-local",
+      "reasonMd": "Adding `unknown` is not an R4-to-R6 hard break and is arguably necessary once `clinicalStatus` is mandatory. It still matters for downgrade and enum-based clients, so migration guidance should explicitly handle how R6 `unknown` maps, or fails to map, back to R4."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Condition:ELEMENT_PRESENCE_OR_IDENTITY:Condition.bodyStructure:f1b7c0",
+      "title": "R6 adds native Condition.bodyStructure and forbids using it with bodySite",
+      "role": "important-but-local",
+      "reasonMd": "This is not a base R4-to-R6 hard break because `bodySite` remains and the new element is optional. It is still a local mapping chore for systems that used the R4 body-structure extension or need R6-to-R4 downgrade, but it does not drive the resource-level break-avoidance conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Condition:REFERENCE_TARGET:Condition.actors:b9d3a5",
+      "title": "Condition.recorder and Condition.asserter allow additional R6 reference targets",
+      "role": "discounted",
+      "reasonMd": "This widens R4-to-R6 validation and mainly creates R6-to-R4 representability and client-assumption risks for Group or Device actors. It is a profile/client update issue, not a reason to classify Condition as broadly remodeled."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Condition:TERMINOLOGY_BINDING:Condition.category:2c17de",
+      "title": "Condition.category binding weakened from extensible to example",
+      "role": "discounted",
+      "reasonMd": "Weakening a binding is not an old-valid/new-invalid break. Implementations that depend on R4's stronger category guidance should restate it in R6 profiles, but this is semantic/conformance drift rather than a migration blocker."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This and related Resource-level operation removals can affect generic FHIR clients used with Condition, but the finding is assigned to shared `Resource` behavior rather than to Condition. It should be handled in the shared behavior review, not counted as a Condition resource-model break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This is shared Resource/DomainResource search metadata context. It may affect generic search tooling, but it is not a direct Condition search surface change and does not alter the Condition-specific migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the entered-in-error/status interaction in the base Condition design. A conditional exception preserving the R4 entered-in-error pattern appears to reduce incompatibility without undermining ordinary Condition status requirements."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Ask the Patient Care work group to confirm the rationale for removing `ClinicalImpression` from `Condition.stage.assessment`; if there is no strong reason, retain it as a deprecated or discouraged base target."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish explicit migration guidance and test cases for missing `clinicalStatus`, R4 entered-in-error records, and `Condition.evidence` conversion to and from `CodeableReference`, including grouping-loss warnings."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Document local downgrade/profile choices for R6-only concerns: `clinicalStatus=unknown`, native `bodyStructure`, Group/Device actor references, and the weaker `category` binding."
+    }
+  ],
+  "caveats": [
+    "The local R6 package did not include the full external `condition-clinical` CodeSystem expansion, so exact terminology-code comparison has medium uncertainty.",
+    "No direct behavior finding listed Condition as an affected resource; shared Resource/DomainResource behavior was intentionally kept context-only.",
+    "Prevalence of omitted status, evidence usage, and ClinicalImpression stage references is implementation-dependent; this review judges base compatibility risk, not measured deployment frequency."
+  ]
+}

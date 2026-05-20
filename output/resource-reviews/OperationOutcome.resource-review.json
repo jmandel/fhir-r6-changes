@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "OperationOutcome",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/OperationOutcome.resource-review-context.json",
+    "structureReportPath": "output/OperationOutcome.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/OperationOutcome.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 3,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, the full OperationOutcome StructureDefinition report, the deterministic aggregate prepass, and the supplied behavior context. I treated the deterministic aggregate as prior context only. Shared `Resource`/`DomainResource` behavior findings were considered as background and not scored as OperationOutcome-specific drivers because the assigned artifact is `OperationOutcome`, not the base `Resource` or `DomainResource` artifact."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "fhir",
+    "stabilityPressure": "Strong",
+    "effectMd": "R4 `OperationOutcome` is normative/FMM 5, so even terminology-only compatibility changes deserve scrutiny. That pressure does not turn additive R6 vocabulary into a forward R4-to-R6 instance break, but it does mean strict-enum clients, validators, and cross-version gateways should get explicit transition handling rather than silent fallback."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "low-material-change",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "OperationOutcome remains structurally stable from R4 to R6; no resource-level migration program is unavoidable, but new R6 outcome codes need explicit per-change compatibility handling."
+  },
+  "reasoning": {
+    "thesisMd": "`OperationOutcome` keeps its resource identity and local element model. The R4 and R6 snapshots retain the same local element ids, cardinalities, datatypes, reference behavior, constraints, modifier flags, and serialization shape. The only local findings are terminology changes: required bindings for `issue.severity` and `issue.code` are widened with new R6 codes, and the optional `issue.details` example binding points to a different ValueSet canonical.",
+    "migrationShapeMd": "Forward R4-to-R6 migration is largely a structural no-op for OperationOutcome instances. Existing R4 severity and issue-type codes remain valid in R6, and no local element is removed, renamed, made mandatory, or narrowed. The real migration work is cross-version terminology behavior: R6 producers can emit `severity=success`, `code=success`, or `code=limited-filter`, which R4 required bindings and strict generated enums do not know. Implementations also need minor terminology-cache or documentation updates for the `issue.details` example ValueSet canonical.",
+    "compatibilityLeverageMd": "Because there is no broad OperationOutcome redesign and no hard R4-to-R6 local instance break, compatibility should be judged per change rather than treated as dominated by an unavoidable migration program. The current additive codes appear proportionate, but the resource's normative/FMM 5 status and its use across operation/search/error flows mean future avoidable wire-format or required-binding breaks would still have high leverage to prevent.",
+    "lessBreakingAlternativesMd": "For `issue.severity` and `issue.code`, R6 could have continued using older broad codes such as `information`, `informational`, `processing`, or `business-rule` plus `details` text or codings. That would reduce R6-to-R4 enum churn, but it would make `success` and especially `limited-filter` less directly computable for generic R6 clients. For `issue.details`, retaining the old example ValueSet canonical or publishing an alias would be low-cost terminology hygiene, but it would not preserve any otherwise-invalid base instance because the binding is example strength.",
+    "behaviorImpactMd": "No direct operation, search, or HTTP behavior finding is assigned to `OperationOutcome`. The eleven shared `Resource`/`DomainResource` behavior findings, including Resource-level operation removals and shared search-parameter metadata changes, may affect generic endpoints and conformance tooling, but they are base-platform context rather than evidence of an OperationOutcome resource-model migration.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate that OperationOutcome has no hard or potential local R4-to-R6 instance break, no direct behavior finding, and no major resource migration program. I differ slightly from its `no-special-break-avoidance-needed` compatibility posture: because the resource is normative/FMM 5 and the required-bound new R6 codes can break strict R4 enum clients or unsafe downgrade paths, `preserve-compatibility-per-change` better captures the remaining standards posture without overstating the migration burden.",
+    "uncertaintyMd": "The computable StructureDefinition and local terminology evidence is strong. Remaining uncertainty is limited to official rationale and migration guidance: the supplied inputs did not include rendered R4-to-R6 change notes, live terminology-server expansions, or final non-ballot R6 publication material."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "OperationOutcome:TERMINOLOGY_BINDING:OperationOutcome.issue.code:684920",
+      "title": "OperationOutcome.issue.code required binding adds success and limited-filter",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most important local finding. It does not make R4 instances invalid in R6 because the R4 IssueType codes remain available, so it argues against a resource-level migration program. It still drives the per-change compatibility posture because R6 `success` and `limited-filter` are unknown to R4 required bindings and strict enum/switch logic; `limited-filter` is operationally significant because silently dropping or mis-mapping it can cause consumers to over-trust search results."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "OperationOutcome:TERMINOLOGY_BINDING:OperationOutcome.issue.severity:53c7e5",
+      "title": "OperationOutcome.issue.severity required binding adds success",
+      "role": "important-but-local",
+      "reasonMd": "The added `success` severity is a reverse-direction enum and downgrade hazard rather than an old-valid/new-invalid R4-to-R6 break. It matters for generated clients and validators that modeled the normative R4 severity list as closed, but it is localized terminology migration and appears proportionate because success is a coherent outcome state."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "OperationOutcome:TERMINOLOGY_BINDING:OperationOutcome.issue.details:7ac1d1",
+      "title": "OperationOutcome.issue.details example binding points to a different ValueSet canonical",
+      "role": "discounted",
+      "reasonMd": "`issue.details` remains optional `CodeableConcept` with example binding strength, and both compared ValueSets point at the same external operation-outcome code system. Tools keyed to the old example ValueSet URL may need configuration updates, but this does not affect base instance validity or the resource-level migration conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "This shared Resource behavior can affect validation workflows for OperationOutcome like any other resource endpoint, but it is not an OperationOutcome-specific behavior finding and does not change the local resource migration shape."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search-parameter metadata can affect generic clients and conformance tooling, but the finding is owned by the shared Resource/DomainResource surface and is not direct evidence that OperationOutcome needs resource-level migration."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "The Resource `$meta-add` removal is high-risk base API context for servers that expose metadata operations on many resource types. It should be handled in the Resource/API behavior review, not counted as a local OperationOutcome StructureDefinition or behavior break."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "Medium",
+      "actionMd": "Publish or confirm explicit R6-to-R4 mapping guidance for `OperationOutcome.issue.severity=success`, `issue.code=success`, and `issue.code=limited-filter`, including whether downgrade should map to existing R4 codes, preserve detail codings, or reject as lossy."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For implementations, update strict OperationOutcome enum handling and validation tests so R6 `success` and `limited-filter` are recognized, and ensure `limited-filter` is not silently discarded when it communicates incomplete filter application."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Update terminology caches and documentation links for the `issue.details` example ValueSet canonical, or provide an alias/note if standards tooling still references the R4 `operation-outcome` ValueSet."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Keep shared Resource/DomainResource operation and search behavior remediation in the base behavior reviews; do not inflate OperationOutcome into a resource-level migration program because of those shared findings."
+    }
+  ],
+  "caveats": [
+    "The R6 input package is 6.0.0-ballot4, so final R6 publication could change terminology or migration guidance.",
+    "No official rendered R4-to-R6 OperationOutcome diff or change rationale was included in the supplied local inputs.",
+    "No live terminology-server expansion was run; the conclusion relies on local package ValueSet and CodeSystem artifacts.",
+    "Shared Resource/DomainResource behavior findings were reviewed only as context and not scored as direct OperationOutcome findings."
+  ]
+}

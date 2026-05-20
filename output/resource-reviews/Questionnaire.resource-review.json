@@ -1,0 +1,169 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Questionnaire",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Questionnaire.resource-review-context.json",
+    "structureReportPath": "output/Questionnaire.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Questionnaire.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 13,
+    "reviewedDirectBehaviorFindingCount": 3,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-level context, the full Questionnaire StructureDefinition report, the deterministic aggregate only after forming the resource judgment, and behavior findings whose affectedResources include `Questionnaire`. Shared `Resource`/`DomainResource` behavior findings were read as migration context but not scored against Questionnaire because Questionnaire is neither base resource."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "fhir",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Questionnaire is trial-use/FMM 3, so compatibility has meaningful weight for common form-authoring, rendering, extraction, and validation workflows. This is not the normative/FMM 5 burden, but central required codes and identifiers should not be broken without a clear migration reason or a low-cost transition path."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Questionnaire keeps its identity, but R6 makes a targeted migration program unavoidable for many forms, especially coded-answer semantics and stricter authoring invariants."
+  },
+  "reasoning": {
+    "thesisMd": "Questionnaire is not removed or replaced, and much of the R6 delta is additive or reverse-only. The resource-level shape is nevertheless more than isolated cleanup: ordinary R4 coded-answer questions (`choice`/`open-choice`), some `subjectType` codes, comparator-bearing quantity conditions/defaults, and several previously-valid authoring patterns can fail R6 validation or require policy choices. That makes a targeted Questionnaire migration program already necessary, but not so dominant that additional avoidable breaks become irrelevant.",
+    "migrationShapeMd": "The core remodel is concentrated around questionnaire item semantics rather than the whole resource identity. R6 normalizes coded-answer item types to `coding` plus `answerConstraint`, changes the release-specific `subjectType` resource-code binding, profiles some quantity-valued enablement/default branches to SimpleQuantity, and turns several authoring-quality rules into hard invariants. These changes require mapping policy, validation repair, and coordinated updates to QuestionnaireResponse linkages and form logic, but they do not amount to a wholesale resource replacement.",
+    "compatibilityLeverageMd": "Because migration work is already needed, preservation leverage is lower for purely local chores whose R6 goal is to make executable forms less ambiguous. It remains high where compatibility can be preserved cheaply: deprecated legacy item-type codes, warning-first treatment of `linkId` whitespace, correction or staging of the `answerValueSet`/`maxLength` rule, and legacy SearchParameter aliases would reduce migration cost without blocking the R6 design.",
+    "lessBreakingAlternativesMd": "The most plausible low-cost standards actions are transitional rather than abandoning the R6 model: retain `choice` and `open-choice` as deprecated required-binding codes with defined mapping to `coding` plus `answerConstraint`, initially downgrade `linkId` whitespace normalization to warning or best-practice guidance, fix the apparent `optionOrString`/`optionsOrString` mismatch, and publish deprecated per-resource SearchParameter canonical aliases. By contrast, retaining obsolete `subjectType` resource codes indefinitely or accepting ambiguous quantity comparators and enableWhen defaults in executable logic would weaken the R6 validation goal.",
+    "behaviorImpactMd": "Questionnaire has three direct behavior findings. The example `$populate` OperationDefinition change is mostly metadata identity cleanup with the runtime Parameters contract intact. The SearchParameter canonical-resource consolidation is more standards-review-worthy because conformance tooling often keys on canonical URL even when query code still works. Stable search-code expression moves are operational migration chores: indexes and conformance tests need comparison by code/type/expression, but the underlying issue follows model migration rather than a Questionnaire-specific API removal.",
+    "comparisonToDeterministicAggregateMd": "I agree with the aggregate outcome of `Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The independent review gives that answer because the substantive changes cluster around central but bounded form semantics, not because the count of seven hard breaks mechanically crosses a threshold. I also treat the SearchParameter alias issue and the structure Revisit findings as still valuable despite the already-needed migration program.",
+    "uncertaintyMd": "Confidence is high for the shape of the StructureDefinition and direct behavior changes. Prevalence and exact safety/business impact are less certain because no real Questionnaire corpus, live terminology expansion, or final R6 package rationale was available; the R6 input is ballot4 and may change."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Questionnaire:TERMINOLOGY_BINDING:Questionnaire.item.type:item-type-useable",
+      "title": "Questionnaire.item.type required binding removes choice, open-choice, and question and adds coding",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the central migration driver. Common R4 `choice` and `open-choice` items no longer validate as R6 and must be mapped to `coding` with the correct `answerConstraint`; generic `question` needs human selection of an answer datatype. Deprecated legacy codes look like a plausible transition mechanism, so the finding still matters even though migration is already needed."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Questionnaire:ELEMENT_PRESENCE_OR_IDENTITY:Questionnaire.item.answerConstraint:added",
+      "title": "R6 adds Questionnaire.item.answerConstraint for open or closed answer sets",
+      "role": "important-but-local",
+      "reasonMd": "The optional element is not an R4-to-R6 instance break by itself, but it is part of the item-type remodel and must be populated correctly when converting `choice` and `open-choice`. It is a migration concern rather than an avoidable compatibility problem on its own."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Questionnaire:TERMINOLOGY_BINDING:Questionnaire.subjectType:resource-types",
+      "title": "Questionnaire.subjectType required resource-type binding changed with R6 resource inventory",
+      "role": "important-but-local",
+      "reasonMd": "R4-only resource codes can become invalid under the R6 required binding, and dropping `subjectType` would broaden response applicability. This needs an explicit cross-version ConceptMap and sometimes business review, but it largely follows release-level resource inventory changes; preserving obsolete resource codes in the R6 base value set would undermine validation."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Questionnaire:TYPE_DOMAIN:Questionnaire.item.enableWhen.answer:uri-attachment-simplequantity",
+      "title": "enableWhen answers add uri and Attachment while Quantity choices are constrained to SimpleQuantity",
+      "role": "important-but-local",
+      "reasonMd": "The additive `uri` and `Attachment` branches are reverse-only, but comparator-bearing R4 Quantity values can fail because R6 uses SimpleQuantity. This is a real old-valid/new-invalid break, yet it is proportionate because comparators in executable enablement and initial default logic are ambiguous and need author review."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.linkId:whitespace",
+      "title": "Questionnaire.item.linkId now rejects leading/trailing and non-single-space whitespace",
+      "role": "important-but-local",
+      "reasonMd": "`linkId` is the join key for QuestionnaireResponse answers, enableWhen.question references, extraction maps, and external logic. The interoperability goal is reasonable, but immediate error-level rejection can force coordinated renames; a warning-first transition would preserve compatibility at relatively low cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.enableWhen:enableBehavior-threshold",
+      "title": "Exactly two enableWhen clauses now require enableBehavior",
+      "role": "discounted",
+      "reasonMd": "This creates a hard validation break for exactly two enableWhen clauses without `enableBehavior`, but the R6 goal is strong: executable form behavior is ambiguous without an explicit `all` or `any`. This is mainly a local migration repair rather than a standards concern."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.answerOption-initial:alignment-defaults",
+      "title": "R6 enforces answerOption/initial type alignment and limits selected defaults for non-repeating items",
+      "role": "discounted",
+      "reasonMd": "The new invariants reject structurally accepted but internally inconsistent R4 forms. Implementers must fix affected instances, but preserving these as valid base R6 content would keep ambiguous or non-executable questionnaire definitions."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Questionnaire:VALUE_CONSTRAINT:Questionnaire.item.answerValueSet-maxLength:context-rules",
+      "title": "Allowed contexts for answerValueSet and maxLength changed",
+      "role": "needs-follow-up",
+      "reasonMd": "This remains standards-review-worthy. Some narrowing may be justified, but the rule set affects old primitive/date/quantity value-set uses and old open-choice `maxLength` migration, and the reported `optionOrString` versus `optionsOrString` mismatch looks like a low-cost defect or staging issue."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Questionnaire:TYPE_DOMAIN:Questionnaire.item.answerOption.value:added-types",
+      "title": "Questionnaire.item.answerOption.value[x] accepts additional datatypes in R6",
+      "role": "discounted",
+      "reasonMd": "The type list is widened for R6 authors. Existing R4 answer options remain valid, so this does not drive R4-to-R6 migration unavoidability; it is a downgrade/round-trip policy issue."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:canonicalresource-metadataresource-consolidation",
+      "title": "R6 consolidates many per-resource canonical SearchParameter URLs into multi-base CanonicalResource and MetadataResource definitions",
+      "role": "important-but-local",
+      "reasonMd": "Questionnaire is one of the affected canonical resources. Runtime query codes may survive, but CapabilityStatement definitions, generators, and conformance tests often compare canonical SearchParameter URLs. Deprecated alias SearchParameters are a plausible low-cost compatibility aid."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "This can cause silent result-set drift if indexes are not migrated with data. For Questionnaire it is an operational migration task rather than evidence of a resource-level replacement, because the search code surface is largely preserved."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "example--example:example-populate-canonical-metadata-normalized",
+      "title": "Example Questionnaire $populate keeps runtime shape but changes canonical and metadata identity",
+      "role": "discounted",
+      "reasonMd": "The affected Questionnaire operation is example/draft-like metadata cleanup: canonical/name/base identity changes, but the instance-level `$populate` Parameters contract is effectively unchanged. It should not drive the resource-level conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This is a shared `Resource` behavior issue and may affect generic servers that also handle Questionnaires, but it is not a Questionnaire-specific finding and is therefore not scored in the Questionnaire resource-level judgment."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search metadata change is relevant to cross-resource infrastructure migration, but it is not specific to Questionnaire and does not change the Questionnaire migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Review the `item.type` transition for a compatibility mechanism: either deprecated legacy `choice`/`open-choice` codes with precise mapping to `coding` plus `answerConstraint`, or explicit ballot rationale for rejecting that transition path."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `answerValueSet`/`maxLength` constraints, including the apparent `optionOrString`/`optionsOrString` mismatch, and decide whether formerly-valid contexts should be warning-level during transition."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Consider making the `linkId` whitespace rule warning-level or best-practice for a release, with guidance to rename identifiers only after checking QuestionnaireResponse, enableWhen, and extraction-map references for collisions."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish Questionnaire-specific migration guidance and ConceptMaps for `subjectType`, item-type conversion, SimpleQuantity comparator cleanup, and exactly-two `enableWhen` behavior selection."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For Questionnaire SearchParameters, preserve or document legacy canonical aliases so conformance tooling can match R4 per-resource definitions to R6 CanonicalResource/MetadataResource definitions."
+    }
+  ],
+  "caveats": [
+    "R6 inputs were from 6.0.0-ballot4, so final R6 publication could change the findings.",
+    "No representative real-world Questionnaire corpus was validated, so prevalence is inferred from model semantics rather than measured.",
+    "Terminology comparisons used local package definitions rather than live terminology-server expansions.",
+    "Shared Resource/DomainResource behavior findings were considered only as context and were not scored as Questionnaire-specific breaks."
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "ServiceRequest",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/ServiceRequest.resource-review-context.json",
+    "structureReportPath": "output/ServiceRequest.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/ServiceRequest.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 15,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the ServiceRequest resource context, the full StructureDefinition report, the deterministic aggregate as prior context, and the direct SearchParameter behavior findings affecting ServiceRequest. Shared Resource/DomainResource behavior findings from HTTP REST and OperationDefinition reports were considered only as background because the assigned resource is ServiceRequest, not Resource or DomainResource."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 ServiceRequest is FMM 2/trial-use, so there is no high maturity presumption against change. The neutral maturity baseline does not erase the practical impact of breaks to central order fields, specimen/anatomic context, patient instructions, or common search behavior."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "ServiceRequest keeps its identity, but R6 remodels enough core request content that a version-aware migration program is unavoidable; low-cost compatibility aliases and preservation paths still matter for selected fields and searches."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a removed-resource case, but it is more than a handful of isolated local edits. R4 ServiceRequest instances that use common content such as `code`, `reasonCode`/`reasonReference`, `supportingInfo`, `orderDetail`, `patientInstruction`, location, body site, specimen, instantiation links, or `asNeeded[x]` need structural transformation before R6 validation. The resource therefore needs a migration program even though the canonical resource identity remains stable.",
+    "migrationShapeMd": "The dominant shape is a major model remodel around CodeableReference and richer request detail modeling. R6 wraps or merges several R4 concept/reference fields (`code`, `reason`, `location`, `supportingInfo`, `bodyStructure`), turns `orderDetail` from a CodeableConcept list into required parameter backbones, turns `patientInstruction` from one string into repeatable instruction backbones, splits `asNeeded[x]`, and removes `instantiatesCanonical`/`instantiatesUri` and `specimen`. Optional additions such as `focus` and `statusReason`, widened target lists, and new status/intent codes are important for R6-to-R4 exchange but do not themselves make old R4 instances invalid.",
+    "compatibilityLeverageMd": "Because broad transformation is already required, implementers cannot avoid a ServiceRequest migration project by preserving one field. That does not mean additional breaks are free. Compatibility remains high leverage where the base model could cheaply retain optional deprecated fields or search aliases, especially where the lost information is provenance-, specimen-, anatomy-, or query-critical. For several CodeableReference consolidations, however, retaining both old and new paths would create duplicate clinical representations and conflict rules, so those are better treated as planned local migration chores.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidates are `instantiatesCanonical`/`instantiatesUri`, `specimen`, and the `bodySite` to `bodyStructure` transition. Deprecated compatibility fields, an explicit specimen successor, or repeatable anatomic-target support would preserve R4 data without undermining the larger R6 request model as much as parallel aliases for every CodeableReference field would. SearchParameter aliases for old token searches that now map to `.concept` are also worth standards attention because they can preserve common client queries while still exposing new reference searches.",
+    "behaviorImpactMd": "The direct behavior impact for ServiceRequest comes from SearchParameters. The CodeableReference split finding can break old token queries for clinical code searches and deserves follow-up for aliasing or explicit migration guidance. Reference-target and chain changes create real query/codegen churn, but much of that follows broader resource model changes and is less central than the structural remodel. Shared Resource/DomainResource HTTP and operation findings may affect generic infrastructure, but they were not scored as ServiceRequest-specific resource findings.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate's `major-model-remodel`, `Yes`, and `preserve-where-low-cost-but-expect-resource-migration` posture is directionally correct. The important qualification is that the count of hard/high findings should not flatten the resource: reverse-only additions and target widenings are local exchange chores, while the low-cost preservation candidates remain meaningful despite the unavoidable overall migration.",
+    "uncertaintyMd": "Confidence is high for the structural facts because they are read from the supplied reports and core package evidence. Confidence is lower for intended successor semantics and real-world prevalence because official R4-to-R6 migration notes, ConceptMaps, terminology expansions, and implementation prevalence data were not supplied."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:TYPE_DOMAIN:code:9f7b01",
+      "title": "ServiceRequest.code changed from CodeableConcept to CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`code` is central to the requested service and the same path changes wire shape from a direct CodeableConcept to a CodeableReference wrapper. R4 coded orders can be migrated by wrapping as `code.concept`, but generated APIs, FHIRPath, storage, validation, and search/index logic must all become version-aware. This is a major migration driver even though the R6 modeling goal is plausible."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:SLICING_AND_CONTENT_MODEL:orderDetail:4c52d8",
+      "title": "ServiceRequest.orderDetail was reshaped from CodeableConcept entries to required parameter backbones",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This same-path content-model replacement cannot be solved by a rename. R4 free/coded order details must be classified into R6 parameter codes and typed values, and R6 structured details cannot be flattened back without policy. It is a clear example of semantic, non-mechanical migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:ELEMENT_PRESENCE:reason:71e5db",
+      "title": "ServiceRequest.reasonCode and reasonReference were merged into reason CodeableReference with new reference targets",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Reason/indication is clinically and administratively important. R4 coded/reference reasons usually map cleanly into `reason.concept` or `reason.reference`, so this is not the strongest standards-revisit item, but it materially contributes to the resource-wide CodeableReference migration and affects authorization, appropriateness, and interpretation workflows."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:TYPE_DOMAIN:supportingInfo:bf20a6",
+      "title": "ServiceRequest.supportingInfo changed from Reference(Resource) to CodeableReference(Resource)",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The target domain remains broad, but every R4 reference entry moves under `supportingInfo.reference`, and R6 can carry concept-only supporting information. This is a common contextual field and another same-path shape change that forces generated model and serializer updates."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:ELEMENT_PRESENCE:instantiates:21aef0",
+      "title": "ServiceRequest.instantiatesCanonical and instantiatesUri were removed",
+      "role": "needs-follow-up",
+      "reasonMd": "This is one of the most important avoidable breaks. Optional deprecated retention would have preserved protocol, guideline, order-set, and external URI provenance with limited base-model cost. `code.reference` may cover some canonical definitional artifacts, but it is not an exact replacement for arbitrary instantiation URI/provenance semantics."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:ELEMENT_PRESENCE:specimen:e93a64",
+      "title": "ServiceRequest.specimen was removed",
+      "role": "needs-follow-up",
+      "reasonMd": "For laboratory and diagnostic orders, specimen identity can be safety-critical. Mapping to broad `supportingInfo.reference` is structurally possible but semantically weaker than a dedicated specimen relationship. Retaining `specimen` as deprecated or adding an explicit equivalent R6 relationship looks like a low-cost preservation option worth standards review."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:ELEMENT_PRESENCE:bodyStructure:08d73e",
+      "title": "ServiceRequest.bodySite was replaced by bodyStructure CodeableReference with reduced repeatability",
+      "role": "needs-follow-up",
+      "reasonMd": "This combines a path change, datatype wrapper, and cardinality reduction from repeatable body sites to one bodyStructure. Single coded sites can map, but multi-site R4 orders require splitting, combining anatomy, or extensions. The richer BodyStructure target is useful, yet repeatability preservation or a transitional bodySite path would materially reduce lossy migration risk."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:TYPE_DOMAIN:patientInstruction:35d2a9",
+      "title": "ServiceRequest.patientInstruction changed from a single string to repeating instruction backbone entries",
+      "role": "important-but-local",
+      "reasonMd": "Patient instructions are safety-relevant and the same path changes from a summary string to repeatable markdown/DocumentReference instruction entries. The forward transform from one R4 string to one markdown instruction is usually straightforward, so this is best treated as a required migration chore rather than a reason to reject the R6 design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:ELEMENT_PRESENCE:asNeeded:6a411c",
+      "title": "ServiceRequest.asNeeded[x] was split into asNeeded and asNeededFor",
+      "role": "important-but-local",
+      "reasonMd": "The old choice element names break, but the R4-to-R6 mapping is usually deterministic: boolean to `asNeeded`, CodeableConcept to `asNeededFor`. It adds to migration volume but does not substantially change the resource-level compatibility posture."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:TERMINOLOGY_BINDING:status-ended:b712f4",
+      "title": "Required ServiceRequest.status binding adds R6 code ended",
+      "role": "important-but-local",
+      "reasonMd": "This does not invalidate R4 status values in R6, so it does not drive R4-to-R6 migration unavoidability. It remains important for enum handling and R6-to-R4 down-conversion because `status` is mandatory and modifier-significant; `ended` cannot be safely mapped without lifecycle policy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:TERMINOLOGY_BINDING:intent-newcodes:cf18aa",
+      "title": "Required ServiceRequest.intent binding adds solicit-offer and offer-response and changes some meanings",
+      "role": "important-but-local",
+      "reasonMd": "Existing R4 intent codes remain valid, but new offer-related codes and changed definitions for existing modifier-significant codes affect business rules and down-conversion. This should be covered by ConceptMaps and policy review, but it is not the main R4-to-R6 hard-instance break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:ELEMENT_PRESENCE:focus:a39219",
+      "title": "ServiceRequest.focus was added for requests whose real focus differs from the subject of record",
+      "role": "discounted",
+      "reasonMd": "`focus` can be clinically important in R6, but it is optional additive content and does not make any R4 ServiceRequest invalid. The compatibility issue is an R6-to-R4 extension/profile strategy, not a reason to reduce R6 expressiveness."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ServiceRequest:REFERENCE_TARGET:widened:aa5b7e",
+      "title": "Several ServiceRequest reference target lists were widened",
+      "role": "discounted",
+      "reasonMd": "Reference target widening affects validators, generated target unions, and down-conversion profiles, but it preserves R4-valid references in R6. It is a local exchange constraint issue rather than a resource-level R4-to-R6 break driver."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:codeable-reference-splits-clinical",
+      "title": "Several common clinical search codes split into code/reference variants or changed type because elements became CodeableReference-like",
+      "role": "needs-follow-up",
+      "reasonMd": "This directly affects ServiceRequest and compounds the structural CodeableReference migration. Old token queries may be rejected or silently lose results unless query builders move to the R6 code/reference split. Deprecated token aliases for the concept side look like a practical low-cost compatibility mechanism for common searches."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "Typed modifiers, chains, and generated target enums can break for ServiceRequest-related queries. The issue matters operationally, but much of it follows broader model and resource-target changes, so it is a migration/test-update item more than an independent reason to preserve the old ServiceRequest structure."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "context-only",
+      "reasonMd": "This may affect generic clients operating across resources, but under the review instructions shared Resource/DomainResource behavior is context only for ServiceRequest. It does not change the ServiceRequest-specific resource-level conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Define an explicit ServiceRequest R4-to-R6 migration map covering CodeableReference wrapping/merging, `orderDetail` parameterization, `patientInstruction`, `asNeeded`, removed instantiation links, specimen handling, and body-site/body-structure policy. Treat `instantiates[x]`, specimen, and multi-site anatomy as human-review cases unless an implementation-specific rule is proven safe."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Ask standards reviewers to revisit low-cost preservation options for `instantiatesCanonical`/`instantiatesUri`, `specimen`, and `bodySite`/`bodyStructure` repeatability, because these preserve audit/provenance, lab safety, and anatomic context without negating the broader R6 redesign."
+    },
+    {
+      "priority": "High",
+      "actionMd": "For SearchParameters, publish or support compatibility aliases where old ServiceRequest token searches map cleanly to R6 `.concept` searches, and document when clients must use new `*-code` and `*-reference` searches."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update SDKs, validators, FHIRPath rules, storage schemas, search indexes, and query builders for the R6 ServiceRequest shapes; include tests for same-path datatype replacements, removed fields, multi-site body anatomy, specimen orders, and summary behavior for patient instructions."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Create R6-to-R4 exchange rules for new status/intent codes, `statusReason`, `focus`, widened reference targets, BodyStructure references, and concept-only CodeableReferences, preferably backed by official ConceptMaps or documented local policy."
+    }
+  ],
+  "caveats": [
+    "Official R4-to-R6 ServiceRequest migration notes and ConceptMaps were not supplied, so successor semantics for removed fields remain partly inferred.",
+    "Terminology assessment relied on local CodeSystem/ValueSet content in the reports; no terminology-server expansion comparison was available.",
+    "Prevalence of optional R4 fields such as `instantiates[x]`, `specimen`, multi-valued `bodySite`, and `orderDetail` was not measured.",
+    "Shared Resource and DomainResource behavior findings were intentionally treated as context only, not as ServiceRequest-specific direct behavior impacts."
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Media",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Media.resource-review-context.json",
+    "structureReportPath": "output/Media.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Media.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 8,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, assessment rubric, fresh-review framework, Media context bundle, full Media StructureDefinition report, deterministic aggregate, the two Media-scoped behavior findings, representative shared Resource/DomainResource behavior context, R4 Media elements, and R6 candidate resources `DocumentReference`, `ImagingSelection`, and `DiagnosticReport`."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 `Media` was trial-use/FMM 1, so the compatibility burden is weaker than for mature or normative resources. That lowers the presumption against retiring the resource, but it does not make the break harmless because the resource identity is removed and the affected content can include clinically important photos, video, audio, scans, and imaging-related metadata."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "migration-program-dominates",
+    "confidence": "High",
+    "oneLineConclusion": "R6 removes the `Media` resource, so R4 `Media` instances and APIs need a target-resource migration; remaining compatibility value is mostly in official transition semantics, not per-field preservation."
+  },
+  "reasoning": {
+    "thesisMd": "The actual R4-to-R6 shape is not an element-level remodel of `Media`; it is resource retirement. The R6 ballot4 package has no `StructureDefinition/Media`, while `DocumentReference` now explicitly covers photos, video, and audio, `ImagingSelection` covers DICOM selections, and `DiagnosticReport.media.link` points to `DocumentReference`. Therefore a valid R4 `resourceType: Media` instance has no same-name R6 validation target.",
+    "migrationShapeMd": "A migration program is already unavoidable. Implementers must inventory `Media` usage and choose among `DocumentReference`, `ImagingSelection`/`ImagingStudy`, `DiagnosticReport`/`Observation` attachment patterns, or implementation-specific profiles. The hard parts are not just copying `content`; they include lifecycle status, capture versus availability timing, subject/operator/order/encounter roles, and generic acquisition/rendering metadata such as dimensions, frames, duration, device, modality, and view.",
+    "compatibilityLeverageMd": "The root identity break lowers the leverage of preventing additional old `Media` element breaks: once `Media` is not an R6 resource, preserving one old field name cannot make R4 instances valid. The only direct base-compatible alternative would be retaining a deprecated `Media` resource plus endpoint/search surface for a transition release, which would substantially preserve compatibility but also keep a duplicate resource family alive. Still, `migration-program-dominates` should not be read as `no further action`: standards-level transition artifacts and targeted preservation of original status/acquisition semantics can materially reduce data loss and implementation risk.",
+    "lessBreakingAlternativesMd": "The broad less-breaking alternative is a deprecated R6 `Media` resource with legacy REST/search advertisements and explicit replacement guidance. That would preserve old instances but is not low-cost because validators, SDKs, servers, search parameters, and conformance tooling would continue to support the retired model. More proportionate lower-cost actions are official maps, examples, ConceptMaps where terminology is involved, and standard extensions or profile guidance to preserve original `Media.status`, capture timing, dimensions, duration, frame count, device, view, and modality when target resources lack first-class homes.",
+    "behaviorImpactMd": "The direct behavior findings for Media are derivative but real: the base CapabilityStatement no longer advertises `/Media`, and R4 search parameters whose only base was `Media` disappear. These reinforce that API, route, generated SDK, search, subscription, and authorization surfaces need migration. Shared Resource/DomainResource operation and search findings were considered only as background because Media is not the shared base resource.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate that major migration is unavoidable, the shape is `removed-or-replaced-resource`, and the dominant compatibility posture is migration planning. The aggregate is too terse, however, if read to mean individual findings no longer matter: `Media.status`, acquisition/technical metadata, and Media-specific API/search transition behavior remain standards-review-worthy because they determine whether migration is safe and non-lossy.",
+    "uncertaintyMd": "The conclusion depends on the supplied R6 ballot4 package, which has no `Media` StructureDefinition. The local inputs did not include an official R4 `Media` to R6 migration map or formal rationale for removal, so proportionality of the retirement itself is less certain than the existence of the break."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Media:ARTIFACT_IDENTITY:root:0f4f86",
+      "title": "R6 core package has no Media resource StructureDefinition",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the decisive finding. It is an old-valid/new-invalid break at resource identity level: R4 `Media` instances cannot validate as R6 core resources because the root type is absent. FMM 1 softens the standards burden, but the break still forces whole-workflow migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Media:SERIALIZATION_OR_CODEGEN:Media:5d8c2b",
+      "title": "Media-specific serialization, generated models, REST routes, and search surface are removed",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the runtime/API face of the resource removal. Generated model classes, resource-type enums, route tables, search constants, subscriptions, and persistence partitions that mention `Media` do not survive by field-level mapping."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Media:CONVERSION_OR_MAPPING:Media.status:8fb3a1",
+      "title": "Media.status event lifecycle does not map cleanly to candidate R6 status elements",
+      "role": "needs-follow-up",
+      "reasonMd": "`Media.status` is required and modifier in R4. Mapping event lifecycle states such as `not-done`, `on-hold`, or `entered-in-error` to document/reference availability status can change clinical usability semantics. Even though the resource migration is unavoidable, this is a safety-relevant transition issue that deserves explicit standards guidance."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Media:CONVERSION_OR_MAPPING:Media.acquisitionContext:6a1c9e",
+      "title": "Media-specific acquisition and technical metadata have no single R6 replacement home",
+      "role": "needs-follow-up",
+      "reasonMd": "Dimensions, frames, duration, device, modality, view, and related acquisition metadata are likely to be display-, audit-, or interpretation-relevant. A generic `DocumentReference` migration can preserve the attachment while losing this context, so standardized preservation guidance or extensions would have high value."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Media:CONVERSION_OR_MAPPING:Media.content:2e73c4",
+      "title": "Media.content attachment requires structural remapping and may not round-trip losslessly",
+      "role": "important-but-local",
+      "reasonMd": "The payload usually has a plausible R6 home in `DocumentReference.content.attachment`, so this is more a required migration chore than a reason to reject the redesign. It still needs examples and tests for inline data, URL-only attachments, alternate encodings, versions, and DICOM content."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Media:REFERENCE_TARGET:Media.participants:aa72df",
+      "title": "Subject, operator, order, encounter, and part-of references require use-case-specific target mapping",
+      "role": "important-but-local",
+      "reasonMd": "Most reference roles have candidate homes in `DocumentReference` or `ImagingSelection`, but role semantics are not one-to-one. This is local migration policy once the replacement target is chosen, with extensions needed when an old role can only be approximated."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Media:CONVERSION_OR_MAPPING:Media.created-issued:bd3170",
+      "title": "Media.created[x] and Media.issued timing semantics need explicit target mapping",
+      "role": "important-but-local",
+      "reasonMd": "Capture time and availability/review time can be conflated by naive mapping to `DocumentReference.period`, `DocumentReference.date`, or `ImagingSelection.issued`. This matters for chronology-sensitive adopters, but it is a mapping requirement rather than a low-cost reason to keep old timing fields in all replacement resources."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Media:TERMINOLOGY_BINDING:Media.type:cf920d",
+      "title": "Media-specific type/modality/view terminology is absent or replaced by document and DICOM-oriented terminology",
+      "role": "discounted",
+      "reasonMd": "This is not a separate hard terminology break because the old bindings were extensible or example-level and target resources provide their own classification mechanisms. ConceptMaps may help migration, but the real compatibility issue is resource retirement and target selection."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "important-but-local",
+      "reasonMd": "For Media this confirms that `/Media` disappears from the advertised base endpoint inventory. It is derivative of resource removal, so it does not independently change the resource-level conclusion, but it is important for server CapabilityStatements, route compatibility, and client discovery."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "important-but-local",
+      "reasonMd": "Media-specific R4 queries such as `Media?subject=...` have no same-base R6 endpoint. This should be handled in the resource migration plan by mapping common searches to `DocumentReference`, `ImagingSelection`, or other selected targets rather than treating it as an isolated SearchParameter rename."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search metadata issue may affect clients after they migrate away from `Media`, but it is not Media-specific and was not scored as a driver for the Media resource conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish an official R4 `Media` to R6 transition guide with target-selection rules for document-like media, DICOM selections, diagnostic-report key images/data, observations, and implementation-specific cases."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Make an explicit standards decision on whether to retain a deprecated `Media` resource or legacy endpoint/search aliases for a transition period; if rejected, document the rationale and expected replacement paths."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define computable mappings and examples for `Media.status`, `created[x]`, `issued`, participant roles, and acquisition/technical metadata, including preservation of original values when target resources lack equivalent fields."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add migration test cases for representative still image, multi-frame image, audio, video, scanned-document, and DICOM-derived Media instances, including REST/search query rewrites."
+    }
+  ],
+  "caveats": [
+    "No official R4 Media to R6 migration map or removal rationale was present in the local inputs.",
+    "The review is based on the supplied R6 6.0.0-ballot4 package; a later package that restores or profiles Media would change the resource-identity conclusion.",
+    "Shared Resource and DomainResource behavior findings were considered as context only, not as Media-specific drivers."
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "ValueSet",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/ValueSet.resource-review-context.json",
+    "structureReportPath": "output/ValueSet.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/ValueSet.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 10,
+    "reviewedDirectBehaviorFindingCount": 10,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "I reviewed the resource-review contract, resource assessment rubric, fresh-review framework, ValueSet resource-review context, the full ValueSet StructureDefinition report, direct ValueSet operation/search/REST behavior findings, and the deterministic aggregate only after forming the resource-level conclusion. Shared `Resource` and `DomainResource` behavior findings were treated as context, not scored as ValueSet-specific breaks."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "vocab",
+    "stabilityPressure": "Strong",
+    "effectMd": "R4 `ValueSet` is normative/FMM 5, so silent semantic shifts and hard validation changes need strong justification. This does not make every optional R6 addition problematic, but it raises the value of preserving R4 semantics or providing low-cost aliases where possible."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "ValueSet keeps its R4 identity and most instance shape, but targeted terminology-semantics and operation/conformance changes make a migration review necessary while leaving high leverage for low-cost compatibility preservation."
+  },
+  "reasoning": {
+    "thesisMd": "`ValueSet` is not a removed or fundamentally remodeled resource: no local R4 elements are removed, common cardinalities and types are stable, and most additions are optional. The migration burden is nevertheless real because the resource is normative terminology infrastructure and the changes hit expansion semantics, designation-language validation, jurisdiction meaning, expansion payloads, and `$expand`/`$validate-code` conformance surfaces.",
+    "migrationShapeMd": "The actual shape is a targeted terminology migration, not a wholesale instance-model rewrite. Simple R4 ValueSets without multiple `compose.include.valueSet` references, unusual designation language tags, jurisdiction-dependent registry behavior, or strict operation wrappers may migrate mechanically. Terminology servers, registries, publishers, and clients that depend on expansions or capability metadata need a deliberate migration program.",
+    "compatibilityLeverageMd": "Because the migration program is only partial, preventing additional avoidable breaks remains valuable. Low-cost preservation is especially important where R6 reuses the same wire path with changed meaning (`compose.include.valueSet`, `jurisdiction`) or where a machine-readable artifact appears internally inconsistent (`ValueSet-validate-code` advertised with operation name `expand`). Optional additive R6 metadata and reverse-only R6-to-R4 loss should be handled as local migration chores rather than reasons to relax compatibility discipline.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking opportunities are to preserve R4 union semantics for repeated `compose.include.valueSet` while adding an explicit intersection construct, avoid redefining `jurisdiction` by adding or documenting a separate maintaining-authority jurisdiction path, correct the `ValueSet-validate-code` capability advertisement, and provide deprecated SearchParameter canonical aliases for consolidated canonical-resource searches. By contrast, additions such as `expansion.next`, expansion concept properties, `compose.property`, `designation.additionalUse`, and governance metadata are optional first-class R6 capabilities; extensions or sidecars would mainly be downgrade mitigations, not better base designs.",
+    "behaviorImpactMd": "Direct behavior findings materially affect ValueSet because `$expand` and `$validate-code` are central normative terminology operations. Several changes are proportionate clarifications or optional structured outputs, but the required-support ambiguity for `$expand`, the default handling of omitted `abstract`, the capability-name mismatch, and canonical SearchParameter identity consolidation deserve follow-up. Shared `Resource`/`DomainResource` operation changes remain background context only for this resource-level decision.",
+    "comparisonToDeterministicAggregateMd": "After independent review, I agree with the deterministic aggregate's `Partial` migration-unavoidability, `moderate-targeted-remodel` shape, and `preserve-where-low-cost-but-expect-resource-migration` posture. I would weight the resource-level drivers more toward silent semantics and terminology-operation conformance than toward the many optional R6-to-R4 additions, which are mostly implementation mapping work.",
+    "uncertaintyMd": "The conclusion is stable from the supplied local StructureDefinitions and reports, but some behavior findings remain uncertain because the input is R6 ballot4, rendered narrative pages and official change rationales were not locally available, and no live terminology expansions were run."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ValueSet:SEMANTIC_OR_CONFORMANCE_TEXT:compose.include.valueSet:6a4f91",
+      "title": "Multiple compose.include.valueSet references changed from union to intersection semantics",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most important resource-level issue: the same valid wire shape can produce a different expansion, changing validation behavior without a structural error. On normative terminology content, preserving R4 union semantics or adding an explicit R6 intersection construct appears materially lower cost than silently redefining the existing array."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ValueSet:TERMINOLOGY_BINDING:designation.language:1d2e0b",
+      "title": "Designation language binding strengthened from preferred common languages to required all languages",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the one clear old-valid/new-invalid instance break. It is narrow and probably proportionate because `designation.language` is supposed to be a BCP-47 language tag and R4 already identified all-languages as the max value set, but it still forces migration validation for nonconforming historical data."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ValueSet:SEMANTIC_OR_CONFORMANCE_TEXT:jurisdiction:2cf341",
+      "title": "ValueSet.jurisdiction semantics shifted from intended use jurisdiction to maintaining authority jurisdiction",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The path stays wire-compatible while its meaning changes from intended-use jurisdiction to maintaining-authority jurisdiction. Regional terminology registries, validators, and regulatory selection logic can misclassify data, and mapping old values to `useContext` may require human knowledge."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ValueSet:SERIALIZATION_OR_CODEGEN:expansion-properties:9d102c",
+      "title": "Expansion adds paging and concept property/subProperty structures",
+      "role": "important-but-local",
+      "reasonMd": "The new expansion fields can break strict R4 clients and change expansion consumption patterns, especially with paging and concept properties. They are optional and have a strong operational rationale, so they are migration work for expansion clients rather than a reason to judge the whole resource as fully remodeled."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ValueSet:ELEMENT_PRESENCE_OR_IDENTITY:compose-new-children:5c77de",
+      "title": "Composition adds include-level copyright and requested expansion properties",
+      "role": "important-but-local",
+      "reasonMd": "These optional additions can matter for licensing and expansion-property behavior, but they do not invalidate R4 instances. They should be covered in downgrade and publication guidance rather than treated as avoidable forward breaks."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ValueSet:ELEMENT_PRESENCE_OR_IDENTITY:metadata-additions:8e33b7",
+      "title": "R6 adds many optional canonical-resource metadata and governance elements not present in R4",
+      "role": "discounted",
+      "reasonMd": "The added governance fields create R6-to-R4 loss and strict-parser concerns, but they are optional and standardize metadata that previously needed extensions or external documentation. They do not drive a forward R4-to-R6 compatibility conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ValueSet:TERMINOLOGY_BINDING:filter.op:0f5c2a",
+      "title": "Filter operator required value set adds child-of and descendent-leaf",
+      "role": "discounted",
+      "reasonMd": "R6 widens the required code set and preserves existing R4 operator codes, so R4 ValueSet filters remain valid. R6-to-R4 downgrade or old enum parsing can fail for new operators, but that is expected new expressivity rather than an avoidable forward break."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "ValueSet-expand--ValueSet-expand:valueset-expand-type-scoped-source-parameters",
+      "title": "R6 scopes url, valueSet, and valueSetVersion to type-level invocation",
+      "role": "important-but-local",
+      "reasonMd": "This can break generated clients or validators that send redundant source parameters with instance-level `$expand`, but it formalizes an invocation distinction already implied by R4 and avoids conflicting sources of ValueSet identity."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "ValueSet-expand--ValueSet-expand:valueset-expand-existing-parameter-semantics-tightened",
+      "title": "R6 makes several existing $expand parameter and output semantics more enforceable",
+      "role": "important-but-local",
+      "reasonMd": "The tighter semantics create server conformance work for a common normative operation, but they aim at predictable expansion behavior. This is part of the targeted terminology-service migration rather than evidence of wholesale resource redesign."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "ValueSet-expand--ValueSet-expand:valueset-expand-terminology-service-required-parameters",
+      "title": "R6 terminology-service narrative adds a required-support table for ValueSet-expand that may conflict with paging-optional operation prose",
+      "role": "needs-follow-up",
+      "reasonMd": "If the required-support table is read literally, R4-compatible terminology servers without paging or text-filter support can fail R6 conformance. The local evidence also says operation prose still treats paging as optional, so this needs standards clarification rather than a count-based conclusion."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "ValueSet-validate-code--ValueSet-validate-code:valueset-validate-code-abstract-omitted-now-allowed",
+      "title": "R6 explicitly treats omitted abstract as allowing abstract codes",
+      "role": "needs-follow-up",
+      "reasonMd": "The default can change validation outcomes for abstract grouping codes when callers omit `abstract`. Because `$validate-code` is normative and safety/business relevant, the intended R4 default and R6 rationale should be clarified before dismissing the change."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "ValueSet-validate-code--ValueSet-validate-code:valueset-validate-code-added-structured-outputs",
+      "title": "R6 adds optional structured output parameters and SHOULD-level output population guidance",
+      "role": "important-but-local",
+      "reasonMd": "Extra optional outputs can affect strict generated wrappers, but they preserve R4 outputs and provide useful machine-readable terminology details. This is proportionate migration work, not a low-cost avoidable break."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "ValueSet-validate-code--ValueSet-validate-code:valueset-validate-code-capability-name-mismatch",
+      "title": "R6 example terminology CapabilityStatement advertises ValueSet-validate-code with operation name expand",
+      "role": "needs-follow-up",
+      "reasonMd": "This appears to be an avoidable machine-readable conformance defect: advertising the validate-code definition with operation name `expand` can mislead capability-driven clients and test generators, and correcting the name has no apparent functional tradeoff."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:canonicalresource-metadataresource-consolidation",
+      "title": "R6 consolidates many per-resource canonical SearchParameter URLs into multi-base CanonicalResource and MetadataResource definitions",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "For ValueSet, many canonical-resource search behaviors are preserved by code/base but their canonical SearchParameter identities move to shared definitions. Runtime query strings can still work, but conformance metadata and generators often key on canonical URLs, making deprecated aliases or equivalence guidance a valuable low-cost compatibility measure."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "This direct behavior finding is relevant to ValueSet search migration, but it mostly follows data-model expression changes and is less central than the ValueSet-specific terminology semantic changes. Implementers should compare supported search expressions and indexes rather than assume same-code searches have identical data paths."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:terminology-server-template:identity-and-operation-shape",
+      "title": "The R4 terminology-server CapabilityStatement template was reworked as an R6 example with different identity and operation placement",
+      "role": "needs-follow-up",
+      "reasonMd": "This is not a direct instance break, but terminology IGs and conformance tooling may treat the R4 template canonical as a baseline. Alias or replacement-link guidance would reduce migration churn at modest metadata cost."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "This shared Resource operation issue can affect servers that expose ValueSet through generic Resource interactions, but it is not a ValueSet-specific resource-design driver under the review rules."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `compose.include.valueSet` union-to-intersection change and prefer an explicit R6 intersection construct or transition rule that does not silently reinterpret existing R4 arrays."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Clarify and correct ValueSet terminology-operation conformance artifacts: fix the `ValueSet-validate-code` capability name mismatch, reconcile `$expand` required-support versus paging-optional language, and document the intended `abstract` default."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish ValueSet migration guidance covering scans for multi-`valueSet` includes, BCP-47 validation of designation languages, jurisdiction-to-`useContext` mapping, and handling of R6 expansion paging/properties."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide deprecated aliases or explicit equivalence guidance for consolidated CanonicalResource/MetadataResource SearchParameter canonicals that replace R4 per-resource ValueSet search definitions."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Treat optional R6 metadata/additive elements and warning-level canonical/name constraints as local parser, publication, and downgrade-mapping chores; do not use them to justify avoidable semantic or conformance breaks."
+    }
+  ],
+  "caveats": [
+    "The R6 input is 6.0.0-ballot4, so final published R6 content may differ.",
+    "No official R4-to-R6 diff, Jira rationale, or terminology work group change notes were available locally.",
+    "Rendered narrative pages and live terminology expansions were not available, limiting confidence for some operation and binding details.",
+    "Shared Resource/DomainResource behavior findings were considered only as context because ValueSet is not the Resource or DomainResource artifact under review."
+  ]
+}

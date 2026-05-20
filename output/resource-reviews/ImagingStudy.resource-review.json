@@ -1,0 +1,169 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "ImagingStudy",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/ImagingStudy.resource-review-context.json",
+    "structureReportPath": "output/ImagingStudy.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/ImagingStudy.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 12,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, assessment rubric, fresh-review framework, ImagingStudy resource-review context bundle, full ImagingStudy StructureDefinition report, deterministic aggregate, behavior reports for direct ImagingStudy mentions, representative shared Resource/DomainResource behavior context, and selected R4/R6 ImagingStudy StructureDefinition evidence for central fields and invariants. The deterministic aggregate was compared only after forming the resource-level conclusion."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "ii",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 ImagingStudy was trial-use/FMM 3 from the Imaging Integration work group. That is not a normative compatibility burden, but it is mature enough that common imaging exchange, DICOM-derived metadata, safety-relevant body-site/laterality, procedure context, retrieval/display, and generated-model breaks need clear justification and low-cost preservation should be preferred."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "ImagingStudy keeps its resource identity, but R6 remodels central DICOM metadata and clinical context enough that a structured migration program is unavoidable while low-cost compatibility preservation remains valuable."
+  },
+  "reasoning": {
+    "thesisMd": "The actual migration shape is a same-resource major model remodel, not a resource removal and not a few isolated local breaks. Common or mandatory DICOM-derived fields change JSON/model shape (`modality` and `series.modality` Coding to CodeableConcept, `series.instance.sopClass` Coding to primitive `oid`), clinical context is renamed/merged/removed (`procedureReference`, `procedureCode`, `reasonCode`, `reasonReference`, `interpreter`), anatomy changes combine a body-site datatype replacement with removal of separate laterality, and R6 adds error-level invariants for UID, summary counts, modality consistency, and start ordering. Real R4 instances and generated clients will need coordinated transformation.",
+    "migrationShapeMd": "The resource identity and canonical URL remain stable, but validation-compatible R4-to-R6 migration requires more than accepting new optional fields. Existing instances must wrap Coding values into CodeableConcept or CodeableReference structures, convert mandatory SOP Class Coding objects into OID primitives, rename scalar `procedureReference` to repeatable `procedure`, merge split reason arrays into CodeableReference, choose a preservation path for removed `procedureCode`, `interpreter`, and `series.laterality`, and audit historical partial-summary data against the new `ist-*` constraints. Some of this is mechanical, but removed content and invariant failures require policy decisions or clinical/business judgment.",
+    "compatibilityLeverageMd": "Because migration is already unavoidable, preserving every old wire name is not equally high leverage. However, `migration unavoidable` is not the same as `no point avoiding breaks`: ImagingStudy is FMM 3/trial-use, widely used for clinically and operationally important imaging metadata, and several breaks appear comparatively cheap to soften. Deprecated optional elements or aliases for `procedureCode`, `interpreter`, and `laterality`, careful transition handling for DICOM Coding-to-oid/CodableConcept changes, and warning/scoped rollout of consistency invariants could reduce migration risk without blocking the R6 model.",
+    "lessBreakingAlternativesMd": "The lowest-cost preservation candidates are the removed optional fields and error constraints: retain deprecated `procedureCode`, `interpreter`, and `series.laterality` with clear precedence guidance, or provide standard extensions/replacement mappings if retention is rejected; introduce the `ist-*` consistency rules as warnings or scope equality checks to instances that assert complete series/instance population. For `sopClass`, preserving Coding or allowing a transition representation would avoid mandatory object-to-primitive rewrites, though it trades off primitive OID validation. For `procedureReference` and `reason`, keeping parallel old and new properties would create duplicate semantics and conflict rules, so those are more plausibly local migration chores once CodeableReference and repeatable procedure links are accepted.",
+    "behaviorImpactMd": "No direct OperationDefinition, SearchParameter, or HTTP behavior findings in the supplied behavior reports identify ImagingStudy as an affected resource. The 11 shared Resource/DomainResource behavior findings remain platform context for ImagingStudy-serving systems, but because ImagingStudy is neither Resource nor DomainResource they do not drive this resource-level classification.",
+    "comparisonToDeterministicAggregateMd": "After independent review, I agree with the deterministic aggregate's headline result: `majorMigrationAlreadyUnavoidable=Yes`, `migrationShape=major-model-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The conclusion is not based on counts alone; it follows from central same-resource shape changes, removed clinically meaningful elements, mandatory SOP Class reshaping, and new error constraints that can reject historical partial-summary instances. I would phrase the compatibility leverage somewhat more strongly than a pure aggregate count: multiple optional removals and constraint choices remain standards-review-worthy even though the broader migration program is unavoidable.",
+    "uncertaintyMd": "Structural conclusions are high confidence from the local R4 and R6 StructureDefinitions. Remaining uncertainty is mainly about final R6 ballot changes, official HL7 migration maps, complete DICOM CID 29/CID 33 and SOP Class expansion comparisons, and intended replacement guidance through related Procedure, DiagnosticReport, BodyStructure, Provenance, or extension patterns."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:TYPE_DOMAIN:ImagingStudy.modality:9ab5d1",
+      "title": "Study and series modality changed from Coding to CodeableConcept with a broader DICOM value set and consistency invariant",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a common DICOM-derived field pair and a direct JSON/model break: R4 Coding objects are not valid R6 CodeableConcepts. The added `ist-7` equality invariant can also reject R4 summaries that intentionally listed only acquisition modalities. The field is central enough that the change helps make a resource-level migration program unavoidable, and warning/scoped constraint rollout or transition representation deserves review."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:TYPE_DOMAIN:ImagingStudy.series.instance.sopClass:36d901",
+      "title": "series.instance.sopClass changed from Coding to primitive oid",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`series.instance.sopClass` is mandatory for every instance element, so changing it from a Coding object with DICOM SOP Class binding to a primitive OID creates high parser, serializer, validator, and generated-model churn. The R6 OID form has a clear DICOM rationale, but preserving or explicitly mapping Coding metadata is important for bidirectional gateways and existing data."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:TYPE_DOMAIN:ImagingStudy.series.bodySite:a4d12e",
+      "title": "series.bodySite changed to CodeableReference and series.laterality was removed",
+      "role": "needs-follow-up",
+      "reasonMd": "This is safety-relevant anatomy content. CodeableReference/BodyStructure support may be a reasonable R6 direction, but dropping a separate laterality element risks losing left/right or bilateral specificity during migration. A deprecated `laterality` transition path, standard extension, or explicit BodyStructure mapping guidance is low-cost relative to the clinical risk of ambiguous anatomy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:VALUE_CONSTRAINT:ImagingStudy.root-invariants:ad61e8",
+      "title": "R6 adds local error invariants for DICOM Study UID, summary counts, and start ordering",
+      "role": "needs-follow-up",
+      "reasonMd": "The new `ist-*` rules turn expectations into error-level validation. That is valuable for data quality, but R4 explicitly allowed `numberOfSeries` and `numberOfInstances` to exceed contained elements because of availability, security, or other factors, and R6 still describes partial population. These invariants should be reviewed for warning-level rollout, completeness preconditions, and consistency with partial-summary use cases."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.procedureCode:7f2b83",
+      "title": "procedureCode was removed without a direct coded replacement in ImagingStudy",
+      "role": "needs-follow-up",
+      "reasonMd": "R4 could carry performed procedure codes directly on ImagingStudy; R6 keeps only Procedure references. Mapping an inline code to a related Procedure or extension is non-local and can affect categorization, billing, analytics, and search. Retaining a deprecated optional `procedureCode` or publishing a standard replacement mapping would materially reduce avoidable data loss."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.interpreter:ff92c0",
+      "title": "interpreter was removed from ImagingStudy",
+      "role": "needs-follow-up",
+      "reasonMd": "Reader/interpreter attribution supports accountability and report reconciliation. Even if DiagnosticReport, Provenance, or other workflow resources are preferred homes, removing the local optional element without a same-resource transition path makes old instances invalid and requires non-mechanical migration. This is a low-cost preservation or explicit-replacement candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.procedureReference:2c7f41",
+      "title": "procedureReference was renamed to procedure and widened from 0..1 to 0..*",
+      "role": "important-but-local",
+      "reasonMd": "The old scalar name and new repeating name are a hard wire/codegen break, but the semantic target remains Procedure and the R6 cardinality widening is understandable. Once a migration program exists, this is mostly a mechanical rename/wrap-to-array chore; keeping both old and new properties would introduce duplicate procedure-link semantics and precedence rules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.reason:45e6aa",
+      "title": "reasonCode and reasonReference were merged into reason CodeableReference and Media was dropped as a target",
+      "role": "important-but-local",
+      "reasonMd": "The CodeableReference merge follows a broader R6 modeling pattern and is disruptive but coherent. The migration chore is to preserve split code/reference arrays and handle the removed Media target. It deserves clear mapping guidance, but keeping parallel `reasonCode`, `reasonReference`, and `reason` fields in base would create substantial duplicate-representation complexity."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:REFERENCE_TARGET:ImagingStudy.basedOn:c1e43b",
+      "title": "basedOn no longer allows AppointmentResponse references",
+      "role": "discounted",
+      "reasonMd": "This is a target-profile-aware validation break but appears narrower and rarer than the central model changes. Retaining AppointmentResponse as a deprecated target would be low-cost, but absent evidence of common real-world use this is a local migration or follow-up item rather than a driver of the resource-level conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:TERMINOLOGY_BINDING:ImagingStudy.status:d88b24",
+      "title": "ImagingStudy.status required value set adds inactive",
+      "role": "discounted",
+      "reasonMd": "All R4 status codes appear retained, so this does not invalidate R4 instances moving to R6. It matters for R6-to-R4 gateways because `inactive` is a modifier status with no R4 code, but it is not a reason to avoid the R6 change."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:REFERENCE_TARGET:ImagingStudy.series.performer.actor:0d15fa",
+      "title": "series.performer.actor adds HealthcareService as an allowed target",
+      "role": "discounted",
+      "reasonMd": "Adding HealthcareService is forward-compatible for R4-to-R6 instances because existing R4 targets remain allowed. Reverse conversion needs policy only when R6 instances use the new target, so this does not materially affect the resource-level migration burden."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ImagingStudy:ELEMENT_PRESENCE_OR_IDENTITY:ImagingStudy.series.instance.numberOfFrames:ac3e6d",
+      "title": "series.instance.numberOfFrames was added",
+      "role": "discounted",
+      "reasonMd": "The optional R6 `numberOfFrames` addition is not an R4-to-R6 instance break. It may need down-conversion or extension policy for R6-to-R4 gateways, but it is not a compatibility-preservation concern for the R6 base model."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "Resource-level operations can affect systems that store or serve ImagingStudy, but this is a shared Resource behavior issue rather than an ImagingStudy-specific structural or behavior finding. It should be handled in the base Resource/API review and not used to inflate this resource's migration classification."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared search metadata issue is relevant operating context for generic FHIR servers and clients, but it is not specific to ImagingStudy and no direct ImagingStudy SearchParameter finding was present in the supplied behavior reports."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish an official ImagingStudy R4-to-R6 migration guide with computable examples for modality, SOP Class, body site/laterality, procedure, reason, interpreter attribution, UID identifiers, summary counts, and partial-series/partial-instance cases."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit the new `ist-*` error invariants against R4/R6 partial-summary use cases; consider warning-level transition, completeness preconditions, or profile-level enforcement for equality rules that can reject intentionally partial ImagingStudy summaries."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Preserve low-cost legacy compatibility where feasible by retaining deprecated optional `procedureCode`, `interpreter`, and `series.laterality` or defining standard extensions and explicit replacement mappings with precedence/conflict rules."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide DICOM-specific terminology and datatype transition guidance for CID 29 to CID 33 modality changes and SOP Class Coding-to-oid conversion, including private SOP Class UIDs and preservation of Coding display/system/userSelected metadata where relevant."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define bidirectional mapping policy for reverse-only additions and widenings such as status `inactive`, HealthcareService performers, and `series.instance.numberOfFrames`, so R6-to-R4 gateways can fail explicitly or preserve data predictably."
+    }
+  ],
+  "caveats": [
+    "The R6 input is 6.0.0-ballot4, so final R6 publication could change details.",
+    "No official rendered HL7 diff or official R4-to-R6 ImagingStudy map was present in the local inputs.",
+    "Complete DICOM CID 29/CID 33 and SOP Class terminology expansions were not locally compared.",
+    "Shared Resource and DomainResource behavior findings were considered as context only and not scored as ImagingStudy-specific breaks."
+  ]
+}

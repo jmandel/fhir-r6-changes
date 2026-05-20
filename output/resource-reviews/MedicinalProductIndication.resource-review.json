@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MedicinalProductIndication",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MedicinalProductIndication.resource-review-context.json",
+    "structureReportPath": "output/MedicinalProductIndication.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MedicinalProductIndication.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 10,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the output contract, assessment rubric, fresh-review framework, the resource-review context, the full StructureDefinition report, the direct HTTP/search behavior findings, the shared Resource/DomainResource behavior context, and the deterministic aggregate only after forming the resource-level conclusion. I also checked the R4/R6 package definitions: R6 has no same-name `StructureDefinition-MedicinalProductIndication.json`; the apparent successor is `ClinicalUseDefinition` with `type = indication`, mandatory `subject`, indication-specific backbone content, and ClinicalUseDefinition search parameters."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "brr",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 FMM 0/trial-use substantially lowers the burden to preserve the old resource and draft medicinal-product model. It does not make the content unimportant: indications, undesirable effects, populations, and treatment qualifiers can affect regulatory, safety, and decision-support workflows, so low-cost or safety-preserving compatibility aids still deserve standards attention."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "R6 replaces the FMM 0 R4 resource with `ClinicalUseDefinition`, so a migration program is unavoidable, but several low-cost or safety-relevant preservation choices still matter."
+  },
+  "reasoning": {
+    "thesisMd": "`MedicinalProductIndication` is not a mostly stable resource with local breaks. The same-name R6 resource is absent and R6 represents the indication use case as `ClinicalUseDefinition` with `type = indication`. That creates a resource identity, endpoint, search, validator, generated-class, and path-shape migration before any individual element can be considered. The R4 maturity level makes this broad replacement more defensible than it would be for mature content, but it should not be read as a license to discard exact durations, population applicability, or linked undesirable-effect semantics where they can be preserved cheaply.",
+    "migrationShapeMd": "The practical migration is to create `ClinicalUseDefinition` instances, set the required type discriminator, supply at least one subject, move old root-level indication fields under the indication model, and convert several local representations. `subject` becomes a mandatory `CodeableReference` with current R6 targets; clinical descriptors become `CodeableReference`; `duration` drops direct `Quantity`; `undesirableEffect` changes from a reference to a standalone resource to inline undesirable-effect content; `otherTherapy` renames children and changes treatment targets; and `population` changes from inline `Population` to `Reference(Group)`. This is a replacement/remodel, not a rename.",
+    "compatibilityLeverageMd": "The migration program dominates planning because no R4 instance with `resourceType: MedicinalProductIndication` is an R6 core instance. However, that does not reduce every local preservation decision to a chore. Retaining `Quantity` as an additional `duration[x]` choice, providing authoritative maps for subject/product and search behavior, and revisiting graph-to-inline undesirable effects or inline population criteria could materially reduce lossy or expert-dependent migration. In contrast, keeping the entire old resource, REST endpoint, or old medicinal-product target family as a permanent alias would carry much higher model and server cost.",
+    "lessBreakingAlternativesMd": "The broad resource replacement is probably proportionate for FMM 0 content, but several narrower alternatives are standards-review-worthy. The clearest low-cost option is `ClinicalUseDefinition.indication.duration[x]` allowing `Quantity` in addition to `Range|string`. A `population[x]` or equivalent transition mechanism for inline `Population` versus `Reference(Group)` may be justified if real regulatory data uses inline population criteria. For `undesirableEffect`, a documented way to reference a separate undesirable-effect `ClinicalUseDefinition` or otherwise preserve identity/reuse should be evaluated. Deprecated top-level field aliases, old resource endpoint aliases, or legacy `MedicinalProduct` targets are less attractive because they duplicate the replacement model.",
+    "behaviorImpactMd": "The direct behavior findings are in scope and reinforce the resource-level break. The base CapabilityStatement no longer advertises a `MedicinalProductIndication` endpoint, and the R4 search surface such as `MedicinalProductIndication?subject=` disappears with the removed resource base. R6 has `ClinicalUseDefinition` searches such as `type`, `subject`, `subject-code`, `product`, and indication-specific searches, but clients need explicit endpoint and parameter mapping rather than a same-resource search-parameter update. Shared `Resource` and `DomainResource` operation/search findings were considered only as context because this assigned resource is not `Resource` or `DomainResource`.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate correctly identified major migration as unavoidable and the migration shape as `removed-or-replaced-resource`. I differ in the compatibility posture: the aggregate says `migration-program-dominates`, while my resource-level judgment is `preserve-where-low-cost-but-expect-resource-migration`. The resource identity break clearly dominates planning, but the concrete `duration`, `population`, and `undesirableEffect` findings show that avoiding additional lossy breaks still has value.",
+    "uncertaintyMd": "The successor mapping to `ClinicalUseDefinition` is strongly supported by the package contents and search parameters, but no official cross-version ConceptMap, StructureMap, or narrative rationale was present in the local inputs. Real-world prevalence of R4 `MedicinalProductIndication` production data is also unknown."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:ARTIFACT_IDENTITY:root:34270e",
+      "title": "MedicinalProductIndication is absent in R6 and its indication use case moved to ClinicalUseDefinition",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the dominant finding. The R6 package lacks a same-name StructureDefinition and lists the old name as an old type, while `ClinicalUseDefinition` covers typed clinical-use issues including indications. This alone makes same-resource validation, parsers, generated classes, REST endpoints, and search surfaces incompatible."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:CARDINALITY:ClinicalUseDefinition.type-subject:db80be",
+      "title": "R6 indication representation requires an explicit type code and at least one subject",
+      "role": "important-but-local",
+      "reasonMd": "The required `type` is a natural consequence of merging several clinical-use resources. The new mandatory subject can invalidate subjectless R4 records, but the subject is central to safe interpretation, so this is mainly migration policy and data cleanup once the merged model is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:SERIALIZATION_OR_CODEGEN:ClinicalUseDefinition.indication:47fd64",
+      "title": "Indication-specific data moved from resource-level fields into ClinicalUseDefinition.indication",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The root-to-backbone move confirms that the migration is a remodel, not just a resource rename. It breaks generated properties and FHIRPath/patch paths, but preserving duplicate top-level aliases would conflict with the typed `ClinicalUseDefinition` design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:REFERENCE_TARGET:subject:c07d13",
+      "title": "subject changed from Reference(MedicinalProduct|Medication) to mandatory CodeableReference with different target set",
+      "role": "important-but-local",
+      "reasonMd": "Subject migration is safety-relevant and must be explicitly mapped, especially for old `MedicinalProduct` references. Still, retaining the obsolete target family in the R6 base element would undercut the broader medicinal-product redesign, so this is mostly a necessary local migration chore plus a need for authoritative maps."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:TYPE_DOMAIN:duration:ee8c9d",
+      "title": "duration changed from Quantity to duration[x] with Range or string, removing direct Quantity representation",
+      "role": "needs-follow-up",
+      "reasonMd": "This remains an avoidable-looking break even after accepting the resource replacement. R6 already uses a choice element, so adding `Quantity` to `Range|string` appears to preserve exact R4 durations at low model cost and avoids lossy Range/string conventions."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:REFERENCE_TARGET:undesirableEffect:e428fd",
+      "title": "undesirableEffect changed from Reference(MedicinalProductUndesirableEffect) to inline ClinicalUseDefinition undesirable-effect content",
+      "role": "needs-follow-up",
+      "reasonMd": "This is safety-relevant and not merely syntactic. Moving from references to inline content can lose standalone identity, reuse, and graph structure. A reference-to-successor or mixed representation may have tradeoffs, but the path deserves standards review rather than being dismissed as just another local field move."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:ELEMENT_PRESENCE_OR_IDENTITY:otherTherapy:cbb64c",
+      "title": "otherTherapy child elements were renamed and the therapy target changed to CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "The old wire names and some old targets break, but the new `relationshipType`/`treatment` names and broader target domain are coherent with the R6 model. This should be covered by migration tooling and maps, not treated as a primary reason to preserve old base names indefinitely."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:TYPE_DOMAIN:population:03dd01",
+      "title": "population changed from inline Population datatype to Reference(Group)",
+      "role": "needs-follow-up",
+      "reasonMd": "Population applicability can decide whether an indication applies to pediatric, pregnancy, genotype, or other subgroups. Forcing inline `Population` data into a `Group` reference requires materialization and can require expert judgment, so a transition choice or official mapping deserves review despite low FMM."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:TYPE_DOMAIN:indication-clinical-descriptors:e08c18",
+      "title": "Clinical descriptor fields changed from CodeableConcept to CodeableReference with new bindings and intendedEffect repeatability",
+      "role": "discounted",
+      "reasonMd": "This changes generated types, but ordinary R4 `CodeableConcept` values can be carried in the `CodeableReference.concept` arm. The reverse-direction repeat/reference loss is real but does not drive the R4-to-R6 resource-level conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductIndication:FLAGS_AND_MODIFIERS:new-optional-fields:bdf092",
+      "title": "R6 replacement adds optional identifier/category/status/applicability/library fields, including modifier status, with no R4 base slots",
+      "role": "discounted",
+      "reasonMd": "These optional additions matter for R6-to-R4 round trips and R6 consumers, especially because `status` is a modifier, but they do not make old R4 instances invalid when migrating forward."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "For this resource, the grouped endpoint finding is a direct consequence of the resource identity break: clients cannot rely on a same-name R6 endpoint for `MedicinalProductIndication`. Alias endpoints could help transition but would effectively retain the old resource model in the REST layer."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The R4 `MedicinalProductIndication-subject` search parameter was based on the removed resource. R6 has `ClinicalUseDefinition` searches, but clients need documented mappings such as adding `type=indication` and choosing `subject`, `product`, or indication-specific parameters."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This and the other shared `Resource` operation/search findings can affect systems handling any resource, but they are not specific evidence about `MedicinalProductIndication` because the assigned resource is neither `Resource` nor `DomainResource`."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish an authoritative R4-to-R6 migration map for `MedicinalProductIndication` to `ClinicalUseDefinition(type = indication)`, including subject/product target migration, root-to-indication path moves, population handling, undesirable-effect handling, and examples."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit the low-cost and safety-relevant local breaks: add `Quantity` back to `indication.duration[x]` if no strong rationale blocks it, and evaluate transition designs for inline `Population` and linked undesirable-effect identity."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide endpoint and search transition guidance for old `MedicinalProductIndication` clients, especially how `MedicinalProductIndication?subject=` maps to `ClinicalUseDefinition` searches with `type=indication` and current subject/product targets."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define migration policy for incomplete or ambiguous R4 records, especially subjectless indications, old `MedicinalProduct` or `SubstanceSpecification` references, and R4 undesirable-effect references that cannot be safely dereferenced."
+    }
+  ],
+  "caveats": [
+    "R6 input is ballot content and may change.",
+    "No official cross-version ConceptMap, StructureMap, or migration rationale was present in the local inputs.",
+    "R4 FMM 0 means installed-base prevalence is uncertain and stability pressure is weak.",
+    "Shared `Resource` and `DomainResource` behavior findings were considered only as context and not scored for this resource."
+  ]
+}

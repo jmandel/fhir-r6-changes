@@ -1,0 +1,141 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "AllergyIntolerance",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/AllergyIntolerance.resource-review-context.json",
+    "structureReportPath": "output/AllergyIntolerance.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/AllergyIntolerance.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 6,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "I reviewed the AllergyIntolerance structure report, the resource-review context, the deterministic aggregate as prior context, and the direct behavior findings in SearchParameters and HttpRestBehavior whose `affectedResources` include `AllergyIntolerance`. OperationDefinitions contained no direct AllergyIntolerance finding in the searched material. Shared `Resource` and `DomainResource` behavior findings were considered only as background context, not as resource-scored AllergyIntolerance breaks."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pc",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 AllergyIntolerance is trial-use/FMM 3, so compatibility is not under a normative freeze but still deserves meaningful preservation pressure. The resource is clinically important and mature enough that wire-shape changes to established elements such as `lastOccurrence`, `type`, and reaction manifestations need a clear benefit or a low-cost transition path."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "AllergyIntolerance keeps its identity, but targeted element-shape and search-surface changes make a migration program necessary while low-cost legacy-name and search compatibility remains worth preserving."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a removed or replacement resource. It is a stable-name clinical resource with several targeted but material remodels: `lastOccurrence` was renamed, `reaction.manifestation` moved to `CodeableReference`, `type` changed from primitive code to `CodeableConcept`, and the manifestation search surface split into code/reference forms. That combination makes a practical R4-to-R6 migration program necessary for serious AllergyIntolerance implementations, but it does not make every additional break low-value or inevitable.",
+    "migrationShapeMd": "The migration shape is a moderate targeted remodel rather than a whole-resource redesign. Existing R4 instances can generally be transformed with deterministic field operations when they use the affected data: rename `lastOccurrence`, wrap coded manifestations under `CodeableReference.concept`, and wrap primitive `type` values as codings. However, the transform is not merely codegen churn because R6-to-R4 exchange needs policy for Observation-backed manifestations, broader/free-text `type` concepts, `verificationStatus=presumed`, relaxed `clinicalStatus` invariants, and `recorder` references to Organization.",
+    "compatibilityLeverageMd": "A migration program is partially unavoidable because at least the manifestation and `type` shape changes require converters for old data and clients. That does not eliminate compatibility leverage. The `lastOccurrence` rename appears to preserve semantics while changing only the wire name, and the `type` change could plausibly preserve the legacy primitive distinction while adding richer coding elsewhere. Search aliases for old clinical query names are also a relatively low-cost mitigation for common R4 clients.",
+    "lessBreakingAlternativesMd": "The strongest standards-review candidates are the `lastOccurrence` rename and the `type` primitive-to-`CodeableConcept` replacement, because each has a credible lower-break base design. Manifestation as `CodeableReference(Observation)` is a real hard break but has a stronger modeling rationale and a less compelling compatibility-preserving alternative. Search parameter splitting has a practical partial alternative: keep deprecated old token aliases where they map to the R6 `.concept` branch and add explicit reference searches for the new behavior.",
+    "behaviorImpactMd": "The direct behavior findings add API pressure beyond instance validation. For AllergyIntolerance specifically, the old `manifestation` token search becomes `manifestation-code` plus `manifestation-reference`, so old clinical queries can fail or silently return different results. The base CapabilityStatement advertisement churn also affects metadata-driven clients, though that grouped finding should be resolved query-by-query and not treated as an independent structural redesign of this resource. Shared Resource/DomainResource operation and search findings remain context only for this review.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial` major migration, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. I agree with that outcome, but for substantive reasons rather than the counts alone: the resource identity is stable, the hard breaks are concentrated in three targeted elements, and several low-cost preservation opportunities still matter despite the need for converters.",
+    "uncertaintyMd": "Confidence is high for the structural shape findings because the R4 and R6 StructureDefinitions are directly comparable. The main uncertainty is terminology detail for `verificationStatus=presumed`, where the local package evidence did not include authoritative value-set expansions. Official ballot rationale or Patient Care change notes could also alter the assessment of whether the renamed or reshaped fields had a stronger justification than is visible in the supplied artifacts."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AllergyIntolerance:ELEMENT_PRESENCE_OR_IDENTITY:AllergyIntolerance.lastOccurrence:6bc377",
+      "title": "AllergyIntolerance.lastOccurrence was replaced by lastReactionOccurrence",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard old-valid/new-invalid instance break with high runtime and reverse representability risk. Because the datatype, cardinality, short text, and definition appear materially stable, the break looks like a low-cost-to-avoid wire-name change. It should remain standards-review-worthy even though other AllergyIntolerance migration work is needed."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AllergyIntolerance:TYPE_DOMAIN:AllergyIntolerance.reaction.manifestation:5ab95c",
+      "title": "reaction.manifestation changed from CodeableConcept to CodeableReference(Observation)",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest substantive remodel. R4 coded manifestations must be wrapped under `concept`, while R6 Observation references have no lossless R4 slot. The change is clinically important and contributes strongly to the need for a migration program, but the modeling rationale for linking manifestations to Observation evidence makes it more acceptable than a pure rename."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AllergyIntolerance:TYPE_DOMAIN:AllergyIntolerance.type:d86f8f",
+      "title": "AllergyIntolerance.type changed from required primitive code to preferred CodeableConcept",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This hard shape break affects generated models, validators, and enum/string handling for a legacy allergy-versus-intolerance distinction. Because the core two-code distinction remains visible in the artifacts, preserving the primitive field and adding richer mechanism detail separately appears plausible enough that this should remain a Revisit item, not just a migration chore."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AllergyIntolerance:TERMINOLOGY_BINDING:AllergyIntolerance.verificationStatus:0ef842",
+      "title": "verificationStatus required binding appears to add `presumed`",
+      "role": "important-but-local",
+      "reasonMd": "This is not an R4-to-R6 instance break because R4 codes remain valid, but it matters for reverse exchange and clinical certainty logic. It is best handled as a mapping and terminology-review issue rather than evidence that the resource is broadly redesigned."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AllergyIntolerance:VALUE_CONSTRAINT:AllergyIntolerance.clinicalStatus:203225",
+      "title": "R4 clinicalStatus conditional SHALL constraints were removed",
+      "role": "important-but-local",
+      "reasonMd": "The removed invariants are forward-permissive for R4 data, so they do not drive R4-to-R6 instance migration. They do matter for safety-sensitive active/resolved allergy-list behavior and for R6-to-R4 validation, but the negated-allergy exception makes this more a profiling/business-rule chore than an avoidable base compatibility break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AllergyIntolerance:REFERENCE_TARGET:AllergyIntolerance.recorder:b73a9c",
+      "title": "AllergyIntolerance.recorder can now reference Organization",
+      "role": "discounted",
+      "reasonMd": "The target set widened while retaining all R4 targets. Existing R4 data remains valid; only R6 Organization recorder values need down-conversion or audit policy. This should not materially affect the resource-level compatibility posture."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:codeable-reference-splits-clinical",
+      "title": "Several common clinical search codes split into code/reference variants or changed type because elements became CodeableReference-like",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "For AllergyIntolerance, the old `manifestation` token query splits into `manifestation-code` and `manifestation-reference`. This is a common clinical API surface break directly tied to the manifestation remodel. Deprecated aliases for the old token behavior would preserve many R4 clients while still exposing the new reference search."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:search-advertisement-churn",
+      "title": "Base CapabilityStatement search advertisements changed across most common resources",
+      "role": "needs-follow-up",
+      "reasonMd": "AllergyIntolerance appears in the affected resource list, with examples including removal of old search advertisements such as last-date, manifestation, onset, and recorder. This affects metadata-driven clients, but the grouped finding is too broad to score as a separate resource-model break; it should be resolved by preserving or mapping high-value AllergyIntolerance searches where semantics still exist."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This is shared Resource/DomainResource search context. It may affect generic clients that also query AllergyIntolerance, but by the review instructions it is not scored as an AllergyIntolerance-specific behavior finding."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-delete:resource-meta-delete-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta-delete operation",
+      "role": "context-only",
+      "reasonMd": "The operation-level break is generic Resource behavior. It may matter operationally for AllergyIntolerance instances in systems that used `$meta-delete`, but it is not evidence of a resource-specific AllergyIntolerance redesign and is excluded from the resource-level conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit whether `lastOccurrence` can retain the R4 wire name, or require a clear standards rationale for why the semantic clarification justifies a hard element rename."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit `AllergyIntolerance.type` to determine whether the legacy primitive allergy/intolerance distinction can be preserved while adding any richer `CodeableConcept` mechanism separately."
+    },
+    {
+      "priority": "High",
+      "actionMd": "For AllergyIntolerance search, preserve deprecated `manifestation` token behavior as an alias for the R6 concept branch where feasible, and advertise the transition alongside the new `manifestation-code` and `manifestation-reference` searches."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish explicit migration guidance for wrapping R4 manifestation and `type` values, and for R6-to-R4 policies covering Observation-backed manifestations, `presumed` verification status, relaxed clinical-status combinations, and Organization recorders."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Confirm the `verificationStatus=presumed` evidence against authoritative terminology expansions and document the intended R4 down-conversion mapping."
+    }
+  ],
+  "caveats": [
+    "No official AllergyIntolerance ballot rationale, Jira trail, or generated official R4-to-R6 diff was reviewed, so avoidability judgments are inferred from local package artifacts and reports.",
+    "Terminology expansion evidence for the `presumed` verification-status code was incomplete in the local packages.",
+    "Shared Resource and DomainResource behavior findings were considered only as context and were not scored as direct AllergyIntolerance findings.",
+    "Implementation profiles and local server capabilities may make some optional-element breaks more or less prevalent than the base-artifact review can determine."
+  ]
+}

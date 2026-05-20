@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "CareTeam",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/CareTeam.resource-review-context.json",
+    "structureReportPath": "output/CareTeam.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/CareTeam.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 7,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the output contract, resource-level rubric, fresh-review framework, CareTeam resource-review context, full CareTeam StructureDefinition report, the deterministic aggregate, and local R4/R6 CareTeam StructureDefinitions. I used the deterministic aggregate only after forming the resource-level judgment. Direct behavior findings for CareTeam were absent; shared Resource/DomainResource behavior findings were treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "pc",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 CareTeam is FMM 2 and trial-use, so maturity creates neutral compatibility pressure. The resource is not so immature that hard clinical workflow breaks can be ignored, but the compatibility burden is lower than for mature or normative artifacts; the judgment should be driven by concrete migration shape and safety/business consequences."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "CareTeam keeps its identity but has enough targeted structural remodeling that real-world R4 datasets need a migration pass, while low-cost preservation still matters most for the removed encounter link."
+  },
+  "reasoning": {
+    "thesisMd": "CareTeam is not removed or replaced, and most of the R6 model is still recognizably the R4 resource. However, four local changes can make R4 instances invalid without transformation: `CareTeam.encounter` removal, `reasonCode`/`reasonReference` replacement by `reason` CodeableReference, `participant.role` narrowing to one role per participant, and `participant.period` replacement by `participant.effective[x]`. That is enough to require targeted migration for non-trivial CareTeam stores, but it is not a whole-resource redesign where every additional compatibility concern becomes irrelevant.",
+    "migrationShapeMd": "The migration shape is a moderate targeted remodel. R4 reason codes and references map into R6 `reason.concept` or `reason.reference`; R4 participant `period` maps mechanically to `effectivePeriod`; multi-role participants must be split into multiple participant repetitions; and encounter context may require a cross-resource update to `Encounter.careTeam` or a compatibility extension. Optional R6 additions and widened reference targets create reverse-version and runtime-assumption work, but they do not make R4 instances invalid in the R4-to-R6 direction.",
+    "compatibilityLeverageMd": "Because several common paths already require transformation, a migration program is partially unavoidable. That reduces the incremental value of avoiding purely local field-name changes whose mappings are mechanical, but it does not eliminate the value of preserving avoidable compatibility. The encounter removal is especially different from a local rename because preserving it may require editing a separate Encounter resource; a deprecated or transitional `CareTeam.encounter` would preserve many R4 instances at modest base-model cost.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking alternative is for `CareTeam.encounter`: keep an optional deprecated element while adding or preferring `Encounter.careTeam`, with guidance on source-of-truth and synchronization. The reason CodeableReference merge, participant role normalization, and effective choice have plausible compatibility alternatives, but those alternatives introduce duplicate representations or weaken the R6 modeling goal enough that they look more like migration chores once the R6 redesign is accepted.",
+    "behaviorImpactMd": "No direct OperationDefinition, SearchParameter, or HTTP behavior finding in the supplied context names CareTeam as an affected resource. The 11 shared Resource/DomainResource behavior findings can affect generic FHIR infrastructure, but under the review rules they are context only for CareTeam and do not drive this resource-level conclusion.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. I agree with that headline, but the resource-level rationale should not be count-driven: the conclusion is driven by the mix of three mostly coherent local transforms plus the cross-resource encounter removal. I also discount the shared behavior count for the CareTeam-specific conclusion.",
+    "uncertaintyMd": "The structural deltas are high confidence from the local StructureDefinitions. Uncertainty remains around official R6 design rationale, real-world prevalence of multi-role participants and encounter-scoped CareTeams, and effective terminology expansion differences for example-bound ValueSets."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:CareTeam.encounter:8d0c52",
+      "title": "CareTeam.encounter was removed from the CareTeam resource",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most standards-review-worthy local break. R4 has `CareTeam.encounter` as an optional Encounter reference, while R6 removes it and provides a related `Encounter.careTeam` direction. Existing instances become invalid, and preserving the relationship may require cross-resource migration rather than a single CareTeam transform. A deprecated transitional element appears plausible and relatively low cost, so broader migration needs do not make this break unimportant."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:reasonCode-reasonReference:3c14bb",
+      "title": "CareTeam.reasonCode and reasonReference were merged into CareTeam.reason CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "This is a hard wire/API break because both R4 element names disappear. It contributes to the targeted migration program, but most R4 data has a direct mapping to `reason.concept` or `reason.reference`, and the R6 CodeableReference model has a coherent purpose by allowing paired concept/reference semantics. Retaining deprecated old siblings would help compatibility but would also create duplicate representations and conflict rules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CareTeam:CARDINALITY:participant.role:6f2a19",
+      "title": "CareTeam.participant.role maximum cardinality decreased from many to one",
+      "role": "important-but-local",
+      "reasonMd": "Multi-role R4 participants are invalid in R6 and generated APIs may change from arrays to a singleton. This can affect clinical responsibility interpretation if secondary roles are dropped. Still, the R6 one-role-per-participant rule is understandable once role-specific timing and supporting information exist, so this should be handled as an explicit migration chore with test cases rather than as the main reason to reopen the resource design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CareTeam:SERIALIZATION_OR_CODEGEN:participant.period-effective:bb412e",
+      "title": "CareTeam.participant.period was replaced by participant.effective[x]",
+      "role": "important-but-local",
+      "reasonMd": "R4 `participant.period` is no longer an R6 element, so existing instances and FHIRPath/codegen references need transformation. The R4-to-R6 data mapping is mechanical for Period values via `effectivePeriod`, and the new Timing choice supplies a plausible R6 capability. This is material implementation work but less compelling as a standards-review issue than the encounter removal."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CareTeam:REFERENCE_TARGET:participant-member-onBehalfOf:ef5c21",
+      "title": "Participant member and onBehalfOf reference domains were widened and onBehalfOf semantics changed",
+      "role": "discounted",
+      "reasonMd": "This mainly widens R6 expressivity and creates reverse-conversion or runtime type-assumption work. R4-valid participant member and Organization `onBehalfOf` references remain structurally valid in R6, so it does not drive the R4-to-R6 resource migration conclusion. Implementers should still avoid silently coercing new R6 target types when downgrading."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CareTeam:ELEMENT_PRESENCE_OR_IDENTITY:participant.supportingInfo:97ab2d",
+      "title": "CareTeam.participant.supportingInfo was added with no R4 equivalent",
+      "role": "discounted",
+      "reasonMd": "The new optional element can carry safety/business-significant authority evidence such as guardianship or power-of-attorney documentation, but it is additive for R4-to-R6. It matters for R6-to-R4 loss policy and mixed-version implementations, not for whether R4 CareTeam instances require migration to become valid R6."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CareTeam:TERMINOLOGY_BINDING:example-value-sets:0f83aa",
+      "title": "Example-bound category and participant-role ValueSet compositions changed",
+      "role": "discounted",
+      "reasonMd": "Both bindings remain example strength, so base R6 validation should not reject old CareTeam instances because of these ValueSet composition changes. Local picklists and profile seeds may still need terminology expansion comparison, but this is not a primary resource-level compatibility driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "context-only",
+      "reasonMd": "This is a generic base CapabilityStatement/API discovery concern, not a direct CareTeam behavior finding. It reinforces that implementers may have broader R6 infrastructure migration work, but under the resource-review rules it is not scored as CareTeam-specific and does not alter the CareTeam structural conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `CareTeam.encounter` removal specifically: either restore a deprecated optional transition element or publish explicit cross-resource migration guidance covering standalone CareTeam records, Bundles containing Encounter, and source-of-truth rules with `Encounter.careTeam`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish CareTeam migration test cases for the accepted local transforms: `reasonCode`/`reasonReference` to CodeableReference, multi-role participant splitting, `participant.period` to `effectivePeriod`, and reverse handling for `effectiveTiming` and `supportingInfo`."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Run terminology-server expansion comparisons for the example-bound CareTeam category and participant-role ValueSets so implementers can separate harmless compose cleanup from local picklist or profile-impact changes."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 CareTeam change rationale, ballot discussion, or Jira history was supplied, so proportionality judgments infer intent from the StructureDefinitions and report evidence.",
+    "The Encounter comparison was only used as contextual evidence for `Encounter.careTeam`; this review did not independently adjudicate the full Encounter resource migration.",
+    "SNOMED CT and LOINC expansions were not available, so terminology impact for example bindings remains implementation-dependent.",
+    "Shared Resource and DomainResource behavior findings were considered context only because CareTeam had no direct behavior findings in the supplied context."
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "ClaimResponse",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/ClaimResponse.resource-review-context.json",
+    "structureReportPath": "output/ClaimResponse.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/ClaimResponse.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, the full ClaimResponse StructureDefinition report, selected R4/R6 ClaimResponse StructureDefinition elements, the deterministic aggregate only after forming the resource-level conclusion, and the behavior context. There were no direct behavior findings for ClaimResponse; shared Resource/DomainResource behavior findings were treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "fm",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 ClaimResponse is trial-use/FMM 2, so it has neutral rather than normative stability pressure. That lowers the burden somewhat compared with mature normative content, but it does not erase compatibility concern for required financial adjudication fields, especially the recipient/beneficiary path that every conforming R4 instance carries."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "ClaimResponse keeps its identity but needs a targeted R4-to-R6 migration program, led by the required `patient` to `subject` rename; low-cost compatibility preservation still matters, especially for the required recipient field."
+  },
+  "reasoning": {
+    "thesisMd": "ClaimResponse is not removed or replaced, and the resource remains recognizably the same financial adjudication response. However, raw R4 instances cannot be treated as R6-valid because every R4 ClaimResponse has required `patient` while R6 requires `subject` and has no `patient` element. Real implementations also need conditional transforms for adjudication non-money values, added-item anatomy, and process-note type/language. This is enough for a resource-specific migration program, but not enough to say the model has been wholly replaced.",
+    "migrationShapeMd": "The actual migration shape is a moderate targeted remodel. The universal forward transform is `ClaimResponse.patient` to `ClaimResponse.subject`; optional populated content then needs `adjudication.value` decimal to `adjudication.quantity` Quantity, flat `addItem.bodySite`/`subSite` to the R6 repeated body-site backbone, and scalar `processNote.type` to CodeableConcept. R6-to-R4 support additionally needs explicit loss or extension policy for Group subjects, Quantity units/comparators, BodyStructure references, richer CodeableConcept notes, omitted R4-required insurer/adjudication/product fields, and R6-only optional trace/review/support/error details.",
+    "compatibilityLeverageMd": "Because a targeted migration program is unavoidable, each local break should not be evaluated as though ClaimResponse were drop-in stable. But the existence of that program does not make additional break prevention low value. Financial adjudication and reimbursement workflows depend on deterministic recipient, payer, adjudication, product/service, and note handling; preserving old wire paths or publishing transition-compatible designs where cheap can prevent wrong-beneficiary association, conversion loss, and trading-partner failures.",
+    "lessBreakingAlternativesMd": "The standards-review-worthy low-cost alternative is strongest for `patient` to `subject`: the Group-recipient goal could largely be met by retaining the old required path and broadening its target/definition, avoiding a required-path break for all R4 instances. For `adjudication.value` to `quantity`, `addItem.bodySite` remodeling, and `processNote.type` to CodeableConcept, less-breaking dual-field designs are plausible but carry material conflict, duplication, and precedence costs; those are important migration chores more than clear base-design reversals. The language binding change is a limited populated-field validation risk with a coherent BCP-47 goal. Markdown text, stable outcome code values, and optional R6 additions do not justify blocking the R6 design, though they need implementation guidance.",
+    "behaviorImpactMd": "No direct OperationDefinition, SearchParameter, or HTTP behavior finding was assigned to ClaimResponse. Shared Resource/DomainResource findings such as Resource `$meta` removals, `$validate` semantics, and shared special search-parameter metadata can affect generic clients that also use ClaimResponse endpoints, but under the review rules they are context only and do not drive the ClaimResponse resource-level conclusion.",
+    "comparisonToDeterministicAggregateMd": "The independent conclusion agrees with the deterministic aggregate's practical posture: partial migration unavoidability, moderate targeted remodel, and preserve compatibility where low-cost while expecting resource migration. The substantive reason is not the count alone. The required recipient rename makes some transform unavoidable for every R4 instance, while the other hard breaks are conditional but business-relevant. Conversely, several reported issues are reverse-conversion or tooling concerns and should not be inflated into proof of a wholesale resource replacement.",
+    "uncertaintyMd": "Confidence is high for the structural shape because both R4 and R6 snapshots were available. Remaining uncertainty is about standards intent and field prevalence: the inputs do not include official financial management rationale, production usage frequencies for optional adjudication/anatomy/note fields, live terminology expansion, or official cross-version maps."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ClaimResponse:ELEMENT_PRESENCE_OR_IDENTITY:ClaimResponse.patient:2c2b8f",
+      "title": "Mandatory ClaimResponse.patient was replaced by mandatory ClaimResponse.subject and the target domain widened to Group",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the strongest ClaimResponse compatibility issue. Because `patient` is required in R4 and absent in R6, every conforming R4 instance needs a path transform before R6 validation; because R6 also allows Group, down-conversion can be lossy. The Group generalization is reasonable, but retaining the old required path with a broader definition/target looks like a plausible lower-cost base design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.item.adjudication.value:8a733d",
+      "title": "Adjudication non-monetary value changed from decimal `value` to `Quantity` `quantity`",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This hard break propagates through reused adjudication structures when populated and affects financial calculations. R4 decimals can usually be wrapped into `Quantity.value`, but units, code systems, comparators, and extensions in R6 require explicit policy for safe R6-to-R4 export. The richer Quantity model is defensible, so this is migration-program work rather than a clear request to preserve the old decimal in base R6."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ClaimResponse:SERIALIZATION_OR_CODEGEN:ClaimResponse.addItem.bodySite:673c7e",
+      "title": "ClaimResponse.addItem body-site data was remodeled from flat CodeableConcept fields to repeated backbone entries",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Populated R4 dental/anatomy data changes JSON shape: a flat bodySite plus sibling subSite becomes repeated bodySite backbones with required site values and nested subSite. This is a real transform and potential down-conversion loss for multiple sites or BodyStructure references, but the R6 grouping/reference goal is coherent enough that retaining both models would create conflict rules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.processNote.type:b6ec0a",
+      "title": "ClaimResponse.processNote.type changed from primitive code to CodeableConcept",
+      "role": "important-but-local",
+      "reasonMd": "This is an old-valid/new-invalid JSON shape change for populated notes and generated SDKs must stop treating the value as a scalar enum. The migration is usually mechanical from R4 code to CodeableConcept, while reverse conversion needs a recognized single note-type code. It matters, but it does not by itself indicate broad ClaimResponse redesign."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ClaimResponse:TERMINOLOGY_BINDING:ClaimResponse.processNote.language:225ed1",
+      "title": "ClaimResponse.processNote.language binding strengthened from preferred common languages to required all BCP-47 languages",
+      "role": "important-but-local",
+      "reasonMd": "This is a potential hard break only for populated local or non-BCP-47 language codings. It deserves implementation attention because process notes are human-facing adjudication content, but omitted values and ordinary BCP-47 codes remain compatible and the required all-languages binding has a clear interoperability purpose."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ClaimResponse:CARDINALITY:required-elements-relaxed:9d56c1",
+      "title": "Several R4-required ClaimResponse elements are optional in R6, creating R6-to-R4 validity gaps",
+      "role": "important-but-local",
+      "reasonMd": "Relaxing insurer, adjudication, and product/service minima does not block R4-to-R6 validation, but it is important for mixed-version workflows because R6 can now omit fields R4 requires. This is a reverse-conversion and old-consumer-assumption chore, not a reason to classify the forward R4-to-R6 migration as wholesale replacement."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ClaimResponse:CONVERSION_OR_MAPPING:r6-added-content:0c88a4",
+      "title": "R6 adds substantial optional ClaimResponse content with no native R4 representation",
+      "role": "important-but-local",
+      "reasonMd": "Optional R6 additions such as trace numbers, supportingInfo, reviewOutcome, taxes, request links, and error expressions can be business-significant for R6-to-R4 preservation. They are not forward-breaking for R4 instances and are already the least-breaking way to add new information, so the action is mapping/extension policy rather than standards reversal."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ClaimResponse:TYPE_DOMAIN:ClaimResponse.processNote.text:c4a320",
+      "title": "ClaimResponse.processNote.text changed from string to markdown",
+      "role": "discounted",
+      "reasonMd": "The FHIR primitive type changes and renderers may behave differently, but the JSON value remains string-shaped at the same required path. This is a generated-model and UI sanitization check rather than a material R4-to-R6 instance break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ClaimResponse:TERMINOLOGY_BINDING:ClaimResponse.outcome:1f093b",
+      "title": "ClaimResponse.outcome required binding moved from remittance-outcome to claim-outcome with stable code values",
+      "role": "discounted",
+      "reasonMd": "The binding canonical changed, but the relevant primitive code strings remain stable in the local evidence. This can affect terminology caches and enum metadata, but it should not require instance value migration."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "Resource $meta operation is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "Generic clients might use Resource-level `$meta` operations against ClaimResponse instances, so this is operationally relevant background. It is shared Resource behavior rather than ClaimResponse-specific resource modeling, so it does not drive the ClaimResponse migration-shape judgment."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search-parameter metadata can affect generic search clients over ClaimResponse endpoints, but the finding is assigned to Resource/DomainResource context and not to ClaimResponse directly. It is therefore useful compatibility context, not evidence of additional ClaimResponse-local redesign."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the required `ClaimResponse.patient` to `ClaimResponse.subject` rename. If R6 keeps `subject`, publish explicit transitional mapping and consider whether retaining the old `patient` path with widened target/semantics would satisfy the Group-recipient goal with much lower R4 breakage."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish and test a ClaimResponse R4-to-R6 transform covering recipient, adjudication `value` to `quantity`, added-item body-site nesting, process-note type wrapping, and BCP-47 normalization for note language."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define R6-to-R4 loss/extension policy for Group subjects, Quantity details, BodyStructure references, omitted R4-required insurer/adjudication/product fields, and R6-only trace/review/support/error content."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update generated models, validation tests, terminology caches, and trading-partner conformance examples so markdown note text, claim-outcome metadata, nullable R6 fields, and shared Resource behavior changes are handled deliberately rather than by silent fallback."
+    }
+  ],
+  "caveats": [
+    "No direct ClaimResponse behavior/API findings were present; shared Resource and DomainResource behavior findings were considered only as context.",
+    "R6 FMM/status was not used as the compatibility burden baseline; the review uses R4 ClaimResponse FMM 2 and trial-use status as requested.",
+    "No official cross-version ConceptMap, production prevalence data, or live terminology expansion was available in the supplied inputs."
+  ]
+}

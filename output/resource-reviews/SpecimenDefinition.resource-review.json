@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "SpecimenDefinition",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/SpecimenDefinition.resource-review-context.json",
+    "structureReportPath": "output/SpecimenDefinition.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/SpecimenDefinition.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 7,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the local SpecimenDefinition StructureDefinition report, the resource-review context, the deterministic aggregate as prior context, and the behavior reports for direct affectedResources entries. No direct behavior findings target `SpecimenDefinition`; shared `Resource`/`DomainResource` behavior findings were treated as context only, as required by the review rubric."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 SpecimenDefinition was trial-use/FMM 0, so the baseline compatibility burden is weak. That softens concern for mechanical hard breaks such as adding a lifecycle status or changing generated JSON shape, but it does not eliminate concern where migration can be lossy or clinically/domain-dependent, especially for container additives."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "SpecimenDefinition keeps its identity but needs a targeted migration step for required status, identifier array shape, and additive reference targets; low-cost preservation still matters for the Substance-to-SubstanceDefinition additive break."
+  },
+  "reasoning": {
+    "thesisMd": "`SpecimenDefinition` is not removed or broadly replatformed in R6: the same resource remains, old local paths largely remain, and there are no direct behavior/API findings. The R4-to-R6 migration is nevertheless not just metadata churn because every R4 instance lacks the new required modifier `status`, populated `identifier` changes JSON shape, and `typeTested.container.additive.additiveReference` changes its allowed target from `Substance` to `SubstanceDefinition`.",
+    "migrationShapeMd": "The actual shape is a moderate targeted remodel rather than a major model rewrite. Migration programs need rules to assign `status`, wrap singleton identifiers into arrays, and map additive references or choose the coded branch. Optional R6 metadata, subject/single-use/testing-destination qualifiers, and markdown text types mostly affect R6-to-R4 loss, code generation, or rendering rather than invalidating old R4 content.",
+    "compatibilityLeverageMd": "A resource-level migration step is already unavoidable in practice because `status` is required in R6. That does not mean additional break prevention has no value: the required status and identifier shape are largely mechanical, while the additive Reference target replacement can require Substance/SubstanceDefinition domain mapping. Preserving compatibility where it is cheap would still reduce migration risk without undermining the R6 resource identity.",
+    "lessBreakingAlternativesMd": "The strongest standards-review candidate is to allow both `Reference(Substance)` and `Reference(SubstanceDefinition)` on the additive choice, at least transitionally, while guiding new content toward the definitional target. By contrast, making `status` optional would undercut the R6 lifecycle-governance goal, preserving singleton and repeating identifiers as separate fields would create lasting duplicate identifier semantics, and optional R6 metadata/qualifiers do not need a less-breaking base design for R4-to-R6 validation.",
+    "behaviorImpactMd": "No OperationDefinition, SearchParameter, or HTTP/REST behavior finding directly lists `SpecimenDefinition` as an affected resource. The 11 shared `Resource`/`DomainResource` behavior findings, including shared operations and special search-parameter metadata changes, remain relevant to servers that expose SpecimenDefinition through generic FHIR behavior, but they are not resource-specific evidence for this review.",
+    "comparisonToDeterministicAggregateMd": "After independent review, I agree with the deterministic aggregate's `Partial` migration-unavoidability conclusion and `preserve-where-low-cost-but-expect-resource-migration` posture. The important nuance is that the migration burden is concentrated in a few targeted changes, not a wholesale redesign; the additive target change remains worth standards attention despite low R4 maturity and despite the need for a status migration.",
+    "uncertaintyMd": "Confidence is high for structural facts from the local StructureDefinitions. Remaining uncertainty is mainly about real-world prevalence, official HL7 rationale, and the exact SNOMED expansion effect for the example container-type ValueSet."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "SpecimenDefinition:ELEMENT_PRESENCE_OR_IDENTITY:SpecimenDefinition.status:required",
+      "title": "R6 adds mandatory modifier status to SpecimenDefinition",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This makes untransformed R4 instances invalid because R4 had no native `status` element and R6 requires a 1..1 modifier code. It is a key reason a resource-level migration step is unavoidable, but the available `unknown` code and lifecycle-governance rationale make it mostly a local migration chore rather than the best preservation target."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "SpecimenDefinition:CARDINALITY:SpecimenDefinition.identifier:repeat-json",
+      "title": "identifier changed from singleton to repeating",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The cardinality widening is logically additive but changes populated FHIR JSON from an object to an array, so strict R6 parsers and generated models need a transform. Forward migration is straightforward one-to-array wrapping; the harder issue is R6-to-R4 loss when multiple identifiers exist."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "SpecimenDefinition:REFERENCE_TARGET:SpecimenDefinition.typeTested.container.additive.additive-x:substance-definition",
+      "title": "Container additive Reference target changed from Substance to SubstanceDefinition",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most important avoidable break. R4 `Reference(Substance)` additive values no longer satisfy the R6 target profile, and mapping additives such as preservatives or anticoagulants to `SubstanceDefinition` may require domain judgment. Allowing both targets would likely preserve many R4 instances while still permitting the R6 definitional model."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "SpecimenDefinition:CONVERSION_OR_MAPPING:SpecimenDefinition.metadata:r6-only",
+      "title": "R6 adds optional canonical and publication metadata not native to R4",
+      "role": "discounted",
+      "reasonMd": "These optional canonical/publication fields are useful R6 additions and create mainly reverse-conversion loss. They do not make R4 instances invalid in R6, so they should be handled in mapping guidance rather than treated as an avoidable R4-to-R6 break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "SpecimenDefinition:CONVERSION_OR_MAPPING:SpecimenDefinition.qualifiers:r6-only",
+      "title": "R6 adds specimen applicability and testing-use qualifiers not present in R4",
+      "role": "important-but-local",
+      "reasonMd": "The added `subject[x]`, `singleUse`, and `testingDestination` fields can carry operationally meaningful specimen-use semantics, but they are optional and do not invalidate old R4 instances. They matter for downgrade policy and implementation guidance, not as a standards-level reason to avoid the R6 additions."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "SpecimenDefinition:TYPE_DOMAIN:SpecimenDefinition.markdown-text:string-to-markdown",
+      "title": "Several free-text fields changed from string to markdown",
+      "role": "important-but-local",
+      "reasonMd": "Changing instruction/description fields to markdown can affect generated primitive types, rendering, and sanitization, but the JSON value remains string-like and ordinary R4 plain text remains carryable. This is a migration-awareness item rather than a driver of resource-level redesign."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "SpecimenDefinition:TERMINOLOGY_BINDING:SpecimenDefinition.typeTested.container.type:container-vs",
+      "title": "Specimen container type example ValueSet changed SNOMED filter root",
+      "role": "discounted",
+      "reasonMd": "The binding remains example strength, so base R6 validation should not reject R4 instances because of this ValueSet change. It may deserve terminology review for picklists or profiles that strengthen the binding, but it does not materially change the resource-level migration posture."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "This and related shared `Resource` operation findings can affect servers exposing generic operations for SpecimenDefinition, but they are not direct SpecimenDefinition behavior findings and therefore are not scored as resource-level SpecimenDefinition migration drivers."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "The shared search-parameter metadata finding is relevant to generic Resource/DomainResource behavior but does not indicate a SpecimenDefinition-specific search surface change."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the additive Reference target change and consider allowing both `Substance` and `SubstanceDefinition`, or otherwise publish explicit mapping guidance for R4 `Substance` additive references."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide explicit migration rules for assigning R6 `status`, including when `unknown` is acceptable versus when source governance metadata should produce `draft`, `active`, or `retired`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document mechanical transforms for `identifier` one-to-array wrapping and downgrade policies for multiple R6 identifiers, R6-only qualifiers, and canonical metadata."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "If implementations depend on `container.type` picklists or strengthened profiles, compare R4 and R6 SNOMED expansions for the example ValueSet before declaring local terminology compatibility."
+    }
+  ],
+  "caveats": [
+    "No official rendered R4-to-R6 diff or HL7 ballot rationale was used.",
+    "No live SNOMED CT expansion was available for the example `specimen-container-type` ValueSet.",
+    "R4 FMM 0 makes production prevalence uncertain, so resource-level impact should not be inferred from break counts alone.",
+    "Shared `Resource` and `DomainResource` behavior findings were considered only as context because SpecimenDefinition is not itself those base resources."
+  ]
+}

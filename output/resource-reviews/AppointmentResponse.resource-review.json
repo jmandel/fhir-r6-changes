@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "AppointmentResponse",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/AppointmentResponse.resource-review-context.json",
+    "structureReportPath": "output/AppointmentResponse.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/AppointmentResponse.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 6,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, full AppointmentResponse StructureDefinition report, deterministic aggregate prepass, relevant R4/R6 AppointmentResponse definitions, R4 maturity map entry, and behavior context reports. Direct behavior findings were absent; shared Resource/DomainResource behavior findings were treated as context only, not as AppointmentResponse-specific migration burden."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 AppointmentResponse was trial-use/FMM 3, so compatibility matters for scheduling workflows, generated models, terminology-driven matching, and validator behavior. This is meaningful stability pressure, but not the normative/FMM 5 burden; proportionate additive improvements can be acceptable when R4-valid instances remain accepted."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "AppointmentResponse keeps its resource identity and has no hard R4-to-R6 instance break; migration is local field, terminology, and runtime handling, so avoidable compatibility churn still matters per change."
+  },
+  "reasoning": {
+    "thesisMd": "AppointmentResponse is not a resource-level redesign. The same resource remains, the core participant-response model is recognizable, and the reported structural changes do not make existing R4 instances invalid as R6 AppointmentResponse instances. The important migration work is in local code paths: closed status enums and status business logic, markdown rendering/type generation, recurrence and counter-proposal semantics, and terminology value-set-driven matching.",
+    "migrationShapeMd": "The migration shape is mostly stable with local breaks or chores. `participantStatus` adds a new safety-significant modifier status but retains all R4 codes. `actor` widens references to `Group`. `comment` changes from `string` to `markdown` while keeping the same JSON scalar shape. `proposedNewTime` and recurrence fields are optional additions. `participantType` keeps the same element and extensible binding canonical but changes preferred value-set composition. None of these requires a whole-resource migration program before an R4 AppointmentResponse can be represented in R6.",
+    "compatibilityLeverageMd": "Because a resource-level migration program is not already unavoidable, preventing avoidable local breaks remains high-leverage. FMM 3/trial-use does not freeze the model, but it does mean low-cost compatibility preservation should be preferred when the R6 goal can still be met, especially for participant matching and safety/business semantics in appointment scheduling.",
+    "lessBreakingAlternativesMd": "The most standards-review-worthy low-cost alternative is for `participantType`: retain the R4 explicit `SPRF`, `PPRF`, and `PART` includes while adding the R6 location-role coverage and `ELOC` exclusion, unless there is a clear rationale for de-preferencing those concepts. By contrast, the richer `participantStatus` invalidation state and native recurrence fields appear proportionate because they preserve R4-to-R6 structural compatibility and address real scheduling needs. The `comment` string-to-markdown change has possible alternatives, but they trade away a computable rendering signal or create duplicate comment fields.",
+    "behaviorImpactMd": "There are no direct AppointmentResponse behavior findings. Shared Resource/DomainResource operation, search, and HTTP findings can affect generic clients that operate on AppointmentResponse through common FHIR APIs, but they are not AppointmentResponse-specific and do not change this resource's migration shape.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded major migration `No` with `preserve-compatibility-per-change`; I agree with those conclusions. I would characterize the shape as `mostly-stable-with-local-breaks` rather than simply `low-material-change`, because several changes have real runtime, R6-to-R4, terminology, or safety/business implications even though they do not make a resource-level migration program unavoidable.",
+    "uncertaintyMd": "The `participantType` conclusion relies on value-set compose evidence because a full expansion comparison was not available from the core package material. Standards follow-up should confirm whether the omitted explicit R4 role concepts are intentionally de-preferred or an avoidable compatibility regression."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AppointmentResponse:TERMINOLOGY_BINDING:AppointmentResponse.participantType:5e91aa",
+      "title": "participantType extensible value set composition changed",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the main avoidable compatibility concern and the best evidence for `preserve-compatibility-per-change`. The element, cardinality, type, binding strength, and canonical remain stable, so it does not drive a resource migration program. But the R6 compose no longer explicitly includes R4 `SPRF`, `PPRF`, and `PART`, which can affect terminology warnings, pick lists, and participant-role matching. Keeping those includes while adding the R6 location-role coverage appears low-cost unless there is a specific policy reason to remove them."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AppointmentResponse:TERMINOLOGY_BINDING:AppointmentResponse.participantStatus:9b8d2c",
+      "title": "participantStatus required binding changed to a new value set that adds entered-in-error",
+      "role": "important-but-local",
+      "reasonMd": "The new `entered-in-error` code is safety-significant because `participantStatus` is required and modifier=true. It creates closed-enum, business-rule, and R6-to-R4 handling work, and systems must not treat an invalidated response as active. It is still local rather than resource-level: all R4 status codes remain valid in R6, so existing R4 instances are not rejected."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AppointmentResponse:ELEMENT_PRESENCE_OR_IDENTITY:AppointmentResponse.recurrence:ac72e9",
+      "title": "recurrence-specific response fields added",
+      "role": "important-but-local",
+      "reasonMd": "The recurrence fields are optional additions, so they preserve R4-to-R6 structural compatibility. They are important because dropping them in R6-to-R4 conversion can change whether a response applies to one occurrence or a whole series, which is scheduling-critical. Once the R6 recurrence model is accepted, this is a local migration and back-conversion policy issue rather than evidence of broad resource redesign."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AppointmentResponse:TYPE_DOMAIN:AppointmentResponse.comment:6f0a21",
+      "title": "comment type changed from string to markdown",
+      "role": "important-but-local",
+      "reasonMd": "The wire value remains a JSON string and ordinary R4 comments should remain representable, but generated APIs, validators that distinguish primitives, and UI rendering/sanitization behavior can change. This is a local codegen and display-policy migration chore; the obvious less-breaking designs either lose the computable markdown signal or create duplicate comment fields."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AppointmentResponse:ELEMENT_PRESENCE_OR_IDENTITY:AppointmentResponse.proposedNewTime:d4c23b",
+      "title": "proposedNewTime added to explicitly mark counter-proposals",
+      "role": "discounted",
+      "reasonMd": "This is optional and additive. It clarifies an existing counter-proposal concept without invalidating R4 instances, and R4 already carried the key time information through `start` and `end`. Migration guidance still matters so systems do not infer the flag mechanically when source context is insufficient."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AppointmentResponse:REFERENCE_TARGET:AppointmentResponse.actor:1a7f3e",
+      "title": "actor reference target widened to allow Group",
+      "role": "discounted",
+      "reasonMd": "Adding `Group` is a target-list widening that retains all R4 targets. It can affect closed generated reference unions and R6-to-R4 conversion when the new target is used, but it is not an R4-to-R6 break and does not justify resource-level migration."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "context-only",
+      "reasonMd": "This shared base behavior can affect generic FHIR clients and conformance tooling, but it is not a direct AppointmentResponse behavior finding. It should be handled in the shared Resource/DomainResource and HTTP/API review rather than counted as AppointmentResponse-specific migration pressure."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Review the `participantType` value-set compose change with the responsible work group. If the R4 `SPRF`, `PPRF`, and `PART` concepts were not intentionally de-preferred, preserve them in the R6 preferred set while adding the new location-role coverage."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish implementer guidance and tests for local scheduling semantics: handle `participantStatus=entered-in-error`, preserve recurrence scope during R6-to-R4 exchange, and derive `proposedNewTime` only when the referenced Appointment and business context support it."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update generated-model and UI guidance for local runtime changes, especially `comment` as markdown and `actor` allowing `Group`, while ensuring existing R4 string comments and actor targets remain accepted."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Keep shared Resource/DomainResource operation and search compatibility work separate from the AppointmentResponse resource conclusion so generic API breaks are not double-counted across resources."
+    }
+  ],
+  "caveats": [
+    "No direct OperationDefinition, SearchParameter, or HTTP behavior finding was assigned specifically to AppointmentResponse.",
+    "Shared Resource/DomainResource behavior findings may still affect generic clients operating on AppointmentResponse, but they were treated as context only as required.",
+    "The `participantType` terminology concern should be confirmed with full value-set expansion or work-group rationale because the available package evidence showed compose differences rather than a complete expansion comparison."
+  ]
+}

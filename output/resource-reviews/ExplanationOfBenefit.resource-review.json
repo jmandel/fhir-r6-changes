@@ -1,0 +1,161 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "ExplanationOfBenefit",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/ExplanationOfBenefit.resource-review-context.json",
+    "structureReportPath": "output/ExplanationOfBenefit.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/ExplanationOfBenefit.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 11,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-specific StructureDefinition report, the resource-review context, and direct behavior report matches for `affectedResources` containing `ExplanationOfBenefit`. No direct behavior findings were present. Shared `Resource` and `DomainResource` behavior findings were treated as context only, not as resource-specific break drivers."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "fm",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 FMM 2/trial-use creates neutral compatibility pressure: it does not demand normative immutability, but `ExplanationOfBenefit` is a financial/adjudication resource, so breaks affecting beneficiary identity, provider responsibility, DRG/package grouping, and adjudication values still require business-safety scrutiny."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "ExplanationOfBenefit keeps its identity, but R6 changes enough central and line-level financial model shape that an R4-to-R6 migration program is unavoidable while low-cost compatibility preservation remains valuable."
+  },
+  "reasoning": {
+    "thesisMd": "`ExplanationOfBenefit` is not removed or replaced, but it is not a mostly stable resource. Every conformant R4 instance uses required `patient`, which is absent in R6 and replaced by required `subject`; several optional but business-relevant submodels also change wire shape or location. The resource therefore needs planned transforms, model/API updates, and downgrade policy even before considering implementation-guide profiles.",
+    "migrationShapeMd": "The migration shape is a major model remodel with stable resource identity. The hard breaks are not one isolated rename: recipient identity, anatomic line-item body-site representation, process-note coding/text shape, supporting-info timing choice suffixes, care-team responsibility/qualification, diagnosis package/DRG placement, and adjudication value type all require transforms when present. R6 also relaxes several R4-required billing minima and widens reference/value domains, which makes R6-to-R4 and old non-null consumer assumptions materially harder.",
+    "compatibilityLeverageMd": "Because a migration program is already needed, not every local break has the same standards leverage. Still, the existence of a migration program does not make avoidable breaks harmless. Compatibility remains high-leverage where R6 could preserve old fields or choices without blocking the new model, especially for central beneficiary identity and optional fields with clear deprecated/alias paths.",
+    "lessBreakingAlternativesMd": "The strongest preservation candidates are `patient`/`subject` compatibility, retaining `supportingInfo.timingDate` while adding dateTime/Timing, keeping `careTeam.responsible` and `careTeam.qualification` as deprecated or clarified fields, and preserving nested `diagnosis.packageCode` during transition. By contrast, the body-site backbone, process-note CodeableConcept, and adjudication Quantity changes have clearer modeling benefits and duplicate-field tradeoffs, so they are better treated as planned migration chores unless ballot review finds a cheaper transition pattern.",
+    "behaviorImpactMd": "No OperationDefinition, SearchParameter, or HTTP behavior finding directly lists `ExplanationOfBenefit` as an affected resource. Shared `Resource` and `DomainResource` behavior changes, including `$convert`, `$meta`, `$validate`, and shared search-parameter metadata, may affect EOB-capable servers generally, but they are not resource-specific evidence that changes the EOB compatibility posture.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Yes` for major migration, `major-model-remodel` for shape, and `preserve-where-low-cost-but-expect-resource-migration` for compatibility leverage. After independently reviewing the finding content, I agree with those labels. The agreement is based less on the raw count of seven hard breaks than on the combination of one universal required-field rename plus multiple separate financial/adjudication submodel remodels.",
+    "uncertaintyMd": "Confidence is high for the StructureDefinition deltas and behavior scope. Remaining uncertainty is about official ballot rationale, real-world R4 EOB instance prevalence for optional submodels, and exact terminology-validator behavior for `processNote.language`."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:ELEMENT_PRESENCE_OR_IDENTITY:patient-subject:9f0b35",
+      "title": "Required patient was replaced by required subject with an expanded Patient-or-Group target",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the central resource-level break: R4 `patient` is required, R6 requires `subject`, and Group subjects add reverse-conversion policy. It makes an instance transform unavoidable for normal R4 data and is also a strong low-cost preservation candidate through a widened or deprecated legacy path."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:SERIALIZATION_OR_CODEGEN:bodySite:4c2d18",
+      "title": "item and addItem bodySite changed from a CodeableConcept plus subSite fields to repeating backbone structures",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The old flat bodySite/subSite wire shape cannot be copied into R6. The R6 backbone has credible modeling value for grouped anatomic sites and BodyStructure references, so this mainly supports the conclusion that migration is substantial rather than being a top avoidable-break candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:SERIALIZATION_OR_CODEGEN:processNote-type:5b7f8a",
+      "title": "processNote.type changed from required-bound code to CodeableConcept and processNote.text changed from string to markdown",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "R4 primitive note-type strings must be wrapped as CodeableConcept and note text consumers must handle markdown. The richer R6 representation is plausible, but it adds another SDK/serialization transform for adjudication explanation content."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:TYPE_DOMAIN:supportingInfo-timing:ca3e1d",
+      "title": "supportingInfo.timing[x] replaced date with dateTime and added Timing",
+      "role": "important-but-local",
+      "reasonMd": "This is a localized but avoidable wire break: date precision can be represented in `dateTime`, yet the JSON choice suffix changes from `timingDate` to `timingDateTime`. Keeping `date` while adding `dateTime` and `Timing` looks like a low-cost compatibility win."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:ELEMENT_PRESENCE_OR_IDENTITY:careTeam-responsible-qualification:7aa61c",
+      "title": "careTeam.responsible and careTeam.qualification were removed; specialty was added as a partial replacement",
+      "role": "important-but-local",
+      "reasonMd": "`qualification` only partially maps to `specialty`, and `responsible` has no direct R6 replacement. These optional fields are inexpensive to retain or deprecate and can affect billing responsibility, routing, and audit interpretation."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:ELEMENT_PRESENCE_OR_IDENTITY:diagnosis-packageCode:33db52",
+      "title": "diagnosis.packageCode moved from each diagnosis to root diagnosisRelatedGroup",
+      "role": "important-but-local",
+      "reasonMd": "The intended successor is clear, but the move collapses a per-diagnosis field into one root field. A single-code migration is easy; multiple distinct package/DRG codes require financial-domain policy, so a deprecated nested field or explicit transition rule remains standards-review-worthy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:TYPE_DOMAIN:item-adjudication-value:8ec20f",
+      "title": "item.adjudication.value decimal was removed and replaced by adjudication.quantity Quantity",
+      "role": "important-but-local",
+      "reasonMd": "This is a real hard instance and codegen break, but Quantity better represents non-monetary adjudication values with units. Once the R6 model is accepted, this is mostly a migration chore with downgrade-loss policy rather than a high-priority preservation target."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:CARDINALITY:required-relaxed:21ad90",
+      "title": "Several R4 required billing fields became optional in R6",
+      "role": "important-but-local",
+      "reasonMd": "This does not make R4 instances fail R6 validation, but it breaks old non-null assumptions and creates R6-to-R4 failures for missing insurer, provider, insurance, or product/service data. The right mitigation is likely profile guidance for exchanges needing R4-like completeness."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:REFERENCE_TARGET:widened-targets:e651a3",
+      "title": "Multiple reference targets were widened, creating R6-to-R4 representability risks",
+      "role": "discounted",
+      "reasonMd": "The reference changes are target widenings, so existing R4 references remain valid in R6. They matter for reverse conversion and closed-union client code, but they do not materially increase R4-to-R6 instance breakage."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:TYPE_DOMAIN:supportingInfo-value:2f6c48",
+      "title": "supportingInfo.value[x] expanded from five choices to a broad DataType-like choice set",
+      "role": "discounted",
+      "reasonMd": "R4-allowed choices remain available. This is primarily additive expressiveness with R6-to-R4 loss risk, so it should not drive avoidable-break review for preserving old EOB instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ExplanationOfBenefit:TERMINOLOGY_BINDING:processNote-language:bdc930",
+      "title": "processNote.language binding strengthened from preferred common languages to required all-languages",
+      "role": "important-but-local",
+      "reasonMd": "This is only a potential hard break and likely rare because the element is optional and standard language tags are expected. It still deserves implementation guidance or terminology validation confirmation because required binding can reject local R4 language codings."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-convert--Resource-convert:resource-convert-input-parameter-renamed",
+      "title": "Required input parameter renamed from `input` to `resource`",
+      "role": "context-only",
+      "reasonMd": "This shared Resource operation finding can affect systems converting EOB instances, but it is not specific to `ExplanationOfBenefit` and was not scored as a resource-level EOB structure break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search metadata issue may affect EOB-capable search implementations generally, but it is inherited shared context rather than a resource-specific EOB migration driver."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `patient` to `subject` transition and consider a base-compatible path, such as retaining `patient` as a deprecated alias or widening the old element while documenting Group-recipient handling."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish or review official cross-version maps for the unavoidable EOB transforms: recipient, bodySite/subSite, processNote, supportingInfo.timing, careTeam, diagnosisRelatedGroup, and adjudication quantity."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Preserve low-cost optional compatibility where feasible, especially `supportingInfo.timingDate`, `careTeam.responsible`, `careTeam.qualification`, and transitional handling for `diagnosis.packageCode`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide profile guidance for R6 exchanges that still require R4-like completeness for insurer, provider, insurance, and product/service fields, and for systems that need R4-round-trippable reference/value domains."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Confirm `processNote.language` impact with terminology expansion/validator tests before treating the required binding as a broad compatibility problem."
+    }
+  ],
+  "caveats": [
+    "No direct behavior findings listed `ExplanationOfBenefit` as an affected resource; shared Resource/DomainResource behavior findings were context only.",
+    "The review relies on packaged StructureDefinitions and reports, not official ballot reconciliation notes or an official R4-to-R6 ConceptMap.",
+    "No real-world R4 ExplanationOfBenefit instance corpus was available to measure prevalence of optional submodels such as bodySite, processNote, careTeam qualification/responsible, or diagnosis.packageCode."
+  ]
+}

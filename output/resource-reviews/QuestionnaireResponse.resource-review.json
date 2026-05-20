@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "QuestionnaireResponse",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/QuestionnaireResponse.resource-review-context.json",
+    "structureReportPath": "output/QuestionnaireResponse.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/QuestionnaireResponse.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 10,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "I read the resource-review context, the full QuestionnaireResponse StructureDefinition report, the deterministic aggregate prepass, and the required review contract, rubric, and fresh-review framework. I treated the deterministic aggregate as prior context only, considered the direct SearchParameters behavior finding whose affected resources include QuestionnaireResponse, and treated Resource/DomainResource behavior findings as context only because the assigned resource is QuestionnaireResponse rather than Resource or DomainResource itself."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "fhir",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 FMM 3/trial-use creates meaningful stability pressure: QuestionnaireResponse is mature enough for real questionnaire workflow exchange, validation, and analytics impact, but it is not normative. This supports preserving low-cost compatibility and avoiding silent lifecycle changes without treating every model cleanup as prohibited."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "QuestionnaireResponse keeps its identity but needs targeted migration for required form identity and normalized answer shape; low-cost compatibility still matters for questionnaire and stopped semantics."
+  },
+  "reasoning": {
+    "thesisMd": "QuestionnaireResponse is not removed, renamed, split, or wholesale replaced. R6 instead tightens a stable resource around two themes: every response should identify its Questionnaire, and answer content should have a cleaner, more computable shape. That is enough to make a targeted migration program likely for nontrivial R4 corpora, but not enough to say compatibility preservation is pointless.",
+    "migrationShapeMd": "The forward migration pain clusters in five old-valid/new-invalid validation changes: missing `questionnaire`, value-less `answer` backbones, comparator-bearing `valueQuantity`, duplicate answered question items that violate qrs-2, and non-normalized `linkId` strings that violate qrs-3. The first three answer/form changes can require form-aware or human-reviewed mapping rather than simple code generation. By contrast, max-cardinality widenings and added author/source targets are mainly R6-to-R4 down-conversion concerns and do not drive the R4-to-R6 migration shape.",
+    "compatibilityLeverageMd": "A resource-level migration program is already partly unavoidable for implementations with legacy QuestionnaireResponse data, so the marginal value of preventing every local break is lower than it would be on a mostly stable resource. But migration-needed is not the same as no point avoiding breaks. The mandatory `questionnaire` change and the `status=stopped` semantic narrowing are still high-value, plausibly low-cost places to preserve compatibility or add transition design.",
+    "lessBreakingAlternativesMd": "The strongest low-cost alternatives are keeping `QuestionnaireResponse.questionnaire` optional in the base resource while requiring or warning in profiles/workflows, and preserving the R4 meaning of `stopped` while adding a distinct terminal status code or qualifier. Warning-level qrs-2/qrs-3, optional answer values, or unprofiled Quantity would preserve more legacy data, but each would also weaken R6's computable answer model or identifier hygiene; those are partial alternatives rather than clearly superior base designs.",
+    "behaviorImpactMd": "The one direct behavior finding is SearchParameters target-list change coverage that includes QuestionnaireResponse. It can affect generated search APIs, typed reference modifiers, chaining, and reverse-include expectations, so it belongs in implementation migration planning. It is still a local API/conformance concern, not the dominant reason the resource needs migration. Shared Resource/DomainResource operation and search findings were considered only as context under the review rules.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate headline: `Partial` major migration, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The independent rationale is not the raw count of findings; it is the stable resource identity plus concentrated hard validation changes in form identity and answer representation. I give less forward-migration weight than the aggregate might imply to reverse-only widenings, and more standards-review weight to `questionnaire` and `stopped` because they are comparatively low-cost compatibility opportunities.",
+    "uncertaintyMd": "No official HL7 diff, ballot rationale, rendered narrative page, or validator run was used beyond the supplied local reports. qrs-2 edge cases involving nested follow-up items remain the main technical uncertainty, but the overall resource-level conclusion is high-confidence because the cardinality, profile, target, and invariant changes are explicit in the supplied StructureDefinitions."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:CARDINALITY:QuestionnaireResponse.questionnaire:0a91b4",
+      "title": "QuestionnaireResponse.questionnaire became mandatory",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most important avoidable hard validation break. Requiring a form canonical improves traceability, but R6 also permits unresolved or extension-only legacy representations, so base presence does not guarantee a usable Questionnaire. Keeping the element optional in base with warning/profile enforcement looks low-cost enough to deserve follow-up despite the broader migration program."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:CARDINALITY:QuestionnaireResponse.item.answer.value_x:1d47c2",
+      "title": "Answer.value[x] became mandatory whenever an answer backbone exists",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is central to the answer-shape remodel. R4 value-less answer containers with nested items can become invalid and cannot be safely fixed by dropping the answer, because nested follow-up content may carry clinical meaning. The change is proportionate if R6 wants answer backbones to always represent actual answers, but it is a real migration driver."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:VALUE_CONSTRAINT:QuestionnaireResponse.item:qrs-2:aa31e0",
+      "title": "New qrs-2 invariant requires repeated question answers to be combined on one item",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Together with mandatory answer values, qrs-2 makes R6's repeated-question representation more computable. Legacy duplicate answered items must be normalized carefully so nested follow-up answers stay attached to the right answer. A warning-level alternative would ease migration but would preserve the repeated question versus repeated group ambiguity that R6 is trying to remove."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:VALUE_CONSTRAINT:QuestionnaireResponse.item.linkId:qrs-3:7e2a0d",
+      "title": "New qrs-3 invariant rejects linkId whitespace patterns allowed in R4",
+      "role": "important-but-local",
+      "reasonMd": "This is a hard validation break but mostly local identifier hygiene. The migration is only safe when corresponding Questionnaire and QuestionnaireResponse linkIds are normalized consistently. Because whitespace-bearing linkIds are likely rare and ambiguous, this is a local migration chore rather than a reason to preserve the old base rule indefinitely."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:TYPE_DOMAIN:QuestionnaireResponse.item.answer.value_x.Quantity:7b93f1",
+      "title": "Answer valueQuantity is now constrained to SimpleQuantity",
+      "role": "important-but-local",
+      "reasonMd": "Comparator-bearing quantities can be clinically meaningful and must not be silently stripped. Still, the affected pattern is specialized and the R6 goal of simple quantity answers is coherent. This should be handled as a migration rule or profile/extension decision once the answer-model tightening is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:TERMINOLOGY_BINDING:QuestionnaireResponse.status:stopped:5d90cc",
+      "title": "The required status code stopped has a narrower lifecycle meaning in R6",
+      "role": "needs-follow-up",
+      "reasonMd": "This does not invalidate JSON, but it can silently change workflow semantics because `status` is required and modifier-like. R4 `stopped` allowed uncertainty about future changes; R6 makes it terminal. A distinct terminal status or qualifier would be a cleaner, low-cost compatibility design, so this remains standards-review-worthy even though structural migration is already needed."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:CARDINALITY:QuestionnaireResponse.identifier:f1ac5e",
+      "title": "QuestionnaireResponse.identifier can repeat in R6 and does not round-trip to R4 cleanly",
+      "role": "discounted",
+      "reasonMd": "This is a max-cardinality widening. It is relevant to R6-to-R4 down-conversion and deduplication policy, but it preserves all R4-valid instances in R6 and does not contribute to the forward migration program."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:CARDINALITY:QuestionnaireResponse.item.definition:c0d2a8",
+      "title": "QuestionnaireResponse.item.definition can repeat in R6 and is lossy when converted to R4",
+      "role": "discounted",
+      "reasonMd": "This is additive for R4-to-R6. Multiple R6 definition URIs need a down-conversion policy, but retaining the R4 singular cardinality would reduce R6 traceability rather than avoid a forward compatibility break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:REFERENCE_TARGET:QuestionnaireResponse.author:4c2fe1",
+      "title": "QuestionnaireResponse.author can now reference Group",
+      "role": "discounted",
+      "reasonMd": "The added Group target is a target-domain widening with scoped R6 guidance for family or household authorship. It creates possible reverse-conversion loss but does not invalidate R4 author references in R6."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "QuestionnaireResponse:REFERENCE_TARGET:QuestionnaireResponse.source:6b47aa",
+      "title": "QuestionnaireResponse.source can now reference Device or Organization",
+      "role": "discounted",
+      "reasonMd": "The added Device and Organization targets are additive for R4-to-R6 and improve direct representation of automated or organizational answer sources. Down-conversion needs provenance or extension policy, but this is not a forward instance break."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "This direct behavior finding applies to QuestionnaireResponse and can break metadata-driven clients, typed reference modifiers, chained search, and generated target enums. It should be in the migration checklist, but it follows the model/search target changes and does not by itself make the resource a major remodel."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "Generic `$validate` behavior can affect clients validating QuestionnaireResponse instances, but the finding is shared Resource behavior. Per the resource-review scope, it should be handled in the Resource behavior review rather than counted as QuestionnaireResponse-specific migration pressure."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the base `QuestionnaireResponse.questionnaire` cardinality decision. If R6 keeps it mandatory, publish explicit legacy guidance for extension-only or unresolved questionnaire identity and caution against fabricated canonicals."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `status=stopped` semantic narrowing. Prefer preserving the R4 meaning and adding a distinct terminal status or qualifier, or provide explicit migration rules for reopenable abandoned responses."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For implementation migration, build form-aware transforms for mandatory `answer.value[x]`, qrs-2 repeat normalization, qrs-3 linkId normalization, and SimpleQuantity comparator handling. Preserve nested answer items and comparator meaning rather than silently dropping content."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document QuestionnaireResponse search target changes and regenerate typed search/chaining/revinclude tests from R6 metadata. Preserve aliases or server compatibility behavior where old targets still exist and remain semantically valid."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Define R6-to-R4 down-conversion policy for multiple identifiers, multiple item definitions, Group authors, and Device or Organization sources, but do not treat those additive R6 features as forward R4-to-R6 breaks."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 diff, HL7 ballot rationale, rendered QuestionnaireResponse narrative page, or validator run was available beyond the supplied local reports.",
+    "qrs-2 edge-case impact on nested follow-up answers remains medium-confidence until representative legacy instances are run through an R6 validator.",
+    "Shared Resource and DomainResource behavior findings were considered as context only and not scored as QuestionnaireResponse-specific findings.",
+    "The R6 input package is ballot4 content, so final publication changes could alter this assessment."
+  ]
+}

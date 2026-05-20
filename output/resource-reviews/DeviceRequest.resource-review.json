@@ -1,0 +1,150 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "DeviceRequest",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/DeviceRequest.resource-review-context.json",
+    "structureReportPath": "output/DeviceRequest.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/DeviceRequest.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 13,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "I reviewed the DeviceRequest resource context, the full StructureDefinition report, the deterministic aggregate only as prior context, the direct SearchParameter behavior findings whose affectedResources include DeviceRequest, and the R4/R6 package definitions for the affected DeviceRequest elements and search parameters. Shared Resource/DomainResource behavior findings were read as context only, not as DeviceRequest-specific scoring inputs."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 DeviceRequest was trial-use/FMM 1, so the compatibility burden is weaker than for mature or normative resources. That lowers the presumption against disruptive redesign, but it does not erase the practical importance of the requested device, performer, reason, request lifecycle, protocol traceability, and safety-related negative-order semantics."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "DeviceRequest keeps its resource identity, but R6 remodels central request payload fields enough that a deliberate migration program is unavoidable while low-cost legacy aliases and safety guidance still have value."
+  },
+  "reasoning": {
+    "thesisMd": "DeviceRequest is not removed or replaced, but it is not a mostly-stable resource. The mandatory R4 `code[x]` element becomes mandatory R6 `product[x]`, so ordinary valid R4 instances cannot validate as R6 without transformation. Around that core break, R6 also moves the resource toward request-pattern naming and CodeableReference modeling for product, performer, and reason, removes protocol-definition links, narrows replacement links, and adds safety-significant semantics such as `doNotPerform`.",
+    "migrationShapeMd": "The migration shape is a major model remodel with stable identity. Implementers need an explicit DeviceRequest transform: rename `code[x]` to `product[x]`, wrap performer references in CodeableReference, decide how to carry `performerType`, merge `reasonCode` and `reasonReference` into `reason`, rename or filter `priorRequest` into `replaces`, and preserve or intentionally drop removed `instantiatesCanonical`/`instantiatesUri` data. This is broader than a validator refresh or isolated local field rename because it affects required content, generated models, search indexes, and business routing logic.",
+    "compatibilityLeverageMd": "Because every R4 DeviceRequest has a required `code[x]` payload and several common optional fields moved or changed shape, a resource-level migration program is already unavoidable. That does not mean additional compatibility is worthless. Low-cost preservation is still valuable where it prevents failed parsing, data loss, or broken common queries without undermining the R6 model, especially for the old product/code wire and search names and for protocol-definition links.",
+    "lessBreakingAlternativesMd": "The strongest standards-review targets are not the whole CodeableReference redesign; they are places where compatibility could plausibly have been preserved at modest cost. A deprecated `code[x]`/legacy-product alias or transitional acceptance rule would protect the required R4 payload while new clients use `product[x]`. Retaining deprecated `instantiatesCanonical` and `instantiatesUri`, or defining a standard migration extension, would avoid losing protocol provenance. Keeping the old DeviceRequest `code` search behavior as a deprecated alias to R6 `product.ofType(CodeableConcept)` would preserve common token searches. By contrast, retaining both old and new performer/reason structures indefinitely would create duplicate representations and conflict rules, so those are better treated as local migration chores once the CodeableReference design is accepted.",
+    "behaviorImpactMd": "The direct behavior impact is primarily search. R4 DeviceRequest had a clinical `code` token search over `(DeviceRequest.code as CodeableConcept)`, plus search expressions over `code`, `performer`, `priorRequest`, and the removed instantiates fields. R6 instead exposes `product`, `performer.reference`, `performer-code`, `location-code`, and `prior-request` over `replaces`. These search changes can break clients even after resource instances are migrated if servers do not provide aliases or carefully rebuild indexes. The 11 shared Resource/DomainResource operation and meta/search findings remain relevant platform context but are not DeviceRequest-specific resource findings under this review.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's top-line posture: major migration is unavoidable, the migration shape is best described as a major model remodel, and compatibility should be preserved where low-cost rather than dismissed. The independent rationale is not the raw count of six hard breaks; it is the combination of a mandatory field rename, central CodeableReference remodels, removed protocol links, and direct search-surface changes. I also give real weight to the low R4 FMM, which makes some local breaks proportionate even though the migration burden is high.",
+    "uncertaintyMd": "The structure deltas are high-confidence because both core package StructureDefinitions and search parameters are available locally. The main uncertainties are real-world prevalence of particular optional fields, official cross-version mapping guidance, and whether R6 ballot4 search/StructureDefinition details will change before publication."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.code[x]:37fa51",
+      "title": "Mandatory code[x] was replaced by mandatory product[x] and gained canonical(DeviceDefinition)",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the core resource-level break. `code[x]` is mandatory in R4 and `product[x]` is mandatory in R6, so unconverted R4 DeviceRequest instances fail R6 validation even when the clinical content is identical. Because this field is the requested device itself, low-cost legacy acceptance or an explicit deprecated alias would materially reduce migration failures."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.instantiatesCanonical:562255",
+      "title": "Protocol-definition links instantiatesCanonical and instantiatesUri were removed from DeviceRequest",
+      "role": "needs-follow-up",
+      "reasonMd": "Removal of `instantiatesCanonical` and `instantiatesUri` is avoidable-looking because these optional links could likely be retained or deprecated without interfering with the new product/performer model. For implementations using DeviceRequest to preserve order-set, guideline, or external protocol provenance, dropping them forces extensions or data loss and deserves standards follow-up despite the low R4 FMM."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceRequest:TYPE_DOMAIN:DeviceRequest.performer:ee5943",
+      "title": "performer changed at the same path from Reference to CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The same path now has an incompatible JSON shape and generated type. This is a substantive part of the CodeableReference remodel and requires mapper, serializer, FHIRPath, and search-index updates. It is important to migration scope, but less clearly a standards-revisit issue because the new datatype directly supports coded performer concepts."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.performerType:6b22fe",
+      "title": "performerType was removed and its role-concept content moves into performer.concept",
+      "role": "important-but-local",
+      "reasonMd": "Old instances using `performerType` must be converted, usually into `performer.concept`. This matters for routing and fulfillment, but preserving a separate `performerType` alongside CodeableReference would create duplicate role representations and consistency rules, so it is primarily a migration chore once the R6 performer remodel is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.reasonCode:991306",
+      "title": "reasonCode and reasonReference were merged into reason CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Merging separate coded and referenced reasons into CodeableReference is central to the remodel and creates both forward conversion work and reverse pairing loss. The content can affect medical necessity and `doNotPerform` rationale, so mappings must be explicit. Still, the design goal is coherent and the break is better handled by a clear transform than by duplicating old and new reason arrays indefinitely."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.priorRequest:565f9d",
+      "title": "priorRequest was removed and a narrower replaces element was added",
+      "role": "important-but-local",
+      "reasonMd": "`priorRequest` to `replaces` is a hard break because the element name changes, and non-DeviceRequest targets no longer fit the R6 target profile. It affects replacement chains and duplicate-order suppression, but it follows the request-pattern naming model and is a localized transform for same-resource links. The narrowing should be documented for any cross-resource prior-request data."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceRequest:FLAGS_AND_MODIFIERS:DeviceRequest.doNotPerform:4967f2",
+      "title": "doNotPerform was added as a modifier that can negate the request",
+      "role": "important-but-local",
+      "reasonMd": "This does not make old R4 instances invalid, but it is safety-critical for R6-to-R4 and mixed-version processing. A dropped modifier can invert an order from 'do not use/provide' into 'use/provide'. The right response is not to avoid the R6 field, but to require safe down-conversion, rejection, or explicit extension policy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceRequest:TERMINOLOGY_BINDING:DeviceRequest.intent:441b12",
+      "title": "intent required binding adds solicit-offer and offer-response codes",
+      "role": "important-but-local",
+      "reasonMd": "The added intent codes do not reject R4 values, but `intent` is mandatory and modifier-like, so R6-only offer workflow values require explicit mapping or preservation when interacting with R4 systems. This is standards-review-worthy for ConceptMap and migration guidance rather than evidence that the R6 additions should be removed."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceRequest:ELEMENT_PRESENCE_OR_IDENTITY:DeviceRequest.quantity-location:f52642",
+      "title": "R6 adds quantity and location details with no native R4 DeviceRequest fields",
+      "role": "discounted",
+      "reasonMd": "These optional additions can be operationally meaningful in reverse conversion, but they do not create an R4-to-R6 instance break and should not drive the resource-level migration conclusion. They belong in down-conversion policy."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:codeable-reference-splits-clinical",
+      "title": "Several common clinical search codes split into code/reference variants or changed type because elements became CodeableReference-like",
+      "role": "needs-follow-up",
+      "reasonMd": "For DeviceRequest, the old common token search over `(DeviceRequest.code as CodeableConcept)` is replaced by R6 `product` over `DeviceRequest.product.ofType(CodeableConcept)`, while CodeableReference-driven searches introduce split code/reference behavior. A deprecated `code` alias to the concept side would be a relatively low-cost way to avoid breaking common client queries while still exposing precise R6 searches."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "DeviceRequest search codes such as `device`, `performer`, and `prior-request` keep familiar names but now index `product.ofType(Reference)`, `performer.reference`, and `replaces`. These are proportionate to the structural migration, but servers need index rebuilds and compatibility testing to avoid silent result drift."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This and the other shared Resource/DomainResource behavior findings may affect DeviceRequest endpoints in an implementation, but they are base Resource/API issues rather than DeviceRequest-specific resource-model changes. I did not use them to raise the DeviceRequest migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Define and publish an explicit DeviceRequest R4-to-R6 transform covering `code[x]` to `product[x]`, performer CodeableReference wrapping, reason merging, `priorRequest` to `replaces`, and policies for non-DeviceRequest replacement targets."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit low-cost compatibility preservation for the required product/code transition and the DeviceRequest `code` search behavior, such as deprecated legacy aliases or transitional acceptance rules that preserve common R4 instances and queries."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide a standard preservation path for removed `instantiatesCanonical` and `instantiatesUri` protocol links, either by retaining deprecated elements or defining a clear cross-version extension/mapping convention."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish safety-oriented migration guidance for `doNotPerform`, R6-only status/intent codes, and CodeableReference reason/performer down-conversion so R4 receivers reject or preserve unsupported semantics instead of silently changing meaning."
+    }
+  ],
+  "caveats": [
+    "This review used R6 6.0.0-ballot4 package content, so later ballot or publication changes could alter details.",
+    "Field prevalence for optional DeviceRequest elements was not measured; prevalence judgments are based on the supplied reports and domain plausibility.",
+    "No official R4/R6 DeviceRequest StructureMap or ConceptMap was supplied, so mapping feasibility and lossiness were assessed from the core definitions and reports."
+  ]
+}

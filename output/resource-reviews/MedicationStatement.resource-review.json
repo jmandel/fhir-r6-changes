@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MedicationStatement",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MedicationStatement.resource-review-context.json",
+    "structureReportPath": "output/MedicationStatement.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MedicationStatement.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 11,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the local MedicationStatement StructureDefinition report, checked the R4 and R6 element definitions for the central changed paths, and used the supplied behavior context only to confirm that no direct MedicationStatement operation/search/HTTP finding drives this resource-level result. The deterministic aggregate was compared only after forming the resource-level judgment."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "phx",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 MedicationStatement is trial-use/FMM 3, so it is not normative, but it is mature enough that broad breaks in medication-list status, dosage, workflow linkage, and clinical context need a clear interoperability and patient-safety rationale. The lower-than-normative status does not erase the value of preserving optional legacy paths where that can be done without confusing the R6 model."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "MedicationStatement keeps its resource identity, but R6 remodels enough central semantics and wire shapes that a migration program is unavoidable; low-cost preservation still matters for safety and workflow links."
+  },
+  "reasoning": {
+    "thesisMd": "MedicationStatement is not a removed or renamed resource, but it is a substantive R4-to-R6 model redesign. Common R4 instances can fail R6 validation because the required modifier `status` no longer carries medication-use state, `dosage` changes from repeating `Dosage` to a single `DosageDetails`, and several clinical/workflow paths are removed, renamed, narrowed, or wrapped in CodeableReference. That makes resource-level migration unavoidable, but not every individual break becomes unimportant.",
+    "migrationShapeMd": "The migration shape is a major model remodel rather than a set of isolated local edits. Implementers must split R4 medication-use status into R6 recording status plus `adherence`, transform `medication[x]` and reason code/reference fields into CodeableReference, decide how to compress or restructure repeated R4 dosages into one DosageDetails with required rendered instruction text, and handle removed or narrowed links such as `basedOn`, `context`/EpisodeOfCare, `partOf` targets, and top-level `statusReason`. These are not just code-generation churn; several require domain policy or human review for safe mapping.",
+    "compatibilityLeverageMd": "Because the status/adherence and dosage redesigns already require coordinated transforms, preventing one additional local break has less leverage than it would for a mostly stable resource. However, the right posture is not `migration-program-dominates`: MedicationStatement is FMM 3 clinical content, and several Revisit findings involve optional paths or target lists where retaining a deprecated alias, broader target set, repeatable reason, or transition path could substantially reduce migration risk without preserving the entire R4 model forever.",
+    "lessBreakingAlternativesMd": "The most standards-review-worthy compatibility options are to document or support a transition for R4 medication-use status codes while introducing recording lifecycle status, retain or alias optional `basedOn` and `context` where possible, preserve EpisodeOfCare or removed `partOf` targets unless there is a strong safety reason not to, and avoid lossy compression of repeated `statusReason` or dosage content without an explicit mapping. By contrast, the CodeableReference changes for `medication` and `reason` look more like intentional representation modernization with real duplicate-field costs if both old and new forms remain indefinitely.",
+    "behaviorImpactMd": "No direct OperationDefinitions, SearchParameters, or HTTP behavior finding was identified for MedicationStatement. The shared Resource/DomainResource behavior findings, including base `$convert`, `$meta`, `$validate`, `$graph`, and shared special/profile search metadata changes, are relevant ecosystem context but should not be scored as MedicationStatement-specific breaks under the supplied rules.",
+    "comparisonToDeterministicAggregateMd": "I independently agree with the aggregate's `Yes` major-migration conclusion, `major-model-remodel` shape, and `preserve-where-low-cost-but-expect-resource-migration` posture. The agreement is based on the actual semantic and structural remodel, not just the count of eight reported hard instance breaks. I would treat widened/additive findings such as `effective[x]`, category, and informationSource/author mainly as local or reverse-conversion chores, not as drivers of the resource-level conclusion.",
+    "uncertaintyMd": "Confidence is high for the structural migration shape because the relevant R4 and R6 StructureDefinitions are local primary evidence. Confidence is lower for judging the standards rationale because no official R4-to-R6 MedicationStatement migration guide, ballot rationale, narrative page, or authoritative cross-version ConceptMap was available in the provided inputs."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:TERMINOLOGY_BINDING:MedicationStatement.status:00a9d2",
+      "title": "MedicationStatement.status changed from medication-use status to recording status",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the central semantic break. R4 `status` is required, modifier=true, and commonly uses `active`, `stopped`, `on-hold`, `not-taken`, or similar medication-use codes; R6 keeps a required modifier `status` but narrows it to recording lifecycle codes and moves taking-state semantics toward `adherence`. That makes old instances invalid and makes naive migration clinically unsafe, so it remains standards-review-worthy even though a resource migration is already needed."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:TYPE_DOMAIN:MedicationStatement.dosage:9e0d91",
+      "title": "dosage changed from repeating Dosage array to singular DosageDetails object",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Dosage instructions are patient-safety critical and the change is not a simple rename: R4 permits repeated `Dosage`, while R6 has one `DosageDetails` object with required `renderedInstruction` and a different internal model. Migration can require consolidation, rendered text generation, and policy for multiple R4 dosage entries, so this materially drives the major-remodel conclusion and deserves renewed review or explicit transition guidance."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:ELEMENT_PRESENCE_OR_IDENTITY:MedicationStatement.basedOn:f8e368",
+      "title": "basedOn was removed",
+      "role": "important-but-local",
+      "reasonMd": "`basedOn` carried links to the order, plan, or service request being fulfilled. Its removal is local compared with the status/dosage remodel, but the element is optional and workflow/audit relevant, so retaining it as deprecated or documenting a precise replacement appears low-cost enough to remain worth standards attention."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:ELEMENT_PRESENCE_OR_IDENTITY:MedicationStatement.statusReason:982bba",
+      "title": "statusReason was removed and partially replaced by adherence.reason",
+      "role": "important-but-local",
+      "reasonMd": "R4 allowed repeatable top-level reasons for status; R6 has singular `adherence.reason` inside a backbone that also requires `adherence.code`. This is entangled with the broader status/adherence redesign, but repeated or non-adherence-specific reasons can be compressed or misclassified, making a deprecated top-level path or repeatable R6 reason a plausible low-cost preservation point."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:REFERENCE_TARGET:MedicationStatement.context:61f0fe",
+      "title": "context was renamed/narrowed to encounter and EpisodeOfCare was removed",
+      "role": "important-but-local",
+      "reasonMd": "Encounter-only R4 data can be mechanically renamed, but any raw R4 `context` path fails as R6 and EpisodeOfCare context has no same base target. Because clinical context is operationally important and the old element was optional, a deprecated alias or retained EpisodeOfCare target would be a meaningful compatibility lever if it does not conflict with the R6 design goal."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:REFERENCE_TARGET:MedicationStatement.partOf:373837",
+      "title": "partOf targets were narrowed and the summary flag changed",
+      "role": "important-but-local",
+      "reasonMd": "R6 removes MedicationAdministration, MedicationDispense, and Observation from the R4 `partOf` target set and drops the summary flag. This does not by itself force the whole resource migration program, but it can break workflow lineage and summary-response assumptions; preserving targets or providing explicit alternate linkage should be considered if the narrowing rationale is not strong."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:TYPE_DOMAIN:MedicationStatement.medication:240097",
+      "title": "medication[x] was replaced by medication CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "This is a common hard wire/model change because R4 `medicationCodeableConcept` and `medicationReference` become one CodeableReference element. It contributes to migration cost, but the medication identity semantics are mostly preserved and retaining parallel old and new representations would create duplicate-field conflict rules, so this is more a local migration chore than a prime candidate for base rollback."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:ELEMENT_PRESENCE_OR_IDENTITY:MedicationStatement.reason:d00d09",
+      "title": "reasonCode and reasonReference were merged into reason CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "The R4 reason paths are removed, so instances and generated models must change. Still, CodeableReference largely preserves the ability to carry either coded or referenced reasons, and keeping deprecated parallel arrays would add reconciliation and ordering complexity. This matters for migration guidance but is less compelling as an avoidable break than status, dosage, or workflow-link removals."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:TERMINOLOGY_BINDING:MedicationStatement.category:1920c3",
+      "title": "category became repeatable and switched to medicationrequest-category with weaker binding",
+      "role": "discounted",
+      "reasonMd": "This is not a main R4-to-R6 compatibility driver. The binding is weaker and the logical cardinality widens, so forward semantic compatibility is mostly preserved; present values may still need mechanical JSON/model wrapping and R6-to-R4 can lose multiple categories, but that is a local chore once the larger resource migration exists."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:TYPE_DOMAIN:MedicationStatement.effective[x]:886827",
+      "title": "effective[x] adds Timing as an allowed type",
+      "role": "discounted",
+      "reasonMd": "Adding `Timing` does not invalidate R4 `dateTime` or `Period` data. It creates reverse-conversion policy for new R6 `effectiveTiming`, but it should not influence the resource-level R4-to-R6 migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationStatement:REFERENCE_TARGET:MedicationStatement.informationSource-author:8d5ed5",
+      "title": "informationSource became repeatable with Device/Group targets and author was added",
+      "role": "important-but-local",
+      "reasonMd": "The R6 changes improve provenance expressiveness and mainly create model/wire wrapping and R6-to-R4 loss for multiple or new target sources. Because this is not a central validation break for common R4 semantics and `author` is additive, it should be handled through migration guidance rather than treated as a resource-level driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-convert--Resource-convert:resource-convert-input-parameter-renamed",
+      "title": "Required input parameter renamed from `input` to `resource`",
+      "role": "context-only",
+      "reasonMd": "This shared Resource operation finding can affect conversion tooling around MedicationStatement instances, but it is not a MedicationStatement-specific behavior change and therefore is not scored as part of this resource-level structural migration judgment."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Give standards review priority to the status/adherence split and dosage remodel. If the current R6 design remains, publish authoritative R4-to-R6 mapping rules and examples that prevent medication-use status and dosage-instruction misinterpretation."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Reconsider low-cost preservation for optional workflow/context paths: `basedOn`, `context`/EpisodeOfCare, removed `partOf` targets, and repeatable `statusReason`. If these are intentionally removed, the specification should state the replacement linkage or loss policy explicitly."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Treat CodeableReference conversions, category/informationSource cardinality wrapping, and `effectiveTiming` back-conversion as migration-guide and test-fixture work rather than as primary reasons to roll back the R6 model."
+    }
+  ],
+  "caveats": [
+    "No direct MedicationStatement behavior/API finding was present in the supplied context.",
+    "Shared Resource and DomainResource behavior findings were considered only as context, per the review instructions.",
+    "The review did not use an official MedicationStatement R4-to-R6 migration guide or ballot rationale because none was available in the local inputs."
+  ]
+}

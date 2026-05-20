@@ -1,0 +1,192 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Bundle",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Bundle.resource-review-context.json",
+    "structureReportPath": "output/Bundle.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Bundle.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 8,
+    "reviewedDirectBehaviorFindingCount": 7,
+    "reviewedSharedBehaviorContextCount": 10,
+    "methodNotesMd": "I treated the deterministic aggregate as prior context, then reviewed the Bundle StructureDefinition findings, Bundle-scoped operation/search behavior findings, and shared Resource/DomainResource behavior context. Shared base behavior was considered context only because the assigned artifact is Bundle, not the abstract Resource or DomainResource artifact."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "fhir",
+    "stabilityPressure": "Strong",
+    "effectMd": "Bundle was normative and FMM 5 in R4, so hard validator, API, and search behavior breaks need stronger justification than the same changes would on a low-maturity artifact. This does not make every tightening wrong, but it raises the value of preserving compatible base behavior where that can be done without undermining R6 semantics."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Bundle keeps its identity, but R6 introduces enough targeted validation and operation/search API changes that a migration pass is needed while low-cost compatibility preservation remains important."
+  },
+  "reasoning": {
+    "thesisMd": "Bundle is not removed, renamed, split, or comprehensively remodeled. The core resource shape remains recognizable, with no local element removals or broad cardinality reshaping. The practical R4-to-R6 migration burden instead comes from several new or strengthened computable rules, one notable link-relation type/binding narrowing, and Bundle-bearing operation/search contracts that changed around Measure, Composition, and first-entry searches. That is enough to require targeted migration work for validators, producers, generated clients, and conformance tests, but not enough to say that additional compatibility preservation is pointless.",
+    "migrationShapeMd": "The main instance migration shape is targeted cleanup: populate `entry.fullUrl` for ordinary entries, add searchset `self` links, normalize transaction/batch/history request bodies to method semantics, ensure `entry.response.outcome` is OperationOutcome, and handle `link.relation` values under the new code/required-IANA model. Most of these are mechanical for well-formed REST Bundles, but they are still old-valid/new-invalid validation failures for legacy data. `Bundle.link.relation` is less mechanical because private, misspelled, or newly registered link relations may need policy decisions rather than a simple fill-in.",
+    "compatibilityLeverageMd": "Because Bundle is normative/FMM 5 and broadly used as transport, document, search, transaction, message, and operation payload infrastructure, the existence of a targeted migration program should not be read as permission to accept avoidable breaks. The right posture is to expect a Bundle migration pass but still preserve compatibility where doing so is cheap and does not defeat the R6 goal. Required cleanup constraints that make longstanding prose computable are more defensible; ambiguous or avoidably narrow contracts deserve stronger standards attention.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidates are `Bundle.link.relation` and the `$submit-data` formal type mismatch. Keeping link relations as a string, or using an extensible/preferred IANA binding, would preserve private and newly registered web relation values while still encouraging standards-based relations. Aligning the `$submit-data` computable parameter type with its Bundle narrative appears to be a direct correction with little tradeoff. For the fullUrl, self-link, method/body, and OperationOutcome constraints, warning-level or transitional alternatives would reduce validator failures but also weaken the R6 goal of making Bundle processing assumptions computable. For Measure operation response envelope changes, legacy-compatible single-result modes could reduce breakage but introduce dual response shapes and conformance complexity.",
+    "behaviorImpactMd": "Direct behavior findings add meaningful but mostly operation-local migration pressure. Measure operations change how Bundles are submitted or returned, often through Parameters envelopes, and generated SDKs or validators must change expected request/response shapes. The Bundle composition/message search parameters also switch from reference-style metadata to the new resource search type. These do not prove that the Bundle resource itself was remodeled, but they matter to resource-level planning because Bundle is the payload or search target exposed at the API boundary. Shared Resource/DomainResource operations and special search metadata were kept as context only, not as Bundle-specific scoring evidence.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. My independent review agrees with that overall result, but for substantive reasons rather than counts: Bundle identity is stable and many changes are justified tightening, yet the combination of several old-valid/new-invalid constraints, one standards-worthy terminology/type narrowing, and direct operation/search API changes makes targeted migration unavoidable for real implementations.",
+    "uncertaintyMd": "Confidence is high for the computable StructureDefinition and behavior-report changes. Remaining uncertainty is about real-world prevalence, the intended enforcement level for the Parameters prose restriction, official ballot rationale, and final R6 changes after the ballot4 package."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.entry.fullUrl:bdl15",
+      "title": "R6 enforces Bundle.entry.fullUrl for most non-batch/non-transaction entries",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a clear old-valid/new-invalid validator break for legacy Bundles that omitted `fullUrl`. It helps drive the need for a Bundle migration pass, but it is mostly a local/mechanical cleanup and is proportionate because R4 already had SHALL-level prose for addressable entries."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.link:self:bdl18",
+      "title": "Searchset Bundles now require a self link",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Minimal R4 searchsets without a `self` link can fail R6 validation. The fix is generally straightforward, so this is important migration work rather than a reason to say Bundle has been broadly redesigned."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Bundle:VALUE_CONSTRAINT:Bundle.entry:method-resource-consistency:bdl3b3c14",
+      "title": "Transaction, batch, and history entries have stricter method/body consistency rules",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This affects executable/audit Bundle semantics and can reject lax R4 method/body combinations. It is a strong contributor to targeted migration because producers may need request-building logic changes, but the stricter rule aligns with REST semantics."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Bundle:TYPE_DOMAIN:Bundle.entry.response.outcome:operationoutcome-profile",
+      "title": "Bundle.entry.response.outcome is narrowed to OperationOutcome",
+      "role": "important-but-local",
+      "reasonMd": "The old generic Resource slot is narrowed to OperationOutcome. This can break unusual response outcome payloads and generated models, but the old definition already described OperationOutcome, so it is a localized compatibility chore rather than a resource-level redesign."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Bundle:TYPE_DOMAIN:Bundle.link.relation:code-iana",
+      "title": "Bundle.link.relation changes from string to code with a required IANA binding",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most standards-review-worthy structure break. It can invalidate private, newly registered, or non-packaged web link relations on a normative transport resource, and a less-breaking base design such as string retention or a softer IANA binding appears plausible."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Bundle:ELEMENT_PRESENCE_OR_IDENTITY:Bundle.issues:added",
+      "title": "R6 adds Bundle.issues for bundle-level OperationOutcome information",
+      "role": "discounted",
+      "reasonMd": "`Bundle.issues` is optional and does not make R4 Bundles invalid when migrating forward. It needs R6-to-R4 conversion policy and client awareness, but it should not increase the R4-to-R6 resource-level migration severity."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Bundle:TERMINOLOGY_BINDING:Bundle.type:subscription-notification",
+      "title": "Bundle.type adds subscription-notification and a SubscriptionStatus first-entry rule",
+      "role": "discounted",
+      "reasonMd": "This widens the required Bundle.type code set and adds rules for the new type. Closed enums and older consumers need updates, but existing R4 Bundle.type values are preserved, so this is not a hard R4-to-R6 instance break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Bundle:SEMANTIC_OR_CONFORMANCE_TEXT:Bundle.entry.resource:parameters-context",
+      "title": "Bundle.entry.resource text now restricts Parameters resources to contextual use",
+      "role": "needs-follow-up",
+      "reasonMd": "The potential break is prose-level: standalone Parameters entries may be discouraged or rejected by strict conformance review, but the local StructureDefinition does not add a computable invariant. The intended enforcement level should be clarified before treating it as a hard migration driver."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Composition-document--Composition-document:composition-document-output-now-direct-bundle",
+      "title": "R6 formalizes a direct Bundle return where R4 had no out parameter and search-wrapper prose",
+      "role": "needs-follow-up",
+      "reasonMd": "This is in scope because Bundle is the operation output. The evidence is ambiguous because R4 prose and examples pointed in different directions, so this should inform migration documentation but not dominate the Bundle resource conclusion."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-care-gaps--Measure-care-gaps:measure-care-gaps-response-envelope-changed",
+      "title": "R6 changes successful responses from a direct Bundle to Parameters containing repeated return Bundles",
+      "role": "important-but-local",
+      "reasonMd": "This is a high-risk API-envelope break for clients expecting a direct Bundle. It is operation-local rather than a Bundle StructureDefinition remodel, but it remains important because a partial legacy-compatible single-Bundle path could preserve common R4 behavior."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-collect-data--Measure-collect-data:Measure-collect-data:output-bundle-return",
+      "title": "Output changes from `measureReport` plus `resource` parts to repeatable `return` Bundles",
+      "role": "important-but-local",
+      "reasonMd": "This changes generated response handling and conformance expectations. The R6 Bundle-return model is understandable for per-subject/multi-measure outputs, so the finding mainly supports targeted operation migration rather than renewed Bundle model design."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-evaluate-measure--Measure-evaluate-measure:measure-evaluate-measure-return-measurereport-to-bundles",
+      "title": "The operation result changes from one direct MeasureReport to repeated Bundle returns in a Parameters envelope",
+      "role": "important-but-local",
+      "reasonMd": "This is another operation-specific response-shape break involving Bundle. It is likely proportionate to carrying MeasureReport plus evaluated resources, but clients need explicit migration guidance."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-submit-data--Measure-submit-data:measure-submit-data-parameters-replaced-by-bundle",
+      "title": "R6 replaces flat measureReport/resource inputs with a required repeating bundle input",
+      "role": "important-but-local",
+      "reasonMd": "The new Bundle input model breaks R4 Parameters requests and server stubs. It is plausibly justified for grouped submissions, but accepting deprecated flat inputs during transition would be a meaningful compatibility option if standards authors want to lower migration cost."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-submit-data--Measure-submit-data:measure-submit-data-r6-bundle-type-mismatch",
+      "title": "R6 names the input `bundle` but formally types it as `MeasureReport` while the narrative/example use Bundle",
+      "role": "needs-follow-up",
+      "reasonMd": "This appears avoidable and high-value to fix: the computable OperationDefinition type should align with the Bundle narrative/example, or the narrative and parameter name should be corrected. This is not merely a migration chore because it can split R6 implementations."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:bundle-first-entry-resource-search-type",
+      "title": "Bundle composition and message searches changed from reference search to the new resource search type",
+      "role": "important-but-local",
+      "reasonMd": "This affects Bundle discovery APIs and generated query builders. It is probably a defensible correction to how embedded first-entry resources are searched, but reference-style aliases or explicit migration guidance would reduce breakage."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "This shared Resource-level operation change may affect systems that expose Bundle through generic Resource APIs, but it was not counted as a Bundle-specific migration driver under the review rules."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search metadata change is relevant background for generic server/client migration, but it is not specific to Bundle and should not inflate the Bundle resource-level conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit `Bundle.link.relation` before finalizing R6: consider retaining string semantics or softening the IANA binding so private/new web relation values are not invalidated on a normative resource."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Correct or explicitly resolve the `$submit-data` `bundle` parameter mismatch between formal type, name, narrative, and examples."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish Bundle migration guidance and test fixtures for `fullUrl`, searchset `self` links, method/body consistency, and `entry.response.outcome` OperationOutcome constraints."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Clarify whether the Parameters-in-Bundle prose is intended as enforceable base conformance, warning-level guidance, or profile-specific advice."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For Bundle-bearing Measure and Composition operations, document response/request shape migration and consider transitional compatibility modes where they do not create unacceptable dual-contract complexity."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 Bundle diff or ballot rationale was available in the reviewed inputs.",
+    "No representative R4 Bundle corpus was validated, so prevalence remains judgment-based.",
+    "The R6 package reviewed is 6.0.0-ballot4 and may change before final publication.",
+    "Terminology conclusions used local package files rather than live terminology-server expansion.",
+    "Direct behavior findings involving Bundle are often operation-specific and should not be mistaken for Bundle StructureDefinition remodeling.",
+    "Shared Resource/DomainResource behavior findings were treated as context only for this Bundle review."
+  ]
+}

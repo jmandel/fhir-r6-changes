@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "ResearchSubject",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/ResearchSubject.resource-review-context.json",
+    "structureReportPath": "output/ResearchSubject.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/ResearchSubject.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 5,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, resource assessment rubric, fresh-review framework, the ResearchSubject structure report, resource-review context, deterministic aggregate prepass, and the local R4/R6 ResearchSubject StructureDefinitions. I used the deterministic aggregate only after forming the resource-level conclusion."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "brr",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 ResearchSubject was trial-use/FMM 1, so the R4 compatibility burden is weaker than for mature or normative resources. That lowers assumptions about installed-base prevalence, but it does not erase concern for mandatory participant identity, lifecycle status, consent, and arm/group information in regulated research workflows."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "ResearchSubject keeps its resource identity, but R6 remodels mandatory status and subject identity enough that a migration program is unavoidable while low-cost compatibility preservation still has value."
+  },
+  "reasoning": {
+    "thesisMd": "R6 `ResearchSubject` is not a removed or replaced resource, but it is more than a mostly stable resource with isolated local breaks. The required R4 lifecycle `status` is repurposed to publication status, and the required R4 `individual` reference is renamed to required `subject`; together these make ordinary R4 instances fail R6 validation until transformed. The arm/comparison-group remodel adds a separate lossy trial-design concern. Because the resource is low maturity, the bar for preservation is not as high as for mature resources, but these are central research operations fields rather than peripheral metadata.",
+    "migrationShapeMd": "The migration shape is a targeted core remodel: identity is stable (`StructureDefinition/ResearchSubject` remains), `study` remains recognizable, but participant identity, lifecycle status, arm/group representation, and consent cardinality changed. At least two mandatory fields need per-instance transformation for essentially every R4 instance; the status change also requires policy because a subject lifecycle state cannot determine the R6 resource publication status or a complete `subjectState` history.",
+    "compatibilityLeverageMd": "A resource-level migration program is already unavoidable, but that does not make additional break prevention low value. Compatibility leverage remains meaningful where R6 could preserve old wire paths or semantics at modest cost, especially for the required status field, the required participant link, and the assigned-versus-actual arm distinction. The right posture is to expect migration while preserving low-cost base compatibility and publishing explicit mapping guidance.",
+    "lessBreakingAlternativesMd": "The strongest avoidable breaks are not merely requests for migration tooling. R6 could have kept lifecycle status at `ResearchSubject.status` and added a separately named publication-status element, or retained the `individual` wire name while widening its target set. For arms, retaining deprecated `assignedArm`/`actualArm` or adding an explicit role/use to `comparisonGroup` would better preserve assigned, actual, and analysis meanings. By contrast, repeating `consent` and adding optional subject-state/milestone backbones are mostly local migration or down-conversion concerns once the remodel is accepted.",
+    "behaviorImpactMd": "No direct OperationDefinitions, SearchParameters, or HTTP behavior findings in the supplied behavior reports name `ResearchSubject`. The 11 shared `Resource`/`DomainResource` behavior findings are relevant background for servers that expose ResearchSubject, but per the review rules they are context only and do not drive this resource-level conclusion.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate classified the resource as `Partial`, `moderate-targeted-remodel`, with `preserve-where-low-cost-but-expect-resource-migration`. I agree with the migration shape and compatibility-leverage posture, but I judge the migration program itself as already unavoidable because the two most central breaks are mandatory and affect essentially every R4 instance, not merely optional or profile-dependent content.",
+    "uncertaintyMd": "Confidence is high for the structural conclusion because the relevant R4 and R6 StructureDefinitions directly show the cardinality, binding, path, and target changes. The main uncertainty is authorial intent and official migration policy, especially how R4 subject lifecycle states should map to R6 publication status plus optional state/milestone backbones."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchSubject:TERMINOLOGY_BINDING:ResearchSubject.status:4b6f2a",
+      "title": "Required `ResearchSubject.status` was repurposed from subject lifecycle state to publication status",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the strongest resource-level driver. R4 required `status` as the current subject lifecycle state with a required research-subject-status binding; R6 keeps `status` required but changes it to publication status with a disjoint required value set. Existing R4 instances need non-mechanical policy to choose an R6 publication status and decide how, or whether, to preserve the old lifecycle state."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchSubject:ELEMENT_PRESENCE_OR_IDENTITY:ResearchSubject.individual:9a1c7d",
+      "title": "Required `individual` was renamed to required `subject` and widened beyond Patient",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Every R4 ResearchSubject has required `individual`; R6 requires `subject` instead. The broader R6 subject target set is substantively reasonable, but the mandatory wire-name change guarantees validator, generated model, FHIRPath, search-expression, and storage migration. Keeping the old path name while widening targets would have preserved most R4 Patient-subject instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchSubject:ELEMENT_PRESENCE_OR_IDENTITY:ResearchSubject.assignedArm:62e0bb",
+      "title": "R4 arm name strings were removed and replaced by repeating `comparisonGroup` CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "This does not affect every instance, but it matters for trial operations because R4 separated expected `assignedArm` from followed `actualArm`; R6 `comparisonGroup` is richer but does not directly preserve that distinction. This is a standards-review-worthy avoidable loss, not just a local code update, especially where arm assignment drives administration, analysis, and reporting."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchSubject:CARDINALITY:ResearchSubject.consent:0d8f53",
+      "title": "`ResearchSubject.consent` now repeats",
+      "role": "discounted",
+      "reasonMd": "This is a real generated-model and JSON-shape migration chore when consent is present, and R6-to-R4 conversion can lose additional consents. It does not drive the resource-level conclusion because the change is a straightforward cardinality widening with a credible research-agreement use case."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchSubject:CONVERSION_OR_MAPPING:ResearchSubject.subjectState:bd44a0",
+      "title": "R6 adds subject lifecycle and milestone backbone structures not present in R4",
+      "role": "context-only",
+      "reasonMd": "The new optional state and milestone backbones help explain the larger lifecycle remodel and create R6-to-R4 representability limits, but they do not by themselves reject R4 instances. The concerning part is the required `status` semantic change, not the optional additions standing alone."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-profile-canonical-type",
+      "title": "R6 narrows the `profile` input from `uri` to `canonical(StructureDefinition)`",
+      "role": "context-only",
+      "reasonMd": "This shared Resource operation change can affect servers validating ResearchSubject, but it is a base Resource behavior issue rather than a ResearchSubject-specific migration driver under the supplied review rules."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search-parameter metadata change is relevant background for generic clients, but no direct ResearchSubject behavior finding was supplied and it does not alter the resource-level structural judgment."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the required `status` redesign or publish an explicit normative migration story: preserve subject lifecycle status in base R6, add publication status separately, or define a clear mapping that does not silently reinterpret lifecycle codes as publication state."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Reconsider the mandatory `individual` to `subject` wire-name rename, or provide transition guidance and compatibility search/API expectations for implementers moving R4 Patient-based ResearchSubject data to R6."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Clarify or adjust `comparisonGroup` so assigned, actual, administration, and analysis group roles can be preserved; consider deprecated legacy fields or an explicit role/use element if base compatibility is still feasible."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish resource-level migration guidance covering scalar-to-array `consent`, non-Patient R6 subjects, R6-to-R4 loss, and the relationship among R4 `status`, R6 `status`, `subjectState`, and `subjectMilestone`."
+    }
+  ],
+  "caveats": [
+    "R4 ResearchSubject is FMM 1/trial-use, so weak maturity limits claims about broad installed-base disruption.",
+    "No direct behavior findings affected ResearchSubject in the supplied OperationDefinitions, SearchParameters, or HTTP behavior reports.",
+    "The review did not assume the deterministic aggregate was correct; it was used only as comparison after reading the resource report and local definitions."
+  ]
+}

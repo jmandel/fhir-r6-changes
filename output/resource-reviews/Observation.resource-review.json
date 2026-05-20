@@ -1,0 +1,196 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Observation",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Observation.resource-review-context.json",
+    "structureReportPath": "output/Observation.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Observation.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 13,
+    "reviewedDirectBehaviorFindingCount": 5,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Observation resource context, the full Observation StructureDefinition report, the direct behavior findings whose affected resources include Observation, and the Resource/DomainResource shared behavior findings as context only. The deterministic aggregate was treated as prior context and compared only after the resource-level conclusion was formed."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "oo",
+    "stabilityPressure": "Strong",
+    "effectMd": "Observation is R4 normative and FMM 5, so old-valid/new-invalid changes, safety-significant runtime changes, and common search behavior changes need strong justification. That pressure does not require preserving obsolete R4 resource targets indefinitely, but it does make low-cost aliases, deprecations, and transition behavior valuable."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Observation keeps its resource identity, but targeted structure and search/API changes make a focused migration program unavoidable while preserving low-cost compatibility remains high-value."
+  },
+  "reasoning": {
+    "thesisMd": "Observation is not removed or replaced, and much of the familiar clinical result model remains intact. The actual migration burden is a cluster of targeted but important changes: hard validation failures for selected legacy reference targets and inconsistent component absent-reason data, safety-significant modifier behavior for `focus`, required-bound status and new value choice handling for R6-to-R4/codegen, and direct search/API behavior changes. Because the R4 resource is normative/FMM 5 and heavily used, this is not a case where migration churn makes additional compatibility preservation unimportant.",
+    "migrationShapeMd": "The shape is a **moderate targeted remodel** rather than a whole-resource redesign. R4 Observations with ordinary subject/code/value/effective/status patterns generally have a recognizable R6 home, but migration programs must inventory references to ImmunizationRecommendation, MolecularSequence, Media, and new ImagingSelection mappings; detect components that carry both value and `dataAbsentReason`; update modifier-aware handling of `focus`; regenerate status and value choice code; and retest Observation search indexes and operation clients.",
+    "compatibilityLeverageMd": "A resource-level migration program is partially unavoidable for serious Observation implementations, especially those with genomics, imaging, device/sample data, or generated search clients. That does **not** make additional break prevention low-value. Low-cost compatibility mechanisms such as deprecated search aliases, dual CapabilityStatement advertisements where semantics are equivalent, explicit ConceptMaps, and retaining deprecated structural fields materially reduce safety and business risk on a normative, high-volume clinical resource. Compatibility pressure is weaker only where preserving R4 behavior would require accepting resources that no longer exist in R6 core or would leave contradictory clinical data base-valid.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking opportunities are in behavior metadata and search: preserve or advertise legacy Observation value/composite search semantics as deprecated aliases where feasible, and keep old and new search names discoverable when the query semantics remain computable. For `component.dataAbsentReason`, a warning-level invariant would be less breaking but would preserve contradictory result semantics, so the R6 error rule is proportionate. For removed reference targets such as Media and MolecularSequence, retaining old targets in the base target list would be more compatible but costly and potentially misleading once those resources are absent from the R6 core package. The `bodySite` to `bodyStructure` transition is a good example of a compatibility-preserving deprecation rather than removal.",
+    "behaviorImpactMd": "Direct behavior impacts are material. The Observation value/composite SearchParameter narrowing is the most standards-review-worthy because old queries can keep running while silently returning fewer clinical results. CapabilityStatement search advertisement churn is broad and needs follow-up to distinguish harmless metadata churn from avoidable discoverability loss. `$lastn` ordering, `$stats` statistic binding, and reference target/chaining changes create real client/test migration work but are more local or follow underlying model changes. Shared Resource/DomainResource behavior findings, including Resource operations and core meta search metadata, can affect Observation servers operationally but were not scored as Observation-specific resource conclusions.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. I agree with that posture, but not because the counts alone decide it. The conclusion comes from the combination of stable resource identity, four concrete hard forward breaks concentrated in target lists and an invariant, high-value direct search behavior changes, and strong R4 normative/FMM 5 stability pressure. The direct Observation value-search narrowing deserves more attention than a count-based summary can show.",
+    "uncertaintyMd": "Confidence is high on the compatibility mechanisms because the reports identify concrete StructureDefinition and behavior changes. Prevalence is less certain: some hard target breaks may be rare outside genomics, imaging, or immunization decision-support workflows, while search behavior impact depends on server indexes and client reliance on CapabilityStatement metadata."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:REFERENCE_TARGET:Observation.derivedFrom:2652ca",
+      "title": "Observation.derivedFrom replaces Media/MolecularSequence targets with ImagingSelection",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard R4-to-R6 target-profile break and a reverse representability break for ImagingSelection. It matters for imaging and genomics provenance, but the old targets are not R6 core resources, so preserving them in the base target list would be costly and potentially confusing."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:REFERENCE_TARGET:Observation.basedOn:09b171",
+      "title": "Observation.basedOn no longer permits ImmunizationRecommendation references",
+      "role": "important-but-local",
+      "reasonMd": "This can invalidate old Observations that link a result to an ImmunizationRecommendation. Expected prevalence is rare, but affected immunization decision-support workflows need explicit mapping or extension preservation."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:REFERENCE_TARGET:Observation.hasMember:ef3ece",
+      "title": "Observation.hasMember no longer permits MolecularSequence members",
+      "role": "important-but-local",
+      "reasonMd": "This is another concrete old-valid/new-invalid target narrowing. The blast radius is likely concentrated in genomics panels, where the clinical impact of losing grouping links can be meaningful."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:VALUE_CONSTRAINT:Observation.component.dataAbsentReason:206c97",
+      "title": "R6 forbids component.dataAbsentReason when the same component has a value",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The new error invariant can reject R4 instances, so it contributes directly to the migration program. It is nevertheless proportionate because a component should not simultaneously assert a value and an absent-value reason."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:FLAGS_AND_MODIFIERS:Observation.focus:9d13cc",
+      "title": "Observation.focus is now a modifier element",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is not an instance-shape break, but it is safety-significant runtime and generated-model churn. Clients that ignore `focus` can misattribute what an Observation is about, so the modifier designation is justified but must be planned for."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:TERMINOLOGY_BINDING:Observation.status:4e9618",
+      "title": "Observation.status required value set adds R6-only status codes",
+      "role": "important-but-local",
+      "reasonMd": "No R4 status codes were removed, so this does not drive forward instance invalidity. It remains important because status is mandatory, workflow-sensitive, and commonly represented as closed generated enums; R6-to-R4 mapping must be explicit."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:TYPE_DOMAIN:Observation.value[x]+component.value[x]:3defea",
+      "title": "Observation.value[x] and component.value[x] add Attachment as a result type",
+      "role": "important-but-local",
+      "reasonMd": "The additive choice type preserves R4 values but changes generated choice handling and creates R6 Observations that R4 cannot represent directly. This is a local migration and down-conversion issue, not evidence of wholesale resource replacement."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:ELEMENT_PRESENCE_OR_IDENTITY:Observation.bodySite+bodyStructure:dabbd6",
+      "title": "Observation.bodySite is deprecated in favor of new bodyStructure CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "This is largely a compatibility-preserving transition because `bodySite` remains present. R6-to-R4 conversion from `bodyStructure.reference` can be lossy, but the base design avoids breaking existing R4 bodySite instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:ELEMENT_PRESENCE_OR_IDENTITY:Observation.triggeredBy+organizer+interpretationContext+referenceRange.normalValue:7c0abd",
+      "title": "R6 adds new optional Observation semantics with no R4 equivalents",
+      "role": "context-only",
+      "reasonMd": "These additions increase R6-to-R4 transform work but do not invalidate R4 Observations. They are migration chores once an R6 Observation implementation is adopted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:SEMANTIC_OR_CONFORMANCE_TEXT:Observation.performer:fd8702",
+      "title": "R6 adds a warning that all Observations SHOULD have a performer",
+      "role": "discounted",
+      "reasonMd": "The warning may affect local quality gates, but the base model still accepts old instances without performer. This is not a resource-level compatibility driver."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Observation:SERIALIZATION_OR_CODEGEN:Observation.referenceRange.text:60f931",
+      "title": "Observation.referenceRange.text changes primitive type from string to markdown",
+      "role": "discounted",
+      "reasonMd": "The wire representation remains a string and the impact is mostly generated-type/rendering policy. It should be handled locally but does not materially shape the resource conclusion."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:observation-value-search-narrowing",
+      "title": "Observation value and composite searches no longer include several R4 value forms such as SampledData and CodeableConcept.text",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most important avoidable-looking behavior issue: common Observation searches can silently return fewer records after migration. Deprecated aliases or transitional broader expressions deserve standards review even though a broader resource migration program is already needed."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "This affects typed modifiers, chaining, generated target enums, and reverse include planning. Much of it follows underlying reference-target/resource-model changes, so it is mainly a migration and testing concern rather than a separate reason to redesign Observation."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:search-advertisement-churn",
+      "title": "Base CapabilityStatement search advertisements changed across most common resources",
+      "role": "needs-follow-up",
+      "reasonMd": "Observation is included in broad CapabilityStatement search advertisement churn. This is not enough by itself to judge every search change, but high-use clients discover Observation searches from metadata, so equivalent legacy names should be advertised as aliases where feasible."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Observation-lastn--Observation-lastn:observation-lastn-result-ordering",
+      "title": "$lastn result ordering changed from apparent global recency sorting to code-group-first ordering",
+      "role": "important-but-local",
+      "reasonMd": "The operation URL and resources remain stable, but order-sensitive dashboards and tests may break. Client-side sorting or clearer conformance tests are local migration work; the grouped R6 semantics appear reasonable."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Observation-stats--Observation-stats:Observation-stats:STATISTIC-BINDING-REQUIRED",
+      "title": "`statistic` input parameter gained a required ValueSet binding",
+      "role": "important-but-local",
+      "reasonMd": "This tightens computable conformance for `$stats`. Local statistic codes need mapping or profiling, but R4 narrative already pointed to standard statistics, so the base change is proportionate."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "Shared Resource operation removals can affect Observation servers operationally, but they apply across resources and are not scored as Observation-specific migration shape."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search metadata issue may affect generic clients, but it is context only for an Observation review."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit Observation value/composite SearchParameter narrowing and CapabilityStatement advertisement churn; preserve deprecated aliases or broader legacy expressions where old and new query semantics can safely coexist."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Create an Observation migration inventory for hard forward breaks: `basedOn` ImmunizationRecommendation references, `hasMember` MolecularSequence references, `derivedFrom` Media/MolecularSequence references, and components containing both `value[x]` and `dataAbsentReason`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish or adopt explicit cross-version mappings for Observation status codes, `valueAttachment`/`component.valueAttachment`, `bodyStructure`, and ImagingSelection/legacy Media or MolecularSequence provenance."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update client/server conformance tests for `focus` modifier handling, `$lastn` result ordering, `$stats` required statistic codes, and typed/chained reference searches."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Treat performer SHOULD warnings and `referenceRange.text` markdown typing as local validation/rendering policy rather than standards-blocking compatibility issues."
+    }
+  ],
+  "caveats": [
+    "This review used the supplied reports and local FHIR package evidence; it did not independently test live validator behavior.",
+    "The impact of several behavior findings depends on implementation-specific search indexes, generated client behavior, and CapabilityStatement use.",
+    "Shared Resource and DomainResource behavior findings were considered only as context, per the review contract."
+  ]
+}

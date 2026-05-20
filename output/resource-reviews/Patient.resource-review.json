@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Patient",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Patient.resource-review-context.json",
+    "structureReportPath": "output/Patient.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Patient.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 4,
+    "reviewedDirectBehaviorFindingCount": 5,
+    "reviewedSharedBehaviorContextCount": 10,
+    "methodNotesMd": "Reviewed the Patient resource-review context, the full Patient StructureDefinition report, direct Patient OperationDefinition/SearchParameter/HTTP behavior findings, selected R4 and R6 package definitions for the key paths and operations, and then compared the resulting judgment with the deterministic aggregate. Shared Resource/DomainResource behavior findings were treated as context only because the assigned artifact is Patient, not Resource or DomainResource."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "pa",
+    "stabilityPressure": "Strong",
+    "effectMd": "R4 Patient is normative and FMM 5, so direct validator breaks and Patient-scoped API behavior changes carry strong stability pressure. That does not forbid every R6 tightening or clarification, but it raises the burden for base-required terminology, operation removal, and changed patient-identity workflow semantics when lower-break designs are feasible."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Patient keeps its resource identity and most instance shape, but language validation, contact-role semantics, and Patient-specific operation/search changes make targeted migration work unavoidable while low-cost compatibility preservation remains important."
+  },
+  "reasoning": {
+    "thesisMd": "Patient is not removed, renamed, split, or broadly remodeled as a StructureDefinition. Most R4 Patient instances retain the same core wire shape in R6. The resource-level migration burden comes from a small set of high-value surfaces: `Patient.communication.language` becomes a required BCP-47 binding, `Patient.contact.relationship` is semantically split from functional contact role, Patient `$everything` disappears from the computable R6 package/registry, `$match` changes result-control semantics, and several Patient extension-backed search parameters are removed. That combination is enough for a targeted Patient migration program in real implementations, but not enough to say the Patient model has been replaced or that further break avoidance has low value.",
+    "migrationShapeMd": "The concrete migration shape is targeted rather than wholesale. Instance migration should normalize communication-language codings or decide how to handle text/local language values, classify existing contact relationship codes into personal `relationship` versus functional `role`, and define R6-to-R4 preservation policy for optional extra contact names and addresses. API migration should audit generated operation registries, CapabilityStatement discovery, `$everything`, `$match`, and legacy Patient demographic searches. None of this requires replacing Patient identity or reworking every element, but Patient implementations are common enough that these targeted changes still represent real migration planning.",
+    "compatibilityLeverageMd": "Because the resource is normative/FMM 5 and still largely recognizable, the existence of a migration pass should not be used to dismiss avoidable breaks. Compatibility leverage remains high for low-cost preservation: keeping a computable Patient `$everything` artifact, retaining deprecated Patient search aliases, or softening/transitionally enforcing the communication-language binding could reduce migration risk without preventing R6 from adding clearer guidance. The right posture is to expect targeted migration, but continue to preserve old behavior where preservation is cheap and the R6 goal can still be met.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking candidates are the required `Patient.communication.language` binding, the missing computable Patient `$everything` OperationDefinition, and the removed Patient extension search parameters. `$match` has a partial alternative: add `onlySingleMatch` while preserving R4 `onlyCertainMatches` behavior when the new flag is absent, though that would keep extra result-control complexity. The contact relationship/role split is a real semantic migration chore, but the R6 design has a plausible goal of separating personal relationship from functional role; preserving both meanings indefinitely in `relationship` would perpetuate ambiguity. `additionalName` and `additionalAddress` are optional additive siblings that appear intentionally chosen to preserve the existing 0..1 `name` and `address` generated API shape.",
+    "behaviorImpactMd": "Direct Patient behavior findings materially affect the resource-level conclusion. Patient `$everything` is a high-impact operation/discovery break for package-driven servers, clients, conformance tests, and SMART or Blue Button style full-record access, especially because rendered R6 pages still document the operation. Patient `$match` keeps the route but changes `onlyCertainMatches` semantics in patient-identity workflows. Removed extension-backed searches such as `mothersMaidenName` and `age` can affect demographic matching and administrative workflows. The two HTTP findings are grouped CapabilityStatement advertisement changes; they reinforce discovery risk but should be followed up at the affected operation/search level rather than treated as independent Patient model redesign. Shared Resource/DomainResource findings can affect generic Patient endpoints but were not scored as Patient-specific migration drivers.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. I agree with those labels, but for substantive reasons rather than counts: the Patient StructureDefinition alone might look like a mostly stable resource with one hard terminology break, while the direct Patient operation/search surface makes a targeted migration program realistic for production systems. I would not escalate to `migration-program-dominates`, because Patient identity is stable and several high-value compatibility fixes remain feasible.",
+    "uncertaintyMd": "Confidence is high for computable package deltas and the direct behavior report evidence. Remaining uncertainty is about official R6 publication intent for Patient `$everything`, real-world prevalence of text/local communication-language values, local use of Patient extension searches, and exact terminology mapping guidance for contact personal relationships versus functional roles."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Patient:TERMINOLOGY_BINDING:Patient.communication.language:9c3f2d",
+      "title": "Patient.communication.language binding changed from preferred common languages to required all BCP-47 languages",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the only clear hard R4-to-R6 Patient instance validation break. R4 explicitly allowed systems to carry language as free text in a CodeableConcept with a preferred binding; R6 keeps the path and type but makes the all-languages BCP-47 binding required. On a normative/FMM 5 resource, strict base enforcement should be revisited or at least transitioned because a softer binding or profile-level requirement could preserve many R4-valid instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Patient:SEMANTIC_OR_CONFORMANCE_TEXT:Patient.contact.relationship:64b8aa",
+      "title": "Patient.contact.relationship was semantically split from functional contact role",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The wire path remains valid, but the meaning changes: R4 used `relationship` broadly to help decide which contact to approach, while R6 narrows it to personal relationship and adds `Patient.contact.role` for functional contact roles. Existing emergency-contact, billing, interpreter, guardian, or next-of-kin coding may need human or terminology-aware classification. This supports targeted migration, though the R6 split appears conceptually justified enough not to dominate the compatibility conclusion by itself."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Patient:ELEMENT_PRESENCE_OR_IDENTITY:Patient.contact.additionalName:1f7e42",
+      "title": "Patient.contact.additionalName adds native support for extra contact names not representable in base R4",
+      "role": "discounted",
+      "reasonMd": "This optional R6 addition does not invalidate R4 Patient instances. It creates R6-to-R4 round-trip or down-conversion loss risk, but the chosen sibling design preserves the existing 0..1 `Patient.contact.name` shape and is therefore not evidence of an unavoidable R4-to-R6 resource migration program."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Patient:ELEMENT_PRESENCE_OR_IDENTITY:Patient.contact.additionalAddress:a827de",
+      "title": "Patient.contact.additionalAddress adds native support for extra contact addresses not representable in base R4",
+      "role": "important-but-local",
+      "reasonMd": "This is also optional and forward-compatible for R4-to-R6 validation. It matters operationally because extra contact addresses can affect mail, visit, emergency, or legal-notice workflows during R6-to-R4 exchange, but the mitigation is mapping and preservation policy rather than rejecting the R6 addition."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Patient-everything:patient-everything-computable-operation-removed",
+      "title": "Patient `$everything` is absent from the R6 computable package and operation registry",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most important Patient behavior break. R4 had a computable Patient `$everything` OperationDefinition with Patient type and instance invocation; R6 ballot4 package contents lack that artifact even though rendered pages still document the operation. Package-driven tooling can drop generated routes, request builders, or conformance tests for a common full-record access workflow. Keeping the canonical OperationDefinition with clarified or deprecated guidance appears low cost relative to the break."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Patient-match--Patient-match:patient-match-result-control-semantics",
+      "title": "R6 splits match result controls and changes onlyCertainMatches behavior",
+      "role": "important-but-local",
+      "reasonMd": "The `$match` route remains, but an R4 request using `onlyCertainMatches=true` can produce different result-set behavior in R6 because R6 adds `onlySingleMatch` and redefines certainty to allow multiple records judged to be the same patient. This is safety/business significant in registration, duplicate detection, and create-before-link workflows. It is operation-local, but it deserves standards migration guidance and possibly a lower-break default."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:patient-extension-searches-removed",
+      "title": "R4 Patient demographic extension search parameters age, birthOrderBoolean, and mothersMaidenName were removed",
+      "role": "important-but-local",
+      "reasonMd": "These extension-backed searches are not Patient core element shape, but they are Patient-facing query APIs and can support identity-matching or administrative workflows. Deprecated aliases or retained extension SearchParameters would be a comparatively low-cost preservation option, especially for `mothersMaidenName` and `birthOrderBoolean`; age search may need caution because of dynamic-date semantics."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "needs-follow-up",
+      "reasonMd": "This directly lists Patient because the R4 base CapabilityStatement advertised `patient-everything` and R6 does not. It reinforces the `$everything` discovery problem, but the grouped HTTP finding covers many operations and resources, so the Patient-specific standards decision should be tied back to the OperationDefinition finding."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:search-advertisement-churn",
+      "title": "Base CapabilityStatement search advertisements changed across most common resources",
+      "role": "needs-follow-up",
+      "reasonMd": "Patient search and reverse-include advertisements changed substantially, which can affect metadata-driven clients and conformance suites. The grouped evidence is real but not granular enough to decide every Patient search as avoidable; the Patient extension-search removal is the clearer resource-specific action item."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "Generic clients may use shared Resource operations on Patient instances, so this matters to implementation planning. Under the review rules, however, shared Resource behavior is context only for Patient and should be adjudicated at the Resource/operation level rather than counted as Patient model migration pressure."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-profile-canonical-type",
+      "title": "Resource $validate profile input changes from uri to canonical",
+      "role": "context-only",
+      "reasonMd": "Patient validators and test harnesses can encounter this shared `$validate` parameter change, but it is generic Resource operation behavior. It does not change the Patient StructureDefinition migration shape and should not inflate Patient-specific conclusions."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit `Patient.communication.language` base binding strength. Consider retaining preferred or extensible base behavior, using required BCP-47 enforcement in profiles or best-practice rules, or providing explicit transitional guidance for text-only and local-coded R4 data."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Restore or explicitly resolve Patient `$everything` in the R6 computable package and operation registry. If retirement is intended, publish a clear deprecation/replacement story and reconcile the package with the rendered R6 operation page."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Clarify `$match` compatibility semantics for `onlyCertainMatches=true` and `onlySingleMatch`. Add migration guidance or a legacy-compatible default so identity workflows do not silently change automated create/link decisions."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Retain or republish deprecated R6 aliases for high-value Patient extension-backed searches where feasible, especially `mothersMaidenName` and `birthOrderBoolean`; document any privacy, indexing, and dynamic-age caveats."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish Patient contact migration guidance for splitting existing R4 `relationship` codings into R6 personal `relationship` versus functional `role`, including examples for emergency contact, next-of-kin, guardian, interpreter, billing, and power-of-attorney concepts."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "For mixed R4/R6 exchange, define preservation rules for R6-only `Patient.contact.additionalName` and `Patient.contact.additionalAddress` so down-conversion does not silently discard clinically or administratively relevant contact details."
+    }
+  ],
+  "caveats": [
+    "The review uses the R6 6.0.0-ballot4 package; final R6 publication content may change.",
+    "The Patient `$everything` finding has publication ambiguity because the computable R6 package omits the operation while rendered R6 pages still document it.",
+    "No official standards rationale or production prevalence data was available for communication-language values, Patient extension searches, or contact relationship/role usage.",
+    "Shared Resource and DomainResource behavior findings were considered only as context, not as Patient-specific scoring evidence."
+  ]
+}

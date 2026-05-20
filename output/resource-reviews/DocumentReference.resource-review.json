@@ -1,0 +1,199 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "DocumentReference",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/DocumentReference.resource-review-context.json",
+    "structureReportPath": "output/DocumentReference.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/DocumentReference.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 17,
+    "reviewedDirectBehaviorFindingCount": 4,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-level context, full DocumentReference StructureDefinition report, direct SearchParameter/HTTP behavior findings, and representative shared Resource/DomainResource behavior context. I also checked the R4 and R6 StructureDefinitions for the central paths rather than relying only on the deterministic aggregate. Shared Resource/DomainResource behavior was treated as context only because the assigned resource is DocumentReference."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "sd",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 DocumentReference was trial-use/FMM 3, which is not a normative no-break baseline but is mature enough that common document indexing, identity, attestation, lifecycle status, and retrieval workflows deserve compatibility-preservation effort where the R6 goal can still be met."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "DocumentReference keeps its resource identity, but R6 remodels enough central metadata that a real migration program is unavoidable; still, several low-cost compatibility and standards-review items remain valuable."
+  },
+  "reasoning": {
+    "thesisMd": "The actual migration shape is not a removed resource, but it is more than a set of isolated local edits. R6 changes the core DocumentReference metadata model: the R4 `context` backbone is flattened/replaced, format metadata moves to profile metadata, attestation becomes structured, relationship codes become CodeableConcepts, and some identity/source-patient fields are removed. A production R4 corpus cannot safely move to R6 by only changing validators or SDKs. However, the need for a migration program does not eliminate the value of preserving high-value low-cost compatibility for identifiers, source patient semantics, lifecycle status semantics, and common search behavior.",
+    "migrationShapeMd": "The main remodel is centered on document discovery metadata. R4 `context` was a 0..1 BackboneElement carrying encounter, event, period, facilityType, practiceSetting, sourcePatientInfo, and related references. In R6, `context` is a 0..* Reference(Appointment|Encounter|EpisodeOfCare), while event, period, facilityType, practiceSetting, and related metadata move to root or new backbone locations; `sourcePatientInfo` has no direct base replacement. Other central changes include removal of `masterIdentifier`, replacement of `content.format` by `content.profile.value[x]`, replacement of `authenticator` by repeatable `attester` with required `mode`, and `relatesTo.code` changing from primitive required code to CodeableConcept. These are old-valid/new-invalid instance and generated-code breaks in common or meaningful paths.",
+    "compatibilityLeverageMd": "The right posture is not `migration-program-dominates` even though migration is unavoidable. Resource identity remains stable, many R6 goals are coherent, and several breaks are local enough that deprecated aliases, retained semantics, or transitional search aliases could materially reduce upgrade cost. It is also not `preserve-compatibility-per-change`, because the context and content/attestation remodel means implementers must plan a coordinated resource migration regardless of any one finding.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidates are retaining `masterIdentifier` as deprecated, retaining or replacing `context.sourcePatientInfo` with an explicit deprecated source-patient field, preserving the R4 meaning of existing `docStatus` codes while adding new narrower codes, and offering search aliases/advertisements for common R4 DocumentReference searches where the old query maps cleanly to R6. Partial alternatives such as retaining `content.format` or primitive `relatesTo.code` are more costly because they create duplicate representations, but may still be useful as transition guidance. Preserving the entire old `context` backbone is less attractive because it would duplicate much of the R6 root model and complicate precedence rules.",
+    "behaviorImpactMd": "The direct behavior findings reinforce the resource-level migration burden. `DocumentReference-event` is part of the code/reference search split, so R4 token search clients need remapping to `event-code` or `event-reference`. Stable search codes such as `period` can keep the same code while indexing a moved path (`context.period` to root `period`), creating silent result-set drift if data and indexes are not migrated together. CapabilityStatement search advertisement churn can hide R4 names such as `DocumentReference.format` from metadata-driven clients. Reference target and chain changes matter for typed/chained searches but are mostly a local search migration chore. Shared Resource/DomainResource operation and search behavior remains relevant environment context, not a DocumentReference-specific resource conclusion.",
+    "comparisonToDeterministicAggregateMd": "After forming the independent judgment, I agree with the deterministic aggregate's broad conclusion: `majorMigrationAlreadyUnavoidable=Yes`, `major-model-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The important nuance is that the conclusion should not be read as `migration-program-dominates`: the same-name resource identity and several plausible low-cost preservation moves mean standards review still has useful leverage.",
+    "uncertaintyMd": "Confidence is high for the structural shape because it is visible in the supplied R4/R6 StructureDefinitions. Uncertainty remains around ballot intent, official ConceptMaps/StructureMaps, rendered narrative guidance, and terminology expansions, especially for `docStatus`, `status` mentioning `unknown`, and exact expectations for search aliasing."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.masterIdentifier:7b1f9c",
+      "title": "R4 masterIdentifier was removed",
+      "role": "important-but-local",
+      "reasonMd": "`masterIdentifier` is a common version-specific document identifier used for deduplication, XDS/CDA correlation, retrieval, and audit. Its removal is a hard old-valid/new-invalid break and identifier metadata cannot be carried losslessly by the new string `version`. Retaining it as deprecated appears relatively low cost, so this remains standards-review-worthy even though the resource as a whole needs migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context:6f42aa",
+      "title": "context changed from BackboneElement to repeating Reference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest evidence of a resource remodel. The same path name changes from a backbone object to a list of references, while former children move to root fields, new backbones, or disappear. That makes name-based migration unsafe and forces coordinated data, codegen, and search-index changes."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.content.format:4e6d20",
+      "title": "content.format was replaced by content.profile.value[x]",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Document format/profile metadata is central to document discovery and rendering. R6's richer `content.profile.value[x]` model has a coherent goal, but R4 `content.format` instances are invalid without transformation and R6 URI/canonical values are not R4-representable. A deprecated Coding alias would only be a partial transition."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.authenticator:2c8a91",
+      "title": "authenticator Reference was replaced by structured attester",
+      "role": "important-but-local",
+      "reasonMd": "This is a hard break in legal/clinical trust metadata because migration from `authenticator` to `attester.party` also needs a required `attester.mode`. The R6 design is likely justified by better attestation semantics, but implementers still need explicit migration policy rather than a purely mechanical rename."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:ELEMENT_PRESENCE_OR_IDENTITY:DocumentReference.context.sourcePatientInfo:aa0d77",
+      "title": "context.sourcePatientInfo was removed without a direct replacement",
+      "role": "important-but-local",
+      "reasonMd": "Although likely rarer than the context and format changes, this is one of the strongest avoidable breaks. Mapping it to `subject` can be wrong because R4 described source patient demographics rather than simply the subject of the document. A deprecated field or explicit replacement would preserve safety/audit semantics at modest cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.relatesTo.code:b3146e",
+      "title": "relatesTo.code changed from primitive code to CodeableConcept",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The relationship type changes JSON shape from a primitive enum to a CodeableConcept, affecting supersession, transformation, signing, and append workflows. The richer R6 model is reasonable, but every old instance with `relatesTo` needs wrapping and downstream logic must handle new codings/text."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context.event:23ed5b",
+      "title": "context.event moved to root event and changed to CodeableReference",
+      "role": "discounted",
+      "reasonMd": "This matters for migration fixtures and search behavior, but once the broader context flattening and CodeableReference model are accepted, it is mostly a local mapping chore from coded R4 events to `event.concept` plus policy for new reference-valued events."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:TYPE_DOMAIN:DocumentReference.context.related:8c0f31",
+      "title": "context.related moved to related backbone with required target",
+      "role": "discounted",
+      "reasonMd": "The old flat reference list must be wrapped in the new `related.target` backbone. That is a hard instance break, but the mapping is comparatively mechanical for simple R4 references; the richer R6 `related.code` is mainly an R6-to-R4 downgrade concern."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.docStatus:cd0e9a",
+      "title": "docStatus required code system expanded and semantics refined",
+      "role": "important-but-local",
+      "reasonMd": "Old codes remain code-valid, so this does not drive the migration program. It still deserves standards attention because changing the meaning of an existing required-bound lifecycle code such as `preliminary` can silently alter document-state interpretation. Adding narrower codes while preserving old meanings appears less breaking."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:SEMANTIC_OR_CONFORMANCE_TEXT:DocumentReference.status:0c5d66",
+      "title": "status short text mentions unknown but required value set does not",
+      "role": "needs-follow-up",
+      "reasonMd": "This does not appear to invalidate any R4 status value, but the R6 artifact is internally inconsistent: the short text mentions `unknown` while the required terminology does not. It should be clarified to prevent generated UIs or documentation from advertising an invalid code."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:SEMANTIC_OR_CONFORMANCE_TEXT:DocumentReference.content:d81a55",
+      "title": "content repetition semantics were tightened",
+      "role": "discounted",
+      "reasonMd": "The semantics matter for systems that packed multiple document versions into one DocumentReference, but no local error invariant enforces it. Compared with the structural remodel, this is a conformance-guidance migration item rather than a driver of the resource-level conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:VALUE_CONSTRAINT:DocumentReference.docRef-constraints:928a2d",
+      "title": "R6 adds warning constraints involving facilityType, practiceSetting, and Encounter context",
+      "role": "discounted",
+      "reasonMd": "The warning constraints can create noise for warning-as-error pipelines, but warning severity keeps ordinary validation from failing. This is not a major compatibility lever, though the SHALL wording versus warning behavior should be kept clear."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentReference:TERMINOLOGY_BINDING:DocumentReference.securityLabel:35aa7e",
+      "title": "securityLabel binding weakened and semantics clarified",
+      "role": "discounted",
+      "reasonMd": "Security labels are safety/business critical, but the R4-to-R6 direction is not an old-valid/new-invalid break because the binding is weakened. The clarification may require policy review, but it does not materially add to the structural migration burden."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:codeable-reference-splits-clinical",
+      "title": "Several common clinical search codes split into code/reference variants or changed type because elements became CodeableReference-like",
+      "role": "important-but-local",
+      "reasonMd": "DocumentReference is directly affected through `DocumentReference-event` becoming `event-code` and `event-reference`. This is a high-impact runtime break for token search clients. The R6 code/reference split is coherent, but deprecated token aliases for the concept branch would preserve many R4 queries at relatively low cost."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "For DocumentReference, the `period` search moves from `DocumentReference.context.period` to `DocumentReference.period`. The query code may still work, but result sets can drift silently if data, search expressions, and indexes are not migrated together. This is a migration-program item tied directly to the context flattening."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "discounted",
+      "reasonMd": "DocumentReference is in scope, and typed/chained searches should be tested. But many target-list changes follow broader model/resource changes and are less central to the DocumentReference-specific remodel than event and period search behavior."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:search-advertisement-churn",
+      "title": "Base CapabilityStatement search advertisements changed across most common resources",
+      "role": "needs-follow-up",
+      "reasonMd": "This is direct behavior context because DocumentReference is one affected resource. Metadata-driven clients can lose query affordances such as old DocumentReference search names before even invoking a search. The grouped finding needs search-specific follow-up rather than being counted as a separate structural redesign driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This can affect DocumentReference endpoints operationally because it is a Resource-level behavior, but it is shared across resources and should not be double-counted as a DocumentReference model break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-profile-canonical-type",
+      "title": "R6 narrows the profile input from uri to canonical(StructureDefinition)",
+      "role": "context-only",
+      "reasonMd": "Validation tooling used for DocumentReference migrations may encounter this base operation change, but it is not specific to DocumentReference and therefore remains environmental context only."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Create authoritative R4-to-R6 DocumentReference mapping guidance and tests covering `context` flattening, `content.format` to `content.profile.value[x]`, `authenticator` to `attester` with required mode policy, `relatesTo.code` wrapping, and search index migration for event and period."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit low-cost preservation candidates before finalizing R6: deprecated `masterIdentifier`, an explicit/deprecated source-patient field, and preservation of existing `docStatus` code meanings while adding new granular states."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define transition behavior for DocumentReference searches, especially aliases or CapabilityStatement advertisements for old token searches that map cleanly to `event-code`, and clear guidance for removed/renamed searches such as format/profile."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Clarify ambiguous or warning-level conformance details: whether `DocumentReference.status` should truly include `unknown`, and how warning constraints around Encounter-derived facility/practice metadata should be interpreted by validators and warning-as-error pipelines."
+    }
+  ],
+  "caveats": [
+    "This review did not have an official R4-to-R6 diff, ballot rationale, rendered narrative pages, or official ConceptMaps/StructureMaps.",
+    "The R6 input is ballot4; final R6 content or later ballots may change the conclusions.",
+    "Shared Resource/DomainResource behavior findings were considered only as context because DocumentReference is not Resource or DomainResource."
+  ]
+}

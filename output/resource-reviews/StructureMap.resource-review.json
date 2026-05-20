@@ -1,0 +1,132 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "StructureMap",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/StructureMap.resource-review-context.json",
+    "structureReportPath": "output/StructureMap.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/StructureMap.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the StructureMap-specific StructureDefinition findings, the direct SearchParameter behavior finding that names StructureMap, and the shared Resource/DomainResource behavior context. The judgment is resource-level: counts were used only as orientation, while the conclusion is based on whether the changes force a StructureMap language migration and whether low-cost compatibility preservation remains useful."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "fhir",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 StructureMap was trial-use/FMM 2, so the compatibility burden is neutral rather than strong. That makes coherent language-model cleanup more acceptable, but it does not erase breaks on executable map syntax, especially where R4-required or example-backed constructs can be preserved cheaply."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "StructureMap keeps its identity, but R6 changes enough executable map syntax that a targeted migration program is needed while deprecated aliases and clarified code mappings would still materially reduce avoidable breakage."
+  },
+  "reasoning": {
+    "thesisMd": "StructureMap is not removed or replaced, and much of the resource frame remains recognizable. The migration burden is concentrated in the StructureMap language surface: target context handling, dependent call arguments, source defaults, required-bound mode/list codes, and stricter cardinality constraints. This is enough that serious StructureMap adopters should plan an inventory-and-convert pass, but it is not a case where resource-level migration dominates so completely that additional compatibility preservation has little value.",
+    "migrationShapeMd": "The actual shape is a moderate targeted remodel of executable mapping constructs. R4 maps using `target.contextType`, `dependent.variable`, non-string `source.defaultValue[x]`, `group.typeMode = none`, or `target.listMode = collate` can be old-valid/new-invalid in R6. Some transformations are mechanical, such as omitting `typeMode='none'` or converting simple `dependent.variable` names. Others, especially `contextType='type'`, non-string defaults, and `collate` versus `single`, can require semantic review or engine tests. Optional R6 additions such as `StructureMap.const`, new temporal target parameter value types, and relaxed rule/name cardinality are mostly reverse-conversion issues and do not drive R4-to-R6 migration.",
+    "compatibilityLeverageMd": "Because the migration is real but localized, the useful standards posture is to preserve compatibility where the cost is low. Keeping deprecated syntactic sentinels or aliases for `contextType`, `typeMode='none'`, and possibly `listMode='collate'` could let many R4 maps remain recognizable while still allowing the R6 model to prefer omission, variable-oriented context, and the new list semantics. In contrast, retaining the entire R4 `defaultValue[x]` choice surface or duplicating the full old dependent argument model would carry more model burden and is less compelling once an R6 map-language conversion pass is already expected.",
+    "lessBreakingAlternativesMd": "The strongest avoidable breaks are the ones where R4 carried an explicit required or discriminator representation that R6 appears to replace by omission or a narrower variable-oriented model. `group.typeMode='none'` is especially low cost to preserve as a deprecated synonym for absence. `target.contextType` could be tolerated for the common `variable` case, while `type` contexts need documented migration semantics. `target.listMode='collate'` needs either a deprecated code, an explicit ConceptMap/equivalence statement, or clear guidance that it is intentionally not equivalent to `single`.",
+    "behaviorImpactMd": "The direct behavior finding for StructureMap is SearchParameter canonical consolidation. It usually preserves query codes, so it does not add to the instance-conversion program, but it does matter for CapabilityStatement metadata, generated clients, registries, and conformance tests that key on canonical SearchParameter URLs. Shared Resource/DomainResource behavior findings were treated as context only for this StructureMap review, per the review instructions.",
+    "comparisonToDeterministicAggregateMd": "The independent conclusion agrees with the deterministic aggregate's broad result: `Partial` migration unavoidability, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The substantive reason is not the raw count of five hard breaks; it is that the hard breaks cluster in executable map-language constructs while several low-cost compatibility options remain available.",
+    "uncertaintyMd": "The main uncertainty is semantic rather than structural: local reports do not prove official runtime equivalence for R4 `collate` versus R6 `single`, nor the intended handling of old type-oriented target contexts. That uncertainty supports follow-up rather than a stronger claim that every R4 StructureMap instance needs manual redesign."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "StructureMap:ELEMENT_PRESENCE_OR_IDENTITY:group.rule.target.contextType:removed",
+      "title": "target.contextType was removed and target.context became variable-oriented string context",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a central target-construction change and a hard old-valid/new-invalid break for R4 maps with `target.context`. The common `variable` case looks cheaply preservable by accepting a deprecated discriminator, while `type` contexts need a semantic rewrite. It therefore both drives the conclusion that migration is partially unavoidable and supports the posture of preserving low-cost compatibility."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "StructureMap:TERMINOLOGY_BINDING:target.listMode:collate-single",
+      "title": "target.listMode removes 'collate' and adds 'single' in a required binding",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Removing a required-bound executable list-mode code creates both validation and runtime ambiguity. If `single` is meant as an alias or replacement, that should be explicit; if not, old `collate` maps require expert review. This is one of the clearest standards-review-worthy findings despite the resource's FMM 2 status."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "StructureMap:TYPE_DOMAIN:group.rule.source.defaultValue:choice-to-string",
+      "title": "source.defaultValue[x] was replaced by a string-valued source.defaultValue",
+      "role": "important-but-local",
+      "reasonMd": "This contributes to the targeted migration program because non-string R4 defaults must be rewritten before R6 validation or execution. It is less compelling as an avoidable standards break than the sentinel-code/discriminator cases, because preserving the broad R4 choice surface would keep a large type model that R6 appears to simplify intentionally."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "StructureMap:CONVERSION_OR_MAPPING:group.rule.dependent.variable:parameter",
+      "title": "dependent.variable was replaced by dependent.parameter",
+      "role": "important-but-local",
+      "reasonMd": "The rename/re-shape is a real codegen and instance migration chore. For simple variable-name arguments it is likely mechanical, while R6's typed parameter model has a coherent goal. Once a StructureMap conversion pass exists, this is mostly a local migration task rather than the strongest candidate for standards rollback."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "StructureMap:TERMINOLOGY_BINDING:group.typeMode:none-removed",
+      "title": "group.typeMode no longer permits required-binding code 'none'",
+      "role": "important-but-local",
+      "reasonMd": "R4 made `group.typeMode` mandatory and used `none` as the ordinary sentinel; R6 represents the same state by omission. A deprecated synonym for absence appears low cost and would preserve normal R4 maps, so this remains an avoidable break even though the mechanical migration is straightforward."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "StructureMap:VALUE_CONSTRAINT:source.min-max:tightened",
+      "title": "Rule source min/max cardinality validation was tightened",
+      "role": "discounted",
+      "reasonMd": "This can reject some R4-valid instances, but the affected cases are nonsensical or ambiguous cardinalities. Tightening these to executable cardinality rules is proportionate and should be treated as cleanup during migration rather than a major compatibility-preservation target."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "StructureMap:TYPE_DOMAIN:target.parameter.value:date-time-added",
+      "title": "target.parameter.value[x] adds date, time, and dateTime in R6",
+      "role": "discounted",
+      "reasonMd": "This is primarily an R6-to-R4 downgrade concern. It does not invalidate existing R4 StructureMap instances and should not increase the assessed R4-to-R6 migration burden."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "StructureMap:CONVERSION_OR_MAPPING:const:added",
+      "title": "R6 adds root StructureMap.const for named constant values",
+      "role": "discounted",
+      "reasonMd": "An optional R6 feature creates representability work only for downgrade or mixed-version execution. It is not a reason to call R4-to-R6 migration unavoidable, and no less-breaking R6 base design is needed."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:canonicalresource-metadataresource-consolidation",
+      "title": "R6 consolidates many per-resource canonical SearchParameter URLs into multi-base CanonicalResource and MetadataResource definitions",
+      "role": "needs-follow-up",
+      "reasonMd": "This direct behavior finding affects StructureMap's conformance/search metadata rather than StructureMap instances. Runtime query codes often survive, but exact canonical SearchParameter URL matching is common in CapabilityStatement comparison, generated clients, and registries. Deprecated per-resource canonical aliases would be a plausible lower-cost transition design."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search metadata issue may affect generic infrastructure around StructureMap, but the review instructions treat shared Resource/DomainResource behavior as context only unless the assessed artifact is Resource or DomainResource. It therefore does not drive the StructureMap resource-level conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Ask the StructureMap/Infrastructure reviewers to consider deprecated compatibility handling for `target.contextType`, `group.typeMode='none'`, and `target.listMode='collate'`, or to publish explicit rationale and equivalence/non-equivalence guidance where preservation is rejected."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish a normative or testable StructureMap migration recipe covering `defaultValue[x]` conversion, `dependent.variable` to `dependent.parameter`, type-oriented target contexts, `collate` handling, and tightened source cardinalities."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For the direct SearchParameter behavior change, consider retaining deprecated per-resource canonical SearchParameter aliases for StructureMap and peer canonical/metadata resources during an R6 transition."
+    }
+  ],
+  "caveats": [
+    "No StructureMap engine execution tests were available locally, so runtime equivalence for `collate` versus `single` and old type-oriented target contexts remains uncertain.",
+    "The conclusion uses R4 StructureMap FMM 2/trial-use as the compatibility baseline; it does not rely on R6 maturity.",
+    "Shared Resource/DomainResource behavior findings were reviewed only as context and were not scored as StructureMap-specific direct breaks."
+  ]
+}

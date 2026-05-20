@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MedicinalProductAuthorization",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MedicinalProductAuthorization.resource-review-context.json",
+    "structureReportPath": "output/MedicinalProductAuthorization.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MedicinalProductAuthorization.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/HttpRestBehavior.report.json",
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, full StructureDefinition report, R4/R6 source StructureDefinitions for `MedicinalProductAuthorization` and `RegulatedAuthorization`, the direct HTTP/search behavior findings, and the shared Resource/DomainResource behavior context. Shared Resource/DomainResource findings were treated as context only because the assigned resource is not Resource or DomainResource. The deterministic aggregate was compared only after forming the resource-level conclusion."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "brr",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 `MedicinalProductAuthorization` is trial-use/FMM 0, so the standards burden to preserve the exact R4 shape is weak. That makes the top-level replacement by `RegulatedAuthorization` easier to justify, but it does not erase the regulatory and business importance of authorization dates, exclusivity periods, territorial applicability, legal basis, and jurisdiction-specific supply status."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "R4 `MedicinalProductAuthorization` has to migrate to the broader R6 `RegulatedAuthorization` model, but several optional regulatory facts and low-cost wire-name preservations still deserve standards attention rather than being dismissed as inevitable churn."
+  },
+  "reasoning": {
+    "thesisMd": "`MedicinalProductAuthorization` is a resource-level migration case: R6 has no same-name resource, the old type is listed among old/deleted or renamed types, and `RegulatedAuthorization` is the active successor whose scope explicitly includes medicinal-product market authorization. That means R4 instances, REST routes, search surfaces, canonical/profile references, generated classes, and type dispatch cannot remain unchanged. The important nuance is that this unavoidable resource migration does not make every additional break low-value: some removed or renamed paths carry regulatory, compliance, and audit facts that could be preserved at relatively low base-model cost.",
+    "migrationShapeMd": "The migration shape is a replacement plus generalization. Stable content such as identifiers, holder, regulator, `statusDate`, and `validityPeriod` can be mapped into `RegulatedAuthorization`, while the subject moves into a broader repeatable regulated-subject model. Several R4 marketing-authorization-specific structures then need policy: `country`/`jurisdiction` are merged into `region`, `legalBasis` becomes repeatable `basis`, `procedure` becomes `case`, `status` becomes a modifier, authorization/exclusivity dates disappear, and `jurisdictionalAuthorization` is split or relocated across authorization and product-definition concepts. This is not a one-field rename; it is a resource migration program.",
+    "compatibilityLeverageMd": "The old resource identity itself is not a good low-cost preservation target because keeping both `MedicinalProductAuthorization` and `RegulatedAuthorization` would create duplicate canonical resource types, endpoints, searches, and mappings for the same authorization fact. However, after accepting the replacement resource, there is still high leverage in preserving low-cost, data-bearing compatibility: optional lifecycle/exclusivity fields, the jurisdictional authorization grouping, and a few old wire names or clear aliases could prevent lossy extensions and bespoke mappings for regulatory data.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking alternatives are not to keep the entire old resource indefinitely, but to retain or replace specific optional R4 facts in the R6 base model. `restoreDate`, `dataExclusivityPeriod`, `dateOfFirstAuthorization`, and `internationalBirthDate` could be retained or given explicit equivalent lifecycle-date elements; `jurisdictionalAuthorization` could remain as a deprecated medicinal-product-specific grouping or receive a clean replacement; `country`/`jurisdiction` and `legalBasis` could have been kept while broadening definitions/cardinality. By contrast, the broader subject model and the `procedure` to `case` terminology are more inherent to the generalized successor, and the `status` modifier is a proportionate safety signal.",
+    "behaviorImpactMd": "The direct behavior findings reinforce the resource-level migration. The R6 base CapabilityStatement no longer advertises a `MedicinalProductAuthorization` endpoint, and R4 SearchParameters whose base was the removed resource no longer have a same-base R6 search surface. These are runtime/API/codegen breaks, but they are derivative of the resource replacement rather than independent reasons to retain the old model. Shared Resource/DomainResource operation and search findings may affect generic clients working with authorization resources, but they are context only for this review.",
+    "comparisonToDeterministicAggregateMd": "The independent review agrees with the deterministic aggregate that major migration is unavoidable and that the migration shape is `removed-or-replaced-resource`. It differs in compatibility posture: the aggregate's `migration-program-dominates` label is directionally true for resource identity and endpoints, but too blunt for the remaining findings. The date/exclusivity and jurisdictional-authorization losses, plus low-cost territory/legal-basis compatibility options, mean the better standards posture is to preserve where low cost while still planning for a resource migration.",
+    "uncertaintyMd": "Confidence is high for the computable fact that the R4 resource is absent in R6 and that `RegulatedAuthorization` is the closest successor. Confidence is lower for exact semantic intent and prevalence because the supplied inputs did not include an official cross-version map, authoritative ballot rationale, production usage data, or terminology expansion evidence."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductAuthorization:ARTIFACT_IDENTITY:root:8b6d4c",
+      "title": "R4 MedicinalProductAuthorization is absent in R6 and replaced by inferred successor RegulatedAuthorization",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the decisive resource-level break. An R4 instance with `resourceType: MedicinalProductAuthorization` is not a base R6 instance, and clients must move canonical URLs, generated classes, type switches, endpoints, and searches to `RegulatedAuthorization` or local compatibility policy. Low R4 FMM and the broader R6 authorization scope make the identity replacement probably proportionate, but it makes a migration program unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductAuthorization:REFERENCE_TARGET:subject:db9f25",
+      "title": "subject changes from a single medicinal product/package reference to a repeatable broad authorization subject",
+      "role": "important-but-local",
+      "reasonMd": "The broader repeatable subject is central to `RegulatedAuthorization` and requires product-resource retargeting after the resource migration. This can attach an authorization to the wrong regulated subject if mapped poorly, but preserving the old target list would also require preserving the old medicinal-product resource identities, so it is mostly a migration chore once the replacement model is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductAuthorization:ELEMENT_PRESENCE:country-jurisdiction-region:42bb18",
+      "title": "country and jurisdiction are replaced or merged into region",
+      "role": "important-but-local",
+      "reasonMd": "Territory is a core regulatory dimension and old `country`/`jurisdiction` element names become invalid. Merging them into `region` is usually mappable, but it can lose the distinction between country-level and sub-country jurisdictional applicability. Because the fields are optional CodeableConcepts, retaining deprecated names or an explicit compatibility mapping appears low cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductAuthorization:ELEMENT_REMOVED:authorization-dates:7e41c0",
+      "title": "marketing-authorization-specific date and exclusivity fields are removed from the successor",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`restoreDate`, `dataExclusivityPeriod`, `dateOfFirstAuthorization`, and `internationalBirthDate` have no direct `RegulatedAuthorization` counterparts. These facts can drive market-entry, generic submission, renewal, and compliance decisions, so losing them or forcing extensions is not just a mechanical migration chore. This is the strongest reason that low-cost compatibility preservation still matters despite the resource replacement."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductAuthorization:ELEMENT_REMOVED:jurisdictionalAuthorization:10ac73",
+      "title": "jurisdictionalAuthorization backbone is removed or split across other R6 concepts",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The old backbone grouped jurisdiction-specific identifiers, country, jurisdiction, legal status of supply, and validity. R6 distributes related concepts across `RegulatedAuthorization` and product-definition resources without preserving the grouped authorization row. That creates lossy or expert-dependent migration for regulatory supply status and is standards-review-worthy even with FMM 0."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductAuthorization:ELEMENT_RENAMED:procedure-case:ab2f66",
+      "title": "procedure backbone is renamed to case with changed child rules",
+      "role": "important-but-local",
+      "reasonMd": "`procedure` to `case` is a real wire/codegen break, but forward migration is mostly a mechanical rename with compatible child datatypes. The broader case terminology and added status fit the generalized R6 model, so this is a local migration chore rather than a reason to reopen the resource-level design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductAuthorization:FLAGS_AND_MODIFIERS:status:50fd2e",
+      "title": "status becomes an R6 modifier element with a preferred publication-status binding",
+      "role": "important-but-local",
+      "reasonMd": "The status path remains optional CodeableConcept and the binding is only preferred, so this is not an old-valid/new-invalid instance break. It does change safe-processing and generated-model obligations, but the modifier flag is justified by the risk of treating invalid or non-current authorization records as usable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductAuthorization:ELEMENT_RENAMED:legalBasis-basis:2e9169",
+      "title": "legalBasis is renamed and broadened to repeatable basis with an example binding",
+      "role": "important-but-local",
+      "reasonMd": "The cardinality broadening and example binding are not problematic, but the old `legalBasis` wire name becomes invalid for a compliance/audit-relevant concept. Keeping `legalBasis` while broadening its definition and max cardinality would have preserved most R4 data with limited cost, so this remains an avoidable low-cost break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductAuthorization:CONVERSION:R6-only-elements:6aa317",
+      "title": "R6 adds generalized authorization content with no clean R4 representation",
+      "role": "discounted",
+      "reasonMd": "The listed R6 additions are optional and do not invalidate R4-derived content in the forward direction. They create R6-to-R4 round-trip loss policy work, but they are expected consequences of the broader R6 resource rather than R4-to-R6 breaks that should constrain the base design."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`MedicinalProductAuthorization` is one of the removed base endpoint advertisements, so generic route inventories and generated REST clients cannot rely on the old endpoint in R6. This is a real behavior break, but it is derivative of the resource identity replacement; endpoint aliases could help some clients but would effectively preserve an obsolete resource model."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "R4 searches scoped to `MedicinalProductAuthorization` have no same-base R6 search surface. Applications must map to `RegulatedAuthorization` endpoint/query semantics and update result expectations. This reinforces the resource migration program, while the feasibility of aliases or redirects depends on the resource-level mapping."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "Generic clients could use Resource metadata operations on authorization resources, so this shared behavior matters operationally. It is not specific to `MedicinalProductAuthorization` and should be handled in the Resource operation review rather than counted as part of this resource's content-model migration."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search-parameter metadata can affect generated clients and conformance tooling across all resources, including `RegulatedAuthorization` after migration. It does not change the `MedicinalProductAuthorization` to `RegulatedAuthorization` migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish an explicit R4 `MedicinalProductAuthorization` to R6 `RegulatedAuthorization` migration map covering resource type/canonical changes, endpoint/search replacements, subject retargeting, stable element mappings, and known lossy areas."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit preservation of the removed authorization lifecycle and exclusivity fields and the `jurisdictionalAuthorization` grouping. Prefer explicit optional R6 elements, a deprecated compatibility backbone, or a normative extension/mapping rule over silent loss or unrelated field overloading."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Revisit low-cost rename breaks for `country`/`jurisdiction` to `region` and `legalBasis` to `basis`, or at minimum publish precise cross-version mapping and classification guidance for country-versus-jurisdiction and legal-versus-other bases."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add migration conformance tests for old endpoints/searches, product subject retargeting, `procedure` to `case`, status modifier handling, and preservation of regulatory date, exclusivity, legal-basis, and jurisdictional-supply facts."
+    }
+  ],
+  "caveats": [
+    "The closest-successor conclusion is inferred from package contents, old-type metadata, and definitions; no official cross-version StructureMap or ballot rationale was supplied.",
+    "The R4 artifact is FMM 0/trial-use, so the review does not treat the resource replacement itself as disproportionate on stability grounds.",
+    "Direct behavior findings are grouped across many removed resources; their `MedicinalProductAuthorization` impact is real but derivative of the resource identity decision.",
+    "Shared Resource/DomainResource behavior findings were considered as context only and not scored as resource-specific findings."
+  ]
+}

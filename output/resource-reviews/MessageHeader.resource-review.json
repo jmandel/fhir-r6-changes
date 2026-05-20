@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MessageHeader",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MessageHeader.resource-review-context.json",
+    "structureReportPath": "output/MessageHeader.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MessageHeader.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 10,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the MessageHeader structure report, the supplied resource-review context, the deterministic aggregate only after forming the resource-level judgment, and direct behavior findings whose affectedResources include `MessageHeader`. Shared `Resource`/`DomainResource` behavior findings were read as context only and were not scored as MessageHeader-specific breaks."
+  },
+  "r4Maturity": {
+    "fmm": 4,
+    "standardsStatus": "trial-use",
+    "workGroup": "inm",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 MessageHeader is trial-use but FMM 4, so it has meaningful stability pressure. The resource is mature enough that hard wire-format changes to routing, acknowledgement correlation, and accountability fields need a clear compatibility rationale, even though the burden is lower than for normative/FMM 5 content."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "MessageHeader keeps its identity, but R6 substantially remodels message correlation, endpoints, sender placement, and participant/accountability data; a migration program is unavoidable, while low-cost compatibility preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "This is not just a collection of isolated local diffs. The R6 MessageHeader remains the same resource, but core messaging surfaces changed together: acknowledgement correlation moved from a primitive MessageHeader id to a Bundle `Identifier`, source and destination endpoint URLs became optional choices that can reference `Endpoint`, root `sender` moved under `source`, `destination.target` disappeared, and several attribution/accountability roles were removed. Those changes affect routing, acknowledgements, trust decisions, audit, and generated model/search behavior.",
+    "migrationShapeMd": "The practical R4-to-R6 migration shape is a major model remodel inside a stable resource identity. Some transforms are mechanical (`source.endpoint` to `source.endpointUrl`, `destination.endpoint` to `destination.endpointUrl`, root `sender` to `source.sender`), but the migration cannot be just a property rename pass. Implementers must decide whether an R4 response id is the original Bundle identifier, how to preserve Endpoint references in reverse, how to represent removed target/enterer/author/responsible roles, and how to update generated accessors and FHIRPath/search expressions.",
+    "compatibilityLeverageMd": "Because complete R4 MessageHeader instances commonly contain required source endpoints and destination endpoints, and because optional participant fields can be business-critical when present, a resource-level migration program is already unavoidable. That does not make additional break avoidance pointless. Several breaks appear low-cost to soften through deprecated fields, aliases, or transition guidance, and FMM 4/trial-use gives enough stability pressure that such mitigations remain valuable.",
+    "lessBreakingAlternativesMd": "The highest-leverage less-breaking alternatives are straightforward transition designs: retain URL endpoint fields while adding Endpoint-reference fields, keep root `sender` as deprecated or as an alias while introducing `source.sender`, retain optional `destination.target` and accountability fields with deprecation/mapping guidance, and document or alias Bundle `message` search compatibility. `response.identifier` is more complex because the semantic target changed from MessageHeader.id to Bundle.identifier, but even there a transition field or explicit dual-identifier mapping deserves standards review.",
+    "behaviorImpactMd": "The direct behavior finding is scoped to Bundle searches over first-entry Composition/MessageHeader, not MessageHeader instance shape. It matters for messaging repositories, generated clients, conformance metadata, and `Bundle?message=` workflows, but it does not by itself drive the resource structural migration conclusion. Shared Resource/DomainResource operation and search changes may still affect systems handling MessageHeader, but they are base-infrastructure context rather than MessageHeader-specific compatibility evidence.",
+    "comparisonToDeterministicAggregateMd": "My independent conclusion agrees with the deterministic aggregate on major migration `Yes`, migration shape `major-model-remodel`, and compatibility posture `preserve-where-low-cost-but-expect-resource-migration`. The important nuance is why: the program is unavoidable because the message-routing/correlation/accountability model is remodeled, not merely because there are eight hard breaks. Conversely, the many low-cost preservation options mean the aggregate must not be read as `migration-program-dominates`.",
+    "uncertaintyMd": "The structural deltas are high-confidence from the local R4 and R6 StructureDefinitions. The main uncertainty is standards intent and official replacement guidance for the removed participant/routing fields, because no official cross-version ConceptMap, StructureMap, or ballot rationale was available in the reviewed inputs."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:TYPE_DOMAIN:MessageHeader.response.identifier:fe8312",
+      "title": "MessageHeader.response.identifier changed from primitive id to complex Identifier and now identifies the original Bundle",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a required response child with both wire-shape and semantic changes. A response correlation string that pointed to `MessageHeader.id` no longer validates as R6 and may not be semantically safe to map to Bundle `Identifier` without deployment policy. It is standards-review-worthy even though the new model is plausible."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:SERIALIZATION_OR_CODEGEN:MessageHeader.source.endpoint:32fe8b",
+      "title": "MessageHeader.source.endpoint became optional endpoint[x] and added Endpoint references",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "R4 source endpoint is required, so nearly every valid R4 MessageHeader has an old JSON property that R6 no longer defines. The R6 goal of Endpoint references could have been supported by retaining the URL field and adding a reference field, making this a high-leverage low-cost preservation candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:SERIALIZATION_OR_CODEGEN:MessageHeader.destination.endpoint:5b9d79",
+      "title": "MessageHeader.destination.endpoint became optional endpoint[x] and added Endpoint references",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Destination endpoint has the same choice-conversion problem as source endpoint and is central to message routing. Because each R4 destination required a URL endpoint, this creates broad mechanical migration work and should be softened where possible by transition aliases or retained URL-field compatibility."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.sender:620c70",
+      "title": "Root MessageHeader.sender moved under source and added sender reference targets",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The sender concept survives but its path moved from the resource root to `source.sender`, breaking instances, generated accessors, FHIRPath, and trust/routing checks. This is not a trivial cleanup because sender identity influences authorization, audit, and message routing; a deprecated root path or alias would have reduced migration cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.destination.target:ac5149",
+      "title": "MessageHeader.destination.target was removed with no exact local replacement",
+      "role": "important-but-local",
+      "reasonMd": "The field is optional and likely less common than endpoint, but when used it can distinguish intermediary routing from the final target device. That makes it a meaningful local migration chore and an avoidable break if a deprecated optional target could have been retained."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.enterer:e7493e",
+      "title": "MessageHeader.enterer was removed",
+      "role": "important-but-local",
+      "reasonMd": "The removed data-entry attribution is not what makes the whole resource migration unavoidable, but systems that used it need a Provenance, Task, AuditEvent, extension, or local mapping strategy. Retaining it as deprecated would have been a low-cost compatibility bridge."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.author:751682",
+      "title": "MessageHeader.author was removed",
+      "role": "important-but-local",
+      "reasonMd": "Authorship of the decision represented by the message can differ from sender and enterer. Its removal is a local migration chore once the broader remodel is accepted, but it remains standards-review-worthy because an optional deprecated field or explicit cross-version extension could preserve old instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:ELEMENT_PRESENCE_OR_IDENTITY:MessageHeader.responsible:123c41",
+      "title": "MessageHeader.responsible was removed",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`responsible` carries accountability rather than a cosmetic participant role, and the source report rates its safety/business risk high. Removing it without an exact local replacement contributes to the conclusion that MessageHeader participant/accountability modeling was substantially remodeled."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:TYPE_DOMAIN:MessageHeader.event[x]:9f80be",
+      "title": "MessageHeader.event[x] added canonical EventDefinition/SubscriptionTopic choice",
+      "role": "discounted",
+      "reasonMd": "This is primarily an R6-to-R4 and runtime interpretation issue: existing R4 Coding/uri events remain valid in R6. It should be documented for reverse conversion and dispatch logic, but it does not add to old-valid/new-invalid R4-to-R6 instance migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageHeader:REFERENCE_TARGET:MessageHeader.destination.receiver:b03b53",
+      "title": "MessageHeader.destination.receiver now allows Device, Patient, and RelatedPerson references",
+      "role": "discounted",
+      "reasonMd": "This is a permissive R6 widening. It can complicate R6-to-R4 conversion and older generated code, but it is not a reason R4 instances fail R6 validation and therefore is not part of the major migration driver."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:bundle-first-entry-resource-search-type",
+      "title": "Bundle composition and message searches changed from reference search to the new resource search type",
+      "role": "important-but-local",
+      "reasonMd": "This directly affects MessageHeader discovery through Bundle search metadata and generated query APIs. It is probably justified by the embedded-resource search model, but servers and standards text should consider R4-style reference compatibility or clear aliases for `Bundle?message=` migrations."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search-parameter change may affect clients that also query MessageHeader, but MessageHeader is neither `Resource` nor `DomainResource` as the assigned artifact. It is therefore background infrastructure context, not part of the MessageHeader-specific resource conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or review an official R4-to-R6 MessageHeader mapping that explicitly covers Bundle-vs-MessageHeader response identity, endpoint URL-to-choice conversion, `sender` path movement, removed `destination.target`, and removed `enterer`/`author`/`responsible` roles."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit low-cost compatibility bridges for the highest-churn fields: retained/deprecated URL endpoint fields or aliases, a deprecated root `sender`, and deprecated optional fields or standard extensions for routing and accountability roles."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For Bundle message search, document whether R4 reference-style `message` query behavior remains accepted, or provide transition aliases while R6 clients adopt the new `resource` search type metadata."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 ConceptMap, StructureMap, Jira rationale, or ballot reconciliation notes were available in the reviewed inputs.",
+    "Prevalence judgments come from the supplied reports and structural expectations; they were not validated against production telemetry.",
+    "Shared Resource/DomainResource behavior findings were reviewed only as context and were not scored as MessageHeader-specific breaks."
+  ]
+}

@@ -1,0 +1,191 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "CapabilityStatement",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/CapabilityStatement.resource-review-context.json",
+    "structureReportPath": "output/CapabilityStatement.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/CapabilityStatement.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 10,
+    "reviewedDirectBehaviorFindingCount": 6,
+    "reviewedSharedBehaviorContextCount": 10,
+    "methodNotesMd": "Reviewed the CapabilityStatement StructureDefinition report, direct behavior findings whose `affectedResources` include `CapabilityStatement`, and shared `Resource`/`DomainResource` behavior only as context. I used the R4 normative/FMM 5 status as the compatibility baseline. I also spot-checked the local FHIR-version CodeSystems because the structure finding text and operation behavior text disagreed about whether R6 retained `4.0.1`."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "fhir",
+    "stabilityPressure": "Strong",
+    "effectMd": "R4 CapabilityStatement is normative and FMM 5, so even targeted breaks need stronger justification than ordinary trial-use cleanup. This does not make every change unacceptable, but it raises the value of deprecation, retained canonical artifacts, warning-level constraints, or other low-cost compatibility preservation."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "CapabilityStatement keeps its identity and most element shape, but R6 creates a targeted conformance-resource migration program while leaving several low-cost compatibility issues worth preserving."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a removed or wholesale-replaced resource. The same canonical CapabilityStatement resource exists in R6, most R4 local element names/cardinalities survive, and several reported structure changes are additive or reverse-direction only. The practical migration shape is nevertheless more than a few local field edits because CapabilityStatement is the metadata resource that drives server/client conformance, generated operation clients, endpoint discovery, and validator/test behavior.",
+    "migrationShapeMd": "The structural migration centers on a small set of high-impact points: R6 rejects duplicate `rest.mode` repetitions with an error invariant, narrows `patchFormat`, changes `rest.resource.type` from a required resource-type `code` to an extensible `uri` with additional-resource support, and changes some conformance semantics and primitive/tooling expectations. The direct behavior surface adds more pressure: `$conforms`, `$implements`, and `$subset` CapabilityStatement operations disappear from R6 core, the base CapabilityStatement advertisements change, and `$versions.default` gains a required FHIR-version binding. That combination supports a `Partial` migration-unavoidability judgment: conformance tooling and servers need a targeted migration program, but ordinary instances are not facing a resource-wide identity or content-model replacement.",
+    "compatibilityLeverageMd": "Because the migration is targeted rather than identity-dominating, preventing additional breakage still has substantial value. The need to normalize REST blocks or update generated clients does not make it pointless to keep deprecated operation definitions resolvable, fix inconsistent base2 metadata, or soften/phase in a new invariant. At the same time, several changes are best treated as local migration chores once the R6 goal is accepted, especially patch-format validation, custom-resource URI support, additive interaction/search codes, and optional R6-only metadata.",
+    "lessBreakingAlternativesMd": "The strongest low-cost compatibility candidates are retaining removed CapabilityStatement OperationDefinitions as deprecated or retired optional artifacts, correcting or preserving the base2 `CapabilityStatement/read` advertisement, and reconsidering `cpb-4` as warning-level or pairing it with deterministic merge/conflict guidance. `implementation.description` string-to-markdown also looks avoidable because the wire shape stays string and safe-rendering guidance could preserve most R4 model APIs. By contrast, keeping the old broad `patchFormat` binding or closed `rest.resource.type` enum would undercut clear R6 computability/extensibility goals, so those are less compelling preservation targets.",
+    "behaviorImpactMd": "Direct behavior findings materially affect the resource-level answer because they are CapabilityStatement-specific API and metadata-surface changes, not merely inherited base behavior. The three removed CapabilityStatement operations create runtime/API/codegen breaks for conformance tooling even if expected use is not universal. The shared `Resource`/`DomainResource` operation and search behavior findings are relevant ecosystem background but do not independently drive this CapabilityStatement review because the assigned resource is not `Resource` or `DomainResource`.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's practical posture: `Partial` migration unavoidability, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. My reasoning differs in one important way: the local R6 `CodeSystem/FHIR-version` includes `4.0.1`, so `CapabilityStatement.fhirVersion` should not be treated as a direct R4-to-R6 invalidation for ordinary R4 `4.0.1` instances. The aggregate's conclusion remains right because the REST invariant, patch binding, generated-model changes, and direct operation removals are enough to require targeted migration planning.",
+    "uncertaintyMd": "Official R4-to-R6 narrative diffs were not available in the local inputs, so semantic findings around imports/profile hierarchy and some operation-removal rationale remain less certain than computable StructureDefinition and package-presence findings. R6 input is ballot4, so final publication may change details."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CapabilityStatement:VALUE_CONSTRAINT:CapabilityStatement:cpb4",
+      "title": "R6 adds an error invariant requiring only one REST block per mode",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest local hard R4-to-R6 instance break. A valid R4 CapabilityStatement can split server or client declarations across multiple `rest` blocks with the same mode; R6 makes that invalid and forces a merge that may require policy for security, operations, search parameters, and duplicate resource declarations. Because the resource is normative/FMM 5, this is standards-review-worthy even though the one-block model is understandable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:CapabilityStatement.patchFormat:patchmimetypes",
+      "title": "patchFormat required binding narrows from general MIME types to a patch-specific value set",
+      "role": "important-but-local",
+      "reasonMd": "This is a genuine old-valid/new-invalid binding break, but it is localized and the R6 value set aligns with the element's patch-format semantics. It should be called out in migration guidance, but it is more a validation cleanup than a reason to preserve broad MIME values indefinitely."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CapabilityStatement:TYPE_DOMAIN:CapabilityStatement.rest.resource.type:uri-extended",
+      "title": "rest.resource.type changes from required resource-type code to extensible URI and adds definition for additional resources",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This does not generally invalidate R4 resource-type codes, but it changes a central generated-model assumption from closed enum-like `code` to URI/string semantics and enables additional resources via `definition`. That is a core targeted migration item for CapabilityStatement processors, while the less-breaking alternative of keeping only the closed R4 code domain would fail the R6 extensibility goal."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:rest.resource.interaction.code:r6-fine-grained",
+      "title": "Type-level REST interaction codes are expanded and conditionalPatch is added",
+      "role": "discounted",
+      "reasonMd": "The old R4 interaction codes remain valid; the main issue is R6-to-R4 loss and closed-enum consumers seeing new R6 values. This is migration awareness for R6 consumers, not an avoidable R4-to-R6 break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CapabilityStatement:TERMINOLOGY_BINDING:CapabilityStatement.fhirVersion:r6-codes",
+      "title": "Mandatory fhirVersion can carry R5/R6 codes not allowed by R4",
+      "role": "discounted",
+      "reasonMd": "I do not let this drive the R4-to-R6 conclusion. The local R6 `CodeSystem/FHIR-version` includes `4.0.1`, so ordinary R4 CapabilityStatements using the R4 package version are not invalidated on this path. Native R6 values such as `6.0` or `6.0.0-ballot4` still create R6-to-R4/export policy work."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CapabilityStatement:ELEMENT_PRESENCE:r6-only-local-elements:metadata-roles-languages",
+      "title": "R6 adds optional local elements with no R4 base representation",
+      "role": "discounted",
+      "reasonMd": "The additions are optional and do not block R4-to-R6 validation. They matter for lossy R6-to-R4 export and generated models, but they are not a reason to consider the R4 resource's migration program unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CapabilityStatement:TYPE_DOMAIN:CapabilityStatement.implementation.description:string-markdown",
+      "title": "implementation.description changes primitive type from string to markdown",
+      "role": "important-but-local",
+      "reasonMd": "The JSON wire value remains a string, so this is not a hard instance break. It still deserves attention because the element is mandatory on a normative resource and can affect generated APIs and rendering/sanitization behavior. Keeping `string` with markdown-capable guidance would have been a plausible lower-disruption design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CapabilityStatement:SEMANTIC_OR_CONFORMANCE_TEXT:CapabilityStatement.imports:overlap-refinement",
+      "title": "imports overlap rules are semantically changed to allow local refinement but prohibit sibling overlap",
+      "role": "important-but-local",
+      "reasonMd": "This can affect import flattening and conformance QA, but the element shape is unchanged and the R6 rule appears to support a coherent refinement model. It is a local semantic migration chore unless narrative review shows broader incompatibility."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "CapabilityStatement:SEMANTIC_OR_CONFORMANCE_TEXT:rest.resource.profile:supportedProfile-conformance",
+      "title": "Resource profile and supportedProfile semantics are tightened around system-wide and use-case profiles",
+      "role": "important-but-local",
+      "reasonMd": "The tightened hierarchy can cause R6-aware QA tools to flag older CapabilityStatements, but it mostly formalizes the existing system-wide profile versus use-case supportedProfile distinction. It should be documented and checked, not treated as a model-remodel driver."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "needs-follow-up",
+      "reasonMd": "This grouped behavior finding includes CapabilityStatement but spans many resources and operations. It indicates real discoverability/codegen churn, but each removed operation needs operation-specific rationale before declaring the whole group avoidable."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base2:capabilitystatement-read-removed",
+      "title": "The R6 empty base CapabilityStatement no longer advertises the R4 CapabilityStatement read resource entry",
+      "role": "important-but-local",
+      "reasonMd": "Runtime prevalence is probably low, but the computable base2 artifact and description appear inconsistent and the less-breaking fix is very low cost: preserve the read entry or change the template description. This remains worth standards cleanup despite the broader migration program."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "CapabilityStatement-conforms:operation-removed",
+      "title": "R4 CapabilityStatement/$conforms operation is absent from R6",
+      "role": "important-but-local",
+      "reasonMd": "Removal breaks canonical resolution, generated clients, and any conformance tool that invoked the R4 operation. Usage may be rare and the R6 simplification goal may be reasonable, but retaining a deprecated optional OperationDefinition would preserve compatibility without requiring server implementation."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "CapabilityStatement-implements:operation-removed",
+      "title": "CapabilityStatement `$implements` operation is absent from R6",
+      "role": "important-but-local",
+      "reasonMd": "This is a direct API/codegen break for clients and servers that used the operation. It contributes to the targeted conformance migration burden, and a low-cost preservation path exists by retaining the canonical as deprecated or retired while removing any baseline support expectation."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "CapabilityStatement-subset:capabilitystatement-subset-operation-removed",
+      "title": "R6 removes the CapabilityStatement $subset operation",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`$subset` is a CapabilityStatement-specific convenience operation with occasional plausible use for metadata filtering. Its complete removal, combined with `$conforms` and `$implements`, is what makes the resource-level migration program extend beyond StructureDefinition instance conversion into API/tooling migration."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "CapabilityStatement-versions--CapabilityStatement-versions:capabilitystatement-versions-default-required-fhir-version-binding",
+      "title": "The $versions default output parameter gains a required FHIR-version binding",
+      "role": "important-but-local",
+      "reasonMd": "The operation remains available and common expected version codes are present, so this is not a major API break. It is still an old-valid/new-invalid conformance tightening for local labels and should be handled in test suites and migration guidance."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This is significant ecosystem context for generic Resource operations and base CapabilityStatement advertisements, but it is not a CapabilityStatement-specific behavior finding for this review."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search metadata change may affect generic conformance tooling, but it is not scored as a direct CapabilityStatement break under the review rules."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Review the removed CapabilityStatement operations (`$conforms`, `$implements`, `$subset`) for deprecated/retired OperationDefinition retention so existing canonicals and generated clients can resolve them without implying mandatory R6 server support."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit `cpb-4` on the normative CapabilityStatement resource: either justify the hard error clearly, make it warning-level for a transition, or publish deterministic merge/conflict rules for duplicate `rest.mode` blocks."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Fix or intentionally document the R6 `CapabilityStatement-base2` discrepancy by preserving the `CapabilityStatement/read` resource entry or changing the description that still says the template contains it."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Treat `patchFormat`, `rest.resource.type`, `$versions.default`, and the import/profile semantic changes as targeted migration guidance and conformance-test updates rather than reasons for resource-wide compatibility pessimism."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Re-run the review against final R6 artifacts and official narrative diffs, with special attention to semantic text changes and any final FHIR-version terminology differences."
+    }
+  ],
+  "caveats": [
+    "The review relies on local package artifacts and reports; official R4-to-R6 diff rationale was not available.",
+    "R6 input is 6.0.0-ballot4 and may differ from the final R6 release.",
+    "Shared Resource/DomainResource behavior findings were considered only as context, not as direct CapabilityStatement breaks.",
+    "Operation usage prevalence is uncertain; impact judgments distinguish rare but hard API breaks from common resource validation breaks.",
+    "The local R6 FHIR-version CodeSystem check contradicts the structure fresh-review note that claimed `4.0.1` was absent."
+  ]
+}

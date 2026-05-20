@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "DeviceMetric",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/DeviceMetric.resource-review-context.json",
+    "structureReportPath": "output/DeviceMetric.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/DeviceMetric.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, assessment rubric, fresh-review framework, DeviceMetric context, full DeviceMetric StructureDefinition report, deterministic aggregate, and local R4/R6 DeviceMetric definitions. Direct behavior reports were checked for `DeviceMetric` and had no direct findings; shared Resource/DomainResource behavior findings were treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "dev",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 DeviceMetric was FMM 1/trial-use, so the baseline compatibility burden is weak. That lowers the threshold for accepting a redesign, but it does not erase concern for central device association, lifecycle status, or patient-monitoring interpretation where wrong migration can attach a metric to the wrong device context."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "DeviceMetric keeps its identity, but R6 remodels enough mandatory and central content that an explicit migration transform is unavoidable; preserving low-cost compatibility still matters, especially for source/parent to device."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a removed resource, but it is more than a set of isolated chores. R6 adds mandatory modifier `status`, replaces R4 `source`/`parent` with mandatory `device`, changes mandatory `category` from primitive code to CodeableConcept, and changes several optional but meaningful device-metric fields. A version relabel will fail for ordinary R4 instances, and correct migration needs policy for lifecycle status, device association, category wrapping, cadence interpretation, and some code mappings.",
+    "migrationShapeMd": "The resource identity and purpose remain recognizable, and unchanged fields such as identifier/type/unit continue to anchor the model. However, the local content model is broadly remodeled: every R4 instance has a primitive mandatory `category` that must be converted, every R6 instance needs a lifecycle `status`, and the central device relationship is renamed/consolidated into a required `device`. Optional populated fields add more transforms (`operationalStatus`, `color`, `measurementPeriod`, and calibration). The shape is therefore a major model remodel for migration planning even though it is not a resource replacement.",
+    "compatibilityLeverageMd": "The migration program is already unavoidable, so preventing one additional optional-field break is lower leverage than it would be for a mostly stable resource. But it is not zero leverage. Low-cost compatibility preservation, aliases, deprecated transitional elements, or precise migration guidance can still reduce safety risk and implementation cost, especially for the central device association and for value-set/code-system changes that otherwise require site-specific policy.",
+    "lessBreakingAlternativesMd": "The most standards-review-worthy less-breaking alternative is for `source`/`parent` to `device`: retaining deprecated `source` and `parent`, or providing a transition rule, could preserve existing semantics while R6 adopts the simpler relationship model. For `status`, making the field optional would preserve legacy instances but undercut the R6 goal of explicit lifecycle modifier semantics. For `category`, `color`, and calibration, preserving primitive aliases would reduce wire breaks but create duplicate representations and precedence rules; these are mostly migration chores, with `color` relatively low-cost but also low safety value. For `measurementPeriod`, retaining both Timing and Quantity would preserve more data but risks contradictory cadence facts.",
+    "behaviorImpactMd": "No OperationDefinition, SearchParameter, or HTTP/REST behavior finding directly names DeviceMetric. The 11 shared Resource/DomainResource behavior findings remain relevant to all resources as platform context, but they do not change this DeviceMetric-specific conclusion.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial` with `moderate-targeted-remodel` and the same compatibility posture. I agree with the posture but rate unavoidability higher: the aggregate count does not fully capture the combined effect of a new required modifier, a required replacement device relationship, and mandatory category wire-shape conversion. These make a deliberate migration transform necessary for baseline R4 DeviceMetric content, not just for edge cases.",
+    "uncertaintyMd": "The structural evidence is high confidence. The main uncertainty is implementation prevalence and official committee rationale; R4 FMM 1 means deployed reliance may be limited, but no local evidence proves it is absent."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.status:0d4f3a",
+      "title": "R6 adds mandatory modifier `DeviceMetric.status` with no R4 element",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "A conformant R6 DeviceMetric cannot omit `status`, and its modifier semantics require consumers to inspect lifecycle state before relying on the metric. This forces every migration to assign or infer a status. The break is probably proportionate for FMM 1 content because it separates lifecycle validity from operational state, but it is a core reason migration is unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.device:7b61c0",
+      "title": "R4 `source` and `parent` references are removed and replaced by mandatory `device`",
+      "role": "needs-follow-up",
+      "reasonMd": "This is the main avoidable/safety-relevant concern. Mapping two R4 relationship slots to one required R6 `device` can be lossy and policy-dependent, and an incorrect device association can change how monitoring metrics are interpreted. Even with a broader migration program, this deserves standards attention or very explicit transition guidance."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceMetric:TYPE_DOMAIN:DeviceMetric.category:19b7e1",
+      "title": "`category` changes from required primitive code to extensible CodeableConcept",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Because `category` is mandatory in R4 and R6 but changes wire shape, every R4 instance requires conversion from a primitive code to CodeableConcept. Ordinary migration is mechanical because the core codes remain available, so this drives the resource-level migration requirement more than it drives a revisit recommendation."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceMetric:TERMINOLOGY_BINDING:DeviceMetric.operationalStatus:54ce8f",
+      "title": "`operationalStatus` required value set removes `entered-in-error` and adds `unknown`",
+      "role": "important-but-local",
+      "reasonMd": "This is a real required-binding break for instances that used `entered-in-error`, but the R6 model has a clearer target in `status=entered-in-error`. It is a local terminology migration and probably acceptable if migration guidance makes the lifecycle-versus-operational split explicit."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceMetric:TERMINOLOGY_BINDING:DeviceMetric.color:3a91bd",
+      "title": "`color` changes from R4 metric-color code to R6 CodeableConcept bound to color-codes",
+      "role": "important-but-local",
+      "reasonMd": "This is an optional display-oriented field, so it should not dominate the resource conclusion. A deprecated primitive alias would be a relatively low-cost compatibility measure, but the safety value is low and ordinary R4 colors can be mapped into the richer R6 color coding model."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.measurementFrequency:8fb2d4",
+      "title": "`measurementPeriod` Timing is removed and replaced by `measurementFrequency` Quantity",
+      "role": "important-but-local",
+      "reasonMd": "Populated R4 cadence data needs more than a simple rename because Timing can express schedules that are not equivalent to a single Quantity frequency. This can require human or device-profile policy, but retaining both fields in base R6 would create conflicting cadence representations."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceMetric:TYPE_DOMAIN:DeviceMetric.calibration:bd4e02",
+      "title": "Calibration type/state change from required primitive codes to extensible CodeableConcepts, with state code change",
+      "role": "important-but-local",
+      "reasonMd": "Calibration can be safety-relevant when present, and populated R4 entries need code wrapping plus `unspecified` to `unknown` handling. Because the backbone and affected children are optional and the richer CodeableConcept pattern is coherent, this is mainly a migration-guidance item rather than a resource-level blocker."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceMetric:FLAGS_AND_MODIFIERS:summary-flags:aa6e71",
+      "title": "Several formerly summary elements are no longer marked `isSummary` in R6",
+      "role": "discounted",
+      "reasonMd": "The summary-flag changes can affect `_summary` payloads and generated summary views, but they do not invalidate instances or remove data from full reads. For FMM 1 DeviceMetric, this is discounted as runtime/tooling churn rather than a reason to alter the resource-level posture."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DeviceMetric:ELEMENT_PRESENCE_OR_IDENTITY:DeviceMetric.availability:6c2a44",
+      "title": "R6 adds optional `availability` with no R4 representation",
+      "role": "discounted",
+      "reasonMd": "This is additive for R4-to-R6 migration. It can cause reverse-direction information loss for new R6 content, but it does not contribute materially to unavoidable R4-to-R6 migration."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource behavior context can affect platform behavior around all resources, but it is not a DeviceMetric-specific behavior change and is therefore not scored into the DeviceMetric resource-level conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `source`/`parent` to required `device` transition. If the R6 model is retained, provide normative-quality migration guidance for choosing the referenced device and handling R4 instances with both, one, or neither relationship."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish explicit DeviceMetric R4-to-R6 mapping guidance for assigning `status`, wrapping primitive `category`, `color`, and calibration codes as CodeableConcepts, moving `entered-in-error` from `operationalStatus` to `status`, and converting simple `measurementPeriod` Timing values to `measurementFrequency` Quantity."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Treat summary-flag differences and optional `availability` as documentation/downgrade considerations rather than blockers to the R6 DeviceMetric design."
+    }
+  ],
+  "caveats": [
+    "The review is based on local R4/R6 definitions and generated reports, not external implementation telemetry.",
+    "R4 DeviceMetric FMM 1 weakens stability expectations; the safety discussion is based on plausible device-monitoring semantics rather than measured deployment prevalence.",
+    "Shared Resource/DomainResource behavior findings were considered as context only because DeviceMetric is neither Resource nor DomainResource.",
+    "R6 input is ballot4, so final published R6 content may differ."
+  ]
+}

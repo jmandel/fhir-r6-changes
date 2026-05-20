@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Coverage",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Coverage.resource-review-context.json",
+    "structureReportPath": "output/Coverage.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Coverage.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 7,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Coverage resource context, the full Coverage StructureDefinition report, the deterministic aggregate as prior context, and the relevant R4/R6 Coverage StructureDefinition elements. Behavior reports were checked for findings whose `affectedResources` include `Coverage`; none were present. Shared `Resource`/`DomainResource` behavior findings were considered as contextual infrastructure risk only, not as Coverage-specific drivers."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "fm",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 Coverage is trial-use/FMM 2, so the compatibility burden is neutral rather than normative. That softens the standards-preservation presumption, but the payer and identifier fields are central to billing, eligibility, claim routing, and member matching, so practical business risk still matters."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Coverage needs a targeted resource-level migration for payer classification and identifier remodels, but low-cost preservation of common identifier fields still matters."
+  },
+  "reasoning": {
+    "thesisMd": "Coverage keeps its resource identity and much of its surrounding shape, but R6 materially remodels the core payer model and two common identifier representations. A migration program is unavoidable for real R4 Coverage data because valid R4 instances lack the new mandatory `kind` discriminator and contain the removed required `payor` element. That does not make every additional break irrelevant: the same-path primitive-to-`Identifier` changes for `subscriberId` and `class.value` look more avoidable than the payer split and remain standards-review-worthy.",
+    "migrationShapeMd": "The actual shape is a **moderate targeted remodel**, not a removed resource or wholesale replacement. The driving changes are `Coverage.kind` 1..1 required code with error constraints, removal/splitting of required R4 `Coverage.payor` into `insurer` and `paymentBy`, and string-to-`Identifier` representation changes for `subscriberId` and `class.value`. Other changes are either forward-compatible widenings, optional R6 additions, or semantic clarifications.",
+    "compatibilityLeverageMd": "Because every valid R4 Coverage has the old payer shape and lacks `kind`, implementers should expect a Coverage-specific conversion path. However, compatibility leverage remains meaningful where R6 can preserve old wire shape at modest cost. The payer discriminator/split has a stronger modeling rationale and real conflict risks if old and new payer fields coexist. By contrast, retaining deprecated string fields or adding Identifier-valued siblings for subscriber and class identifiers would preserve many R4 instances while still enabling richer R6 data.",
+    "lessBreakingAlternativesMd": "For `kind`, making the discriminator optional would preserve old instances but would undercut base validation of `insurer` versus `paymentBy`. For `payor`, a deprecated alias would reduce breakage but create duplicate central payer representations and conflict rules. For `subscriberId` and `class.value`, additive Identifier elements or temporary deprecated string support appear lower-cost and would preserve common R4 payloads. No less-breaking alternative is needed for optional R6-only fields or the lowered cost-to-beneficiary value cardinality because those are not forward R4-to-R6 breaks.",
+    "behaviorImpactMd": "No direct OperationDefinition, SearchParameter, or HTTP REST behavior findings were found for `Coverage`. The 11 shared `Resource`/`DomainResource` behavior findings remain relevant to general server/client migration planning, but they do not change the Coverage resource-level conclusion because Coverage is not itself `Resource` or `DomainResource`.",
+    "comparisonToDeterministicAggregateMd": "The independent conclusion aligns with the deterministic aggregate's `moderate-targeted-remodel`, `Partial`, and `preserve-where-low-cost-but-expect-resource-migration` result. The agreement is based on the actual migration shape rather than the counts alone: the payer remodel makes a Coverage migration path unavoidable, while the two Identifier representation changes are the main avoidable compatibility concerns.",
+    "uncertaintyMd": "No official R4-to-R6 Coverage diff, ConceptMap, or committee rationale was available in the supplied inputs. Payer migration intent and the feasibility of preserving legacy fields were inferred from StructureDefinition definitions, constraints, and local reports; terminology expansions were not run."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Coverage:ELEMENT_PRESENCE_OR_IDENTITY:Coverage.kind:8f4b31",
+      "title": "Coverage.kind is a new mandatory required-code element with cross-element constraints",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is one of the resource-level migration drivers: every R4 Coverage lacks `kind`, and R6 uses it to enforce `insurer` versus `paymentBy`. The break is material and business-sensitive, but the less-breaking optional-discriminator alternative would not meet the same base validation goal."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Coverage:ELEMENT_PRESENCE_OR_IDENTITY:Coverage.payor:3dbad7",
+      "title": "Required R4 Coverage.payor was removed and split into insurer/paymentBy semantics",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "R4 required `payor`, while R6 removes it and separates insurance issuer from self-pay/payment responsibility. This makes a Coverage conversion program unavoidable and may require business judgment for ambiguous or mixed payer cases. The split appears proportionate, but official mapping guidance is important."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Coverage:TYPE_DOMAIN:Coverage.subscriberId:f1a6ce",
+      "title": "Coverage.subscriberId changed from a single string to repeating Identifier",
+      "role": "important-but-local",
+      "reasonMd": "This is a hard old-valid/new-invalid representation change on a common member lookup and eligibility field. The richer Identifier goal is valid, but a deprecated string plus an additive repeating Identifier field looks like a plausible low-cost compatibility-preserving design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Coverage:TYPE_DOMAIN:Coverage.class.value:49c0e2",
+      "title": "Coverage.class.value changed from string to Identifier",
+      "role": "important-but-local",
+      "reasonMd": "Existing class components with required string values must be reshaped into Identifier objects. The forward migration is often mechanical, but preserving the legacy string while adding optional Identifier metadata would reduce breakage with manageable duplicate-field tradeoffs."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Coverage:CARDINALITY:Coverage.costToBeneficiary.value:2e6a58",
+      "title": "Cost-to-beneficiary entries no longer require value[x] and gained additional benefit dimensions",
+      "role": "discounted",
+      "reasonMd": "Lowering `value[x]` from required to optional is forward-compatible for R4 instances. The concern is R6-to-R4 downgrade loss for value-less or more dimensioned cost components, which is a local conversion policy issue rather than an R4-to-R6 break to avoid."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Coverage:SEMANTIC_OR_CONFORMANCE_TEXT:Coverage.status:b7e942",
+      "title": "Coverage.status semantics now explicitly separate resource status from policy in-force period",
+      "role": "discounted",
+      "reasonMd": "The computable shape and apparent required code family remain stable. The R6 text is a useful semantic clarification that may require business-rule review but does not by itself invalidate R4 Coverage instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Coverage:CONVERSION_OR_MAPPING:Coverage.optional-r6-fields:0a91fd",
+      "title": "R6 adds optional Coverage fields that are not natively representable in R4",
+      "role": "discounted",
+      "reasonMd": "Optional additions are the normal compatibility-preserving evolution path for R4-to-R6. They require downgrade extensions or loss policy for bidirectional exchange, but they should not drive break-avoidance conclusions."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "This shared Resource operation issue can affect validation workflows for Coverage instances, but it is not a Coverage-specific resource model change and was not scored into the Coverage resource conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes may affect generic clients searching Coverage, but the finding applies at Resource/DomainResource infrastructure level and does not alter the Coverage-specific migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Create or verify official Coverage R4-to-R6 mapping guidance for `kind`, `payor`, `insurer`, and `paymentBy`, including insurance, self-pay, other, multiple-payer, and ambiguous payer cases."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit whether `Coverage.subscriberId` and `Coverage.class.value` can preserve legacy string representations through deprecated fields, aliases, or additive Identifier-valued companions before making the same-path type replacement final."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish downgrade policy for R6-only Coverage content such as `statusReason`, `insurancePlan`, `paymentBy.responsibility`, and expanded cost-to-beneficiary dimensions, including extension recommendations where data loss is unacceptable."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update Coverage implementation guidance for search indexes, FHIRPath, generated models, and business rules that previously depended on `payor`, scalar `subscriberId`, scalar `class.value`, or `status = active` as an in-force signal."
+    }
+  ],
+  "caveats": [
+    "No direct behavior findings whose affectedResources include Coverage were present in the supplied behavior reports.",
+    "Shared Resource/DomainResource behavior findings were treated as context only, per the review instructions.",
+    "No official Coverage R4-to-R6 ConceptMap or ballot rationale was available; some mapping judgments are inferred.",
+    "Terminology expansions for Coverage-related value sets were not run."
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Subscription",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Subscription.resource-review-context.json",
+    "structureReportPath": "output/Subscription.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Subscription.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Subscription structure report, resource-review context, deterministic aggregate, direct behavior findings that list `Subscription`, and the local R4/R6 StructureDefinition and SearchParameter files for Subscription. Shared `Resource`/`DomainResource` behavior was treated as context only because the assigned resource is `Subscription`."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "fhir",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Subscription was trial-use/FMM 3, so compatibility is a meaningful expectation for deployed notification workflows, generated models, REST search, and operational routing. That maturity does not prohibit a coherent redesign, but it raises the burden to provide migration maps, search transition guidance, and clear semantics for safety- and privacy-relevant delivery behavior."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Subscription keeps its resource identity, but R6 replaces the required R4 criteria/channel request model with topic/filter/channelType semantics, so a migration program is unavoidable while low-cost transition support still matters."
+  },
+  "reasoning": {
+    "thesisMd": "The practical R4-to-R6 shape is not a removed resource, but it is a major remodel of the operational subscription request. A normal valid R4 Subscription has required `criteria`, required `channel`, and required `reason`; R6 requires `topic` and `channelType`, removes `criteria` and the `channel` backbone, makes `reason` optional, introduces `filterBy`, and moves delivery settings and operational status/error concepts into new structures. Because the required R4 trigger and delivery model cannot validate as R6 without transformation, resource-level migration is already unavoidable for real Subscription data.",
+    "migrationShapeMd": "The hard break is concentrated in the resource's central purpose: deciding what events trigger notifications and how they are delivered. Mapping `criteria` to `Subscription.topic` plus topic-scoped `filterBy` is not just a field rename; it depends on topic catalogs, allowed resources, filter parameters, comparators, modifiers, and implementation policy. Channel migration is more mechanical but still changes required wire shape and generated APIs from a nested `channel.type` primitive to top-level `channelType` `Coding` plus top-level delivery settings. Payload, header, and error/status changes add policy work around PHI disclosure, authentication/routing data, and operational troubleshooting.",
+    "compatibilityLeverageMd": "The unavoidable migration does not mean additional compatibility preservation is pointless. It does lower the value of preserving old base elements when doing so would create duplicate trigger, delivery, credential, or status sources. It does not lower the value of low-cost transition measures such as deprecated search aliases where equivalent, explicit CapabilityStatement guidance, official StructureMaps or ConceptMaps, test fixtures, terminology mappings, and clear defaults for payload content. These measures reduce migration risk without forcing R6 validators and servers to support two full subscription semantics indefinitely.",
+    "lessBreakingAlternativesMd": "For the core structural changes, the plausible less-breaking alternatives are mostly partial and not clearly low cost. Retaining deprecated `criteria` beside mandatory `topic` would preserve some old wire instances but would also keep arbitrary search-trigger semantics beside the computable SubscriptionTopic model. Retaining the old `channel` backbone, free-form header strings, or last-error field would create duplicate or conflicting operational state, including sensitive routing/authentication data. By contrast, preserving search discoverability aliases, documenting stable search-expression moves, and publishing conversion maps are lower-cost and remain valuable.",
+    "behaviorImpactMd": "The direct behavior findings reinforce the same migration story rather than creating an independent resource identity break. Base CapabilityStatement search advertisement churn can hide R4-era `Subscription.criteria` affordances from metadata-driven clients. Stable search codes such as `payload`, `type`, and `url` now index R6 paths (`contentType`, `channelType`, and `endpoint`) after data migration. These are manageable when data, indexes, and advertised metadata migrate together, but they deserve transition planning. Shared `Resource`/`DomainResource` behavior findings were not scored for Subscription.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial` major migration with `moderate-targeted-remodel` and `preserve-where-low-cost-but-expect-resource-migration`. I agree with the compatibility-leverage conclusion, but I judge migration unavoidability higher: the two hard breaks affect required, central R4 elements present in ordinary valid instances, and criteria-to-topic/filter migration is policy-dependent rather than a local field rewrite.",
+    "uncertaintyMd": "The confidence is high for the structural conclusion because the R4 and R6 definitions directly show the required element replacements. Remaining uncertainty concerns exact HL7 migration intent, final R6 ballot changes, live terminology expansion details, and the absence of official Subscription-specific cross-version maps."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:criteria-topic:7f3a1d",
+      "title": "Inline R4 criteria was replaced by a mandatory SubscriptionTopic reference and topic-scoped filters",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the central migration driver. R4 required an inline search string in `criteria`; R6 requires a canonical `Subscription.topic` and uses `filterBy` constrained by the topic. Old valid instances are new invalid, and safe migration requires business knowledge about the intended event stream."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Subscription:SERIALIZATION_OR_CODEGEN:channel-channelType:8b2c6e",
+      "title": "R4 channel backbone was flattened and channel.type changed from primitive code to Coding",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Every valid R4 Subscription has the required `channel` backbone, while R6 requires top-level `channelType` and has no `channel` element. The forward mapping is often mechanical, but the required wire shape and generated API break is universal and delivery-channel mistakes can suppress notifications or route data incorrectly."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Subscription:CONVERSION_OR_MAPPING:payload-content:3c9d44",
+      "title": "Payload configuration split into contentType and content level, changing no-payload and partial-payload semantics",
+      "role": "important-but-local",
+      "reasonMd": "This does not by itself make all R4 instances invalid, but populated payload settings are privacy- and workflow-sensitive. Migrators must decide how R4's MIME-or-omitted shorthand maps to R6 `contentType` plus `content` levels such as `empty`, `id-only`, and `full-resource`."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Subscription:SERIALIZATION_OR_CODEGEN:header-parameter:5aa91b",
+      "title": "Free-form channel headers became structured channel parameters with required name and value",
+      "role": "important-but-local",
+      "reasonMd": "Header strings often carry authentication or routing information, so parsing errors can break delivery or leak credentials. The structured R6 parameter design is defensible, but migration needs explicit parsing and validation rules rather than silent best-effort conversion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:error-status-resource:1f4e80",
+      "title": "Subscription.error was removed from Subscription and error reporting appears to move to SubscriptionStatus",
+      "role": "important-but-local",
+      "reasonMd": "This is a local operational migration chore once the R6 status resource split is accepted. It matters for monitoring and troubleshooting, but it does not drive the resource-level conclusion as strongly as the required trigger and delivery model replacements."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Subscription:VALUE_CONSTRAINT:filterBy-scr1:91e7ac",
+      "title": "R6 filterBy introduces mandatory child fields and a new comparator/modifier mutual-exclusion invariant",
+      "role": "discounted",
+      "reasonMd": "The invariant constrains newly created R6 `filterBy` rows; it does not independently reject an R4-valid instance because R4 had no `filterBy`. Its practical importance is as converter guidance within the broader criteria-to-topic migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Subscription:TERMINOLOGY_BINDING:status-entered-in-error:ab42d0",
+      "title": "Subscription.status required value set adds entered-in-error, widening a modifier element's code domain",
+      "role": "discounted",
+      "reasonMd": "All R4 status codes remain valid in R6, so this is not a forward instance break. It is important for R6-to-R4 down-conversion and exhaustive enum handling, but it should not be treated as avoidable R4-to-R6 breakage."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Subscription:CARDINALITY:reason-min-decreased:e32b57",
+      "title": "Subscription.reason changed from mandatory in R4 to optional in R6",
+      "role": "discounted",
+      "reasonMd": "The cardinality relaxation preserves all R4-valid instances for this path. The only issue is reverse conversion of R6 instances that omit `reason`, which is a round-trip/profile concern rather than a reason to revisit the R6 base change."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Subscription:ELEMENT_PRESENCE_OR_IDENTITY:new-r6-only-fields:64c0ad",
+      "title": "R6 adds optional metadata, ownership, and delivery-control fields with no native R4 counterparts",
+      "role": "discounted",
+      "reasonMd": "Optional additions such as `identifier`, `name`, `managingEntity`, `heartbeatPeriod`, `timeout`, and `maxCount` are compatible in the R4-to-R6 direction. They need round-trip preservation strategy, not standards-level break avoidance."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:search-advertisement-churn",
+      "title": "Base CapabilityStatement search advertisements changed across most common resources",
+      "role": "needs-follow-up",
+      "reasonMd": "For Subscription, metadata-driven clients can lose discovery of R4-era searches such as `criteria`. Search advertisement compatibility is a lower-cost place to preserve transition affordances where semantics remain computable, but exact choices must follow the SearchParameter analysis and the new topic/filter model."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "Subscription keeps stable search codes including `payload`, `type`, and `url`, but their expressions move from `channel.payload`, `channel.type`, and `channel.endpoint` to `contentType`, `channelType`, and `endpoint`. This is acceptable if data and indexes migrate together, but compatibility servers should document or test the transition."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search context may affect all resources operationally, but it is not a Subscription-specific migration driver and was not scored in the Subscription conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or validate an explicit R4-to-R6 Subscription migration map with fixtures for `criteria` to `topic`/`filterBy`, `channel` to `channelType`/`endpoint`, payload policy, header parameters, and error/status handling."
+    },
+    {
+      "priority": "High",
+      "actionMd": "For standards review, ensure the R6 Subscription specification explains why the old inline criteria/channel model is not retained and gives implementers enough guidance to avoid missed notifications, incorrect routing, and excessive PHI disclosure."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Preserve low-cost REST search transition support where possible: deprecated aliases or documentation for removed/renamed Subscription searches, CapabilityStatement guidance, and tests for stable search codes whose expressions moved."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Confirm channel-type, payload-content, MIME type, and status terminology mappings against the exact R4 and R6 package dependencies before relying on automated conversion."
+    }
+  ],
+  "caveats": [
+    "The R6 input package is 6.0.0-ballot4, so final R6 publication could change details.",
+    "No official Subscription-specific cross-version StructureMap, ConceptMap, or migration guide was available locally.",
+    "Terminology review used local package content; no live terminology expansion was performed.",
+    "Shared Resource/DomainResource behavior findings were considered as context only and were not scored as Subscription-specific breaks."
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Encounter",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Encounter.resource-review-context.json",
+    "structureReportPath": "output/Encounter.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Encounter.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 13,
+    "reviewedDirectBehaviorFindingCount": 6,
+    "reviewedSharedBehaviorContextCount": 10,
+    "methodNotesMd": "Reviewed the output contract, resource-level rubric, fresh-review framework, Encounter resource-review context, full Encounter StructureDefinition report, deterministic aggregate, and the direct behavior findings whose `affectedResources` include `Encounter`. Shared `Resource`/`DomainResource` behavior findings were considered only as migration context because the assigned resource is `Encounter`, not the base artifacts."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 Encounter was trial-use/FMM 2, so it does not carry normative or mature-trial-use stability pressure. That neutral baseline does not make the breaks harmless: Encounter is a common clinical/administrative resource, and several changed paths carry workflow, audit, billing, search, or generated-code consequences."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Encounter keeps its identity, but R6 remodels enough core status, timing, class, participant, reason, diagnosis, service, admission, and history surfaces that a resource-level migration program is unavoidable; low-cost compatibility preservation still has real value."
+  },
+  "reasoning": {
+    "thesisMd": "The actual migration shape is not resource replacement but a broad same-resource remodel. A real Encounter migration program is already required for normal R4 instances because central fields are not merely extended: `status` changes required codes, `class` changes shape and cardinality, `period` is renamed, inline histories are removed, participant actor naming and targets change, reason and diagnosis move into CodeableReference-style models, service type changes representation, and admission/location substructure moves or renames. That makes resource-level migration unavoidable, but it does **not** mean every further break is low value to prevent.",
+    "migrationShapeMd": "The hard migration work is a mix of mechanical transforms and policy decisions. Mechanical transforms include wrapping `class` and `serviceType`, renaming `period`, `participant.individual`, `hospitalization`, and `location.physicalType`, and reshaping reason fields. Policy-heavy transforms include required `status` code mapping, preserving or replacing status/class histories, handling `diagnosis.rank` and Procedure diagnoses, choosing R6-to-R4 behavior for new workflow fields, and deciding how to advertise/support Encounter `$everything`.",
+    "compatibilityLeverageMd": "Because broad migration is unavoidable, preventing one additional local path change will not remove the need for an Encounter migration project. However, preserving low-cost compatibility remains high leverage where it avoids expert-dependent loss, protects common generated-code/FHIRPath/search surfaces, or resolves package/narrative inconsistency. The right posture is to accept that Encounter needs migration while still revisiting avoidable renames, required-code removals, absent replacement artifacts, and search/operation aliases.",
+    "lessBreakingAlternativesMd": "The most compelling less-breaking base designs are retaining `Encounter.period` as the actual period while adding planned dates, broadening `participant.individual` rather than renaming it, keeping `location.physicalType` with clarified wording/binding, keeping deprecated `status` aliases or an official required status ConceptMap during transition, retaining inline histories until an EncounterHistory replacement is computably present, and preserving diagnosis `rank`/Procedure compatibility long enough to avoid billing or clinical loss. Less compelling alternatives are duplicate parallel fields for `class`, `reason`, `hospitalization`, and `serviceType`, where the R6 remodel has a coherent goal and aliases would create persistent conflict rules.",
+    "behaviorImpactMd": "Direct behavior findings add runtime/API migration but do not change the structural conclusion. The most important Encounter-specific behavior issue is the omitted computable Encounter `$everything` OperationDefinition while R6 pages still publish it; that looks avoidable and standards-review-worthy. SearchParameter code/reference splits are also important because old clinical token queries can disappear or need aliases. CapabilityStatement operation/search advertisement churn is real but grouped and should be resolved through operation/search-specific follow-up. The removed US Realm `$everything` returned-data SHALL is a conformance text migration more appropriately handled by IGs. Shared Resource/DomainResource operation and search findings remain context only for this review.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's high-level result: `major-model-remodel`, major migration `Yes`, and `preserve-where-low-cost-but-expect-resource-migration`. The independent review gives more qualitative separation: additive `basedOn`/workflow fields should not be treated as forward breaks, several remodels are local chores once the R6 model is accepted, and the continuing standards value is concentrated in avoidable renames, status/history/diagnosis loss, Encounter `$everything`, and search compatibility aliases.",
+    "uncertaintyMd": "Confidence is high for the resource-level conclusion because the StructureDefinition deltas are concrete and numerous. The main uncertainties are official Encounter migration intent, the absent local `EncounterHistory` artifact despite R6 comments, official status terminology mappings/expansions, and whether the Encounter `$everything` package omission is an intentional retirement or publication inconsistency."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:TERMINOLOGY_BINDING:Encounter.status:status-codes",
+      "title": "Required Encounter.status code set removed several R4 lifecycle states",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`status` remains mandatory and modifier, so removed required codes are a direct old-valid/new-invalid break on a central workflow field. Even with FMM 2, the mappings for `arrived`, `triaged`, `onleave`, and `finished` are safety/business relevant and deserve status aliases, ConceptMaps, or explicit standards review."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:TYPE_DOMAIN:Encounter.class:coding-to-codeableconcept",
+      "title": "Encounter.class changed from mandatory single Coding to optional repeating CodeableConcept",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This common field's JSON and generated-model shape changes from one `Coding` to repeating `CodeableConcept`. It materially contributes to the need for migration, but it is mostly a local transform once the richer/multiple-class R6 model is accepted; preserving both old and new class representations would create conflict rules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.period:actualPeriod",
+      "title": "Encounter.period was replaced by Encounter.actualPeriod and planned dates were added",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a high-value avoidable path break: the type and cardinality stayed `0..1 Period`, and planned dates could have been added while keeping `period` as actual timing. It breaks instances, FHIRPath, generated APIs, and common date logic without much apparent model payoff."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.histories:removed",
+      "title": "statusHistory and classHistory were removed from Encounter",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Removing inline histories can reject old instances and lose operational/audit history. The report found R6 comments pointing to `EncounterHistory` but no local computable StructureDefinition, so this remains standards-review-worthy rather than just a mechanical migration chore."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:REFERENCE_TARGET:Encounter.participant.individual:actor",
+      "title": "participant.individual was renamed to actor and target types expanded",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The target expansion is useful, but the wire-path break appears low-cost to avoid by keeping `participant.individual` with broader targets/prose. This is a common generated-code and FHIRPath surface, so compatibility preservation still matters despite the broader Encounter remodel."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.reason:merged",
+      "title": "reasonCode and reasonReference were merged into Encounter.reason.value CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "This is a real clinical path/model migration, including target changes, but the unified CodeableReference reason backbone has a coherent goal. Deprecated old reason lists would preserve R4 JSON but create duplicate clinical reason representations and merge/conflict risks."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:TYPE_DOMAIN:Encounter.diagnosis.condition:remodel",
+      "title": "Diagnosis condition/use/rank were remodeled",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Diagnosis migration is policy-heavy: Procedure targets and `rank` disappear, `condition` becomes repeatable CodeableReference to Condition, and billing rank may move to Account. Because diagnosis and rank affect clinical/business workflows, this remains a Revisit-level concern even though the broader migration program is already required."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.hospitalization:admission",
+      "title": "hospitalization was renamed to admission and selected children moved to Encounter root",
+      "role": "important-but-local",
+      "reasonMd": "This is an old-path break but mostly a transformable optional-path migration. Once the R6 admission/preference scoping is accepted, retaining both nested and root preference locations would create duplicate-location consistency rules, so it is less central than status/timing/history/diagnosis."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:TYPE_DOMAIN:Encounter.serviceType:codeableReference",
+      "title": "serviceType changed from CodeableConcept to repeating CodeableReference(HealthcareService)",
+      "role": "important-but-local",
+      "reasonMd": "Populated R4 values need wrapping, but the field is optional/example-bound and the R6 goal of supporting coded or referenced services is coherent. This is a local migration chore more than a reason to challenge the resource-level design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:VALUE_CONSTRAINT:Encounter.participant:enc-1-enc-2",
+      "title": "R6 adds error constraints on participant actor/type combinations",
+      "role": "important-but-local",
+      "reasonMd": "The new invariants can reject sparse R4 participants, but they enforce meaningful participant entries and avoid misleading Patient/Group typing. A warning-first rollout would be less disruptive, but this does not dominate the resource-level conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:ELEMENT_PRESENCE_OR_IDENTITY:Encounter.location.physicalType:form",
+      "title": "location.physicalType was renamed to location.form",
+      "role": "important-but-local",
+      "reasonMd": "This same-type, same-cardinality rename has a low-cost compatibility alternative: keep the old path and broaden the wording/binding. It is lower impact than the core remodels but still a clear avoidable path/codegen break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:REFERENCE_TARGET:Encounter.basedOn:expanded",
+      "title": "basedOn reference target set was widened",
+      "role": "discounted",
+      "reasonMd": "This preserves the R4 ServiceRequest target and only adds R6 targets. It creates R6-to-R4 policy work but should not count as an R4-to-R6 compatibility break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Encounter:CONVERSION_OR_MAPPING:Encounter.r6Only:workflow-fields",
+      "title": "R6 adds optional workflow fields with no native R4 Encounter location",
+      "role": "discounted",
+      "reasonMd": "Optional R6 additions such as `businessStatus`, `subjectStatus`, `careTeam`, `virtualService`, and planned dates are the compatibility-preserving way to expand the resource. They matter for down-conversion but do not make old R4 instances invalid."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Encounter-everything:encounter-everything-computable-definition-omitted",
+      "title": "R6 package and base advertisements omit Encounter $everything while R6 pages still publish it",
+      "role": "important-but-local",
+      "reasonMd": "This is an Encounter-specific API/discovery break and looks especially avoidable because the R6 pages still publish the operation. It does not drive the StructureDefinition migration shape, but it is standards-review-worthy for generated clients, conformance tooling, and route discovery."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Encounter-everything:encounter-everything-us-realm-returned-data-obligation-removed",
+      "title": "R6 narrative removes the R4 US Realm DAF/meaningful-use returned-data SHALL",
+      "role": "discounted",
+      "reasonMd": "This is a conformance-text change, not a request/response shape break. Moving obsolete US Realm completeness obligations out of international core is reasonable; remaining compatibility should be handled by IGs or server contracts."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:codeable-reference-splits-clinical",
+      "title": "Several common clinical search codes split into code/reference variants or changed type because elements became CodeableReference-like",
+      "role": "important-but-local",
+      "reasonMd": "Encounter participates in the broader CodeableReference search split pattern. Old token searches for clinically important fields can fail or return different results, and deprecated aliases for old token names are a meaningful low-cost compatibility measure where semantics map to the R6 concept branch."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "Reference target/search chain changes are real runtime migration work for typed and chained Encounter queries, but most follow the underlying resource model changes. They call for query mapping and tests rather than changing the overall Encounter conclusion."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:search-advertisement-churn",
+      "title": "Base CapabilityStatement search advertisements changed across most common resources",
+      "role": "needs-follow-up",
+      "reasonMd": "This affects Encounter discoverability through metadata-driven clients, but the grouped finding is intentionally query-specific. It should be resolved by the SearchParameter review and implementation CapabilityStatement guidance, not by treating every advertisement delta as a resource-level structural break."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "needs-follow-up",
+      "reasonMd": "This is relevant to Encounter-capable clients through operation discovery, especially around `$everything`, but the grouped advertisement change needs operation-specific resolution. It is not scored as an Encounter content-model driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This generic Resource operation can affect Encounter instances operationally, but under the review rules shared `Resource` findings are context only for an assigned `Encounter` review and should be handled in the base Resource behavior review."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared special search-parameter behavior may affect clients querying Encounter, but it is a base Resource/DomainResource context issue rather than an Encounter-specific compatibility driver."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Produce an explicit Encounter R4-to-R6 migration specification or StructureMap covering status code mappings, `class`, timing, histories, admission, participants, reasons, diagnoses/rank, serviceType, location form, and R6-to-R4 policy for new workflow fields."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit the avoidable or lossy base-design changes: deprecated/alias support for `period`, `participant.individual`, and `location.physicalType`; transitional handling for removed `status` codes; computable replacement or retention for histories; and explicit preservation/mapping for diagnosis `rank` and Procedure diagnoses."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Resolve the Encounter `$everything` inconsistency by aligning the R6 package, OperationDefinition index, base CapabilityStatement, and rendered pages, or by publishing an explicit deprecation/migration path."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define Encounter search compatibility mappings, especially aliases for old token searches affected by CodeableReference splits where the old semantics map cleanly to R6 concept searches."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Treat the accepted remodel chores (`class`, `reason`, `hospitalization`/`admission`, `serviceType`, and participant invariants) as planned transform/test work rather than as reasons to dismiss lower-cost compatibility preservation elsewhere."
+    }
+  ],
+  "caveats": [
+    "This review used local package/report evidence and did not inspect official Jira/change proposals.",
+    "The local R6 package evidence referenced `EncounterHistory` in comments but did not include a computable `EncounterHistory` StructureDefinition.",
+    "Terminology assessment relied on local JSON artifacts, not terminology-server expansions or official cross-version maps.",
+    "Shared Resource/DomainResource behavior findings can affect Encounter implementations operationally but were intentionally not scored as Encounter-specific findings."
+  ]
+}

@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Immunization",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Immunization.resource-review-context.json",
+    "structureReportPath": "output/Immunization.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Immunization.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 13,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, resource-level rubric, fresh-review framework, Immunization context, full StructureDefinition report, deterministic aggregate, selected R4/R6 StructureDefinition evidence for the key element changes, and the scoped behavior context. Direct behavior findings for `Immunization` were absent. Shared `Resource`/`DomainResource` behavior findings were considered only as implementation context because this review is for `Immunization`, not the base artifacts."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pher",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Immunization is trial-use/FMM 3. That is not a normative freeze, but Immunization is a common public-health and clinical exchange resource, so avoidable wire-format, validation, and data-loss breaks still require a clear rationale and a low-cost transition should be preferred where it does not undercut the R6 design."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "R6 Immunization keeps the same resource identity but remodels enough core fields that a real migration program is unavoidable; that does not eliminate the value of preserving low-cost compatibility for several avoidable breaks."
+  },
+  "reasoning": {
+    "thesisMd": "The actual migration shape is not resource replacement, but it is more than a set of isolated local edits. The same `Immunization` canonical remains present, yet R6 removes or renames R4 wire elements, adopts `CodeableReference` for several established fields, replaces a simple `programEligibility` concept with a required-child backbone, changes protocol dose representation, and adds error-level invariants. Existing R4 instances with common optional fields can be old-valid/new-invalid, and generated model APIs will change in multiple places.",
+    "migrationShapeMd": "A resource-level migration program is already unavoidable. The central transform must map `reasonCode`/`reasonReference` into `reason`, `reportOrigin` into `informationSource`, `reaction.detail` into `reaction.manifestation`, Reference-shaped `manufacturer` into CodeableReference, R4 protocol dose choice names into R6 CodeableConcepts, and R4 `programEligibility` concepts into a new backbone that requires both `program` and `programStatus`. It must also decide what to do with removed `recorded` and `education` data and precheck the new `statusReason` and `subpotentReason` invariants.",
+    "compatibilityLeverageMd": "Because migration is unavoidable, some breaks become local chores within the broader transform, especially CodeableReference remodels whose cleaner R6 shape has real modeling value. But the migration program does not make additional break prevention pointless. For FMM 3 public-health content, retaining deprecated fields, aliases, warning-level constraints, or transition-compatible choices can still reduce rejected registry records, preserve audit data, and limit generated-code churn.",
+    "lessBreakingAlternativesMd": "The strongest preservation candidates are the ones that appear low-cost and do not defeat the R6 model: allow `statusReason` for the `entered-in-error` case described by R6 prose or make the constraint warning/profile-specific; retain `reportOrigin` as a coded origin while adding a richer source reference; keep `recorded` and `education` as deprecated or formally replaced fields; and consider a transition for protocol dose choice names. For `reason`, `manufacturer`, `reaction.manifestation`, and parts of `programEligibility`, compatibility alternatives exist but would leave duplicate representations or weaken the normalized model, so they are more plausibly migration chores once the remodel is accepted.",
+    "behaviorImpactMd": "No direct OperationDefinition, SearchParameter, or HTTP behavior finding was scoped specifically to `Immunization`. The shared `Resource`/`DomainResource` behavior findings still matter to implementers upgrading Immunization workflows because all resource clients may encounter changed `$meta`, `$validate`, `$convert`, capability advertisement, and shared search metadata behavior, but those base-surface breaks are not counted as Immunization-specific drivers.",
+    "comparisonToDeterministicAggregateMd": "After independent review, I agree with the deterministic aggregate's headline: `major-model-remodel`, major migration `Yes`, and `preserve-where-low-cost-but-expect-resource-migration`. The aggregate count is not the reason for the conclusion; the reason is the combination of stable identity with many non-mechanical wire-name, datatype, required-child, removal, and invariant changes. I also agree that the aggregate should not be used to dismiss the individual Revisit findings.",
+    "uncertaintyMd": "Confidence is high for the StructureDefinition deltas because the R4 and R6 core definitions are local and directly comparable. Confidence is lower for terminology and design rationale because official migration notes, Jira/change proposals, ConceptMaps, and full terminology expansions were not available."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:VALUE_CONSTRAINT:Immunization.statusReason:8712b5",
+      "title": "statusReason is now constrained to status = not-done",
+      "role": "needs-follow-up",
+      "reasonMd": "This is a hard validation break and a standards-review-worthy issue because the R6 invariant permits `statusReason` only when `status = 'not-done'`, while the R6 element prose also says the element is used for `entered-in-error`. A warning-level or profile-specific rule, or an invariant that matches the prose, looks like a low-cost way to avoid rejecting plausible R4 records."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:VALUE_CONSTRAINT:Immunization.subpotentReason:6a49d6",
+      "title": "subpotentReason now requires isSubpotent = true",
+      "role": "important-but-local",
+      "reasonMd": "This is old-valid/new-invalid when R4 records carry a subpotency reason without `isSubpotent=true`. It is a real local validation chore, but the clinical consistency goal is strong enough that it does not materially change the resource-level posture beyond requiring migration prechecks."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.reason:15ffae",
+      "title": "reasonCode and reasonReference were replaced by reason CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a core example of the R6 remodel: two R4 collections with different wire names become one `CodeableReference` collection. A compatibility bridge could keep the old names, but it would create parallel reason representations; once the CodeableReference direction is accepted, this is a central migration mapping rather than the best preservation target."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.informationSource:bd6a55",
+      "title": "reportOrigin was replaced by informationSource CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "This matters independently of the broader remodel because R4's coded `reportOrigin` could have been retained while adding richer source actor support. Replacing the existing field creates R4-to-R6 wire breakage and R6-to-R4 loss for references, so this remains a meaningful low-cost preservation candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.recorded:a327e7",
+      "title": "recorded was removed from Immunization",
+      "role": "important-but-local",
+      "reasonMd": "`recorded` removal is data-loss-prone for registry synchronization, audit, and provenance-like workflows. Because no local R6 replacement is evident, retaining it as optional/deprecated or giving a formal replacement path would have high migration value and low modeling cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.education:fb7255",
+      "title": "education backbone was removed",
+      "role": "important-but-local",
+      "reasonMd": "The backbone may be less common than administration details, but when present it records patient education/audit information with legal or public-health relevance. Its removal is an avoidable-looking data preservation issue unless a formal replacement is documented."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:TYPE_DOMAIN:Immunization.programEligibility:d52f3b",
+      "title": "programEligibility changed from CodeableConcept to a backbone with required program and status",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a non-mechanical same-path type replacement. R4 concepts cannot always supply the new required `program`, so migration may require jurisdictional policy or unknown-data handling rather than a syntactic rename. It is one of the strongest reasons the resource needs a planned transform."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:TYPE_DOMAIN:Immunization.protocolApplied.doseNumber:626a54",
+      "title": "protocolApplied doseNumber and seriesDoses changed from choice primitives to CodeableConcept",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This change affects schedule/forecasting semantics and changes required R4 choice wire names into R6 CodeableConcepts. It is safety-relevant and a major migration driver; a transition choice-type expansion would preserve compatibility, but it would also preserve multiple representations for dose concepts."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.reaction.manifestation:d79b18",
+      "title": "reaction.detail was renamed to reaction.manifestation and widened to CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "This is a real wire/API break for adverse-reaction documentation. The R6 name and CodeableReference shape are clinically clearer, so it is more a local mapping chore than a resource-level preservation priority unless existing reaction.detail use is high in a target ecosystem."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:TYPE_DOMAIN:Immunization.manufacturer:f479d6",
+      "title": "manufacturer changed from Reference(Organization) to CodeableReference(Organization)",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The field keeps its path but changes JSON shape from Reference to CodeableReference, so R4 instances are not directly valid as R6. This contributes materially to the model-remodel conclusion, but the R6 goal of representing coded/text manufacturers without Organization resources is substantial."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:REFERENCE_TARGET:Immunization.performer.actor:043f07",
+      "title": "performer.actor can now reference Patient and RelatedPerson",
+      "role": "discounted",
+      "reasonMd": "This widens the R6 target list while preserving all R4 targets, so it is not an R4-to-R6 instance break. It matters for down-conversion policy but should not raise the resource-level migration severity."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:ELEMENT_PRESENCE_OR_IDENTITY:Immunization.optionalAdditions:9fd463",
+      "title": "R6 adds administeredProduct, basedOn, and supportingInformation with no R4 equivalents",
+      "role": "discounted",
+      "reasonMd": "These optional additions are forward-compatible for R4 instances. They add R6-to-R4 round-trip concerns, not a reason to avoid the R6 base additions."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Immunization:TERMINOLOGY_BINDING:Immunization.terminology:e83f63",
+      "title": "Several example bindings and ValueSet definitions changed; required status codes did not",
+      "role": "discounted",
+      "reasonMd": "The local evidence does not show a required binding code removal for `Immunization.status`. Example/extensible ValueSet churn may affect picklists or local profiles, but it is not a base hard instance break without additional terminology evidence."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "Generic Immunization clients may still need to account for base Resource operation removals such as `$meta`, especially for tag/profile/security-label discovery. This is not scored as an Immunization-specific driver because the affected artifact is `Resource`, not `Immunization`."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "Validation clients for Immunization resources may need updated invocation patterns, but this is a shared `Resource` operation-contract issue and should be handled in the base behavior migration plan rather than counted as a local Immunization model break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes can affect generated clients and conformance tests that search Immunization, but the finding is not a direct Immunization SearchParameter change. It remains implementation context only for this resource-level review."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Ask the work group to revisit the low-cost preservation candidates: `statusReason` invariant/prose alignment, `reportOrigin` versus `informationSource`, and the removal of `recorded` and `education` without formal replacement paths."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish explicit R4-to-R6 mapping guidance for `reason`, `manufacturer`, `reaction.manifestation`, `programEligibility`, and `protocolApplied.doseNumber`/`seriesDoses`, including how to represent unknown funding program and coded dose concepts."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define R6-to-R4 downgrade and round-trip policy for CodeableReference fields that contain both concept and reference, R6-only fields, widened performer targets, and `informationSource.reference`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Validate terminology changes with expansions and official rationale before treating example ValueSet churn as clinically significant or harmless for local implementation guides."
+    }
+  ],
+  "caveats": [
+    "Official HL7 Immunization migration notes, Jira rationale, and ConceptMaps were not available in the supplied local inputs.",
+    "No terminology-server expansions were performed, so terminology impact is limited to binding metadata and local ValueSet evidence.",
+    "Shared Resource/DomainResource behavior findings may affect real Immunization clients but are intentionally not counted as direct Immunization findings under the review instructions."
+  ]
+}

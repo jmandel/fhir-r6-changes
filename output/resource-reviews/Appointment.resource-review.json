@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Appointment",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Appointment.resource-review-context.json",
+    "structureReportPath": "output/Appointment.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Appointment.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 12,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the output contract, assessment rubric, fresh-review framework, Appointment resource-review context, full Appointment StructureDefinition report, the deterministic aggregate, targeted R4/R6 Appointment StructureDefinition elements, and the direct SearchParameters behavior finding. Shared Resource/DomainResource behavior findings were read as context only because the reviewed resource is Appointment."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "Appointment was FMM 3 / trial-use in R4, so there is meaningful deployed-stability pressure for common scheduling, billing, patient-instruction, and operational workflows. Trial-use status leaves room for model improvement, but same-path type replacements, spelling-only wire renames, and lossy semantic collapses still need a strong compatibility or transition story."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Appointment keeps its R4 identity, but R6 changes enough common scheduling fields that a resource-level migration program is unavoidable while several low-cost compatibility-preservation issues still deserve review."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a removed/replaced resource: canonical identity, kind, type, baseDefinition, and core appointment identity remain stable. However, it is also not a simple version-label update. R6 replaces or reshapes multiple common Appointment fields: cancellation reason spelling, reason CodeableReference consolidation, comment-to-note, participant attendance semantics, numeric priority, patient instructions, service type, and a new start/end invariant, while adding native recurrence/series concepts for forward use. A migration program is therefore already needed for realistic Appointment stores and APIs.",
+    "migrationShapeMd": "The forward R4-to-R6 work is a structural transform. Some changes are mechanical but broad, such as wrapping `reasonCode`, `reasonReference`, `serviceType`, and `patientInstruction` into CodeableReference or Annotation shapes. Others require domain policy, especially `participant.required` because `information-only` no longer maps to a boolean, `priority` because there is no universal numeric-to-CodeableConcept mapping, and the removed `ImmunizationRecommendation` reason target. The R6 recurrence/series additions do not invalidate old R4 instances, but they make downgrade and synchronization planning part of any serious Appointment migration.",
+    "compatibilityLeverageMd": "Because several common fields already require transforms, preventing one additional local break has less leverage than it would on a mostly stable resource. That does **not** mean compatibility no longer matters. FMM 3 Appointment is central to scheduling operations, and several breaks appear cheap to avoid or at least cheap to document with transition semantics. The right posture is to expect a migration program but still preserve compatibility where it does not create conflicting duplicate models or weaken the R6 goal.",
+    "lessBreakingAlternativesMd": "The strongest standards-review targets are the spelling-only `cancelationReason` rename, the `serviceType` replacement where a separate HealthcareService reference could preserve coded service types, the removal of `ImmunizationRecommendation` from reason targets, and the `priority`/`participant.required` changes where mapping is not lossless. By contrast, `comment` to `note`, reason CodeableReference consolidation, patientInstruction enrichment, and the start/end ordering invariant look more like local migration chores once the richer R6 model is accepted, even though they still need clear conversion guidance.",
+    "behaviorImpactMd": "The only direct behavior finding for Appointment is the shared SearchParameters target-list/chaining change. It adds medium runtime/API migration work for typed reference modifiers, generated target enums, and chained search, but it mostly follows underlying model/reference target changes and does not independently change the resource-level conclusion. The 11 Resource/DomainResource behavior findings are relevant environment context for servers but are not scored against Appointment.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's final posture: major migration is already unavoidable and compatibility leverage should be `preserve-where-low-cost-but-expect-resource-migration`. My independent rationale emphasizes that Appointment's stable identity and stable core scheduling fields mean the issue is not resource replacement; the migration burden comes from numerous common local element remodels plus downgrade/behavior implications. I also separate avoidable standards-review issues from changes that are mostly migration chores.",
+    "uncertaintyMd": "Confidence is high for the computable structural differences because the R4 and R6 StructureDefinitions were directly checked. Confidence is lower for standards justification where official work-group rationale, full terminology expansions, and final R6 publication status were not available."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.cancelationReason:637652",
+      "title": "`cancelationReason` was renamed to `cancellationReason`",
+      "role": "needs-follow-up",
+      "reasonMd": "This is a hard wire-format and generated-code break for a spelling correction with unchanged meaning, cardinality, type, and binding. It does not by itself make the resource migration program unavoidable, but it is a strong low-cost preservation candidate: retaining the historical R4 spelling, or an allowed transition alias if feasible, would avoid rejecting existing cancelled/no-show Appointment instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.reason:ad289d",
+      "title": "`reasonCode` and `reasonReference` were replaced by `reason` CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The reason model moves from two R4 arrays to one CodeableReference array, changing validation shape and generated APIs for a common clinical scheduling field. The consolidation has a coherent R6 design goal and old values can usually be wrapped, but it is one of the changes that makes a resource-level transform unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:REFERENCE_TARGET:Appointment.reasonReference:3e175f",
+      "title": "Reason reference targets changed: ImmunizationRecommendation removed, DiagnosticReport added",
+      "role": "needs-follow-up",
+      "reasonMd": "Adding DiagnosticReport is forward-looking, but removing ImmunizationRecommendation creates an old-valid/new-invalid target case that wrapping into CodeableReference cannot fix. Unless there is a clear clinical rationale, preserving the R4 target while adding the new one appears low cost and more compatible."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:ELEMENT_PRESENCE_OR_IDENTITY:Appointment.comment:b23c03",
+      "title": "`comment` string was replaced by repeating `note` Annotation",
+      "role": "important-but-local",
+      "reasonMd": "This is a hard field-shape break and common migration chore, but the R6 Annotation model provides clear additional value and keeping both `comment` and `note` would create overlapping comment channels. It matters for conversion guidance more than for renewed base-design pushback."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:TYPE_DOMAIN:Appointment.participant.required:fab0b1",
+      "title": "`participant.required` changed from required code enum to boolean",
+      "role": "needs-follow-up",
+      "reasonMd": "The same path collapses R4 `required`/`optional`/`information-only` codes to a boolean. The `information-only` case needs a semantic migration to `subject` rather than a type conversion, so the loss is policy-dependent and central to attendance semantics. This remains standards-review-worthy even though the broader Appointment migration is unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:TYPE_DOMAIN:Appointment.priority:eb7081",
+      "title": "`priority` changed from unsigned integer to CodeableConcept",
+      "role": "needs-follow-up",
+      "reasonMd": "Numeric priority becomes a coded concept without an obvious universal mapping. Priority can affect scheduling and queueing behavior, and a choice/additive transition could preserve old integers while enabling coded urgency. This is an avoidable or at least standards-review-worthy break rather than merely a mechanical transform."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:TYPE_DOMAIN:Appointment.patientInstruction:4e33f3",
+      "title": "`patientInstruction` changed from single string to repeating CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "This breaks R4 string payloads and is safety-sensitive because patient-facing instructions must not be dropped. Still, the richer repeatable CodeableReference model has a clear purpose, and keeping parallel instruction channels would create reconciliation risk. Treat as a high-priority migration and safety-test item more than a likely design reversal."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:TYPE_DOMAIN:Appointment.serviceType:80ece0",
+      "title": "`serviceType` changed from CodeableConcept to CodeableReference(HealthcareService)",
+      "role": "needs-follow-up",
+      "reasonMd": "This is a same-path CodeableConcept-to-CodeableReference break on a common scheduling and search axis. The R6 goal of referencing HealthcareService is reasonable, but a separate optional HealthcareService link could preserve existing coded `serviceType` instances. This is one of the clearest low-cost-to-preserve findings."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:VALUE_CONSTRAINT:Appointment.app-5:caf303",
+      "title": "New error invariant requires `start` to be less than or equal to `end`",
+      "role": "discounted",
+      "reasonMd": "This is technically old-valid/new-invalid, but it rejects negative-duration appointments that are likely bad data. It should be handled by a data-quality precheck and correction workflow, not by weakening the resource-level compatibility posture."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:REFERENCE_TARGET:Appointment.basedOn:0f4605",
+      "title": "`basedOn` now allows many request resources beyond ServiceRequest",
+      "role": "discounted",
+      "reasonMd": "This is forward-compatible for R4-to-R6 because existing ServiceRequest references remain valid. The main issue is R6-to-R4 downgrade policy for newly allowed targets, so it does not drive hard forward migration pressure."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:REFERENCE_TARGET:Appointment.participant.actor:3af788",
+      "title": "`participant.actor` now allows Group and CareTeam references",
+      "role": "discounted",
+      "reasonMd": "This widens R6 expressiveness without invalidating old R4 actor references. It matters for downgrade and client target-enum regeneration but is not an avoidable R4-to-R6 break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Appointment:CONVERSION_OR_MAPPING:Appointment.recurrenceTemplate:151d1c",
+      "title": "R6 adds a native recurrence and appointment-series model not present in R4",
+      "role": "important-but-local",
+      "reasonMd": "The recurrence/series model does not make existing R4 instances invalid, but it materially changes R6 Appointment expressiveness and downgrade/synchronization obligations. It supports the conclusion that migration planning must be resource-level, especially for systems that sync R4 and R6 appointments."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "Appointment is among the affected resources. The impact is runtime/API migration for typed reference search and generated target enums, especially where target lists follow Appointment reference remodels. It reinforces the need for migration testing but is not the primary reason Appointment's resource model needs transformation."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "This shared Resource-level behavior can affect Appointment endpoints operationally, but it is not specific to Appointment and should be judged in the Resource behavior review rather than scored as an Appointment resource-level structural break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This Resource/DomainResource search metadata issue may affect all resources, including Appointment servers, but it is shared context only and does not change the Appointment-specific migration conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Send the low-cost preservation candidates back for standards review: retain or alias `cancelationReason`, reconsider `serviceType` as coded type plus optional HealthcareService reference, preserve `ImmunizationRecommendation` as an allowed reason target unless explicitly ruled out, and define transition semantics for `priority` and `participant.required`."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish concrete R4-to-R6 Appointment mapping rules and test fixtures for reason, comment/note, serviceType, patientInstruction, priority, participant.required, cancellation reason, and start/end ordering, including lossy/manual-review cases."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add Appointment search migration guidance for typed reference modifiers, chained search, and generated target enums affected by reason/serviceType/participant target-list changes."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define a downgrade/synchronization strategy for R6 recurrence and appointment-series fields, using extensions or external state where R4 round-trip preservation is required."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 Appointment diff, Jira rationale, or Patient Administration work-group rationale was available in the supplied inputs.",
+    "Full terminology expansions were not run for all affected value sets, so priority, reason, service type, and recurrence terminology conclusions rely on StructureDefinition-level evidence.",
+    "The R6 package is 6.0.0-ballot4, so final R6 content may still change.",
+    "Shared Resource/DomainResource behavior findings were intentionally treated as context only, not as Appointment-specific scoring inputs."
+  ]
+}

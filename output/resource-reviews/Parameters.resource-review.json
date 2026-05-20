@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Parameters",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Parameters.resource-review-context.json",
+    "structureReportPath": "output/Parameters.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Parameters.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 4,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Parameters StructureDefinition findings, the direct behavior findings whose `affectedResources` include `Parameters`, and the shared Resource/DomainResource behavior findings only as background. I checked the deterministic aggregate after forming the resource-level judgment rather than using counts as the decision rule."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "fhir",
+    "stabilityPressure": "Strong",
+    "effectMd": "R4 Parameters is normative and FMM 5, so hard validation breaks and generic operation-envelope behavior changes need strong justification. That pressure is somewhat tempered for changes that merely track the R6 datatype inventory, but it is not tempered for low-cost transition behavior around operation response envelopes."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Parameters keeps its identity and model shape, but targeted migration is needed for operation envelopes and `value[x]` choice changes; low-cost compatibility preservation still has high value."
+  },
+  "reasoning": {
+    "thesisMd": "`Parameters` is not removed or broadly remodeled in R6. The local resource shape is largely intact, but the one hard forward break (`valueContributor`) and the direct operation-envelope behavior changes mean implementers cannot treat R4-to-R6 Parameters handling as purely mechanical. Because the R4 resource is normative/FMM 5, the presence of some necessary migration does not make additional avoidable breaks unimportant.",
+    "migrationShapeMd": "The R4 and R6 StructureDefinitions retain the same resource identity, specialization from `Resource`, element count, cardinalities, and core `parameter`/`part` recursion. The substantive local model change is the `Parameters.parameter.value[x]` type domain: R6 removes `Contributor` and adds `integer64`, `CodeableReference`, `RatioRange`, `Availability`, `ExtendedContactDetail`, and `VirtualServiceDetail`. That creates a targeted choice-type/API/validation migration, not a whole-resource remodel.",
+    "compatibilityLeverageMd": "Migration is only partial and targeted, so compatibility leverage remains strong. The generic operation response-envelope change is especially avoidable-looking: allowing both the R4 `Parameters` wrapper and the direct resource form would preserve mature operation clients while still enabling the simpler R6 response style. The `valueContributor` break is less attractive to preserve because it would require retaining an otherwise removed datatype in the R6 base datatype surface.",
+    "lessBreakingAlternativesMd": "The best low-cost alternative is for operation responses with a single resource return: keep the R4 wrapper as an allowed transition form while preferring direct resources. A partial alternative also exists for `$care-gaps`, allowing the R4 direct `Bundle` for exactly-one-result cases while using `Parameters` for zero or multiple returns. By contrast, retaining `valueContributor` is not low-cost because it depends on preserving the removed `Contributor` datatype, and suppressing new R6 `value[x]` datatypes would undercut Parameters as a generic R6 operation carrier.",
+    "behaviorImpactMd": "Direct behavior changes matter more than the local prose findings. The generic HTTP operation-envelope rule affects Parameters in its central role as the operation input/output wrapper and deserves standards review. The `$care-gaps` response-envelope change is a high runtime break but is operation-specific and belongs primarily to Measure/quality-measure migration planning. Shared Resource/DomainResource behavior findings were treated as context only because Parameters is not the base `Resource` or `DomainResource` artifact under review.",
+    "comparisonToDeterministicAggregateMd": "I broadly agree with the aggregate's `Partial` migration conclusion and `mostly-stable-with-local-breaks` shape. My emphasis is that the resource has not crossed into migration-program-dominates territory: the remaining compatibility work should be judged per change, with strong pressure to preserve low-cost operation-envelope compatibility even though targeted migration is already likely.",
+    "uncertaintyMd": "The computable StructureDefinition evidence is clear. The main uncertainty is standards intent: the local packages do not provide detailed ballot rationale for removing `Contributor` from the datatype inventory or for making some operation response-envelope changes mandatory."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Parameters:TYPE_DOMAIN:Parameters.parameter.value[x]:f0cf76",
+      "title": "Parameters.parameter.value[x] no longer accepts Contributor",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the only local hard old-valid/new-invalid instance break: an R4 `valueContributor` branch is not in the R6 `value[x]` type list. It drives the conclusion that some targeted choice-type migration is real, but it is not enough to make a wholesale Parameters migration unavoidable because apparent core-operation prevalence is narrow and preservation would require retaining the removed `Contributor` datatype."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Parameters:TYPE_DOMAIN:Parameters.parameter.value[x]:6ae434",
+      "title": "R6 adds six Parameters.parameter.value[x] datatypes with no R4 counterpart",
+      "role": "important-but-local",
+      "reasonMd": "This is not a forward R4-to-R6 validation break, but it is important for cross-version gateways and generated SDKs because R6 can emit `valueInteger64`, `valueCodeableReference`, and other choice names that R4 cannot parse. It is a local migration chore once R6 datatype support is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Parameters:SEMANTIC_OR_CONFORMANCE_TEXT:Parameters.parameter.part:cbbb83",
+      "title": "R6 removes the R4 comment limiting nested Parameters.parameter.part to one level",
+      "role": "discounted",
+      "reasonMd": "The computable recursive structure remains; no depth-limiting invariant was removed. This may require local policy checks for systems that enforced the old comment, but it does not materially change the resource-level migration posture."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Parameters:SEMANTIC_OR_CONFORMANCE_TEXT:Parameters.parameter.resource:bb78c0",
+      "title": "R6 text explicitly allows additional resources in Parameters.parameter.resource",
+      "role": "discounted",
+      "reasonMd": "The element remains `Resource` with the same cardinality. Unknown additional resource types can break R4 parsers in reverse-version exchange, but that is not a local forward Parameters model break."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:operation-response-envelope:single-return-resource",
+      "title": "Operation responses with a single resource return changed from optional unwrapping to required unwrapping",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most standards-review-worthy Parameters-related issue. It changes the generic operation wire shape from allowing a `Parameters` wrapper to requiring an unwrapped resource in a common pattern. A less-breaking design allowing both forms looks comparatively low cost for a normative operation framework."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-care-gaps--Measure-care-gaps:measure-care-gaps-response-envelope-changed",
+      "title": "R6 changes successful responses from a direct Bundle to Parameters containing repeated return Bundles",
+      "role": "important-but-local",
+      "reasonMd": "This is a high runtime break for `$care-gaps` clients because the top-level response changes from `Bundle` to `Parameters`, but it is an operation-specific redesign rather than evidence that the Parameters resource model is broadly remodeled. A single-result compatibility mode is worth considering."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "context-only",
+      "reasonMd": "This representative shared behavior finding was considered only as background. Its affected resources do not include Parameters directly, and the review rubric says shared Resource/DomainResource behavior should not be scored for every resource."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the generic operation response-envelope rule and consider retaining the R4 `Parameters` wrapper as an allowed transition form for single-resource `return` responses while preferring direct resources in R6."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish explicit migration guidance for `Parameters.parameter.value[x]`: how to handle removed `Contributor`, and how cross-version gateways should map or reject new R6 choices such as `integer64`, `CodeableReference`, and `Availability`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For `$care-gaps`, decide whether R6 can preserve a direct `Bundle` response for exactly-one-result compatibility, or document the mandatory `Parameters` envelope break and negotiation expectations clearly."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Treat the `part` nesting and additional-resource prose changes as documentation/parser-compatibility guidance rather than drivers of resource-level redesign."
+    }
+  ],
+  "caveats": [
+    "Shared Resource/DomainResource behavior findings were not scored for Parameters unless they directly named Parameters.",
+    "The review uses local package StructureDefinitions and reports; official ballot rationale for the underlying design choices was not available in the supplied inputs.",
+    "The `$care-gaps` behavior finding affects Parameters as an envelope type, but its domain migration belongs primarily with the Measure operation."
+  ]
+}

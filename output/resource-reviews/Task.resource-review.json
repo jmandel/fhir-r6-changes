@@ -1,0 +1,173 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Task",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Task.resource-review-context.json",
+    "structureReportPath": "output/Task.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Task.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 12,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Task-specific StructureDefinition findings, verified the main R4/R6 element shapes against the local core packages, considered the one direct SearchParameter behavior finding affecting Task, and treated shared Resource/DomainResource behavior findings as context only. The deterministic aggregate was compared after forming the resource-level judgment."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 Task was trial-use/FMM 2, so it does not carry normative or high-FMM preservation pressure. That lowers the burden somewhat, but it does not make central workflow, routing, validation, or safety-significant breaks unimportant."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Task keeps its resource identity, but R6 remodels enough central workflow fields that a Task migration program is unavoidable while low-cost preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "Task is not removed or renamed, but this is more than a set of isolated local edits. R4 instances using common or semantically central fields such as `focus`, `reasonCode`/`reasonReference`, `performerType`, `instantiatesCanonical`/`instantiatesUri`, `statusReason`, `restriction`, or affected input/output value choices need structural transforms before strict R6 validation. The practical migration is a coordinated Task model migration, not just validator metadata refresh.",
+    "migrationShapeMd": "The R6 shape normalizes Task around wrappers and richer references: direct `focus` becomes repeating `focus.value[x]`, several CodeableConcept/Reference patterns become CodeableReference, requested and actual performer semantics are split, owner target semantics are narrowed/retargeted, and `restriction` gains an error invariant tied to `fulfill` plus Reference focus. These changes affect payload shape, generated APIs, FHIRPath/search extraction, and downgrade policy.",
+    "compatibilityLeverageMd": "Because the central Task payload shape changes, implementers will already need a migration program. That does not make additional compatibility preservation low-value: Task identity remains stable, R4 maturity is neutral rather than weak, and several Revisit findings have plausible low-cost or transition designs that could preserve old instances without blocking the R6 model. The right posture is not `migration-program-dominates`; it is to expect Task migration while preserving compatibility where the cost is modest.",
+    "lessBreakingAlternativesMd": "The highest-value preservation candidates are `instantiatesUri`/`instantiatesCanonical` because URI-based workflow definitions otherwise have no native R6 home, `performerType` because role/kind queueing could be retained while adding specific requested performers, and `owner` target narrowing because `Task.performer` could be added without invalidating old Device or HealthcareService owners. The `focus` remodel also deserves standards attention because it is central and common, though preserving both direct and wrapper forms has larger normalization tradeoffs. By contrast, `reason`, `statusReason`, `restriction`, and input/output datatype updates look more like local migration chores once CodeableReference, fulfillment semantics, and datatype cleanup are accepted.",
+    "behaviorImpactMd": "The direct Task behavior finding is the grouped SearchParameter target-list/chaining change. It is a real medium-risk query/API migration issue for typed modifiers, chains, generated target enums, and reverse include assumptions, but it largely follows the underlying resource model changes and does not by itself change the resource-level conclusion. Shared Resource/DomainResource operation and special-search behavior changes remain background API context for Task implementations, not Task-local evidence.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's final posture: major migration `Yes`, shape `major-model-remodel`, and leverage `preserve-where-low-cost-but-expect-resource-migration`. The independent reason is not the raw count alone; it is that several central workflow fields changed representation and semantics together. I also agree that the aggregate should not be used to dismiss individual Revisit findings.",
+    "uncertaintyMd": "Confidence is high for the computable structural deltas because the R4 and R6 StructureDefinitions show the changes directly. Prevalence and standards intent are less certain because no production Task corpus, official Jira rationale, or final R6 release package was reviewed."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:ELEMENT_PRESENCE_OR_IDENTITY:Task.instantiates:8b2f1a",
+      "title": "Task.instantiatesCanonical and Task.instantiatesUri were removed",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard old-valid/new-invalid break and a standards-review-worthy preservation candidate. `instantiatesCanonical` has a possible shape-changing home in `focus.valueCanonical`, but `instantiatesUri` can carry external BPMN/BPEL/workflow definitions with no native R6 URI slot, making migration potentially lossy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:TYPE_DOMAIN:Task.focus:1c4d72",
+      "title": "Task.focus changed from a single Reference to repeating BackboneElement.value[x]",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`Task.focus` is central to what work the Task is about. R4's direct `focus.reference` shape becomes invalid in R6 and every generated model, search/extraction rule, and client path using the old shape must change. This is the clearest evidence that Task needs coordinated migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:ELEMENT_PRESENCE_OR_IDENTITY:Task.performerType-requestedPerformer:f47b9c",
+      "title": "Task.performerType was replaced by requestedPerformer CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The new requested performer model is useful, but replacing the old role/kind field breaks queueing and assignment payloads. A lower-cost design could have retained `performerType` for concepts while adding a reference-capable requested performer path."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:REFERENCE_TARGET:Task.owner-performer:6db342",
+      "title": "Task.owner targets narrowed and actual performers moved to new Task.performer",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is only a potential hard break, but it matters because Device and HealthcareService owners can become invalid and old owner-as-executor data may require workflow judgment to map to manager versus performer. Adding `Task.performer` did not inherently require narrowing the old owner target list."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:ELEMENT_PRESENCE_OR_IDENTITY:Task.reason:0a73e8",
+      "title": "Task.reasonCode and Task.reasonReference were merged into repeating Task.reason CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "This contributes to the overall structural migration burden, but the R4-to-R6 transform is relatively direct: code goes to `reason.concept`, reference goes to `reason.reference`, and both can become repetitions. Once the CodeableReference direction is accepted, this is mainly wire/API churn."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:VALUE_CONSTRAINT:Task.restriction:aa0e61",
+      "title": "Task.restriction gained a local invariant requiring fulfill code and Reference focus",
+      "role": "important-but-local",
+      "reasonMd": "The new error invariant can invalidate R4 Tasks that used `restriction` without a standard `fulfill` code and Reference focus. It is a real hard break, but it appears proportionate because restriction semantics depend on a fulfillment request context."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:FLAGS_AND_MODIFIERS:Task.doNotPerform:df5019",
+      "title": "R6 adds modifier element Task.doNotPerform to negate the Task",
+      "role": "important-but-local",
+      "reasonMd": "This does not make R4 instances invalid, but it is safety-critical for R6-to-R4 and mixed-version workflows: dropping or ignoring `doNotPerform=true` can invert a prohibition into an instruction. Migration guidance needs a fail-safe downgrade policy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:TYPE_DOMAIN:Task.statusReason:59a0de",
+      "title": "Task.statusReason changed from CodeableConcept to repeating CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "Existing coded reasons must be wrapped under CodeableReference, and reverse conversion can lose multiple/reference-only reasons. Forward migration is straightforward enough that this is not a top standards-preservation driver."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:TYPE_DOMAIN:Task.input-output-value:42cbe0",
+      "title": "Task.input.value[x] and output.value[x] removed Contributor and added R6-only datatypes",
+      "role": "important-but-local",
+      "reasonMd": "R4 `valueContributor` becomes invalid and new R6 datatypes create downgrade gaps. This should be handled in Task migration and datatype guidance, but the removed Contributor choice is likely uncommon and tied to broader datatype cleanup."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:TERMINOLOGY_BINDING:Task.status-code:9e7164",
+      "title": "Task terminology changed: status adds unknown and code binding strengthens to extensible",
+      "role": "important-but-local",
+      "reasonMd": "Existing R4 status codes remain valid; the main R4-to-R6 pressure is stronger conformance scrutiny for local `Task.code` values. This matters for validation policy but is not a hard instance-compatibility driver."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:REFERENCE_TARGET:Task.requester-restrictionRecipient:b22510",
+      "title": "R6 adds requester Group and restriction.recipient Device reference targets",
+      "role": "discounted",
+      "reasonMd": "This is target widening for R4-to-R6. It creates downgrade policy work for new R6 instances but does not invalidate R4 Task instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Task:TYPE_DOMAIN:Task.description:ab92c4",
+      "title": "Task.description type changed from string to markdown",
+      "role": "discounted",
+      "reasonMd": "The wire representation remains string-like, so ordinary R4 descriptions remain representable. Generated types and rendering/sanitization behavior may need attention, but this is not a material instance break."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "Task is among the affected resources. Typed reference modifiers, chains, generated target enums, and reverse includes may need query migration, but the issue is medium-risk behavior migration and mostly follows underlying target/resource model changes."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "This can affect Task servers and clients through generic Resource behavior, but it is not Task-local and was not scored as evidence that Task itself needs a model migration."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This is shared Resource/DomainResource search metadata context. It may be relevant to platform migration, but it does not materially change the Task-specific compatibility leverage conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit low-cost Task preservation options before finalizing the R6 shape, especially a native or deprecated path for `instantiatesUri`, retaining `performerType` role concepts, preserving old `owner` targets during transition, and assessing whether `focus` can preserve common direct-reference use without unacceptable duplication."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish and test a Task cross-version migration map covering `focus`, `instantiates*`, `performerType`/`requestedPerformer`, `owner`/`performer`, `reason`, `statusReason`, `restriction`, input/output values, and fail-safe `doNotPerform` downgrade handling."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update Task search/query migration guidance for typed reference modifiers, chained searches, reverse includes, and generated target enums affected by R6 SearchParameter target-list changes."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Validate prevalence and risk against representative R4 Task corpora or implementation guides, focusing on `focus`, `instantiatesUri`, `performerType`, Device/HealthcareService `owner`, `restriction`, and `valueContributor`."
+    }
+  ],
+  "caveats": [
+    "The R6 source package is ballot 6.0.0-ballot4, so final R6 content may differ.",
+    "No official Task change proposals, Jira rationale, or published cross-version maps were reviewed.",
+    "Prevalence judgments are inferred from element semantics and reports, not measured from production Task instances.",
+    "Shared Resource/DomainResource behavior findings were treated as platform context only, consistent with the review instructions.",
+    "Global CodeableReference and datatype migration issues are referenced only as they affect Task-local fields."
+  ]
+}

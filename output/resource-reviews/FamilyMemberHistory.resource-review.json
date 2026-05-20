@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "FamilyMemberHistory",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/FamilyMemberHistory.resource-review-context.json",
+    "structureReportPath": "output/FamilyMemberHistory.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/FamilyMemberHistory.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 8,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-level context, full FamilyMemberHistory StructureDefinition report, R4/R6 FamilyMemberHistory snapshots, R4 maturity map, and the resource-review/rubric/fresh-review instructions. The deterministic aggregate was used only after forming an independent conclusion. No behavior finding was directly scoped to FamilyMemberHistory; shared Resource/DomainResource behavior findings were treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "unknown",
+    "workGroup": "oo",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 FamilyMemberHistory is supplied as FMM 1 with unknown standards status, so ordinary compatibility pressure is weak. That softens concern for optional metadata and reverse-only additions, but it does not erase the importance of central family-history facts such as age precision, deceased status, and reason semantics."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "FamilyMemberHistory keeps its identity but needs targeted R4-to-R6 migration for removed fields, a new age/deceased invariant, and reason CodeableReference remapping; low-cost preservation still matters for clinically meaningful age data."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a removed or wholesale-replaced resource. The core resource and condition backbone remain recognizable, but several R4-valid instances can fail R6 validation: `instantiatesCanonical`/`instantiatesUri` are gone, `estimatedAge` is gone, `age[x]` plus `deceased[x]` is newly forbidden, and `reasonCode`/`reasonReference` are replaced by `reason: CodeableReference`. That combination makes a targeted migration program necessary for real implementations, without making every individual compatibility-preserving option low value.",
+    "migrationShapeMd": "The migration shape is a moderate targeted remodel. Implementers must scan and transform old instances using removed elements, update generated APIs and serializers for `reason`, and decide how to handle R4 records that combine age and deceased information. Most additive R6 changes (`procedure`, `recorder`, `asserter`) are reverse-conversion issues rather than R4-to-R6 blockers, and `condition.code`/summary-flag changes do not substantially remodel existing R4 instances.",
+    "compatibilityLeverageMd": "Because migration work is already needed, compatibility leverage is lower than for a mostly unchanged resource. It is still meaningful where preservation is cheap or safety-relevant: retaining or explicitly replacing `estimatedAge`, and narrowing or softening the new age/deceased invariant, could avoid lossy clinical interpretation. By contrast, preserving both old reason arrays and new `CodeableReference` in the base resource would create duplicate representations and synchronization rules, so migration tooling is a more proportionate answer there.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking opportunities are path-specific. `estimatedAge` could plausibly remain as a deprecated optional element or be replaced by a standard extension/mapping because it records a computable precision qualifier. The broad `fhs-3` invariant could be warning-level at first or narrower, especially for `deceasedBoolean`, to avoid forcing clinical interpretation during validation. Keeping deprecated instantiates fields is possible but lower priority under FMM 1 and likely rare use. Keeping deprecated `reasonCode` and `reasonReference` alongside `reason` is less attractive because it would create parallel encodings of the same business concept.",
+    "behaviorImpactMd": "There are no direct OperationDefinition, SearchParameter, or HTTP behavior findings scoped to FamilyMemberHistory. The 11 shared Resource/DomainResource behavior findings may affect generic server operations used with many resources, but they should not drive this resource-level conclusion because FamilyMemberHistory is not Resource or DomainResource.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`; I agree with that resource-level posture. My independent review discounts the reverse-only additive findings and low-risk semantic/summary changes, while giving standards-review weight to `estimatedAge` and the new `age[x]`/`deceased[x]` invariant despite the low FMM.",
+    "uncertaintyMd": "Confidence is high for the structural deltas because they are visible in the R4 and R6 StructureDefinitions. The main uncertainty is real-world prevalence of the removed optional elements and of R4 instances that combine `age[x]` with `deceased[x]`; no usage telemetry was supplied."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "FamilyMemberHistory:VALUE_CONSTRAINT:age-deceased:fhs3:4a60ab",
+      "title": "New invariant forbids `age[x]` together with `deceased[x]`",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is an error-level old-valid/new-invalid break on central clinical facts. A record with a relative's age and deceased status can be valid in R4 but fail R6 validation, and migration may require deciding whether an age is current age, age at death, or inconsistent source data. The rule is standards-review-worthy because a warning or narrower invariant could preserve more R4 data while still discouraging ambiguous encodings."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "FamilyMemberHistory:CONVERSION_OR_MAPPING:reason:8e41d0",
+      "title": "`reasonCode` and `reasonReference` were merged into `reason: CodeableReference`",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the main model-shape migration: two R4 repeating properties become one R6 `CodeableReference` property. It breaks wire names and generated APIs, and R6-to-R4 can lose the pairing of concept and reference. The change appears proportionate to the R6 CodeableReference pattern, but it still makes mapper and codegen updates unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:estimatedAge:0d9b62",
+      "title": "`estimatedAge` was removed",
+      "role": "important-but-local",
+      "reasonMd": "The removed boolean is not just metadata; it qualifies age precision, which can matter in familial risk interpretation. Low FMM softens the compatibility burden, but retaining a deprecated optional element or defining a first-class transition path looks low cost compared with losing a computable qualifier."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:instantiates:7f2c10",
+      "title": "Protocol instantiation elements were removed",
+      "role": "important-but-local",
+      "reasonMd": "This is a real hard instance break for records carrying protocol or guideline links. It contributes to the need for migration scanning, but it is less central than age/deceased/reason content and likely affects optional audit/protocol metadata rather than the family-history facts themselves."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:procedure:2d75a4",
+      "title": "R6 adds a family-history `procedure` backbone not representable in R4",
+      "role": "discounted",
+      "reasonMd": "This optional addition is clinically useful new expressiveness and does not invalidate R4 instances moving to R6. It matters for R6-to-R4 export policy, but it should not be treated as an avoidable R4-to-R6 break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "FamilyMemberHistory:ELEMENT_PRESENCE_OR_IDENTITY:recorder-asserter:11c09f",
+      "title": "R6 adds `recorder` and `asserter` actors",
+      "role": "discounted",
+      "reasonMd": "These optional provenance-like additions do not create old-valid/new-invalid failures. They need down-conversion handling if R6 data must be emitted as R4, but that is a local reverse-migration chore rather than a reason to avoid the R6 fields."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "FamilyMemberHistory:SEMANTIC_OR_CONFORMANCE_TEXT:condition.code:6b8f20",
+      "title": "`condition.code` semantics widened to include allergy or intolerance",
+      "role": "discounted",
+      "reasonMd": "The path, cardinality, type, and example binding are unchanged. The broadened text can affect interpretation of new R6 data, but it does not reject R4 instances and is better treated as documentation/profile guidance than as a resource-level migration driver."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "FamilyMemberHistory:FLAGS_AND_MODIFIERS:condition-summary:de33ac",
+      "title": "`condition` and `condition.code` became summary elements",
+      "role": "discounted",
+      "reasonMd": "The summary-flag change can affect `_summary` payloads and lightweight generated views, but it is not a structural validity break. It should be handled by API contract tests and privacy review, not by broad resource migration planning."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "This shared Resource operation issue can affect servers validating FamilyMemberHistory through generic endpoints, but it is not a FamilyMemberHistory-specific behavior change and was not counted in the resource-level migration conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "The search metadata change is shared across Resource/DomainResource. It may matter for generic search tooling, but it does not change the FamilyMemberHistory content model or create a direct resource-specific search break in the supplied reports."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit `fhs-3` before finalizing the base resource: consider a warning-level/best-practice rule or a narrower invariant that avoids rejecting all `age[x]` plus `deceased[x]` combinations, especially when `deceased[x]` is boolean."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Provide a base-compatible preservation path for `estimatedAge`, either by retaining it as a deprecated optional element for one release or by publishing an official extension and cross-version mapping that keeps the age-precision qualifier computable."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish explicit R4-to-R6 mapping tests for `reasonCode`/`reasonReference` to `reason.concept`/`reason.reference`, and require lossy-conversion flags when one R6 `CodeableReference` carries both concept and reference for R4 export."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document migration handling for removed `instantiatesCanonical`/`instantiatesUri` and reverse-only R6 additions (`procedure`, `recorder`, `asserter`) so implementations do not silently drop protocol, procedure, or actor provenance data."
+    }
+  ],
+  "caveats": [
+    "R4 standards status was not supplied beyond FMM 1 and work group `oo`.",
+    "No direct behavior findings were scoped to FamilyMemberHistory; shared Resource/DomainResource behavior was treated as context only.",
+    "Prevalence judgments are based on StructureDefinition/report evidence rather than implementation telemetry."
+  ]
+}

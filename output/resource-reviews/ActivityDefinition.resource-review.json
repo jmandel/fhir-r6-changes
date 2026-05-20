@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "ActivityDefinition",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/ActivityDefinition.resource-review-context.json",
+    "structureReportPath": "output/ActivityDefinition.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/ActivityDefinition.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 11,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the ActivityDefinition StructureDefinition report, the supplied resource-review context, direct ActivityDefinition behavior findings from OperationDefinitions and SearchParameters, and shared Resource/DomainResource behavior findings as context only. The deterministic aggregate was compared after forming the resource-level judgment."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "cds",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 ActivityDefinition is trial-use at FMM 2, so it does not carry normative or high-maturity stability pressure. The compatibility assessment is therefore driven mainly by the concrete migration mechanisms and the cost of preserving compatibility, not by a heightened maturity presumption."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "ActivityDefinition keeps its identity but has enough targeted hard wire-format and terminology breaks that migration planning is needed, while low-cost compatibility preservation still matters for specific findings."
+  },
+  "reasoning": {
+    "thesisMd": "ActivityDefinition is not removed or replaced, and the R6 model is still recognizable as the same definitional resource. However, several optional but clinically meaningful paths have old-valid/new-invalid changes: removed timing choices, Reference-to-CodeableReference and Reference-to-canonical remodeling, required binding changes, and product target changes. For implementations with nontrivial ActivityDefinition content, a resource-level migration workstream is effectively necessary; for minimal instances that avoid these optional paths, wholesale migration is not inherently unavoidable.",
+    "migrationShapeMd": "The migration shape is a moderate targeted remodel rather than a major model replacement. The main work is inventorying affected elements, applying deterministic transforms where possible, and escalating cases that require policy or domain judgment: `timingDateTime` and `timingPeriod` no longer validate, `location` changes wire shape to CodeableReference, specimen and observation requirements become canonical URLs, `kind` and participant typing have required terminology changes, and `productReference` target compatibility changes. These are scattered across the resource rather than a single local cleanup, but they do not amount to a new resource identity.",
+    "compatibilityLeverageMd": "Because several independent hard breaks already require targeted migration, preventing one more local break has less leverage than it would on a mostly stable resource. That does not make avoidable breaks irrelevant. Low-cost preservation still has value where it avoids hard validation failures without duplicating whole models or undermining the R6 design, especially for the Substance product target, the participant `related-person` spelling, and canonical SearchParameter identity.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking alternatives are narrow compatibility accommodations rather than broad retention of the R4 model. Retaining Substance as a deprecated productReference target and retaining `related-person` as a deprecated participant code alias would preserve R4-valid content with modest base-model cost. By contrast, retaining old Reference and canonical forms side by side for requirements, keeping both Reference and CodeableReference location representations, or preserving removed timing choices creates duplicate representations and conflict rules, so those are better treated as migration chores once the R6 design direction is accepted.",
+    "behaviorImpactMd": "The direct ActivityDefinition `$apply` return narrowing from Any to Resource is a runtime/codegen compatibility issue but appears aligned with the documented operation result. The direct SearchParameter consolidation is more standards-review-worthy because canonical URL identity is part of client conformance metadata and R6 could plausibly preserve deprecated per-resource canonical definitions. Shared Resource and DomainResource behavior findings may affect systems that use ActivityDefinition through generic FHIR REST behavior, but they are not ActivityDefinition-specific and were not used to score this resource.",
+    "comparisonToDeterministicAggregateMd": "This review agrees with the deterministic aggregate's broad conclusion: Partial major migration, moderate-targeted-remodel shape, and preserve-where-low-cost-but-expect-resource-migration leverage. The independent review puts the emphasis on the nature of the remodel rather than the count alone: several hard breaks are proportionate local migrations, while a smaller set remains low-cost and worth preserving despite the migration program.",
+    "uncertaintyMd": "Confidence is high for the structure and direct behavior shape because the local reports and package StructureDefinitions identify the affected paths. Prevalence and exact terminology migration remain less certain because official expansions, ConceptMaps, and implementation usage data were not part of the supplied evidence."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:kind:6a8f2c",
+      "title": "ActivityDefinition.kind required value set removed several R4 codes and added R6 codes",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard required-binding break for removed R4 kind codes and contributes to the need for ActivityDefinition migration inventory. The R6 request-resource rationale is coherent, so it is mainly a local mapping and validation chore rather than the strongest standards-review target."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:TYPE_DOMAIN:timing-x:ce21a9",
+      "title": "ActivityDefinition.timing[x] removed dateTime and Period choices and added RelativeTime",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "FHIR choice branches are wire-level properties, so R4 `timingDateTime` and `timingPeriod` instances become invalid in R6. Retaining all old and new timing forms would preserve instances but also continue overlapping representations, so this is a major local migration driver rather than an obvious low-cost preservation case."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:SERIALIZATION_OR_CODEGEN:location:2df4b0",
+      "title": "ActivityDefinition.location changed from Reference(Location) to CodeableReference(Location)",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The path name is stable but the wire shape and generated API shape are not. This is a high-impact transform for instances that use `location`, but preserving both a Reference field and a coded/reference CodeableReference model would introduce duplicate representations and conflict handling."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:TYPE_DOMAIN:requirements:1cbb30",
+      "title": "Specimen and observation requirement elements changed from Reference arrays to canonical arrays",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Reference arrays and canonical primitive arrays are not wire-compatible, and conversion may require resolving references to canonical URLs while losing display or identifier details. This is one of the clearest reasons implementations need a migration workstream, even if the R6 canonical direction is understandable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:REFERENCE_TARGET:product-x:50d1dd",
+      "title": "ActivityDefinition.product[x] Reference targets removed Substance and added R6 product-definition resources",
+      "role": "needs-follow-up",
+      "reasonMd": "This hard break remains worth standards review despite the broader migration burden. Keeping Substance as a deprecated legacy target while adding the R6 product-definition targets appears low-cost and avoids invalidating R4 product references without creating duplicate fields."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:TERMINOLOGY_BINDING:participant:79f0a1",
+      "title": "ActivityDefinition participant typing changed required codes and added R6-only actor fields",
+      "role": "needs-follow-up",
+      "reasonMd": "The required binding rejects the R4 `related-person` code while the R6 spelling is close enough that a deprecated alias or normalization rule looks comparatively cheap. The added actor fields are R6-to-R4 migration content, but the code-spelling hard break is avoidable enough to keep on the review list."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:TYPE_DOMAIN:subject-x:8b2e76",
+      "title": "ActivityDefinition.subject[x] expanded references and added canonical subject with a different extensible binding",
+      "role": "discounted",
+      "reasonMd": "This is mostly additive for R4-to-R6 because the old subject forms remain valid. It creates downgrade and policy work for R6-only forms, but it does not drive the R4-to-R6 migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:SERIALIZATION_OR_CODEGEN:usage:0c266d",
+      "title": "ActivityDefinition.usage primitive type changed from string to markdown",
+      "role": "important-but-local",
+      "reasonMd": "The JSON primitive remains string-like, so this is not a hard instance break. It matters for generated types, UI rendering, and sanitization, but it is a bounded runtime/codegen migration concern."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:ELEMENT_PRESENCE_OR_IDENTITY:asNeeded-x:913a65",
+      "title": "R6 adds ActivityDefinition.asNeeded[x] clinical precondition with no R4 base equivalent",
+      "role": "discounted",
+      "reasonMd": "The new optional element does not invalidate R4 instances in R6. It is important for R6-to-R4 preservation policy because clinical precondition information can be meaningful, but it does not increase R4-to-R6 break-avoidance pressure."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ActivityDefinition:VALUE_CONSTRAINT:warnings:cab5ad",
+      "title": "R6 adds or strengthens warning constraints on ActivityDefinition name, url, and relatedArtifact",
+      "role": "discounted",
+      "reasonMd": "Warning-level constraints can affect CI pipelines that treat warnings as errors, but they do not create ordinary base validation failures. They do not materially change the resource-level migration shape."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "ActivityDefinition-apply--ActivityDefinition-apply:activitydefinition-apply-return-any-to-resource",
+      "title": "The $apply output return parameter narrows from Any to Resource",
+      "role": "important-but-local",
+      "reasonMd": "This direct behavior finding affects generated operation signatures and tests that relied on an Any output. The R4 narrative already described returning a resource, so the narrowing is a real but bounded compatibility issue rather than a reason to change the resource-level conclusion."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:canonicalresource-metadataresource-consolidation",
+      "title": "R6 consolidates many per-resource canonical SearchParameter URLs into multi-base CanonicalResource and MetadataResource definitions",
+      "role": "needs-follow-up",
+      "reasonMd": "This direct behavior finding affects ActivityDefinition through canonical SearchParameter identity and conformance metadata. Deprecated aliases for the R4 per-resource canonical SearchParameters look like a plausible low-cost compatibility bridge, so this remains standards-review-worthy."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "This can affect generic clients operating on ActivityDefinition resources, but it is assigned to Resource-level behavior rather than ActivityDefinition-specific design. It should be handled in the shared Resource behavior review, not counted as an ActivityDefinition migration driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "The change can affect generic search metadata for resources including ActivityDefinition, but it is shared Resource/DomainResource context. It informs ecosystem risk without changing the ActivityDefinition-specific conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit low-cost compatibility preservation for `ActivityDefinition.product[x]` Substance references, `participant.type` `related-person` aliasing, and canonical SearchParameter aliases before treating those breaks as unavoidable."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish explicit migration guidance or maps for `timing[x]`, `location`, requirement canonicals, `kind`, and participant actor data, including how to preserve unresolved references and R6-only content."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document the `$apply` return-shape narrowing and the SearchParameter consolidation in implementation notes so generated clients, conformance registries, and test suites know which changes are intentional versus compatibility bridges."
+    }
+  ],
+  "caveats": [
+    "This review did not use live terminology expansions or official ConceptMaps, so terminology prevalence and exact mapping feasibility remain partly uncertain.",
+    "The hard breaks are mostly on optional elements; the conclusion is Partial rather than Yes because minimal ActivityDefinition instances may migrate without touching every affected path.",
+    "Shared Resource and DomainResource behavior findings were treated as context only, per the review instructions."
+  ]
+}

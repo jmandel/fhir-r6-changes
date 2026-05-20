@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Procedure",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Procedure.resource-review-context.json",
+    "structureReportPath": "output/Procedure.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Procedure.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 14,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, resource assessment rubric, fresh-review framework, Procedure context, full Procedure StructureDefinition report, the direct SearchParameters behavior finding, and selected R4/R6 core Procedure snapshots for the changed paths. The deterministic aggregate was treated as prior context only. Shared `Resource` and `DomainResource` behavior findings were considered as migration context, not scored as Procedure-specific behavior."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pc",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Procedure is trial-use/FMM 3 from Patient Care, so it carries meaningful compatibility pressure. It is not normative, but it is a central clinical event resource; avoidable wire-format breaks and safety/provenance loss need a clearer rationale than ordinary low-maturity cleanup."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Procedure keeps its identity, but R6 remodels enough core fields that a real migration program is unavoidable while low-cost compatibility preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "Procedure is not a removed or replaced resource, but an R4 Procedure implementation cannot safely move to R6 by refreshing validators or generated models. The same-name resource carries hard old-valid/new-invalid breaks across timing, reasons, used items, outcomes, complications, follow-up, protocol links, and asserter/provenance fields, plus important runtime changes around subject/focus and search metadata.",
+    "migrationShapeMd": "The migration shape is a major model remodel. Some changes are mechanically expressible, such as wrapping R4 `CodeableConcept` values into `CodeableReference.concept` or references into `CodeableReference.reference`, and renaming `performed[x]` to `occurrence[x]`. But the resource-level program still needs policy decisions for paired concept/reference semantics, lossy R6-to-R4 outcomes and categories, removed `instantiates*` and `asserter` fields, practitioner affiliation represented by `onBehalfOf`, and the R6 expansion to non-patient procedures through `subject` and modifier `focus`.",
+    "compatibilityLeverageMd": "Migration being unavoidable does not make additional breaks irrelevant. For FMM 3 clinical content, retaining deprecated aliases, retaining optional legacy fields with guidance, or staging stricter rules as warnings can still avoid data loss, reduce generated-code churn, and lower risk for production procedure history, quality, billing, and safety workflows.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidates are `performed[x]` versus `occurrence[x]`, retained deprecated `instantiatesCanonical`/`instantiatesUri`, retained deprecated `asserter`, and warning- or profile-level staging for `prc-1`. `outcome` also deserves review because a separate additive Observation-backed outcome element could have preserved the existing singleton coded outcome. The broader CodeableReference conversions for reason, used, complication, and followUp are more plausibly accepted as local migration chores once the remodel is accepted, because old and new fields side by side create duplicate representations and conflict rules.",
+    "behaviorImpactMd": "The direct Procedure behavior finding is the reference SearchParameter target-list change. It can break typed modifiers, chains, reverse includes, generated target enums, and conformance tests, but it mostly follows the underlying model/reference-target changes and does not by itself drive the resource-level conclusion. The shared Resource/DomainResource behavior findings, including generic operation removals and shared special search metadata, remain important cross-resource migration context but are not Procedure-specific findings.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's overall posture: `major-model-remodel`, `majorMigrationAlreadyUnavoidable: Yes`, and `preserve-where-low-cost-but-expect-resource-migration`. The independent basis is not the count threshold alone; it is the combined clinical data-shape shift across event timing, CodeableReference adoption, provenance/protocol removals, and non-patient Procedure semantics. I also noted the source summary's hard-break count inconsistency, but the qualitative conclusion is unchanged.",
+    "uncertaintyMd": "No official HL7 change rationale, ballot reconciliation notes, real-world R4 Procedure corpus, or official cross-version Procedure ConceptMap/StructureMap was available locally. The R6 input is ballot4, so final-publication changes could alter the conclusion."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.performed[x]:27c77d",
+      "title": "Procedure.performed[x] was renamed to Procedure.occurrence[x], with Timing added as a new choice type",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a common timing element and a direct wire/API rename. Mapping to `occurrence[x]` is usually straightforward, but keeping the old name or a deprecated alias would have preserved most R4 instances at low cost; it remains standards-review-worthy despite the broader migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.reason:0466fc",
+      "title": "Procedure.reasonCode and Procedure.reasonReference were replaced by Procedure.reason CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Reasons are central clinical context. The R6 CodeableReference model is coherent and can pair concept/reference in ways R4 could not, so the old-field removals look more like a major-model migration driver than a clearly avoidable local break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.used:41aa41",
+      "title": "Procedure.usedCode and Procedure.usedReference were replaced by Procedure.used CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This contributes to the broad CodeableReference remodel and generated-model churn. Compatibility aliases could reduce disruption, but duplicate used-item representations and pairing conflicts make this less obviously low-cost than the pure renames/removals."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:TYPE_DOMAIN:Procedure.complication:d5a224",
+      "title": "Procedure.complication changed from CodeableConcept to CodeableReference and absorbs complicationDetail",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Complications are safety-relevant, and the R4 split between coded complication and Condition reference becomes a different R6 data shape. This is a hard migration driver, but the combined CodeableReference design has plausible clinical value once careful pairing and loss policies are documented."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:TYPE_DOMAIN:Procedure.outcome:9637f9",
+      "title": "Procedure.outcome changed from a single CodeableConcept to repeating CodeableReference(Observation)",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Outcome changes both datatype and cardinality and can be lossy in reverse. Because a separate additive Observation-backed outcome field could have preserved existing singleton coded outcomes, this remains an important avoidability concern within the larger remodel."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:TYPE_DOMAIN:Procedure.followUp:4d96ff",
+      "title": "Procedure.followUp changed from CodeableConcept to CodeableReference(ServiceRequest | PlanDefinition)",
+      "role": "important-but-local",
+      "reasonMd": "This is a real old-valid/new-invalid shape change, but it is usually a local wrapping transform for legacy coded follow-up instructions. The alternative of parallel concept/reference fields would preserve more payloads but add reconciliation burden."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.instantiatesCanonical:8fff2a",
+      "title": "Procedure.instantiatesCanonical and Procedure.instantiatesUri were removed",
+      "role": "important-but-local",
+      "reasonMd": "Protocol/guideline linkage can be clinically and operationally important, and the supplied evidence did not show an exact R6 replacement. Retaining these optional fields as deprecated appears low cost, so this is an avoidable-break candidate rather than just a migration chore."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.asserter:942536",
+      "title": "Procedure.asserter was removed; R6 adds reported[x] and recorded but no exact replacement",
+      "role": "important-but-local",
+      "reasonMd": "`asserter` cannot be safely auto-mapped to one R6 field in all cases; it may represent report source, recorder, performer, or provenance. The removal risks lossy or wrong attribution, and a deprecated retained element would be a low-cost preservation path."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:VALUE_CONSTRAINT:Procedure.performer.onBehalfOf:e9c5b6",
+      "title": "New prc-1 invariant forbids onBehalfOf when performer.actor resolves to Practitioner or PractitionerRole",
+      "role": "needs-follow-up",
+      "reasonMd": "The break is potential because it depends on reference resolution, but when it fires it rejects formerly valid affiliation data. A warning-level or profile-staged rule would preserve compatibility while encouraging the PractitionerRole pattern, so official rationale should be checked."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:SEMANTIC_OR_CONFORMANCE_TEXT:Procedure.subject:37e373",
+      "title": "Procedure subject scope broadened beyond Patient/Group and a new modifier focus element was added",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is not a forward instance invalidation, but it changes the runtime assumptions around what a Procedure can be about. R6 clients and mixed-version mappers must handle non-patient subjects and non-ignorable `focus`, which is part of the resource-level migration program."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:CARDINALITY:Procedure.category:b15bb2",
+      "title": "Procedure.category cardinality widened from 0..1 to 0..*",
+      "role": "important-but-local",
+      "reasonMd": "This does not break old instances but does change generated APIs and downgrade policy. It is worth documenting and testing, though it does not materially change the R4-to-R6 migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:REFERENCE_TARGET:Procedure.basedOn:242309",
+      "title": "Several Procedure references accept new R6 target types not accepted by R4",
+      "role": "discounted",
+      "reasonMd": "The target-list additions mostly create R6-to-R4 representability issues, not R4-to-R6 instance breaks. They matter for downgrade and search metadata, but not as avoidable forward compatibility breaks."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Procedure:ELEMENT_PRESENCE_OR_IDENTITY:Procedure.bodyStructure:260ca1",
+      "title": "R6 adds bodyStructure, performer.period, recorded, reported[x], and supportingInfo with R4 round-trip impact",
+      "role": "discounted",
+      "reasonMd": "These optional additions create downgrade policy work but do not make R4-valid Procedure instances invalid in R6. They are useful migration-awareness items rather than break-prevention targets."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "Procedure is directly in scope for this behavior finding. Typed reference modifiers, chains, reverse includes, and generated search target enums can change, so migration plans should test Procedure searches; however, this mostly follows the R6 model changes and is not the main resource-level driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This is a high-risk generic Resource operation change and may affect servers handling Procedure instances, but it is not a Procedure-specific behavior finding under the resource-review rubric."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes can affect generic Procedure clients and conformance tooling, but because the affected artifacts are Resource/DomainResource-wide, they provide context rather than Procedure scoring."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Before finalizing R6, standards reviewers should revisit low-cost compatibility preservation for `performed[x]`, `instantiatesCanonical`/`instantiatesUri`, `asserter`, and the `prc-1` invariant."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish or validate an official Procedure R4-to-R6 migration map covering `occurrence[x]`, CodeableReference wrapping/pairing, removed provenance/protocol fields, non-patient `subject`/`focus`, multiple outcomes/categories, and downgrade loss."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update Procedure client/server test suites for typed/chained reference searches and generated SearchParameter target metadata, especially where old target lists or reverse includes were assumed."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document which CodeableReference conversions are intended as canonical model redesigns rather than transitional aliases, so implementers know where local transforms are expected."
+    }
+  ],
+  "caveats": [
+    "No official HL7 R4-to-R6 Procedure diff or ballot rationale was available locally.",
+    "No representative R4 Procedure instance corpus was available to measure prevalence of populated changed fields.",
+    "No official cross-version Procedure ConceptMap or StructureMap was found in the local packages.",
+    "R6 evidence came from the 6.0.0-ballot4 core package and may change before final publication.",
+    "Shared Resource/DomainResource behavior findings were considered only as context because the assigned resource is Procedure."
+  ]
+}

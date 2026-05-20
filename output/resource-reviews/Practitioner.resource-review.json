@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Practitioner",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Practitioner.resource-review-context.json",
+    "structureReportPath": "output/Practitioner.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Practitioner.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 6,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Practitioner StructureDefinition findings, the two behavior findings whose `affectedResources` include `Practitioner`, and the shared Resource/DomainResource behavior findings only as context. The deterministic aggregate was treated as a prior, then compared after forming the resource-level judgment."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Practitioner is a mature trial-use resource. That does not prohibit coherent R6 modeling changes, but it does mean hard wire-format changes, same-path semantic shifts, and avoidable operation/search breaks need concrete justification and transition support."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "Practitioner keeps its identity and is mostly stable, with migration concentrated in communication reshaping/semantics and modifier-aware handling, so avoidable compatibility breaks still matter individually."
+  },
+  "reasoning": {
+    "thesisMd": "Practitioner does not look like a resource-level redesign. R6 retains the same resource identity and most core demographic, identifier, address, telecom, name, qualification, and active data can move forward without a wholesale remap. The material local migration work is concentrated around `Practitioner.communication`, plus runtime handling for modifier semantics and downgrade handling for new R6-only safety/status fields.",
+    "migrationShapeMd": "The only hard R4-to-R6 instance break is `Practitioner.communication`: R4 represented each item as a `CodeableConcept`, while R6 represents each item as a backbone element with mandatory `language` and optional `preferred`. That is a real structure and SDK/codegen break, but it is targeted and often mechanically transformable. The binding strengthening on the nested language can make some migrated text-only or local-coded values invalid, and the semantic change means some patient-facing language data may belong on `PractitionerRole.communication`. `active` becoming a modifier and new optional `deceased[x]` affect safe processing and downgrade policy, but they do not force all R4 Practitioner instances through a broad content-model migration.",
+    "compatibilityLeverageMd": "Because the resource is not removed or broadly remodeled, a Practitioner migration program does not dominate the compatibility question. Systems using `communication` need a targeted migration, but that does not make additional low-cost preservation unimportant. FMM 3/trial-use creates meaningful pressure to preserve aliases, transition semantics, and query behavior when doing so does not defeat the R6 design.",
+    "lessBreakingAlternativesMd": "The full `communication` backbone redesign has a plausible R6 goal and only partial less-breaking alternatives because preserving the old `CodeableConcept` shape would create parallel representations for per-language preference. In contrast, the same-path semantic shift for `Practitioner.communication` remains standards-review-worthy because R6 could preserve the patient-communication meaning or introduce clearer separate administrative/correspondence-language guidance. The Measure `$collect-data` `practitioner` filter removal also has a low-cost compatibility option: keep `practitioner` as a deprecated alias for Practitioner reporter values.",
+    "behaviorImpactMd": "The direct behavior findings add localized API/search work rather than a resource migration program. The Measure `$collect-data` filter rename can break clients that pass `practitioner=Practitioner/{id}` and is avoidable enough to revisit. The SearchParameter expression-move finding is mostly a consequence of model changes; for Practitioner, `communication` search now indexes `Practitioner.communication.language`, so search indexes and compatibility servers must be updated alongside data migration. Shared Resource/DomainResource behavior findings, including generic `$meta`, `$validate`, and special search-parameter metadata changes, are relevant environment context but were not counted as Practitioner-specific drivers.",
+    "comparisonToDeterministicAggregateMd": "The independent review agrees with the deterministic aggregate's broad result: `majorMigrationAlreadyUnavoidable` should be `No`, the shape is `mostly-stable-with-local-breaks`, and compatibility should be assessed per change. The important nuance is that `communication` still needs real targeted migration and semantic review; the aggregate should not be read as saying there is no Practitioner migration work.",
+    "uncertaintyMd": "Confidence is high for the computable structure and behavior differences. Remaining uncertainty is mainly about official committee rationale, live terminology expansion behavior for `all-languages`, and real-world prevalence of R4 `Practitioner.communication` values and Measure `$collect-data` practitioner filtering."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Practitioner:TYPE_DOMAIN:Practitioner.communication:ca8305",
+      "title": "Practitioner.communication changed from CodeableConcept to a BackboneElement with language and preferred children",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the main hard instance and generated-model break. It requires a targeted transform from `communication[]` as `CodeableConcept` to `communication[].language`, but the change is localized enough that it does not make a wholesale Practitioner migration unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Practitioner:TERMINOLOGY_BINDING:Practitioner.communication:435fa0",
+      "title": "Practitioner communication language binding strengthened from preferred languages to required all-languages",
+      "role": "important-but-local",
+      "reasonMd": "This can turn text-only or locally coded R4 communication values into R6 validation failures after the structural transform. It matters for migration cleanup, but it is path-local and its strictness has a plausible computability rationale."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Practitioner:SEMANTIC_OR_CONFORMANCE_TEXT:Practitioner.communication:44f3d5",
+      "title": "Practitioner.communication semantic focus changed from patient communication to communicating with the practitioner",
+      "role": "needs-follow-up",
+      "reasonMd": "This is the most standards-review-worthy Practitioner-specific issue. A same-path value can remain syntactically valid while changing business meaning, especially if R4 data represented patient-facing language capability that R6 now points toward `PractitionerRole.communication`."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Practitioner:FLAGS_AND_MODIFIERS:Practitioner.active:3506e5",
+      "title": "Practitioner.active became a modifier element in R6",
+      "role": "important-but-local",
+      "reasonMd": "No R4 instance becomes invalid, but modifier-aware runtimes, summary views, and generated models must now treat `active=false` as non-ignorable. This is an implementation-safety update rather than evidence of broad model remodeling."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Practitioner:ELEMENT_PRESENCE_OR_IDENTITY:Practitioner.deceased[x]:def16a",
+      "title": "R6 adds Practitioner.deceased[x] as an optional modifier choice",
+      "role": "important-but-local",
+      "reasonMd": "The optional addition preserves forward R4-to-R6 validation, but because it is safety-relevant and a modifier, downgrade or mixed-version workflows need an extension or explicit loss policy. It does not drive the R4-to-R6 migration-program conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Practitioner:ELEMENT_PRESENCE_OR_IDENTITY:Practitioner.qualification.status:c77ef5",
+      "title": "R6 adds Practitioner.qualification.status",
+      "role": "discounted",
+      "reasonMd": "This optional non-modifier addition is mainly an R6-to-R4 round-trip concern for credentialing status. It is a local migration/downgrade chore, not a reason to treat Practitioner as broadly redesigned."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-collect-data--Measure-collect-data:Measure-collect-data:provider-filter-renamed",
+      "title": "The `practitioner` filter is removed in favor of broader reporter/provider parameters",
+      "role": "needs-follow-up",
+      "reasonMd": "This direct behavior finding is in scope because it affects Practitioner references in a Measure operation. It does not change Practitioner instances, but preserving `practitioner` as a deprecated alias for Practitioner reporter values looks low-cost and would reduce runtime/API breakage."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "For Practitioner, this includes search expression updates such as `communication` indexing `Practitioner.communication.language`. It should be handled with data/index migration and compatibility-server policy, but it mostly follows the targeted model changes rather than independently forcing a resource migration program."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This can affect generic Practitioner searches through shared infrastructure parameters, but it is a Resource/DomainResource-level behavior issue and should not be double-counted as a Practitioner-specific structural migration driver."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Review `Practitioner.communication` transition semantics: decide when R4 patient-facing language values should remain on Practitioner, move to `PractitionerRole.communication`, or be represented as administrative/correspondence language."
+    },
+    {
+      "priority": "High",
+      "actionMd": "For Measure `$collect-data`, consider retaining `practitioner` as a deprecated optional alias for Practitioner reporter filtering to avoid a low-value runtime/API break."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish migration guidance and tests for wrapping `Practitioner.communication` values, validating BCP 47 language codings, and updating `communication` search indexes."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define mixed-version and downgrade policy for `active` as a modifier, new `deceased[x]`, `communication.preferred`, and `qualification.status`, including extensions where loss would be unsafe or business-significant."
+    }
+  ],
+  "caveats": [
+    "R6 input is ballot4, so final R6 content may still change.",
+    "No live terminology expansion was run for `all-languages`; terminology impact is based on package metadata and report evidence.",
+    "No production prevalence survey was available for R4 Practitioner communication values or Measure `$collect-data` practitioner filtering.",
+    "Shared Resource/DomainResource behavior findings were considered as context only and not scored as Practitioner-specific drivers."
+  ]
+}

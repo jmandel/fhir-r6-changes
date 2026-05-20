@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MedicinalProductPackaged",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MedicinalProductPackaged.resource-review-context.json",
+    "structureReportPath": "output/MedicinalProductPackaged.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MedicinalProductPackaged.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, full StructureDefinition finding set, R4 and R6 source StructureDefinitions for `MedicinalProductPackaged` and `PackagedProductDefinition`, direct HTTP/search behavior findings whose `affectedResources` include `MedicinalProductPackaged`, and shared Resource/DomainResource behavior context. Shared behavior findings were treated as context only because the assigned artifact is not Resource or DomainResource. The deterministic aggregate was compared only after forming the resource-level conclusion."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "brr",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 `MedicinalProductPackaged` was trial-use/FMM 0, so the baseline stability pressure is weak and the broad R6 package-definition redesign is easier to justify than it would be for mature content. That does not erase the regulatory, supply-chain, traceability, and safety value of package identifiers, batch identifiers, legal status, authorization linkage, and contained-item semantics."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "R4 `MedicinalProductPackaged` is replaced by `PackagedProductDefinition` and its package model is substantially reshaped, so migration is unavoidable, but preserving safety-critical batch semantics and clear endpoint/search transition guidance still has real value."
+  },
+  "reasoning": {
+    "thesisMd": "`MedicinalProductPackaged` is not a mostly stable R4 resource with isolated local breaks. R6 has no same-named StructureDefinition; the successor is `PackagedProductDefinition`, with a different resource type, canonical URL, REST/search surface, package tree, contained-item representation, authorization relationship, and product-reference target. Existing instances cannot become base R6-valid without an explicit resource-level transform.",
+    "migrationShapeMd": "The practical migration starts with a root replacement from `MedicinalProductPackaged` to `PackagedProductDefinition`. It then retargets `subject` to `packageFor` and migrated `MedicinalProductDefinition` references; rewrites required repeating `packageItem` roots into a single optional recursive `packaging` tree; converts `packageItem.quantity` from a required `Quantity` to an integer count when safe; maps `device` and `manufacturedItem` arrays into `packaging.containedItem.item` CodeableReference entries; wraps legal status in jurisdiction-scoped backbones; externalizes marketing authorization through `RegulatedAuthorization`; and finds a policy for dropped batch identifiers. Several steps require classification or data-governance decisions rather than field renames alone.",
+    "compatibilityLeverageMd": "The resource identity break means that preserving one old child path cannot by itself make R4 payloads validate as R6. That lowers the leverage of preserving every R4 wire name mechanically. It does **not** make additional break prevention pointless: a deprecated or explicit successor for batch identifiers, clear endpoint/search aliases or redirects where feasible, and precise migration rules for authorization and package-tree conversions would materially reduce data loss and bespoke implementation policy during the unavoidable migration.",
+    "lessBreakingAlternativesMd": "The root identity and old endpoint aliases are plausible transition aids, but not clearly low cost because `PackagedProductDefinition` deliberately broadens the concept beyond medicinal-product packages and duplicate resource identities would burden servers and tooling. The strongest standards-review candidate is `batchIdentifier`: the R4 field has specific outer/immediate packaging semantics and no local R6 successor, so retaining a deprecated compatibility element or defining an explicit package-batch relationship would reduce traceability loss. Other partial alternatives, such as keeping scalar `legalStatusOfSupply`, old `packageItem`, or old contained-item arrays, would preserve JSON shape but duplicate the new R6 model and require precedence/reconciliation rules.",
+    "behaviorImpactMd": "The direct behavior findings reinforce the same migration shape. The base CapabilityStatement no longer advertises the R4 resource endpoint, and search parameters whose only R4 base was `MedicinalProductPackaged` no longer provide a same-base R6 search surface. These are real runtime/API/codegen concerns, but they are derivative of the resource replacement. No direct OperationDefinition finding was assigned to this resource; shared Resource/DomainResource operation and search changes may affect generic tooling but are context only here.",
+    "comparisonToDeterministicAggregateMd": "The independent review agrees with the deterministic aggregate that major migration is unavoidable and that the shape is `removed-or-replaced-resource`. I differ from the aggregate's `migration-program-dominates` compatibility posture: the migration program does dominate planning, but the `batchIdentifier` loss and transition behavior around endpoints/searches are sufficiently safety- and business-relevant that the better posture is to preserve where low cost while expecting resource migration.",
+    "uncertaintyMd": "Confidence is high for the absence of the R4 resource in R6, the successor identity, and the listed element deltas because they are visible in the local StructureDefinitions. Confidence is lower for the exact intended regulatory mapping because the local inputs did not include an official HL7 R4-to-R6 ConceptMap, StructureMap, migration narrative, production prevalence data, or terminology expansion evidence."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPackaged:ARTIFACT_IDENTITY:root:8b4d2a",
+      "title": "R4 MedicinalProductPackaged is absent in R6 and replaced by PackagedProductDefinition",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the decisive resource-level break. R4 instances use `resourceType: MedicinalProductPackaged` and the old canonical StructureDefinition, while R6 uses `PackagedProductDefinition`; validators, generated models, REST routes, profiles, references, and searches all need explicit migration. FMM 0 makes the replacement more acceptable, but it still makes a migration program unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPackaged:REFERENCE_TARGET:subject-packageFor:63f1ab",
+      "title": "`subject` became `packageFor` and now targets MedicinalProductDefinition",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is not only a path rename. It also depends on migrating referenced `MedicinalProduct` resources to `MedicinalProductDefinition`, so package migration must be coordinated with the broader medicinal-product graph. Keeping both names would create duplicate relationship channels, making this mostly a core migration mapping once the redesign is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPackaged:SLICING_AND_CONTENT_MODEL:packageItem-packaging:f0a612",
+      "title": "Required repeating `packageItem` became optional single `packaging` tree",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The package tree is central to the resource. R4 allowed one or more top-level `packageItem` entries, while R6 has a single optional recursive `packaging` root. Multiple top-level R4 packages require policy, not a blind copy. This strongly supports the conclusion that element-level migration is a real program."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPackaged:SLICING_AND_CONTENT_MODEL:containedItem:5d19b8",
+      "title": "Separate `device` and `manufacturedItem` arrays merged into `containedItem.item` CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Contained items move from separate typed reference arrays to a unified CodeableReference that can also carry concepts and additional target types. That is safety- and traceability-relevant and can be lossy in reverse, but retaining the old arrays in base R6 would duplicate the new representation and still not cover new R6 item forms."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPackaged:ELEMENT_PRESENCE_OR_IDENTITY:batchIdentifier:9b3d02",
+      "title": "`batchIdentifier` has no local PackagedProductDefinition successor",
+      "role": "needs-follow-up",
+      "reasonMd": "This is the most important avoidable local finding. R4 captured outer and immediate packaging batch identifiers, which are traceability-, recall-, and supply-chain-relevant. R6 provides no local successor, so migration risks silent loss or vague overloading of generic identifiers. A deprecated compatibility element or explicit batch relationship deserves standards review even though the resource must otherwise migrate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPackaged:ELEMENT_PRESENCE_OR_IDENTITY:marketingAuthorization:74ac31",
+      "title": "Direct `marketingAuthorization` reference was removed from the package resource",
+      "role": "important-but-local",
+      "reasonMd": "Marketing authorization is regulatory and business critical, and old local references must not be dropped. The likely R6 pattern is an external `RegulatedAuthorization.subject` reference back to the package. That is coherent with the broader R6 authorization model, but it needs explicit bundle and non-bundle migration guidance."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPackaged:ELEMENT_PRESENCE_OR_IDENTITY:legalStatusOfSupply:1e7c90",
+      "title": "`legalStatusOfSupply` changed from CodeableConcept to repeatable jurisdiction-scoped backbone",
+      "role": "important-but-local",
+      "reasonMd": "The R6 jurisdiction-scoped shape is useful and often more expressive, but an R4 scalar CodeableConcept is old-valid/new-invalid and round-trip loss is possible when multiple jurisdictions exist. Migration can usually wrap the old value as `legalStatusOfSupply[0].code`, so this is a high-care local mapping rather than a resource-level veto."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPackaged:TYPE_DOMAIN:packageItem.quantity:2c6e45",
+      "title": "`packageItem.quantity` changed from required Quantity to optional integer",
+      "role": "important-but-local",
+      "reasonMd": "Package counts are common and central, and JSON `Quantity` objects will not validate where R6 expects an integer. Whole-number package counts can migrate mechanically, but R4 units, comparators, decimals, or non-count semantics require review. Keeping `Quantity` would have preserved more wire compatibility, but it would also undermine the stricter R6 count semantics."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPackaged:FLAGS_AND_MODIFIERS:status:f64c10",
+      "title": "R6 adds optional modifier element `status`",
+      "role": "discounted",
+      "reasonMd": "This is not an R4-to-R6 instance break because the element is optional and additive for forward migration. It matters for R6-to-R4 downgrade and mixed-version consumers because modifier `status` must not be ignored, but it does not drive migration unavoidability for R4 instances."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`MedicinalProductPackaged` is in the affected resource list, so old same-base searches disappear with the endpoint. This is a real client/API migration concern, but it follows from resource replacement; aliases or documented redirects would help only when the resource mapping is clear."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`MedicinalProductPackaged` is one of the removed endpoint advertisements. Generic route inventories and conformance tooling cannot carry `/MedicinalProductPackaged` forward unchanged. This reinforces the resource identity conclusion and supports explicit endpoint transition guidance."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-convert--Resource-convert:resource-convert-input-parameter-renamed",
+      "title": "Required input parameter renamed from `input` to `resource`",
+      "role": "context-only",
+      "reasonMd": "Shared Resource-level operation changes can affect generic cross-version conversion tooling used during `MedicinalProductPackaged` migration. They are not specific to this resource and were not scored as part of the package resource's content-model migration."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish an authoritative R4 `MedicinalProductPackaged` to R6 `PackagedProductDefinition` migration map covering resource identity, canonical URLs, `subject` to `packageFor`, package-tree conversion, contained-item conversion, authorization linkage, endpoint/search replacements, and known lossy areas."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Standards-review `batchIdentifier` specifically. Prefer a retained deprecated compatibility element, an explicit R6 package-batch relationship, or a named standard extension/mapping rule over silent loss or generic identifier overloading."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define implementable mapping policies and tests for multiple top-level R4 `packageItem` roots, non-integer or unit-qualified quantities, concept-only contained items, `MedicinalProductManufactured` to `ManufacturedItemDefinition` references, jurisdiction-scoped legal status, and externalized marketing authorization."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add REST and search transition guidance for old `/MedicinalProductPackaged` clients, including whether endpoint aliases, search redirects, or only explicit migration to `/PackagedProductDefinition` are expected."
+    }
+  ],
+  "caveats": [
+    "No official HL7 R4-to-R6 ConceptMap, StructureMap, or narrative migration guide was available in the local inputs.",
+    "R4 FMM 0/trial-use means this review does not assume broad production prevalence from break counts alone.",
+    "The R6 input is a ballot package, so the successor model and names may still change before final publication.",
+    "Direct HTTP/search behavior findings are grouped across many removed resources; their impact here is real but derivative of the resource identity replacement.",
+    "Shared Resource/DomainResource behavior findings were considered only as context for generic tooling."
+  ]
+}

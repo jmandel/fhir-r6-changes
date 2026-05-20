@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Location",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Location.resource-review-context.json",
+    "structureReportPath": "output/Location.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Location.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 8,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "I reviewed the Location resource context, the full StructureDefinition report, the deterministic aggregate only after forming the resource judgment, the three behavior reports for direct `Location` coverage, and the R4/R6 package StructureDefinitions for the key Location, `Availability`, and `ExtendedContactDetail` elements. The behavior reports did not contain direct findings for `Location`; shared `Resource`/`DomainResource` behavior is treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 `Location` was trial-use/FMM 3, so it is not protected like normative content, but it is a mature operational directory resource. Breaks to contact details, location classification, and opening/closure information deserve real compatibility weight, especially when a less-breaking transition would be cheap."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Location keeps its identity but needs targeted R6 migration for contacts, form/physicalType, availability, and type semantics; low-cost compatibility preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "`Location` is not removed or wholesale replaced, but a nontrivial Location-specific migration program is unavoidable for implementations that exchange real directory content. The hard work is concentrated in contact modeling, the physical-form rename, the `Availability` remodel, and availability exceptions; a separate semantic risk comes from reusing `Location.type` for service types. That is enough for `Partial` major migration, not enough to say that compatibility leverage is gone.",
+    "migrationShapeMd": "The actual migration shape is a moderate targeted remodel. R4 `telecom` becomes repeated `contact` records using `ExtendedContactDetail`; `physicalType` is a wire-name rename to `form`; R4 repeated `hoursOfOperation` backbone entries collapse into one `Availability` with nested `availableTime`; and free-text `availabilityExceptions` must move into `Availability.notAvailableTime.description` if retained. Most other Location content can remain structurally stable, and optional R6 additions such as `virtualService`, `code`, and `characteristic` mainly affect downgrade or round-trip planning.",
+    "compatibilityLeverageMd": "Because affected systems already need explicit transforms, preventing every local break is not equally high leverage. However, the migration burden does not make avoidable breaks irrelevant. Retaining a deprecated `physicalType` alias, preserving flat `telecom` for a transition, or avoiding silent semantic reuse of `Location.type` could reduce validator, SDK, FHIRPath, and business-rule churn without blocking the R6 model. By contrast, the `Availability` refactor is a more substantive model consolidation, so preserving the old shape indefinitely has lower standards leverage.",
+    "lessBreakingAlternativesMd": "The highest-value less-breaking question is `Location.type`: available services should probably have been modeled on a distinct path or with explicit transition guidance instead of repurposing a familiar summary classification path. The lowest-cost hard break is `physicalType` to `form`, where the type and cardinality are unchanged and a deprecated alias would preserve most R4 instances. `telecom` to `contact` is more defensible because the new grouped contact model is richer, but a deprecated flat shortcut would still protect common operational contacts during transition. The availability changes are mostly local migration chores once the shared `Availability` datatype goal is accepted.",
+    "behaviorImpactMd": "No OperationDefinition, SearchParameter, or HTTP behavior finding was directly assigned to `Location`. The 11 shared base `Resource`/`DomainResource` behavior findings may affect generic server behavior around any resource, including Location instances, but they do not change the resource-level Location structure judgment.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate's `Partial` migration, `moderate-targeted-remodel` shape, and `preserve-where-low-cost-but-expect-resource-migration` posture match my independent judgment. The important nuance is qualitative: the aggregate counts point in the right direction, but the resource conclusion is driven by the combination of a real availability/contact remodel plus avoidable low-cost path and semantic breaks, not by the raw count of eight findings.",
+    "uncertaintyMd": "Structural confidence is high because the R4 and R6 package StructureDefinitions directly show the element changes. Terminology and business-impact confidence is lower for `Location.type` because no official ConceptMap, complete terminology expansion, or ballot rationale was available in the supplied inputs."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.telecom:8a20bd",
+      "title": "Location.telecom was replaced by structured Location.contact",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a common operational contact path and a hard old-valid/new-invalid break: flat R4 `ContactPoint` values must be wrapped into R6 `ExtendedContactDetail`. The richer R6 contact model is a plausible reason for migration, but preserving a deprecated flat `telecom` shortcut would still be valuable for transition."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.physicalType:7b365f",
+      "title": "Location.physicalType was renamed to Location.form",
+      "role": "important-but-local",
+      "reasonMd": "This is a hard wire-name break with the same cardinality and datatype. Because the R6 goal is mainly broader wording and a better name, retaining `physicalType` as a deprecated alias or keeping the old path with updated wording looks low cost and standards-review-worthy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Location:TYPE_DOMAIN:Location.hoursOfOperation:b48fa4",
+      "title": "Location.hoursOfOperation changed from repeated backbone entries to a single Availability datatype",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest substantive remodel: raw R4 arrays with `openingTime` and `closingTime` do not match the R6 single `Availability` object with nested `availableTime`. It justifies expecting a targeted Location migration program, even though the mapped concepts are mostly direct."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.availabilityExceptions:e41e40",
+      "title": "Location.availabilityExceptions was removed and only partially maps to Availability.notAvailableTime",
+      "role": "important-but-local",
+      "reasonMd": "Exception text needs explicit migration into `notAvailableTime.description` and may be lossy on downgrade when R6 uses multiple dated exception periods. Once the `Availability` model is accepted, this is mostly a local migration chore, but closure text should not be silently dropped."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Location:TERMINOLOGY_BINDING:Location.type:b08461",
+      "title": "Location.type changed meaning and value set from location role/function to service type",
+      "role": "needs-follow-up",
+      "reasonMd": "This is not a hard base-validation break because the R6 binding is preferred, but it is a high-value semantic compatibility issue. Reusing the same path for service availability can silently change directory search, routing, referral, or eligibility logic; a distinct service-type element would be a plausible less-breaking design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Location:TYPE_DOMAIN:Location.description:f3e262",
+      "title": "Location.description type changed from string to markdown",
+      "role": "discounted",
+      "reasonMd": "The wire representation remains a primitive JSON string and ordinary R4 description text remains representable. SDK wrappers and UI rendering may change, but this does not materially shape the resource-level migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.virtualService:4e9d6d",
+      "title": "R6 added Location.virtualService with no R4 core equivalent",
+      "role": "discounted",
+      "reasonMd": "This optional addition is useful new R6 expressiveness and does not invalidate R4 instances. It is relevant for R6-to-R4 downgrade planning, not for avoiding R4-to-R6 breakage."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Location:ELEMENT_PRESENCE_OR_IDENTITY:Location.code-characteristic:d5e335",
+      "title": "R6 added Location.code and Location.characteristic classification elements without R4 core targets",
+      "role": "discounted",
+      "reasonMd": "These optional additions do not force any R4 instance migration. They should be handled with extension or mapping guidance for downgrade, but they do not increase the forward resource migration burden."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-profile-canonical-type",
+      "title": "R6 narrows the `profile` input from `uri` to `canonical(StructureDefinition)`",
+      "role": "context-only",
+      "reasonMd": "This generic `Resource` operation behavior may affect Location validation calls on servers that expose shared `$validate`, but it is not Location-specific and is not counted as a direct Location behavior break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared search metadata change can matter to generic clients, but it is not a Location-specific search parameter or structure change and therefore does not drive the Location resource-level conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit `Location.type` at standards level: either preserve the R4 role/function semantics on that path and add a distinct service-availability classification, or publish explicit migration and ConceptMap guidance that prevents silent reinterpretation."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Consider low-cost transition preservation for `Location.physicalType`/`Location.form` and flat `Location.telecom`/`Location.contact.telecom`, such as deprecated aliases or clear compatibility rules, if the base model governance can tolerate temporary overlap."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish tested R4-to-R6 Location mapping artifacts for contacts, opening hours, availability exceptions, and type codes, including edge cases with multiple opening intervals and closure periods."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Document R6-to-R4 downgrade strategies for optional R6 additions such as `virtualService`, `code`, and `characteristic`, and for markdown rendering semantics on `description`."
+    }
+  ],
+  "caveats": [
+    "No official Location ballot rationale, cross-version StructureMap, or ConceptMap was available in the supplied inputs.",
+    "Behavior reports had no findings directly affecting Location; shared Resource/DomainResource behavior was treated as context only.",
+    "Inherited base StructureDefinition changes were outside the Location structure report scope and were not scored for this resource review."
+  ]
+}

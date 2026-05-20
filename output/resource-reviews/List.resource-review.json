@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "List",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/List.resource-review-context.json",
+    "structureReportPath": "output/List.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/List.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 4,
+    "reviewedDirectBehaviorFindingCount": 3,
+    "reviewedSharedBehaviorContextCount": 10,
+    "methodNotesMd": "Reviewed the List resource context, the full List StructureDefinition report, the deterministic aggregate only after forming the resource-level conclusion, and the three direct behavior findings whose affectedResources include `List`. I also checked the local R4/R6 core package definitions for `List.subject`, `List.source`, the `lst-2`/`lst-3` constraints, and the presence/removal of `OperationDefinition/List-find`. Shared Resource/DomainResource behavior findings were considered as background only because the assigned resource is `List`, not `Resource` or `DomainResource`."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "fhir",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 `List` is trial-use/FMM 1, so a breaking change does not carry the same preservation burden as mature or normative content. That weak pressure does not erase concrete implementation effects: `List.subject` is a common routing, compartment, and access-control anchor, and operation/search behavior can still break generated clients and conformance tests."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "List keeps its resource identity and is not broadly remodeled; R6 migration is mostly a local `subject` shape conversion plus targeted operation/search adjustments."
+  },
+  "reasoning": {
+    "thesisMd": "`List` does have real R4-to-R6 breaks, but they do not amount to a resource-wide redesign that makes further compatibility work low-value. The central structural issue is `List.subject`: R4 serialized a populated subject as one object, while R6 makes the same element repeating and therefore an array. The other List structural changes are mainly widenings or relaxations that affect R6-to-R4 conversion, local policy, or generated typing more than old-valid/new-invalid R4 instances.",
+    "migrationShapeMd": "The practical migration shape is targeted. Existing R4 instances with `List.subject` need a mechanical object-to-array transform for R6 JSON and generated APIs must change from a single reference to a collection. R6-to-R4 conversion needs policy checks for multiple subjects, any-resource subject targets, new `List.source` target types, and entries using `deleted` or `date` outside the old R4 mode rules. This is meaningful migration work, but it is not a removed resource, a renamed resource, or a pervasive content-model remodel.",
+    "compatibilityLeverageMd": "Because a major resource-level migration is not already unavoidable, compatibility should still be evaluated per change. Low-FMM status makes the `List.subject` cardinality break and `List/$find` removal easier to justify, but it does not mean additional breaks are free. Low-cost preservation or clear transition guidance still has value where it does not compromise the R6 model, especially for access control, compartment indexing, conformance metadata, and generated clients.",
+    "lessBreakingAlternativesMd": "For `List.subject`, retaining a singleton and adding a parallel repeating element would preserve R4 JSON but split one subject concept across paths and complicate search, compartment, display, and authorization logic; this is not an obviously better base design. For `List/$find`, a retired or deprecated OperationDefinition could have preserved canonical/tooling continuity, but would also keep surfacing a low-maturity route that R6 appears to simplify away in favor of search. For the grouped base CapabilityStatement operation-advertisement change and SearchParameter target changes, the less-breaking path is more likely transitional guidance or operation-specific review than a List-specific structural redesign.",
+    "behaviorImpactMd": "The direct behavior surface reinforces a targeted migration posture. `List/$find` removal is a concrete API/codegen break for early adopters, but the R4 operation was draft/FMM 1, type-level, optional, and likely rare. SearchParameter reference-target changes can affect typed chaining and generated target enums for List queries, but they mostly follow underlying resource/reference remodels. The base CapabilityStatement operation-advertisement finding is standards-review-worthy at the cross-resource behavior layer, but it should not be counted as a List-specific resource remodel. Shared Resource/DomainResource behavior findings remain context only for this review.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate conclusion is directionally right: same resource identity, one hard instance break, direct behavior changes, and a `mostly-stable-with-local-breaks` shape. My independent review puts more emphasis on the safety and access-control consequences of `List.subject`, but still concludes that this is not enough to make a broad List migration program dominate all per-change compatibility decisions.",
+    "uncertaintyMd": "Confidence is high for the computable structural and operation facts. The main uncertainty is standards intent and implementation prevalence: the supplied local inputs do not include ballot issue history or narrative rationale for relaxing `lst-2`/`lst-3` or for the exact intended replacement guidance for `List/$find`."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "List:SERIALIZATION_OR_CODEGEN:List.subject:6b3f2a",
+      "title": "List.subject changed from singleton to repeating, changing JSON shape and generated APIs",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the only hard R4-to-R6 instance break in the List structure report and the main reason any List-specific migration step is needed. It matters because populated R4 JSON uses an object while R6 requires an array, and generated models change to collections. It still looks proportionate rather than standards-revisit-worthy because the transform for existing single-subject data is mechanical, the R6 multi-subject goal is coherent, and R4 List was only FMM 1/trial-use."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "List:REFERENCE_TARGET:List.subject:4aa218",
+      "title": "List.subject target domain widened from four resource types to any Resource",
+      "role": "important-but-local",
+      "reasonMd": "This does not invalidate R4 instances because the R4 target set remains allowed in R6. It still deserves attention in migration guidance because subject target breadth and multiplicity affect compartment membership, patient-context selection, and access-control assumptions, especially when down-converting R6 Lists or consuming new R6 data."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "List:REFERENCE_TARGET:List.source:2e93bd",
+      "title": "List.source author targets expanded to Organization, RelatedPerson, CareTeam, and Group",
+      "role": "discounted",
+      "reasonMd": "This is a pure target widening: all R4 `List.source` references remain legal in R6. It creates reverse-conversion and generated-type breadth work for R6 data using the new actors, but it is not a driver of R4-to-R6 unavoidability."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "List:VALUE_CONSTRAINT:List.root:91c0af",
+      "title": "R4 mode-dependent entry constraints lst-2 and lst-3 were removed",
+      "role": "important-but-local",
+      "reasonMd": "Removing the old error constraints is a relaxation rather than an old-valid/new-invalid break. It matters locally because `entry.deleted` is a modifier and some workflows may have relied on `mode` to interpret deleted entries or dates, but preserving R4 compatibility does not require reintroducing the constraints in base R6."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "List-find:list-find-operation-removed",
+      "title": "List $find is removed from R6 with no direct operation replacement",
+      "role": "important-but-local",
+      "reasonMd": "This is a concrete route, conformance, and generated-SDK break for implementations that used `List/$find`. It does not make a broad List resource migration unavoidable because the operation was low-maturity, optional, and apparently redundant with search-based functional-list retrieval for many workflows. A deprecated retained OperationDefinition would be a plausible transition aid, but not clearly required."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "This affects List through typed reference modifiers, chaining, `_include`/`_revinclude` expectations, and generated target enums. It is migration-relevant for clients and servers, but it is a behavior-surface adjustment rather than evidence that the List content model was broadly redesigned."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "needs-follow-up",
+      "reasonMd": "List is among the affected resources, and this may disrupt generic discovery, documentation, and conformance tooling. The grouped finding is cross-resource and operation-specific, so it should be followed up in the behavior/API review rather than used as a List-specific reason to declare resource-level migration dominance."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "This and the other shared Resource/DomainResource behavior findings may affect systems using generic FHIR operations around List resources, but under the review rules they are context only because the assigned artifact is `List`, not the shared base resource."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Document and test the `List.subject` migration rule: wrap R4 singleton JSON as a one-element R6 array, and define explicit R6-to-R4 handling for multiple subjects or subject targets outside Patient, Group, Device, and Location."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add implementation guidance for multi-subject Lists, especially compartment indexing, authorization, patient-context routing, and search behavior, because the R6 StructureDefinition itself flags access-control challenges."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For behavior/API review, decide whether `List/$find` needs a retired canonical artifact, replacement guidance, or conformance note so generated clients and tests have a predictable migration path."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Where existing implementations depend on R4 `lst-2`/`lst-3`, preserve those rules in local profiles or validators rather than treating their removal as a base R6 compatibility blocker."
+    }
+  ],
+  "caveats": [
+    "Official ballot rationale, Jira history, and narrative spec pages were not part of the supplied review evidence.",
+    "Shared Resource/DomainResource behavior findings were considered only as context, per the resource-review instructions.",
+    "This review judges resource-level migration leverage; it does not replace per-operation or per-search-parameter compatibility review."
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "NutritionOrder",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/NutritionOrder.resource-review-context.json",
+    "structureReportPath": "output/NutritionOrder.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/NutritionOrder.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 16,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, aggregate rubric, and fresh-review framework; then checked the NutritionOrder context, StructureDefinition report, deterministic aggregate, the direct SearchParameter behavior finding, selected shared Resource/DomainResource behavior context, and the R4/R6 core StructureDefinition element definitions for the major paths. The deterministic aggregate was compared only after forming the resource-level conclusion."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 NutritionOrder is trial-use/FMM 2, so there is not a mature or normative presumption against every cleanup. The lower maturity does not erase the practical impact of a mandatory subject rename, administration schedules, product identity, fluid consistency, max-volume limits, or protocol provenance in clinical nutrition workflows."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "NutritionOrder keeps its identity, but R6 remodels enough central wire paths that migration is unavoidable; low-cost preservation of selected R4 paths still has real value."
+  },
+  "reasoning": {
+    "thesisMd": "A resource-level migration program is already unavoidable for current R6 NutritionOrder. The strongest reason is not the count alone: every conformant R4 instance uses mandatory `patient`, while R6 requires `subject`, so raw R4 JSON cannot validate even before considering optional content. The same resource also remodels schedule serialization, product representation, fluid/additive/enteral details, and protocol provenance. Because the resource identity remains and several breaks have plausible low-cost base-compatible alternatives, the right standards posture is not `migration-program-dominates`; it is to expect migration while still preserving compatibility where doing so is cheap and clinically useful.",
+    "migrationShapeMd": "The migration shape is a major local model remodel rather than resource removal. R4 `patient` becomes R6 `subject`; `orderer` becomes `requester`; direct `Timing` schedule elements become schedule backbones with nested `timing`; supplement and enteral product concepts move to `CodeableReference(NutritionProduct)`; `instantiates*` protocol links disappear; `oralDiet.fluidConsistencyType` disappears; enteral additives move to a root repeatable `additive` backbone; and several enteral field names change. Some changes are one-to-one chores, but the central subject, schedule, product, and removed-content changes mean validators, serializers, generated APIs, FHIRPath, mappings, and test data all need coordinated migration.",
+    "compatibilityLeverageMd": "The existing R6 design already forces migration, but that does not make additional break prevention pointless. Keeping or aliasing selected old paths in the base model, where feasible, would reduce dropped data, search/index drift, and generated-code churn for implementers converting large bodies of orders. Compatibility leverage remains especially high for mandatory or safety/business-critical fields: subject identity, timing, product identity, fluid consistency, and max volume. It is lower for FMM-2 mechanical cleanups such as `orderer` to `requester`, `routeofAdministration` spelling, or `texture.foodType` to `texture.type`.",
+    "lessBreakingAlternativesMd": "The most persuasive less-breaking options are targeted: retain `patient` while broadening it to Patient or Group or provide a true transitional alias; add as-needed schedule qualifiers without wrapping existing `Timing` values; keep the R4 CodeableConcept product fields and add optional NutritionProduct references; retain deprecated `instantiates*` fields or a computable equivalent; retain or explicitly map `fluidConsistencyType`; and keep `maxVolumeToDeliver` while clarifying its definition. These options do not eliminate the need for a migration program, but they are materially different from after-the-fact StructureMaps because they would preserve old wire data in the base model. Less compelling alternatives include preserving all old additive and route spellings indefinitely, because those changes support broader modeling or cleanup and have clearer one-to-one transforms.",
+    "behaviorImpactMd": "The single direct behavior finding for NutritionOrder is the shared SearchParameter expression-move issue: stable search codes may index different R6 paths after model changes. For NutritionOrder this reinforces the need to migrate data and indexes together, but it does not independently drive the resource-level conclusion. The 11 Resource/DomainResource behavior findings were considered as ecosystem context only; NutritionOrder is not Resource or DomainResource, so those base-operation and shared-search issues are not scored as NutritionOrder-specific resource breaks.",
+    "comparisonToDeterministicAggregateMd": "The independent judgment agrees with the deterministic aggregate on `majorMigrationAlreadyUnavoidable = Yes`, `resourceMigrationShape = major-model-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The important nuance is that this conclusion is driven by the actual migration shape, not by counts: several hard breaks are proportionate FMM-2 local chores, while a smaller set of central and safety-relevant findings still deserve standards attention despite the already-unavoidable migration.",
+    "uncertaintyMd": "Confidence is high for StructureDefinition-level path, type, cardinality, binding-strength, and invariant changes. Confidence is lower for the intended clinical semantics of removed or moved fields because official HL7 diff rationale, narrative implementation notes, authoritative terminology expansions, and ConceptMaps were not available in the local inputs."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.patient:ea414c",
+      "title": "Mandatory `patient` renamed to mandatory `subject` and widened to Patient or Group",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest resource-level driver: every valid R4 NutritionOrder has `patient`, while R6 requires `subject`. The Group widening is a reasonable R6 capability, but preserving the old wire name while broadening the target would have kept most R4 instances valid and avoided a high-blast-radius generated API rename."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:SERIALIZATION_OR_CODEGEN:NutritionOrder.schedule:6fd881",
+      "title": "Oral, supplement, and enteral schedules changed from direct Timing to schedule backbones",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Scheduling moved from direct `Timing` values to wrapper backbones across multiple administration surfaces. This is not just a rename; it changes JSON shape, generated classes, and FHIRPath. Because timing controls delivery, a less-breaking way to add as-needed qualifiers would have been valuable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:TYPE_DOMAIN:NutritionOrder.productTypes:e433e2",
+      "title": "Product type fields changed from CodeableConcept/string paths to CodeableReference-based product model",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "R6's NutritionProduct reference support is meaningful, but replacing concept-shaped product fields makes existing R4 supplement and enteral formula product data invalid without structural wrapping/renaming. Product identity is operationally important, so adding separate reference fields would have been a lower-break path."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.instantiates:3d5ea1",
+      "title": "Protocol/definition instantiation elements were removed without a local replacement",
+      "role": "important-but-local",
+      "reasonMd": "This optional content does not affect every instance, but it can carry order-set, ActivityDefinition, PlanDefinition, or external protocol provenance. `basedOn` is not semantically equivalent, so removal is lossy and retaining deprecated `instantiates*` fields would have been a low-cost compatibility option."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.oralDiet.fluidConsistencyType:b2bbc5",
+      "title": "`oralDiet.fluidConsistencyType` was removed",
+      "role": "important-but-local",
+      "reasonMd": "Fluid consistency is safety-relevant for dysphagia and aspiration-risk workflows. Even if R6 intends liquid texture to be represented under `oralDiet.texture`, the StructureDefinition evidence does not provide a computable one-to-one mapping, so this remains standards-review-worthy despite broader migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.maxVolumeToDeliver:e9a57d",
+      "title": "`maxVolumeToDeliver` renamed to `maxVolumeToAdminister`",
+      "role": "important-but-local",
+      "reasonMd": "This is only a same-role optional rename, but the field carries a feeding volume safety limit and the compatibility-preserving alternative is cheap: keep the old path and clarify the definition. It should not be dismissed merely because the resource already needs migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:VALUE_CONSTRAINT:NutritionOrder:4c82d3",
+      "title": "Local nor-1 invariant changed from warning to error",
+      "role": "discounted",
+      "reasonMd": "The warning-to-error change is a real hard validation break for orders with no oral diet, supplement, or enteral formula content. It is discounted at resource level because the invalidated shape is clinically weak and the base rule that a NutritionOrder should contain nutrition content is coherent."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.orderer:3a4348",
+      "title": "`orderer` renamed to `requester`",
+      "role": "discounted",
+      "reasonMd": "This contributes to local migration work and generated-code churn, but the old and new fields have the same role and reference domain. Given FMM 2 and alignment with the common Request requester pattern, it is best treated as a mechanical chore once the resource migration is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.additive:83d26a",
+      "title": "Enteral formula additive fields moved to repeatable root `additive` backbone",
+      "role": "discounted",
+      "reasonMd": "The move breaks old enteral additive paths, but R6 generalizes additives across oral diet, supplement, and enteral feeding and adds quantity/route. Keeping both models would create duplicate representations, so this is mostly a local migration chore rather than a strong avoidability concern."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:ELEMENT_PRESENCE_OR_IDENTITY:NutritionOrder.enteralFormula.routeofAdministration:800d5b",
+      "title": "`routeofAdministration` renamed to `routeOfAdministration` and widened to repeatable",
+      "role": "discounted",
+      "reasonMd": "The R4 spelling must be transformed and multiple R6 routes do not down-convert cleanly, but the primary R4-to-R6 case is a mechanical spelling/cardinality cleanup on FMM-2 content. It should be documented, not treated as a resource-level design blocker."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:TERMINOLOGY_BINDING:NutritionOrder.nutritionBindings:2a9600",
+      "title": "Nutrition-specific terminology bindings became preferred and some value sets changed",
+      "role": "discounted",
+      "reasonMd": "The nutrition terminology changes may affect warnings, analytics, and terminology quality checks, but preferred bindings do not reject old codes as base-invalid. This is a follow-up terminology-quality issue, not a major R4-to-R6 instance break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "NutritionOrder:CONVERSION_OR_MAPPING:NutritionOrder.new-r6-fields:7b2690",
+      "title": "Several new optional R6 fields create R6-to-R4 representability gaps",
+      "role": "discounted",
+      "reasonMd": "The new workflow, performer, device, policy, and caloric-density fields are optional R6 additions. They require down-conversion policy for R4 receivers, but they do not make R4 instances invalid in R6 and should not drive the forward migration conclusion."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "NutritionOrder is one of the affected resources. This matters operationally because model migration must be paired with search-index and query-fixture migration to avoid silent result drift. It follows the underlying model changes and does not by itself change the resource-level compatibility posture."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "This shared Resource operation issue can affect servers that validate NutritionOrder instances, but it is scored as Resource-level behavior rather than a NutritionOrder-specific break. It is context for migration programs, not a driver of the NutritionOrder resource judgment."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "The special/profile search-parameter metadata changes are broad Resource/DomainResource context. They may affect clients that also search NutritionOrder, but the finding is not assigned to NutritionOrder and should not duplicate the base behavior score here."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Run standards/design review on the low-cost, high-value preservation candidates: `patient`/`subject`, schedule wrapper shape, product CodeableReference replacement, `instantiates*` removal, `fluidConsistencyType` removal, and `maxVolumeToDeliver` rename."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish an explicit R4-to-R6 NutritionOrder migration map covering mandatory subject conversion, schedule wrapping, CodeableReference concept nesting, product-name renames, additive relocation, route/max-volume renames, and the `nor-1` validation change."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For servers and conformance suites, pair data transforms with NutritionOrder search-index migration and before/after query fixtures for any stable search codes whose expressions moved."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Resolve safety-sensitive semantic uncertainty by checking official ballot rationale, narrative specification notes, ConceptMaps, and terminology expansions for fluid consistency, additives, product concepts, and nutrition-specific value sets."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Document reverse-conversion policies for optional R6-only fields, Group subjects, NutritionProduct references, multiple routes, and broader Quantity values rather than treating those reverse-only gaps as forward compatibility blockers."
+    }
+  ],
+  "caveats": [
+    "Official HL7 R4-to-R6 NutritionOrder diff rationale and ballot reconciliation notes were not available in the local inputs.",
+    "Narrative specification pages and implementation notes were not compared, which limits confidence for intended mappings of removed or moved fields.",
+    "Authoritative terminology expansions and ConceptMaps were not available for the nutrition value-set changes.",
+    "Shared Resource and DomainResource behavior findings were considered only as context because NutritionOrder is neither Resource nor DomainResource.",
+    "R6 maturity/status was not used as the compatibility burden baseline; the R4 baseline is trial-use/FMM 2."
+  ]
+}

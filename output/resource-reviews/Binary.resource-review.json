@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Binary",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Binary.resource-review-context.json",
+    "structureReportPath": "output/Binary.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Binary.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 1,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, resource-level rubric, fresh-review framework, Binary context, full Binary StructureDefinition report, R4/R6 Binary StructureDefinitions, R4 maturity map, and behavior reports for findings whose `affectedResources` include `Binary`. No direct behavior finding was found for `Binary`; shared `Resource`/`DomainResource` behavior findings were treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "fhir",
+    "stabilityPressure": "Strong",
+    "effectMd": "Binary is normative/FMM 5 in R4, so direct breaks to its instance shape or access-control semantics require strong justification. That stability pressure does not create a broad migration program where the R6 resource keeps the same identity and local elements, but it does mean the one remaining compatibility concern should be handled deliberately rather than dismissed as low value."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "Binary remains structurally stable from R4 to R6; no resource-level migration program is already unavoidable, but Media-based security-context and image workflows need explicit migration attention."
+  },
+  "reasoning": {
+    "thesisMd": "Binary keeps its R6 resource identity and the core R4 element model: required `contentType`, optional `data`, and optional `securityContext` remain in place with the same local cardinalities and `securityContext` remains `Reference(Resource)`. The only Binary-local finding is a semantic/conformance-text change that removes Media-oriented guidance while the R6 package has no `Media` StructureDefinition. That is a real compatibility concern for implementations that used `Media/...` as the Binary security proxy, but it is not evidence of a broad Binary resource redesign.",
+    "migrationShapeMd": "The actual migration shape is mostly no-op for ordinary Binary instances and generated Binary models. Instances that carry `contentType` and `data` without a Media-dependent authorization proxy should not need Binary-local transformation. The exceptional path is an R4 Binary whose `securityContext.reference` points to `Media/...`, or an image workflow that paired Binary with the R4 Media resource. Those cases need a replacement R6 security-context target such as `DocumentReference`, `Observation`, another clinically appropriate resource, a profile rule, or an implementation-specific policy.",
+    "compatibilityLeverageMd": "Because Binary does not already require a major migration program, the value of avoiding or mitigating additional breaking changes remains high on a per-change basis. The right posture is not `migration-program-dominates`: normative/FMM 5 status and the access-control role of `securityContext` make compatibility preservation and migration clarity important even though the current change appears proportionate.",
+    "lessBreakingAlternativesMd": "No clearly low-cost Binary-local base-model alternative was identified. The target type is already broad `Reference(Resource)`, so the Binary element did not become narrower. Keeping `Media` as ordinary Binary guidance while `Media` is absent from the R6 core package would be misleading and would not preserve runtime resolution or generated model support. The useful lower-cost mitigations are standards migration notes, conversion recipes, or a broader Media alias/legacy-resource decision outside Binary; those are valuable but not a simple Binary-local compatibility design.",
+    "behaviorImpactMd": "The behavior reports contain no direct finding with `affectedResources` including `Binary`. The eleven shared `Resource`/`DomainResource` behavior findings, including Resource-level operation and shared search-parameter changes, can affect Binary endpoints as generic FHIR resource behavior, but they do not change the Binary resource-level migration conclusion.",
+    "comparisonToDeterministicAggregateMd": "This independent review agrees with the deterministic aggregate's main classification: major migration is `No`, the shape is `mostly-stable-with-local-breaks`, and compatibility leverage should be assessed per change. The emphasis here is that the single local finding matters because it touches access-control proxy semantics on a normative resource, even though it is probably a consequence of the broader low-FMM Media removal rather than a Binary-local hard break.",
+    "uncertaintyMd": "The review did not find official Media removal rationale or R4-to-R6 conversion maps in the supplied inputs. The conclusion relies on direct R4/R6 Binary StructureDefinition comparison, R4 maturity data, and the absence of `StructureDefinition-Media.json` from the inspected R6 ballot package."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Binary:SEMANTIC_OR_CONFORMANCE_TEXT:Binary.securityContext:media-guidance",
+      "title": "Binary no longer gives Media-oriented guidance for images or security context",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the only Binary-local finding and it is the reason the resource is not classified as pure low-material-change. It does not alter `Binary.securityContext` cardinality or type, but R4 examples and root comments pointed implementers toward Media while R6 removes that guidance and lacks a Media resource. The issue is important for access-control correctness, yet it remains localized to Media-dependent security-context/image workflows rather than making all Binary instances require migration."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This is a generic Resource-level operation change with high runtime/conformance risk in the aggregate context, but it is not Binary-specific and should not be counted as a Binary resource-model break. It may still matter to servers exposing Binary endpoints through common Resource operations."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "This shared Resource behavior can affect validation workflows for any resource, including Binary, but it does not arise from the Binary StructureDefinition and does not make Binary resource migration unavoidable."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared search-parameter metadata change is relevant as background for generic clients and servers, but Binary is neither `Resource` nor `DomainResource`; it does not drive the Binary-specific resource-level assessment."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Provide or confirm official migration guidance for R4 `Media` uses that appear in Binary `securityContext` or image workflows, including how access-control proxy semantics should be preserved in R6."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For implementations, inventory Binary records with `securityContext.reference` values beginning `Media/` and choose replacement R6 proxy resources case by case; validate both reference resolution and authorization behavior after migration."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Keep shared `Resource`/`DomainResource` operation and search-parameter changes in endpoint conformance planning, but do not treat them as Binary-local evidence of a redesigned resource."
+    }
+  ],
+  "caveats": [
+    "The inspected R6 package is 6.0.0-ballot4; later ballot or publication material could clarify Media migration intent.",
+    "The review found no direct behavior finding for Binary; shared Resource/DomainResource behavior findings were considered context only.",
+    "The Media-related conclusion is based on Binary prose, package contents, and maturity data rather than official Media conversion maps."
+  ]
+}

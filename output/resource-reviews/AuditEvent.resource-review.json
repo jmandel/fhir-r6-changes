@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "AuditEvent",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/AuditEvent.resource-review-context.json",
+    "structureReportPath": "output/AuditEvent.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/AuditEvent.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 11,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-level context, the full AuditEvent StructureDefinition report, the deterministic aggregate only after forming the resource-level conclusion, and behavior reports for findings whose `affectedResources` include `AuditEvent`. I checked the R4 and R6 AuditEvent StructureDefinition snapshots for the major paths to confirm the migration shape. Shared `Resource`/`DomainResource` behavior findings were treated as API context only, not as AuditEvent-specific drivers."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "sec",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 AuditEvent is trial-use/FMM 3 from the Security work group. That is not a normative freeze, but audit records are security, compliance, and forensic evidence; breaking changes therefore need a clearer compatibility story than ordinary low-maturity cleanup."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "AuditEvent keeps its name but R6 remodels core timing, outcome, agent, authorization, source, classifier, and entity structures enough that a resource-specific migration program is unavoidable; low-cost preservation still matters for audit-critical legacy data."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a resource removal, but it is a broad remodel of the AuditEvent content model. R4 instances can fail R6 validation across multiple central sections: `period` becomes `occurred[x]`, primitive `outcome`/`outcomeDesc` become a structured outcome backbone, `agent.who` becomes mandatory, several Coding classifiers become CodeableConcepts, authorization fields are renamed/broadened, `source.site` changes from string to Location reference, and entity descriptors/detail typing are removed or reshaped. A practical R4-to-R6 migration therefore needs an AuditEvent-aware transform, not just validator regeneration.",
+    "migrationShapeMd": "The migration shape is `major-model-remodel`: stable resource identity with widespread path, type, and cardinality changes in audit semantics. The most important point is qualitative rather than numeric: changes affect event timing, result, actor identity, authorization purpose, source identity, and audited entity metadata. Those are the fields that audit pipelines, retention systems, and security investigations most often depend on.",
+    "compatibilityLeverageMd": "Because a migration program is already unavoidable, individual low-value chores such as renaming `period` to `occurredPeriod` or wrapping simple Codings can be handled in migration tooling. That does **not** mean compatibility preservation has low value overall. AuditEvent's R4 FMM 3 status plus security/compliance use means deprecated aliases, retained optional legacy descriptors, and official mappings can materially reduce data loss and implementation risk even when every implementation must still run a mapper.",
+    "lessBreakingAlternativesMd": "The strongest preservation candidates are the ones with modest base-model cost and high audit value: keep/deprecate removed entity descriptors, keep the old purpose-of-use element names while broadening semantics, retain a string site label beside a Location reference, and avoid changing mandatory `entity.detail.type` from string without a transitional path. By contrast, making `agent.who` mandatory and moving broad classifier fields to CodeableConcept appear more defensible because they improve computable identity and coding expressiveness at meaningful long-term cost to duplicate.",
+    "behaviorImpactMd": "The only direct behavior finding in scope is base CapabilityStatement search advertisement churn affecting AuditEvent. It is not the primary reason the resource needs migration, but metadata-driven clients can lose discoverable R4 search affordances. The OperationDefinitions and SearchParameters behavior reports did not add another direct AuditEvent-scoped finding in the supplied context. Shared `Resource`/`DomainResource` operations such as `$validate`, `$meta`, and `$convert` remain relevant to servers handling AuditEvent instances, but they should be resolved at the shared API layer rather than counted as AuditEvent-specific structure pressure.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's high-level result: `majorMigrationAlreadyUnavoidable = Yes`, migration shape `major-model-remodel`, and posture `preserve-where-low-cost-but-expect-resource-migration`. The independent review gives that conclusion for the substantive remodeling of core audit semantics, not just because there are nine hard breaks. It also keeps more emphasis on preserving low-cost legacy audit fields where removal or renaming creates avoidable data loss.",
+    "uncertaintyMd": "Confidence is high for structural shape because both R4 and R6 StructureDefinition snapshots are explicit. Remaining uncertainty is about HL7 rationale, official cross-version ConceptMaps, terminology expansions, and real-world prevalence of each optional field; those gaps affect which preservation proposals should be accepted, not whether AuditEvent needs a resource-specific migration plan."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.outcome:91e4d0",
+      "title": "AuditEvent.outcome changed from primitive code to BackboneElement",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Outcome is central audit semantics, not a peripheral field. The R4 primitive code plus `outcomeDesc` is rejected by the R6 backbone shape, and migration can require outcome-code judgment and detail preservation. This is a strong standards-review candidate because deprecated primitive fields or an official transition mapping could reduce breakage while the structured outcome model is introduced."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.entity.removals:f4a911",
+      "title": "AuditEvent.entity.type, entity.lifecycle, and entity.name were removed",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Removing entity descriptors can lose audit-forensic meaning that is not always recoverable from `what`, `role`, labels, or details. These optional legacy fields look relatively cheap to retain as deprecated elements compared with the business risk of forcing local extensions or conventions."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:CARDINALITY:AuditEvent.agent.who:44a87c",
+      "title": "AuditEvent.agent.who became mandatory while requestor became optional",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard instance break because R4 allowed anonymous or system-context agents without `who`. It also helps justify the broader migration program because every agent must be checked. I do not treat it as a top preservation target, since computable actor identity is a strong audit/security goal and profile-only enforcement would not give base R6 consumers the same guarantee."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.coded-classifiers:37c9b5",
+      "title": "Several coded classifier elements changed Coding shape or weakened bindings",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The Coding-to-CodeableConcept shifts affect core classification, source type, role, and labels, so they contribute heavily to the model remodel and generated API changes. They are mostly migration chores once richer classification is accepted, because retaining parallel Coding and CodeableConcept fields would create duplicate classifier semantics and search ambiguity."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.authorization:6aa7df",
+      "title": "purposeOfEvent and agent.purposeOfUse were renamed and broadened to authorization",
+      "role": "important-but-local",
+      "reasonMd": "This appears avoidable or at least transition-friendly: R4 purpose-of-use fields are same-domain data, and broadening semantics could have been done under retained or deprecated names. Because authorization/purpose metadata is safety, privacy, and policy relevant, preserving aliases or documenting an official mapping has high value even if the whole resource must migrate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.agent.rework:2c8691",
+      "title": "Several optional agent fields were removed or reworked",
+      "role": "important-but-local",
+      "reasonMd": "Removed or reworked optional agent fields create local failures and possible loss of attribution/network context. Some pieces can be mapped to `who` or `network[x]`, but deprecated retention of legacy fields would be a relatively low-cost way to avoid forcing audit systems into extensions for old evidence."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.source.site:12b6c8",
+      "title": "AuditEvent.source.site changed from string to Reference(Location), and source.observer target widened",
+      "role": "important-but-local",
+      "reasonMd": "Changing a site label string to a Location reference is a localized but avoidable hard break. Keeping a text label beside an optional reference has disagreement risk, but that risk is modest and common in FHIR; it may be preferable for legacy audit feeds that only know a site name."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:TYPE_DOMAIN:AuditEvent.entity.detail:bc01e3",
+      "title": "AuditEvent.entity.detail.type changed from string to CodeableConcept and detail values were broadened",
+      "role": "important-but-local",
+      "reasonMd": "Every populated detail entry has a mandatory `type`, so changing it from string to CodeableConcept is a repeated hard break. The value widening is useful, but a transitional design retaining the string tag or adding a coded companion would preserve many R4 details with limited model cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:ELEMENT_PRESENCE_OR_IDENTITY:AuditEvent.period:0b2c7a",
+      "title": "AuditEvent.period was replaced by occurred[x]",
+      "role": "discounted",
+      "reasonMd": "This is a real wire-format break, but it is a straightforward rename/choice migration and the R6 `occurred[x]` model better covers instant-or-interval timing. Once an AuditEvent migration mapper is required for other reasons, this finding is mostly a local transform rather than a high-value preservation target."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:CONVERSION_OR_MAPPING:AuditEvent.r6-additions:a7fd29",
+      "title": "New optional R6 elements create R6-to-R4 representability gaps",
+      "role": "discounted",
+      "reasonMd": "Optional R6 additions do not invalidate R4 instances. They matter for downgrade policy, but they do not materially increase R4-to-R6 migration unavoidability or justify constraining R6 expressiveness."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AuditEvent:FLAGS_AND_MODIFIERS:AuditEvent.summary-flags:8be7d2",
+      "title": "Summary flags expanded on local AuditEvent backbone elements",
+      "role": "discounted",
+      "reasonMd": "Summary flag churn can affect `_summary` behavior and generated DTO expectations, but it is not an old-valid/new-invalid instance break. It should be tested by servers and clients, not treated as a standards-blocking AuditEvent remodel issue."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:search-advertisement-churn",
+      "title": "Base CapabilityStatement search advertisements changed across most common resources",
+      "role": "needs-follow-up",
+      "reasonMd": "AuditEvent is one of the affected resources. The risk is metadata-driven client behavior: R4 query affordances can disappear from CapabilityStatement discovery. It should be followed up query-by-query with AuditEvent SearchParameter mappings and aliases, but it does not by itself decide the resource-level structure migration shape."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "This can affect servers validating AuditEvent instances, but it is shared Resource-level behavior. It should be handled in the Resource/API review rather than charged to the AuditEvent resource-level migration conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Ask the AuditEvent work group to revisit the low-cost preservation candidates: outcome transition fields/mappings, entity descriptor removals, authorization/purpose-of-use naming, source site text preservation, and `entity.detail.type` transition."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish official R4-to-R6 AuditEvent mapping guidance, including ConceptMaps or explicit rules for outcome, classifier, authorization, entity descriptor, and agent/network transformations."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For implementations, plan an AuditEvent-specific migration transform rather than relying on generic R4-to-R6 conversion; include validation for `agent.who`, outcome structure, CodeableConcept wrapping, and preservation of removed audit evidence."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Review AuditEvent search parameters and CapabilityStatement advertisements for high-value R4 query aliases so metadata-driven clients do not lose discoverable audit searches unnecessarily."
+    }
+  ],
+  "caveats": [
+    "Official R6 change rationale, Jira history, terminology expansions, and cross-version ConceptMaps were not present in the supplied inputs.",
+    "No representative corpus of real R4 AuditEvent instances was available, so optional-field prevalence is inferred from field purpose rather than measured.",
+    "Shared Resource/DomainResource behavior findings were considered only as context because AuditEvent is not the Resource or DomainResource artifact under review."
+  ]
+}

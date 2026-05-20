@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "AdverseEvent",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/AdverseEvent.resource-review-context.json",
+    "structureReportPath": "output/AdverseEvent.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/AdverseEvent.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 14,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource context, full AdverseEvent StructureDefinition report, local R4/R6 StructureDefinitions, deterministic aggregate, and behavior reports for direct AdverseEvent applicability. The aggregate was treated as prior context only. Shared Resource/DomainResource behavior findings were considered only as base-resource context, not as AdverseEvent-specific evidence."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "pc",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 AdverseEvent is FMM 0 trial-use, so the compatibility burden is weaker than for mature or normative resources. That lowers the threshold for accepting a broad R6 remodel, but it does not eliminate concern for adverse-event data used in patient safety, pharmacovigilance, regulated clinical research, or audit workflows."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "R6 keeps AdverseEvent but substantially remodels its core content, making a resource-level migration program unavoidable while still leaving several low-cost or safety-sensitive compatibility breaks worth preserving or revisiting."
+  },
+  "reasoning": {
+    "thesisMd": "AdverseEvent is not removed, but R6 changes enough central local content that migration cannot be treated as a validator/codegen refresh. Existing R4 instances may need a required lifecycle `status`, field renames, scalar-to-array rewrites, Reference-to-CodeableReference wrapping, classification into new semantic buckets, and expert policy for severity and causality.",
+    "migrationShapeMd": "The migration shape is a major model remodel with stable resource identity. The hardest forward breaks are the mandatory modifier `status`; `event` to `code`; `date` to `effect[x]`; `resultingCondition` to `resultingEffect`; removal of top-level `severity`; `contributor` to `participant`; `subjectMedicalHistory`/`referenceDocument` split into supporting/contributing/action fields; `suspectEntity.instance` becoming CodeableReference; and `suspectEntity.causality` changing from repeatable backbone to singleton with renamed/removed children. Several of these require clinical or implementation-guide mapping policy, not just syntactic transforms.",
+    "compatibilityLeverageMd": "Because a migration program is already unavoidable, preventing every individual wire break is not the highest-leverage strategy. However, that does not make additional break prevention valueless. Low-cost preservation or transition support still matters most where the old element is central, where data loss or expert judgment is likely, or where regulated/safety workflows depend on the data. In this resource, `severity`, repeatable causality details, and the same-purpose `event`/`code` rename remain worth standards attention even though broader remodeling proceeds.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking candidates are retaining `severity` as deprecated/legacy until a clear R6 home is available; keeping `suspectEntity.causality` repeatable or preserving legacy children such as `productRelatedness`; and avoiding a same-type `event` to `code` rename through a deprecated alias or stronger transition mapping. By contrast, making `status` optional would weaken the modifier/lifecycle goal, and retaining parallel legacy fields for every CodeableReference or participant remodel would create substantial duplicate-representation and reconciliation costs.",
+    "behaviorImpactMd": "No direct OperationDefinitions, SearchParameters, or HTTP REST behavior findings affected AdverseEvent. The 11 shared Resource/DomainResource behavior findings remain relevant to servers and clients as base FHIR behavior changes, but they do not change the AdverseEvent-specific migration conclusion.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate that major migration is already unavoidable and that the shape is a `major-model-remodel`. I do not fully agree with its `migration-program-dominates` leverage conclusion. The aggregate appears to over-weight the count of hard breaks and under-weight the remaining practical value of low-cost preservation for `severity`, causality, and the avoidable `event`/`code` rename.",
+    "uncertaintyMd": "Confidence is high for structural migration shape because both R4 and R6 StructureDefinitions were available locally. The main uncertainties are terminology expansion details for SNOMED/external value sets and any official HL7 rationale or narrative guidance not present in the computable packages."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.status:5b5f9d",
+      "title": "R6 adds mandatory modifier element AdverseEvent.status",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Every migrated R4 instance needs a new 1..1 modifier status and implementers must decide lifecycle state, so this is a real resource-level migration driver. The break appears proportionate because `entered-in-error` status changes whether the event should be treated as valid clinical information."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.event-code:7c0f6a",
+      "title": "AdverseEvent.event is renamed to AdverseEvent.code and its example value set changes",
+      "role": "needs-follow-up",
+      "reasonMd": "This is a same-purpose optional CodeableConcept rename that breaks JSON and generated APIs with limited apparent safety benefit. Even with FMM 0, a deprecated legacy element, alias-like transition, or explicit compatibility mapping looks comparatively low cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.date-effect:0ce119",
+      "title": "AdverseEvent.date is replaced by choice element AdverseEvent.effect[x]",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "R4 `date` must become `effectDateTime`, while R6 can represent `effectPeriod`. The rename plus semantic shift from event date toward effect timing contributes to the need for explicit migration policy, though retaining both fields would create precedence ambiguity."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.resultingCondition-resultingEffect:bc89ef",
+      "title": "AdverseEvent.resultingCondition is replaced by CodeableReference AdverseEvent.resultingEffect",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "A repeating Condition Reference becomes a CodeableReference that can also point to Observation or carry a concept. R4 data needs renaming and wrapping, and reverse conversion of R6 concept-only or Observation effects is lossy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:ELEMENT_PRESENCE_OR_IDENTITY:AdverseEvent.severity:3a91de",
+      "title": "Top-level AdverseEvent.severity is removed",
+      "role": "needs-follow-up",
+      "reasonMd": "Severity is clinically and regulated-reporting significant, and R6 has no direct local AdverseEvent replacement. Forcing existing severity into a resulting Condition/Observation or extension is not mechanical, so a deprecated legacy element or official transition path would materially reduce avoidable loss."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.contributor-participant:9d2755",
+      "title": "AdverseEvent.contributor is replaced by participant backbone entries",
+      "role": "important-but-local",
+      "reasonMd": "Old contributor references can often map to `participant.actor`, but the backbone shape and optional function create API and transform work. The R6 participant model is plausibly justified and preserving a parallel contributor list would create duplicate representation."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:CONVERSION_OR_MAPPING:AdverseEvent.history-supportingInfo:2e6fd4",
+      "title": "Subject history and reference documents are split into supportingInfo, contributingFactor, and action fields",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is one of the clearest non-mechanical remodels: old history/document references must be wrapped and classified as background support, contributing factor, preventive action, mitigating action, or similar R6 buckets. That classification can require clinical or IG policy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:TYPE_DOMAIN:AdverseEvent.suspectEntity.instance:6f8204",
+      "title": "suspectEntity.instance changes from Reference to CodeableReference with expanded targets",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The path remains but the JSON/type shape changes from bare Reference to CodeableReference. Existing references need wrapping, and R6's concept-only or expanded-target suspect entities cannot be represented directly in R4."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:CARDINALITY:AdverseEvent.suspectEntity.causality:420e7a",
+      "title": "suspectEntity.causality is limited to one entry and its children are renamed or removed",
+      "role": "needs-follow-up",
+      "reasonMd": "This remains standards-review-worthy despite the broader remodel. Reducing many causality assessments to one and dropping local `productRelatedness` can lose independent assessments in pharmacovigilance or clinical research workflows. Keeping repetition or legacy children would be more compatibility-preserving than forcing merge/discard policy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.category:114ac2",
+      "title": "AdverseEvent.category binding weakens from extensible to example and the category vocabulary appears to shift",
+      "role": "discounted",
+      "reasonMd": "This is not a forward hard break because the binding is relaxed from extensible to example. It may affect analytics and terminology guidance, but it does not materially drive the R4-to-R6 instance migration program."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.outcome:788a13",
+      "title": "AdverseEvent.outcome becomes repeatable and changes from required local codes to example SNOMED binding",
+      "role": "important-but-local",
+      "reasonMd": "The binding relaxation is forward-compatible, but the scalar-to-array wire/API change still requires migration for populated R4 instances. This is a local chore once the resource remodel is accepted, and the repeatable outcome model is a reasonable R6 tradeoff."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:TERMINOLOGY_BINDING:AdverseEvent.actuality:51f0c4",
+      "title": "AdverseEvent.actuality required value set adds code unknown",
+      "role": "discounted",
+      "reasonMd": "Adding `unknown` creates R6-to-R4 downgrade loss but does not invalidate R4 `actual` or `potential` instances. It does not materially affect forward migration planning."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:CARDINALITY:AdverseEvent.identifier:d68180",
+      "title": "AdverseEvent.identifier maximum cardinality increases from 1 to many",
+      "role": "important-but-local",
+      "reasonMd": "Populated R4 JSON changes from a scalar Identifier to an array, so codegen and transforms must handle it. Still, allowing multiple identifiers is a conventional FHIR expressivity improvement and not a standards-review priority."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "AdverseEvent:CONVERSION_OR_MAPPING:AdverseEvent.new-optional-fields:aa0998",
+      "title": "R6 adds optional local fields with no direct R4 home",
+      "role": "discounted",
+      "reasonMd": "These optional additions are not forward breaking for R4-to-R6 instances. They only create ordinary R6-to-R4 representability loss if new R6-only data is populated."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource behavior context may matter to general R6 client/server migration, but it is not specific to AdverseEvent and should not be counted as a resource-level AdverseEvent behavior break."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Create an explicit AdverseEvent R4-to-R6 migration map covering status assignment, field renames, scalar-to-array changes, Reference-to-CodeableReference wrapping, and the classification of old history/document references into R6 supporting/contributing/action fields."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit or formally justify the `severity` removal and `suspectEntity.causality` singleton/remodel. If the clean R6 model is retained, publish authoritative cross-version guidance for preserving legacy severity, multiple causality assessments, and `productRelatedness`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Consider a low-cost transition strategy for `event` to `code`, such as a deprecated legacy element, alias-like tooling support, or an official StructureMap/ConceptMap plus generated-client migration guidance."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Before final production transforms, expand and compare the relevant R4/R6 value sets for `event`/`code`, `category`, and `outcome`, including SNOMED and terminology.hl7.org dependencies."
+    }
+  ],
+  "caveats": [
+    "No direct AdverseEvent behavior/API findings were found in the supplied behavior reports.",
+    "Official HL7 change rationale, narrative pages, and cross-version maps were not available in the local inputs reviewed here.",
+    "Terminology conclusions involving SNOMED or external terminology.hl7.org value sets should be confirmed with versioned expansion services.",
+    "The low R4 maturity weakens stability pressure but does not eliminate safety or regulated-reporting concerns for selected fields."
+  ]
+}

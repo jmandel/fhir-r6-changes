@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "BodyStructure",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/BodyStructure.resource-review-context.json",
+    "structureReportPath": "output/BodyStructure.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/BodyStructure.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 7,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the BodyStructure resource-review context, the full StructureDefinition report, the deterministic aggregate only as prior context, and the R4/R6 BodyStructure StructureDefinitions for key element shape. No direct behavior findings target `BodyStructure`; shared `Resource`/`DomainResource` behavior findings were considered as context only."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 BodyStructure was trial-use/FMM 1, so the base resource has weak formal stability pressure. That lowers the burden for a coherent remodel, but it does not erase real implementation and safety concerns for anatomy, morphology, and laterality data that appear in clinical profiling such as oncology use."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "BodyStructure keeps its identity but needs targeted migration into the R6 `includedStructure` model; compatibility preservation still matters most for qualifier/laterality migration."
+  },
+  "reasoning": {
+    "thesisMd": "R6 BodyStructure is not a removed or renamed resource, but its central anatomy model changed from a flat root-level site/morphology/qualifier shape to a required repeating `includedStructure` backbone. That makes a BodyStructure-specific migration program unavoidable for implementations that actually exchange the resource, while still leaving room to preserve or smooth the most safety-sensitive compatibility points.",
+    "migrationShapeMd": "The main R4-to-R6 shape is a moderate targeted remodel. R4 had optional root `location`, optional root `morphology`, repeatable root `locationQualifier`, root `image`, and required `patient`. R6 requires `includedStructure` 1..* with `includedStructure.structure` 1..1, moves morphology under each included structure, splits qualifiers across `qualifier`, `laterality`, and landmark-orientation details, adds richer included/excluded structure detail, changes `description` from string to markdown, and makes `patient` optional. The hard R4-to-R6 breaks are concentrated in the anatomy path changes rather than in resource identity or every element.",
+    "compatibilityLeverageMd": "Because valid R4 instances using root anatomy fields are not R6-shaped, some transformation is already expected. That reduces the value of preserving every old root path indefinitely, especially where aliases would create duplicate representations for multiple included structures. It does not mean additional breaks are irrelevant: low-cost transition support for qualifier/laterality data, terminology maps, and migration examples can materially reduce safety and implementation risk.",
+    "lessBreakingAlternativesMd": "Deprecated aliases for root `location` or `morphology` would preserve simple R4 instances but would also create precedence and conflict problems once R6 supports multiple included and excluded structures. The more compelling low-cost alternative is narrower: retain a transitional story for `locationQualifier`/laterality, allow or map common legacy qualifier concepts, and publish reviewed ConceptMaps or transform tests so laterality and landmark details are not guessed by each implementer.",
+    "behaviorImpactMd": "There are no BodyStructure-specific operation, search, or HTTP behavior findings. The shared `Resource`/`DomainResource` operation and search findings may affect generic clients in the environment, but under the review rules they are context only for BodyStructure and do not drive the BodyStructure resource conclusion.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `moderate-targeted-remodel`, `Partial`, and `preserve-where-low-cost-but-expect-resource-migration`. I agree with that posture after independent review, but the reason is not the count alone: the required `includedStructure` backbone makes migration real, while stable resource identity and the specific avoidability of qualifier/laterality transition argue against treating compatibility preservation as pointless.",
+    "uncertaintyMd": "No official HL7 R4-to-R6 BodyStructure rationale, ballot reconciliation, live SNOMED expansion comparison, or official ConceptMap was available locally. The structural conclusions are high-confidence from the StructureDefinitions; prevalence and terminology mapping risk remain less certain."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.includedStructure.structure:0d7e41",
+      "title": "Anatomical location moved from optional root element to required includedStructure.structure",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the core migration-shape change: R4 `location` was optional at the root, while R6 requires `includedStructure.structure`. Existing instances and generated paths need transformation, and R4 instances with no location require policy rather than a simple rename."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.morphology:9a35b2",
+      "title": "Morphology moved from resource root to each included structure",
+      "role": "important-but-local",
+      "reasonMd": "The root path removal is a hard instance/codegen/profile break, but once the R6 included-structure model is accepted the migration is usually a local path move for single-structure instances. Keeping a root alias would help simple cases but has real ambiguity for multi-structure records."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "BodyStructure:ELEMENT_PRESENCE_OR_IDENTITY:BodyStructure.locationQualifier:47c68d",
+      "title": "Location qualifiers moved and split into per-structure qualifier, laterality, and landmark-orientation elements",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This remains the main standards-review-worthy finding. It is not just a path move: qualifiers must be classified into generic qualifier, laterality, or landmark-orientation meanings, and laterality mistakes are safety-significant. Transitional support or authoritative maps look more valuable here than for the root location/morphology aliases."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "BodyStructure:CARDINALITY:BodyStructure.patient:5fb7c4",
+      "title": "Patient reference became optional, creating R6-to-R4 validation and business-rule risk",
+      "role": "important-but-local",
+      "reasonMd": "This does not make R4 instances invalid in R6, but it matters for down-conversion and patient-specific business rules. The R6 goal of supporting patientless or definitional anatomy is plausible; patient-specific workflows should preserve the old guarantee through profiles or local rules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "BodyStructure:CONVERSION_OR_MAPPING:BodyStructure.includedStructure.bodyLandmarkOrientation:dd302e",
+      "title": "R6 adds included/excluded structure details that R4 cannot represent losslessly",
+      "role": "discounted",
+      "reasonMd": "The added R6 detail explains why R6 wanted a richer model, and it creates R6-to-R4 loss, but it is not an R4-to-R6 hard instance break. It is mostly a local down-conversion and round-tripping concern once the remodel is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "BodyStructure:TERMINOLOGY_BINDING:BodyStructure.includedStructure.morphology:1b4f70",
+      "title": "BodyStructure terminology bindings and ValueSet contents changed, mainly as semantic and pick-list risk",
+      "role": "needs-follow-up",
+      "reasonMd": "The base bindings are example/preferred, so this is not a direct validator rejection for old CodeableConcepts. It still needs follow-up because the qualifier/laterality split depends on terminology classification and no official expansion comparison or ConceptMap was available."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "BodyStructure:TYPE_DOMAIN:BodyStructure.description:88a61b",
+      "title": "Description primitive type changed from string to markdown",
+      "role": "discounted",
+      "reasonMd": "Serialized R4 strings remain JSON strings and should be acceptable markdown text. Some generated APIs may expose a different primitive type, but this is not a material resource-level migration driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared `Resource`/`DomainResource` search metadata issue can affect generic clients, but it is not directly assigned to BodyStructure and therefore does not change the BodyStructure resource-level migration judgment."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `locationQualifier` split with a transition plan: reviewed ConceptMaps for common R4 qualifier/laterality codes, examples for laterality and landmark orientation, and either transitional acceptance of legacy concepts or clear deprecation guidance."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish BodyStructure migration guidance or StructureMap-style examples covering `location` to `includedStructure.structure`, `morphology` to `includedStructure.morphology`, missing R4 location, multiple R6 included structures, and R6-to-R4 loss cases."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document how patient-specific workflows should preserve the R4 required-patient assumption in R6 profiles, while allowing the base resource to support patientless definitional anatomy when intended."
+    }
+  ],
+  "caveats": [
+    "Shared Resource/DomainResource behavior findings were treated as context only because the assigned resource is BodyStructure.",
+    "Terminology conclusions are based on packaged ValueSet definitions, not live SNOMED expansions.",
+    "No official BodyStructure-specific R4-to-R6 rationale or ConceptMap was available in the local inputs.",
+    "R4 FMM 1/trial-use weakens formal compatibility pressure, so implementation evidence and safety relevance carry much of the remaining concern."
+  ]
+}

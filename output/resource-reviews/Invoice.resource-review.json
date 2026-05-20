@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Invoice",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Invoice.resource-review-context.json",
+    "structureReportPath": "output/Invoice.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Invoice.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 7,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Invoice resource context, the full local StructureDefinition report, the deterministic aggregate, selected R4/R6 Invoice StructureDefinition elements and terminology artifacts, and the listed shared behavior context. Direct behavior findings were absent. Shared `Resource`/`DomainResource` behavior findings were treated as context only because the assigned resource is `Invoice`, not `Resource` or `DomainResource`."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "fm",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 Invoice is trial-use at FMM 0, so the compatibility burden is weaker than for mature or normative content. That softens the standards-stability objection, but it does not make financial, audit, billing, or generated-model breaks irrelevant when a low-cost compatible design appears available."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Invoice keeps its resource identity, but R6 introduces a targeted migration program around posting-date naming, price-component modeling, and price-component terminology."
+  },
+  "reasoning": {
+    "thesisMd": "`Invoice` is not removed or replaced, and most of the resource shape survives. However, serious implementations cannot treat R6 as a mostly drop-in validation update: `date` is renamed to `creation`, required price-component terminology no longer accepts R4 `deduction`, and Invoice-local price components are normalized to `MonetaryComponent`. That is enough for a targeted migration program, but not enough to say compatibility no longer matters.",
+    "migrationShapeMd": "The migration shape is a moderate targeted remodel rather than a major model redesign. The central migration work is concentrated in invoice timing and monetary components: rename/map posting date, review deduction-versus-discount semantics, regenerate models and profiles for `MonetaryComponent`, and write down-conversion rules for R6-only billing/service period fields and widened references. The resource identity, line item backbone, required `chargeItem[x]`, issuer cardinality, and many common child elements remain recognizable.",
+    "compatibilityLeverageMd": "Because a migration program is already needed, some local chores are unavoidable once the R6 model is accepted. Still, compatibility leverage remains meaningful. Keeping the old posting-date wire name, retaining `deduction` as a deprecated required-bound code, or restoring explicit `ChargeItem` target computability are low- or moderate-cost preservation choices compared with asking all implementers to add transforms and business review.",
+    "lessBreakingAlternativesMd": "The strongest avoidable breaks are not the additive R6 fields. `Invoice.date` and `Invoice.creation` have the same type, cardinality, and posting-date definition, so retaining `date` or providing a transition alias would preserve old instances with little semantic cost. The `deduction` removal is more domain-sensitive because R4 had both `deduction` and `discount`; preserving `deduction` as deprecated would allow gradual convergence while avoiding forced financial classification decisions at validation time. For `chargeItem[x]`, retaining `Reference(ChargeItem)` or listing explicit additional targets would preserve computable validation clarity unless R6 intentionally wanted arbitrary references.",
+    "behaviorImpactMd": "No direct OperationDefinition, SearchParameter, or HTTP behavior finding was assigned to `Invoice`. The shared Resource/DomainResource behavior findings remain relevant to generic FHIR server migration planning, but they are not Invoice-specific evidence and were not used to raise the Invoice resource-level conclusion.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate's `Partial` major migration judgment, `moderate-targeted-remodel` shape, and `preserve-where-low-cost-but-expect-resource-migration` posture are directionally right. My independent review reaches the same overall result, but the reason is not the count alone: the material point is that the hard breaks cluster around central billing/date and monetary semantics while several other findings are additive or reverse-conversion chores.",
+    "uncertaintyMd": "Confidence is high for the structural deltas because they are visible in the primary R4/R6 StructureDefinitions and CodeSystems. Confidence is lower for design intent and prevalence because no official rendered diff, ballot rationale, or production Invoice corpus was supplied; the `chargeItem[x]` target-profile removal is especially intent-sensitive because the narrative still names ChargeItem."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Invoice:ELEMENT_PRESENCE_OR_IDENTITY:Invoice.date:0d6f8a",
+      "title": "Invoice.date was renamed to Invoice.creation",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest avoidable R4-to-R6 instance break. The R4 and R6 elements describe the same posting-date concept with the same `dateTime` shape, but the wire name changes. For billing, audit, and generated FHIRPath/profile paths, a rename transform is required unless the base design preserves `date`."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Invoice:TERMINOLOGY_BINDING:priceComponent.type:b41c2d",
+      "title": "Price component code `deduction` was removed from the required type binding",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "A required-bound R4 `deduction` value becomes invalid in R6. Because R4 had both `deduction` and `discount`, migration may require financial policy judgment rather than a purely mechanical replacement. Retaining `deduction` as deprecated would be a plausible low-cost compatibility measure."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Invoice:SERIALIZATION_OR_CODEGEN:priceComponent:7ac9e1",
+      "title": "Invoice price components now use the shared MonetaryComponent datatype",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This drives the targeted migration program because generated classes, profile paths, and any R4 `modifierExtension` on the Invoice-local backbone need review. The shared datatype goal is coherent, so this is mostly a local migration chore once the redesign is accepted, but it is still part of why migration is not optional."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Invoice:REFERENCE_TARGET:Invoice.lineItem.chargeItem:5e7a09",
+      "title": "Invoice.lineItem.chargeItemReference no longer has a computable ChargeItem-only target profile",
+      "role": "needs-follow-up",
+      "reasonMd": "This does not invalidate R4 ChargeItem references, so it does not make R4-to-R6 migration unavoidable. It still matters for standards review because it weakens computable validation of a required billing line-item reference while the narrative continues to describe ChargeItem."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Invoice:REFERENCE_TARGET:Invoice.issuer:2f93bc",
+      "title": "Invoice.issuer can now reference Practitioner and PractitionerRole as well as Organization",
+      "role": "discounted",
+      "reasonMd": "This is a forward-compatible target widening for R4 Organization issuers. It creates R6-to-R4 export and consumer-assumption work, but it is not an R4-to-R6 instance break and should not drive the resource-level migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Invoice:ELEMENT_PRESENCE_OR_IDENTITY:Invoice.period:8c62af",
+      "title": "R6 adds Invoice.period[x] for the billing date or period",
+      "role": "discounted",
+      "reasonMd": "This optional addition is useful R6 expressiveness and does not break R4 instances moving forward. It only requires local down-conversion policy or an extension strategy when exporting richer R6 content back to R4."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Invoice:ELEMENT_PRESENCE_OR_IDENTITY:Invoice.lineItem.serviced:91de44",
+      "title": "R6 adds Invoice.lineItem.serviced[x] for line-item service date or period",
+      "role": "discounted",
+      "reasonMd": "This is another optional R6 addition. R4 line items remain valid in R6, and the compatibility concern is reverse-conversion loss rather than a base R4-to-R6 break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This representative shared Resource behavior finding may affect generic servers handling Invoice resources, but it is not assigned directly to `Invoice`. It was kept as migration context and not used to score the Invoice StructureDefinition-level conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit whether `Invoice.date` should be retained as the base posting-date wire name, or at least supported as a deprecated transition element, because `creation` appears to be a same-semantics rename."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Review the financial semantics of removing required-bound `deduction`; if `discount` is intended as the replacement, consider retaining `deduction` as deprecated and publishing an explicit ConceptMap/migration note."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Confirm the intent of the unconstrained R6 `Invoice.lineItem.chargeItem[x]` Reference. If arbitrary references are not intended, restore `Reference(ChargeItem)` or list the intended additional target profiles."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish explicit R4/R6 mapping guidance for `MonetaryComponent`, `period[x]`, `lineItem.serviced[x]`, and widened `issuer` targets so implementers can separate unavoidable model migration from avoidable compatibility loss."
+    }
+  ],
+  "caveats": [
+    "No official rendered diff, ballot rationale, or issue history was available, so standards intent is inferred from computable artifacts.",
+    "No production Invoice corpus or common profile inventory was supplied, so prevalence of `date`, `deduction`, price-component modifier extensions, and non-Organization issuer requirements is estimated.",
+    "Shared Resource/DomainResource behavior findings were reviewed as context only and not counted as direct Invoice behavior breaks."
+  ]
+}

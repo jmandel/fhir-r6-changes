@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MeasureReport",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MeasureReport.resource-review-context.json",
+    "structureReportPath": "output/MeasureReport.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MeasureReport.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 10,
+    "reviewedDirectBehaviorFindingCount": 4,
+    "reviewedSharedBehaviorContextCount": 10,
+    "methodNotesMd": "Reviewed the resource-review contract, assessment rubric, fresh-review framework, MeasureReport context file, full StructureDefinition report, direct OperationDefinitions findings whose `affectedResources` include `MeasureReport`, and shared Resource/DomainResource behavior context. The deterministic aggregate was used only after the independent judgment was formed."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "cqi",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 MeasureReport is FMM 2 and trial-use, so there is no normative presumption against substantial redesign. That neutrality does not erase hard validation breaks, low-cost compatibility fixes, or safety/business semantics in quality measurement reports."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "MeasureReport keeps identity, but R6 changes enough core instance and operation shapes that a migration program is unavoidable while low-cost preservation still has real value."
+  },
+  "reasoning": {
+    "thesisMd": "`MeasureReport` is not removed or renamed, but it is substantially redesigned for R6 quality-measure workflows. Existing R4 instances and clients need more than isolated field renames: they need terminology mapping, choice-element wire rewrites, group-level score-interpretation policy, reporter/location review, population count policy, and operation payload rewrites. This makes a resource-level migration program unavoidable.",
+    "migrationShapeMd": "The migration shape is a stable-identity major model remodel. The largest structural changes are `type` code churn, `measureScore` and stratum `value` becoming choices, root `improvementNotation` moving to groups, `reporter` losing `Location`, `group.stratifier.code` narrowing to one value, and new `count`/`countQuantity` invariants. Direct Measure operations also move away from R4 direct or flat MeasureReport/resource payloads toward repeated Bundles in Parameters. Several mappings require human or profile policy rather than a pure JSON rename.",
+    "compatibilityLeverageMd": "The existence of a migration program does not mean additional breaks are unimportant. Because the resource identity remains and several breaks are low-cost or likely accidental, the right posture is to preserve compatibility where it does not undermine the R6 model. Avoiding code alias, invariant, and operation-type mistakes can reduce migration failures even while implementers still rewrite richer result and operation handling.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidates are retaining `data-collection` as a deprecated required-bound code while adding `data-exchange`, replacing the literal `xor` count constraints with a not-both invariant unless exact-one is truly intended, and correcting `$submit-data` so the formal `bundle` parameter type matches the narrative Bundle shape. Other less-breaking designs are partial: retaining root `improvementNotation` or `Location` reporter targets would preserve more R4 data but introduces precedence or semantic ambiguity; retaining old operation output parts or non-choice score fields would duplicate representations.",
+    "behaviorImpactMd": "The direct OperationDefinitions findings materially reinforce the resource-level conclusion. `$collect-data`, `$evaluate-measure`, and `$submit-data` change the MeasureReport-facing wire contract from R4 direct/flat MeasureReport-plus-resource shapes to Bundle-centered Parameters shapes, so generated clients, validators, and server stubs must change. The shared Resource/DomainResource behavior findings were reviewed only as background and are not scored for MeasureReport.",
+    "comparisonToDeterministicAggregateMd": "This review agrees with the aggregate's high-level result: major migration is unavoidable and compatibility should be preserved where low-cost. The independent reasoning puts less weight on raw counts, discounts optional R6-only additions as forward-compatible for R4-to-R6, and gives special standards-review weight to the likely accidental or low-cost issues (`data-collection`, count `xor`, and `$submit-data` Bundle type mismatch).",
+    "uncertaintyMd": "Confidence is high for computable StructureDefinition and OperationDefinition differences from the local packages. Remaining uncertainty is mostly standards-intent uncertainty: no official R4-to-R6 rationale, concept map, or terminology-server expansion was supplied, and R6 ballot4 artifacts may change."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:TERMINOLOGY_BINDING:MeasureReport.type:data-collection",
+      "title": "MeasureReport.type removes required code data-collection and adds data-exchange/other",
+      "role": "important-but-local",
+      "reasonMd": "This is a hard old-valid/new-invalid required-code break on a central report classification. A deprecated `data-collection` alias and invariant accepting both old and new data-of-interest codes appears low cost, so it remains worth preserving even though the broader resource needs migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:ELEMENT_PRESENCE_OR_IDENTITY:improvementNotation:moved",
+      "title": "Root improvementNotation was removed and replaced by group-level improvementNotation",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The move from a root modifier element to group-level interpretation is part of the resource remodel and can affect whether higher or lower scores are better. The per-group goal is plausible, but modifier/signaling and root-default migration rules deserve standards attention because this is safety and business interpretation, not just serialization churn."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:SERIALIZATION_OR_CODEGEN:measureScore-choice",
+      "title": "Measure score fields became measureScore[x] choices",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Common R4 Quantity scores must be renamed to `measureScoreQuantity`, and new R6 non-Quantity scores cannot round-trip to R4. The choice model has a strong modeling rationale, so this is mainly an unavoidable migration chore rather than a low-cost preservation target."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:SERIALIZATION_OR_CODEGEN:stratum-value-choice",
+      "title": "Stratifier stratum value fields became value[x] choices",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Existing coded stratum values require `valueCodeableConcept` wire-name migration, and new boolean/Quantity/Range/Reference strata are not R4-native. Like `measureScore[x]`, this contributes to the resource-level migration program but is proportionate to the broader datatype-support goal."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:REFERENCE_TARGET:MeasureReport.reporter:Location-removed",
+      "title": "MeasureReport.reporter no longer accepts Location references",
+      "role": "important-but-local",
+      "reasonMd": "R4 Location reporters cannot be mechanically moved to R6 `location` in all cases because reporter identity and data-source location are different concepts. Retaining a deprecated Location target would reduce loss but perpetuate ambiguity, so this is a targeted standards-review/migration-policy issue rather than the main driver of the resource conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:CARDINALITY:group.stratifier.code:max-1",
+      "title": "group.stratifier.code was narrowed from repeating to single-valued",
+      "role": "important-but-local",
+      "reasonMd": "This max-cardinality break is localized and likely avoidable: keeping `0..*` with guidance that one CodeableConcept is preferred would preserve old instances and let profiles enforce stricter behavior. It should not be dismissed merely because other migration work exists."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:VALUE_CONSTRAINT:population-count-xor",
+      "title": "R6 population constraints require exactly one of count or countQuantity",
+      "role": "needs-follow-up",
+      "reasonMd": "The literal `xor` expression rejects R4 populations with neither count field, while the human text says only mutually exclusive. If the intent is just to prevent both forms, a not-both invariant preserves R4 instances with minimal downside; if exact-one is intended, the spec needs clearer rationale."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:SEMANTIC_OR_CONFORMANCE_TEXT:Measure-linkId-correspondence",
+      "title": "R6 strengthens correspondence requirements with the referenced Measure",
+      "role": "important-but-local",
+      "reasonMd": "Optional linkId fields and stronger correspondence text are important to the R6 quality-measure model, but they are not a direct base validation break. They should be handled as migration guidance for Measure/MeasureReport alignment rather than as an avoidable local hard break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:SEMANTIC_OR_CONFORMANCE_TEXT:evaluatedResource:individual-only",
+      "title": "evaluatedResource semantics changed to individual-report-only usage",
+      "role": "discounted",
+      "reasonMd": "The target type did not change, and the size-bound rationale for individual-only use is concrete. This may affect conformance-aware processors, but it is a semantic migration consideration, not a primary reason to alter the resource-level compatibility posture."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MeasureReport:CONVERSION_OR_MAPPING:R6-only-elements:roundtrip-risk",
+      "title": "R6 adds many optional elements with no native R4 representation",
+      "role": "discounted",
+      "reasonMd": "Optional R6 additions create real R6-to-R4 conversion policy work, especially for mixed-version ecosystems, but they do not invalidate R4 instances moving forward. They should be tracked as conversion loss risk rather than as R4-to-R6 breaking design pressure."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-collect-data--Measure-collect-data:Measure-collect-data:output-bundle-return",
+      "title": "Output changes from measureReport plus resource parts to repeatable return Bundles",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This changes successful response parsing for MeasureReport-producing workflows. The Bundle-centered result model is plausible, but R4 clients and tests must be rewritten, so it materially reinforces the need for a resource-level migration program."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-evaluate-measure--Measure-evaluate-measure:measure-evaluate-measure-return-measurereport-to-bundles",
+      "title": "The operation result changes from one direct MeasureReport to repeated Bundle returns in a Parameters envelope",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "A direct MeasureReport response becoming repeated Bundle returns is a broad API/codegen change for a core MeasureReport consumption workflow. The R6 payload goal is understandable, but this is not a small local instance edit."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-submit-data--Measure-submit-data:measure-submit-data-parameters-replaced-by-bundle",
+      "title": "R6 replaces flat measureReport/resource inputs with a required repeating bundle input",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The submission operation changes from flat `measureReport` plus `resource` parameters to a repeated Bundle input shape. This requires request construction, validation, and server dispatch changes and is one of the behavior-level reasons migration is already unavoidable."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-submit-data--Measure-submit-data:measure-submit-data-r6-bundle-type-mismatch",
+      "title": "R6 names the input bundle but formally types it as MeasureReport while the narrative/example use Bundle",
+      "role": "needs-follow-up",
+      "reasonMd": "Unlike the broader Bundle redesign, this appears to be an avoidable artifact inconsistency. Aligning the formal parameter type with the narrative Bundle shape is low cost and would prevent validators and generators from splitting into incompatible R6 interpretations."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "context-only",
+      "reasonMd": "This and the other shared Resource/DomainResource behavior findings are relevant background for generic clients but are not scored for MeasureReport because MeasureReport is not the Resource or DomainResource artifact under review."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the low-cost correctness/preservation issues before ballot finalization: retain or map `data-collection`, fix or justify the `count`/`countQuantity` `xor` exact-one constraints, and correct `$submit-data` so the computable `bundle` parameter type matches the intended Bundle payload."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish an explicit R4-to-R6 MeasureReport migration guide covering instance transforms and operation payload rewrites: type codes, choice-element wire names, improvement notation, reporter/location handling, stratifier code merging, linkId population, and Bundle-centered operation results/submissions."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Review safety-sensitive score-interpretation semantics around `improvementNotation`, including whether group-level notation should preserve modifier signaling and whether a deprecated root default/alias is worth the precedence complexity."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define non-lossy policy for R4 Location reporters and repeated stratifier codes. If the base model will not preserve them, provide profile or conversion guidance that tells implementers when a mechanical move is unsafe."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Treat R6-only optional elements as mixed-version conversion planning: define extensions, rejection rules, or loss policy for R6-to-R4 exchange, but do not count them as forward R4-to-R6 compatibility failures."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 MeasureReport ballot rationale, ConceptMap, or full terminology-server expansion was supplied.",
+    "R6 evidence is from 6.0.0-ballot4 local package artifacts and may change before publication.",
+    "Shared Resource/DomainResource behavior findings were considered only as context, not as MeasureReport-specific migration drivers."
+  ]
+}

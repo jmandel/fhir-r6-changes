@@ -1,0 +1,173 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Consent",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Consent.resource-review-context.json",
+    "structureReportPath": "output/Consent.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Consent.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 13,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Consent structure report, the resource-review context, the direct SearchParameter behavior finding, and sampled the R4/R6 Consent StructureDefinitions for the central paths. Shared `Resource`/`DomainResource` behavior findings were treated as context only because the assigned resource is `Consent`, not a base artifact. The deterministic aggregate was compared after forming the resource-level judgment."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "cbcc",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 Consent is trial-use/FMM 2, so it does not carry a normative or highly mature stability burden. That neutral pressure does not erase the practical importance of consent data: several changed fields control access, authorization, policy basis, legal/audit evidence, and covered-content targeting."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Consent needs a major R6 migration program, but low-cost preservation of key R4 semantics still has real safety and implementation value."
+  },
+  "reasoning": {
+    "thesisMd": "Consent is not merely a stable resource with a few renamed fields. R6 keeps the `Consent` identity but remodels the resource around a different consent interpretation model: required `scope` disappears, lifecycle `status` codes change, `patient` generalizes to `subject`, operational/legal dates are separated, actor roles are split, policy basis is rebuilt, permit/deny moves to a root modifier, and provision content selectors are reclassified. That makes resource-level migration unavoidable for any nontrivial R4 Consent store or API.",
+    "migrationShapeMd": "The dominant migration shape is a domain transform. Some values can be mapped mechanically, such as Patient `patient` references to `subject`, but many central fields require policy decisions or human classification: whether R4 `scope` maps to category or policy metadata, how `proposed` and `rejected` statuses should behave, whether `dateTime` represented legal agreement time or indexing time, whether an R4 `performer` was a grantor or grantee, whether old policy artifacts are regulatory/computable/textual, how root and nested provisions preserve permit/deny semantics, and whether `provision.class` codes represent documents, FHIR resource types, profiles, or other classes.",
+    "compatibilityLeverageMd": "Because a migration program is already required, not every local incompatibility should block R6. The actor split, policy-basis remodel, provision decision move, and content-class split are largely local migration chores once the broader redesign is accepted, even though they must be tested carefully. But the existence of that migration program does **not** make additional break prevention worthless: retaining deprecated legacy elements or codes where they are narrow and non-conflicting could materially reduce validator, serializer, and data-conversion cost.",
+    "lessBreakingAlternativesMd": "The strongest standards-review candidates are `Consent.scope`, `Consent.status`, `Consent.dateTime`, and `Consent.verification.verificationDate`. Preserving a deprecated optional `scope`, retaining deprecated `proposed`/`rejected` status codes, keeping a legacy `dateTime` for statement/indexing time alongside the R6 agreement `date`, and keeping `verificationDate` as a deprecated alias would preserve substantial R4 data with limited base-model complexity. By contrast, retaining aggregate `performer`, old `policy`/`policyRule`, `provision.type`, or `provision.class` would preserve more instances but risks duplicate or contradictory consent semantics, so those are more plausibly migration obligations rather than low-cost compatibility fixes.",
+    "behaviorImpactMd": "The one Consent-scoped behavior finding is the stable-code search expression move, including Consent examples such as `Consent.provision.period` to `Consent.repeat(provision).period`. This is not the primary driver of the resource conclusion, but it is operationally important: servers can accept the same search code while returning different result sets if data migration and index migration are not aligned. Shared base `Resource` and `DomainResource` operation/search findings add ecosystem migration context but are not scored as Consent-specific breaks.",
+    "comparisonToDeterministicAggregateMd": "The independent conclusion agrees with the deterministic aggregate's direction: major migration `Yes`, migration shape `major-model-remodel`, and compatibility posture `preserve-where-low-cost-but-expect-resource-migration`. I would not phrase this as `migration-program-dominates`, because multiple Revisit findings have plausible low-cost preservation designs and Consent has safety/business significance despite FMM 2. The exact hard-break count discrepancy between the embedded structure summary and aggregate does not affect the conclusion."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.scope:0c42a1",
+      "title": "Required Consent.scope was removed and the scope/category model was loosened",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest avoidable high-value break. R4 required a modifier-like high-level purpose (`scope`), while R6 has no same-path element and makes `category` optional/example-bound. A deprecated optional `scope` or explicit compatibility lane would preserve many R4 instances and reduce access-control misclassification risk."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:TERMINOLOGY_BINDING:Consent.status:6e2d9c",
+      "title": "Consent.status required code set changed: proposed/rejected removed and not-done/unknown added",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The path remains the same but the required modifier code set drops plausible lifecycle states. This matters for validators, generated enums, and enforcement logic. Retaining deprecated `proposed` and `rejected` codes looks like a relatively low-cost standards option compared with forcing every historical instance through a lossy status policy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.patient-subject:91ad7f",
+      "title": "Consent.patient was renamed to Consent.subject and reference targets were widened",
+      "role": "important-but-local",
+      "reasonMd": "This is a real wire and codegen break, but for R4 Patient-centered data the forward map is usually mechanical. The wider R6 subject model is coherent; preserving `patient` as an alias would reduce breakage but risks duplicate subject representations, so this is mostly a local migration chore."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:TYPE_DOMAIN:Consent.dateTime-date:34b0ef",
+      "title": "Consent.dateTime was replaced by Consent.date, narrowing precision and changing meaning",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is both a path/type break and a meaning change. R4 timestamps may represent statement creation or indexing time, while R6 `date` is date-only agreement time. Keeping a deprecated legacy `dateTime` alongside the R6 agreement date would preserve audit/legal precision at modest cost, so this remains a strong Revisit item even though larger migration is unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:REFERENCE_TARGET:Consent.performer-organization-participants:bb7a13",
+      "title": "Consent performer/custodian fields were remodeled into grantor, grantee, manager, and controller",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The split from overloaded R4 actor fields to role-specific R6 actors is a central reason migration is a domain transform. It can require human or profile-specific classification. However, because the old aggregate role was ambiguous in ways that affect authority and enforcement, retaining it indefinitely is less compelling than providing clear mapping guidance."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:SERIALIZATION_OR_CODEGEN:Consent.source:2f7b65",
+      "title": "Consent.source changed from a single choice element to repeatable sourceAttachment/sourceReference elements",
+      "role": "important-but-local",
+      "reasonMd": "This affects generated APIs and wire shape for source evidence, especially because R6 repeatables are arrays and permit multiple/mixed sources. It is not a primary resource-level driver, and the R6 support for multiple source materials is reasonable, but migration adapters and downgrade rules are required."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:CONSTRAINT:Consent.policy-policyRule:57d421",
+      "title": "Policy and policyRule were removed, replaced by regulatoryBasis/policyBasis/policyText, and the R4 policy-or-policyRule invariant disappeared",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Policy basis is central to what the consent authorizes or prohibits. R6 separates concepts that R4 bundled, so migration must classify old policy content and restore profile constraints where a policy basis is mandatory. Retaining the old fields would reduce validation breakage but introduces duplicate policy representations and precedence problems."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.verification.date:f1c930",
+      "title": "Consent.verification.verificationDate was renamed to date and verification metadata was expanded",
+      "role": "needs-follow-up",
+      "reasonMd": "Verification is optional, but when present it is legal/audit evidence. The richer R6 model is justified, yet the specific `verificationDate` rename seems avoidable with a narrow deprecated alias. This should remain on the standards-review list even though it is not the dominant migration burden."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:FLAGS_AND_MODIFIERS:Consent.provision.type-decision:aa8e74",
+      "title": "Provision permit/deny semantics moved from provision.type to root modifier Consent.decision, and provision became repeatable",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Permit/deny interpretation is safety-critical because an incorrect transform can invert access decisions. The R6 root modifier may be a better computable design, but it means implementers need explicit test fixtures for opt-in, opt-out, nested exceptions, and multiple root provisions. This is a major migration driver more than a low-cost preservation candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:CARDINALITY:Consent.provision.actor.role-reference:18f399",
+      "title": "Provision actor role and reference changed from mandatory to optional, and role binding changed",
+      "role": "discounted",
+      "reasonMd": "This weakens requirements and does not make R4-valid actor entries invalid in R6. It may reduce R6 base data-quality guarantees and complicate downgrade, but it is not a forward R4-to-R6 compatibility break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:ELEMENT_PRESENCE_OR_IDENTITY:Consent.provision.class:720d8b",
+      "title": "Consent.provision.class was split into documentType and resourceType with changed bindings",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Content targeting affects over-sharing and under-sharing. The R6 split is semantically sensible, but old `class` codings need classification into document, resource, profile, or other buckets. That expert-dependent classification reinforces the major-model-remodel conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:SEMANTIC_OR_CONFORMANCE_TEXT:Consent.provision.securityLabel:58c1de",
+      "title": "Provision securityLabel binding weakened from extensible security-labels to example security-label-example",
+      "role": "discounted",
+      "reasonMd": "This is not a backward-compatibility break because R6 is more permissive. It remains safety-relevant for production access-control interoperability, but the right response is likely profiling stronger bindings rather than treating it as an R4-to-R6 instance break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Consent:CONVERSION_OR_MAPPING:Consent.r6-new-fields:4ad6b0",
+      "title": "R6 adds local Consent fields with no base R4 representation, including provision.expression and policy/verification/controller fields",
+      "role": "important-but-local",
+      "reasonMd": "These additions do not block R4-to-R6 migration, but they matter for dual-version systems and downgrade. `provision.expression`, controller/manager actors, richer policy evidence, and verification metadata must not be silently dropped when serving R4 clients."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "This direct behavior finding applies to Consent. It does not independently make the resource redesign unavoidable, but stable search codes can silently return different result sets unless indexes are migrated with data, particularly around moved provision paths."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-profile-canonical-type",
+      "title": "R6 narrows the `profile` input from `uri` to `canonical(StructureDefinition)`",
+      "role": "context-only",
+      "reasonMd": "This is a shared `Resource` operation behavior issue. It can affect validation workflows for Consent instances, but per the review scope it is not counted as a Consent-specific resource break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search metadata change is relevant ecosystem context only. It does not change the resource-level Consent migration conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Ask the standards review to reconsider low-cost preservation for `scope`, deprecated legacy `status` codes, legacy `dateTime`, and `verificationDate` before treating the Consent migration burden as fully unavoidable."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Create explicit Consent migration rules and fixtures for scope/category, status, subject, date/dateTime, actor role classification, policy-basis mapping, root `decision`, nested provisions, and `provision.class` splitting."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document Consent search-index migration for stable search codes and define downgrade/compatibility policy for R6-only enforcement fields such as `provision.expression`, controller/manager, policy evidence, and richer verification metadata."
+    }
+  ],
+  "caveats": [
+    "Official R4-to-R6 ConceptMaps, StructureMaps, and working-group rationale were not present in the local inputs, so some proportionality judgments could change with authoritative migration guidance.",
+    "This review evaluates base resource compatibility. Implementations with strict Consent profiles may experience additional breaks or may deliberately preserve some R4 guarantees in profiles.",
+    "Shared Resource/DomainResource behavior findings were considered context only and not scored as Consent-specific breaks."
+  ]
+}

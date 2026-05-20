@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Substance",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Substance.resource-review-context.json",
+    "structureReportPath": "output/Substance.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Substance.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 5,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Substance resource-review context, the full Substance StructureDefinition report, targeted R4/R6 package evidence for Substance elements and Substance search parameters, the direct SearchParameters finding whose `affectedResources` include Substance, and shared Resource/DomainResource behavior findings as context only. The deterministic aggregate was compared after forming the resource-level conclusion."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 Substance was FMM 2/trial-use, so the R4 wire model has neutral rather than strong stability pressure. That makes a targeted R6 remodel more acceptable than it would be for mature or normative content, but it does not eliminate the need to preserve low-cost compatibility where package identifiers, expiry, quantity, composition, or substance identity can affect traceability and safety."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Substance keeps its resource identity, but the required CodeableReference code shape plus removed package-instance and ingredient backbones make targeted migration unavoidable while low-cost preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "The actual migration shape is a same-resource targeted remodel. R6 still defines `Substance` with the same canonical identity, so this is not a resource replacement. However, unchanged R4 instances are not generally valid R6: the mandatory `code` element changes from direct `CodeableConcept` children to `CodeableReference`, `instance` is removed and only partly flattened, and `ingredient` is removed from the resource. A resource-level migration program is therefore partly unavoidable for any implementation exchanging real Substance instances, especially those using package/container or composition detail.",
+    "migrationShapeMd": "The minimum migration is mechanical but universal: wrap R4 `Substance.code` as `Substance.code.concept` or decide when to reference `SubstanceDefinition`. The deeper migration is selective but more policy-heavy: a single R4 `instance` can often map to top-level `identifier`, `expiry`, and `quantity`, but repeated package/container groups lose grouping unless the implementation splits resources, uses extensions, or adopts another model. R4 inline `ingredient` content must move to `Ingredient`, `SubstanceDefinition.relationship`, another domain artifact, or a local extension based on business meaning. That is a moderate targeted remodel rather than either low-material change or a removed-resource migration.",
+    "compatibilityLeverageMd": "Because every instance needs at least the code-shape transform, compatibility preservation has less leverage than it would for a mostly stable resource. It is still not zero. The strongest preservation opportunities are around data that R6 can otherwise make ambiguous or lossy: retaining deprecated `Substance.instance` during transition, adding a distinct package/container identifier slot, or documenting compatibility search behavior can materially reduce migration errors without blocking the overall R6 model.",
+    "lessBreakingAlternativesMd": "The best low-cost alternatives are not to undo the entire R6 remodel. Keeping `code` as a `CodeableConcept` plus adding a separate definition reference would preserve R4 wire shape, but it would create two identity slots and awkward reference-only cases, so the CodeableReference break is probably proportionate. Retaining `Substance.ingredient` indefinitely also risks overlapping sources of truth with dedicated R6 ingredient/substance-definition structures. By contrast, preserving package-instance grouping as deprecated content, or adding a clear `containerIdentifier`/package identifier element instead of overloading top-level `identifier`, looks more modest and standards-review-worthy because it protects traceability semantics with relatively limited model cost.",
+    "behaviorImpactMd": "The direct behavior issue is search expression movement. For Substance specifically, stable search codes such as `expiry` and `quantity` move from `Substance.instance.*` to top-level R6 paths, `code` now indexes `Substance.code.concept`, and R6 adds a separate `code-reference` search while old container/ingredient reference searches no longer have the same base paths. Fully transformed data can preserve query intent, but partial migrations and compatibility servers risk silent result-set drift unless data transforms and index updates are coordinated. Shared Resource and DomainResource behavior findings were considered only as platform context because Substance is neither Resource nor DomainResource.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's high-level labels: `majorMigrationAlreadyUnavoidable = Partial`, `resourceMigrationShape = moderate-targeted-remodel`, and `compatibilityLeverage = preserve-where-low-cost-but-expect-resource-migration`. The important nuance is that the conclusion is not count-driven. It follows from a mandatory code representation change plus two targeted removals, while the `instance` and `identifier` findings remain worth preserving or revisiting even though a Substance migration program is already expected.",
+    "uncertaintyMd": "Confidence is high for the computable StructureDefinition and SearchParameter deltas. Remaining uncertainty is about official HL7 rationale, final R6 ballot changes, prevalence of populated R4 `instance` and `ingredient` data, and whether external migration maps define authoritative targets for package/container and composition content."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Substance:TYPE_DOMAIN:Substance.code:7f3c2a",
+      "title": "Substance.code changed from CodeableConcept to CodeableReference(SubstanceDefinition)",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`code` is mandatory in both versions, so every conforming R4 Substance instance using direct `code.coding`/`code.text` needs a wire-shape transform to `code.concept` or a policy to use `code.reference`. This is the main reason even minimal Substance migration is unavoidable. The break appears probably proportionate because a separate optional definition reference would create duplicate identity slots and consistency rules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Substance:ELEMENT_PRESENCE_OR_IDENTITY:Substance.instance:5a91bd",
+      "title": "Repeatable Substance.instance backbone was removed and only partly flattened",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most important standards-review-worthy structural concern. R4 package/container details were grouped and repeatable; R6 has only single top-level `expiry` and `quantity` plus broadened identifiers. Single-instance migration is often mechanical, but repeated package groups are lossy without splitting or extensions. A deprecated retained backbone or other transition mechanism looks plausible enough to deserve follow-up."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Substance:ELEMENT_PRESENCE_OR_IDENTITY:Substance.ingredient:0d4e8f",
+      "title": "Substance.ingredient backbone was removed from the resource",
+      "role": "important-but-local",
+      "reasonMd": "Inline composition content becomes invalid and generated code/business logic must migrate. This contributes to the targeted migration burden, but once the broader R6 substance model is accepted, moving composition into `Ingredient` or `SubstanceDefinition.relationship` is a coherent local migration chore. The main need is explicit mapping guidance so ingredient quantities are not silently dropped."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Substance:SEMANTIC_OR_CONFORMANCE_TEXT:Substance.identifier:9e2f44",
+      "title": "Substance.identifier semantics broadened to include package/container identifiers",
+      "role": "needs-follow-up",
+      "reasonMd": "This does not break validation, but it can break matching, deduplication, inventory, traceability, and R6-to-R4 mapping by mixing substance-kind identifiers with package/container labels. A distinct optional container/package identifier or retained deprecated `instance.identifier` would preserve the R4 meaning at modest cost, so this remains important even though structural migration is already needed."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Substance:TYPE_DOMAIN:Substance.description:2c6ab1",
+      "title": "Substance.description primitive type changed from string to markdown",
+      "role": "discounted",
+      "reasonMd": "The FHIR primitive type changes in generated models and rendering policy, but the JSON wire representation remains a string and plain text remains valid markdown. This should be handled as minor codegen/UI migration rather than as a material resource-level break."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "Substance is directly in scope. The stable query codes can still exist while indexing different paths such as `Substance.quantity` instead of `Substance.instance.quantity`, and `code` now follows `Substance.code.concept`. This is mostly derivative of the model migration, but it needs Substance-specific index migration tests and compatibility guidance to avoid silent result-set changes."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "context-only",
+      "reasonMd": "This shared platform behavior may affect generic clients around Substance servers, but it is not Substance-specific and Substance is not the Resource or DomainResource artifact. It was reviewed as background only and did not drive the Substance resource-level conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes can affect generic search tooling for any resource, including Substance endpoints. Under the resource-review rules, they are not counted as direct Substance migration pressure; the direct Substance search concern is the stable-code expression movement."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or verify an explicit Substance R4-to-R6 migration map covering `code` to CodeableReference, R4 package/container `instance` handling including repeated groups, `ingredient` target selection, and identifier-scope preservation."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit low-cost preservation for package/container data before finalizing R6: retain deprecated `Substance.instance`, add a distinct container/package identifier, or provide an equivalent transition mechanism that avoids losing grouping and identifier scope."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add Substance search/index migration guidance and fixtures for `code`, `code-reference`, `expiry`, `quantity`, `identifier`, and the discontinued R4 container/ingredient search use cases so partial migrations do not silently change query results."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Clarify whether common R4 `Substance.ingredient` patterns should map to R6 `Ingredient`, `SubstanceDefinition.relationship`, extensions, or manual review, especially where concentration or component identity is safety- or regulatory-relevant."
+    }
+  ],
+  "caveats": [
+    "The conclusion is based on the supplied R6 6.0.0-ballot4 core package; final R6 publication could change the Substance design.",
+    "No official R4-to-R6 Substance diff, narrative migration guide, ConceptMap, or StructureMap was supplied.",
+    "No production instance corpus was reviewed, so prevalence of repeated `Substance.instance` and populated `Substance.ingredient` data is unknown.",
+    "Shared Resource and DomainResource behavior findings were considered only as context and not scored as Substance-specific breaks."
+  ]
+}

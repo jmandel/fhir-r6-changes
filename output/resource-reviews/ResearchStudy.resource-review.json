@@ -1,0 +1,168 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "ResearchStudy",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/ResearchStudy.resource-review-context.json",
+    "structureReportPath": "output/ResearchStudy.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/ResearchStudy.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 12,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, full ResearchStudy StructureDefinition report, deterministic aggregate as prior context, the direct SearchParameters behavior finding affecting ResearchStudy, and shared Resource/DomainResource behavior findings as context only. I also checked the local R4 and R6 ResearchStudy element and search-parameter surfaces to confirm the model shape rather than relying on counts alone."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "brr",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 ResearchStudy was FMM 1/trial-use, so the compatibility burden is weaker than for mature or normative resources. That lowers the objection to coherent redesign, but it does not erase the cost of breaking central study-registry concepts such as status, recruitment, sponsor/investigator/contact responsibility, trial arms/comparison groups, or search behavior."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "ResearchStudy keeps its resource identity, but R6 remodels central state, focus, recruitment, parties, relationships, and comparison groups enough that a resource-specific migration program is unavoidable; low-cost compatibility preservation still has value."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a removed resource and not merely additive growth. R6 keeps `ResearchStudy` but changes the meaning and required binding of `status`, replaces broad R4 buckets with more explicit structures, changes `focus` to CodeableReference, remodels enrollment/recruitment, sponsor/investigator/contact parties, related artifacts, and arms/comparison groups, and adds substantial R6-only study-result/progress content. Real R4 instances using common fields will need transformation before R6 validation.",
+    "migrationShapeMd": "The migration shape is a major model remodel with stable identity. Some changes are straightforward path renames, but the central work is non-mechanical: lifecycle status must be separated from publication status; broad `category` values must be classified into `studyDesign`, `classifier`, or other elements; coded `focus` values must be wrapped while R6 references need policy; repeated R4 enrollment Group references must be interpreted as eligibility or actual recruitment groups; `ContactDetail` and named responsibility fields must be role-coded into `associatedParty`; and `arm` data must be mapped into expanded `comparisonGroup` semantics.",
+    "compatibilityLeverageMd": "Migration is already unavoidable, but that does not make every additional break low-value. Because the resource identity remains stable and several breaks are wire-name or alias problems, deprecated paths, compatibility aliases, wider transition behavior, or explicit mappings could still reduce implementer cost. The right posture is to expect a ResearchStudy migration program while preserving compatibility where the base-design cost is low and where central study-registry semantics create safety, regulatory, or business risk.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidates are keeping lifecycle `status` distinct from publication status, retaining or aliasing `location`/`region`, retaining or aliasing `reasonStopped`/`whyStopped`, retaining `arm` as the wire element while broadening semantics, and keeping old token search aliases such as ResearchStudy `focus` for the `.concept` branch. By contrast, preserving `category`, `relatedArtifact`, or `primaryPurposeType` unchanged would more directly conflict with the R6 goal of a more computable split, and `focus` as CodeableReference is a coherent R6 pattern even though it breaks the old JSON shape.",
+    "behaviorImpactMd": "The direct behavior finding in scope is the CodeableReference-style search split. For ResearchStudy this shows up as old `focus` token search moving to `focus-code` and `focus-reference`, so R4 query builders and conformance metadata need updates. The partial less-breaking alternative is to keep old token searches as deprecated aliases for the concept branch. The 11 shared Resource/DomainResource operation and search findings were considered as ecosystem context only and were not used to score ResearchStudy's resource-level structural migration.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate reached `Yes`, `major-model-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`; this independent review agrees with that conclusion, but for substantive reasons rather than the raw count. The main nuance is that the important findings are not equivalent: `status`, `enrollment`, `sponsor`/`principalInvestigator`/`contact`, and `arm` shape the resource-level risk; `location`, `reasonStopped`, and the search alias issue are lower-cost avoidable breaks; `primaryPurposeType`, `category`, `focus`, and `relatedArtifact` are more defensible local migration chores if the broader redesign is accepted.",
+    "uncertaintyMd": "Confidence is high that a migration program is needed because the R4 and R6 StructureDefinitions directly show the affected paths. The main uncertainty is detailed mapping policy: no official cross-version ConceptMap or rendered ballot rationale was available locally, some terminology expansions were not present, and the R6 input is ballot4 rather than final publication."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:TERMINOLOGY_BINDING:ResearchStudy.status:2f433e",
+      "title": "ResearchStudy.status changed from study lifecycle status to publication status",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the strongest single concern: a required modifier path survives but changes from study lifecycle state to publication status with a different required value set. Most R4 lifecycle codes fail R6 validation, and overlapping `active` creates semantic risk. Even at FMM 1, this central registry/status field merits standards attention."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.enrollment:c483bb",
+      "title": "enrollment was replaced by a singular recruitment backbone",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The old repeating Group reference was replaced by one `recruitment` backbone with target/actual counts and eligibility/actual groups. Migration can require expert interpretation of what each R4 Group meant, so this is a central non-mechanical part of the resource migration program."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.sponsor:ffc1e7",
+      "title": "sponsor, principalInvestigator, and contact were removed in favor of associatedParty role modeling",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Role-coded `associatedParty` is coherent, but the removed R4 shortcuts carry common legal, operational, and contact responsibilities. `ContactDetail` does not map cleanly to the R6 party shape, so this is both migration-program material and a plausible place for transitional compatibility."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.arm:04b85c",
+      "title": "arm was replaced by comparisonGroup and expanded",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Trial arms/comparison groups are central to study interpretation. R6 broadens and expands the model, but the top-level wire rename looks avoidable because the R6 definition still carries `arm` as an alias and the old path could plausibly have been broadened with added optional children."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:TYPE_DOMAIN:ResearchStudy.focus:5e195e",
+      "title": "focus changed from CodeableConcept to CodeableReference and left the summary set",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard JSON/codegen break and feeds a direct search-parameter break. The CodeableReference goal is coherent and probably proportionate, but any realistic ResearchStudy migration must account for wrapping old coded focuses and deciding how to down-convert new references."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.relatedArtifact:346e60",
+      "title": "relatedArtifact was removed and replaced by relatesTo, citeAs, and result patterns",
+      "role": "important-but-local",
+      "reasonMd": "This contributes to the broader remodel because old RelatedArtifact data must be classified into relationship, citation, or result patterns. The R6 split is defensible, so after accepting the redesign this is mainly a mapping chore rather than the strongest avoidability issue."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.category:66ce42",
+      "title": "category was removed and split across studyDesign and classifier",
+      "role": "important-but-local",
+      "reasonMd": "The broad R4 bucket requires semantic classification in R6, which supports the conclusion that migration is non-mechanical. However, keeping the old catch-all would undercut the computable R6 split, so this is more a local migration rule than a strong preservation candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.location:813bd7",
+      "title": "location was renamed to region and its jurisdiction binding weakened",
+      "role": "important-but-local",
+      "reasonMd": "This is not what makes a ResearchStudy migration unavoidable, but it is a low-cost avoidable wire break. The datatype, cardinality, summary flag, and geographic meaning are close enough that keeping `location` or providing an alias would preserve R4 instances without preserving an obsolete model."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.reasonStopped:6dff5e",
+      "title": "reasonStopped was renamed to whyStopped",
+      "role": "important-but-local",
+      "reasonMd": "The migration is straightforward, but the break buys mostly wording cleanup for a safety/regulatory-relevant concept. This is a good example where a migration program is already needed but low-cost compatibility preservation still matters."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:ELEMENT_PRESENCE_OR_IDENTITY:ResearchStudy.primaryPurposeType:158328",
+      "title": "primaryPurposeType was replaced by purposeType with wider cardinality and weaker binding",
+      "role": "discounted",
+      "reasonMd": "This is a real old-valid/new-invalid path break, but the R6 goal of allowing multiple purpose values makes a pure compatibility-preserving shape difficult. Once a ResearchStudy transform exists, this is a manageable local mapping from the old singular value to the new repeating element."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:REFERENCE_TARGET:ResearchStudy.site:8cc945",
+      "title": "site now allows Organization and ResearchStudy references in addition to Location",
+      "role": "discounted",
+      "reasonMd": "This does not break R4-to-R6 instances because Location remains allowed. It only creates R6-to-R4 conversion policy for new target types, so it should not drive the R4 migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "ResearchStudy:CONVERSION_OR_MAPPING:ResearchStudy:419611",
+      "title": "R6 adds substantial optional ResearchStudy content with no native R4 representation",
+      "role": "important-but-local",
+      "reasonMd": "Optional additions do not invalidate R4 instances, and adding optional content is generally the less-breaking way to evolve a trial-use resource. They still matter for bidirectional compatibility because progress, outcome, result, citation, and metadata content may need R4 extensions or documented loss handling."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:codeable-reference-splits-clinical",
+      "title": "Several common clinical search codes split into code/reference variants or changed type because elements became CodeableReference-like",
+      "role": "important-but-local",
+      "reasonMd": "This direct behavior finding affects ResearchStudy through the `focus` remodel: R4 `focus` token search is replaced by `focus-code` and `focus-reference`. The split is semantically reasonable, but deprecated aliases for old token searches would be a low-cost way to preserve many R4 query builders."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "This and the other shared Resource operation findings are real ecosystem compatibility issues, but ResearchStudy is not Resource or DomainResource for scoring purposes. They inform general migration planning only and do not change the resource-level ResearchStudy conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes can affect clients querying ResearchStudy like any other resource, but they are base Resource/DomainResource context and should not be duplicated into the ResearchStudy structural migration score."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `status` design and publish explicit migration guidance: either retain lifecycle status separately from publication status or provide authoritative lifecycle-to-`progressStatus` and publication-status mapping rules, including the ambiguous `active` case."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Where the R6 model goal is already met, preserve low-cost compatibility with deprecated paths or aliases for `location`/`region`, `reasonStopped`/`whyStopped`, `arm`/`comparisonGroup`, legacy party shortcuts where feasible, and old ResearchStudy `focus` token search mapped to `focus-code`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Produce tested cross-version maps for the non-mechanical transformations: `category` to `studyDesign`/`classifier`, `relatedArtifact` to `relatesTo`/`citeAs`/`result`, `enrollment` to recruitment groups, responsibility/contact fields to `associatedParty`, and CodeableConcept `focus` to CodeableReference."
+    }
+  ],
+  "caveats": [
+    "No official ResearchStudy R4-to-R6 ConceptMap, rendered diff rationale, or ballot change proposal was available in the local inputs.",
+    "Some terminology expansion details were missing locally, so exact code-level mapping recommendations should be verified against the matching terminology package.",
+    "The R6 input package is 6.0.0-ballot4; names, bindings, and comments may still change before final R6 publication.",
+    "Shared Resource and DomainResource behavior findings were considered only as context, per the review contract."
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "RiskEvidenceSynthesis",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/RiskEvidenceSynthesis.resource-review-context.json",
+    "structureReportPath": "output/RiskEvidenceSynthesis.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/RiskEvidenceSynthesis.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/HttpRestBehavior.report.json",
+      "output/SearchParameters.report.json",
+      "output/OperationDefinitions.report.json"
+    ],
+    "reviewedStructureFindingCount": 5,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "I reviewed the output contract, assessment rubric, fresh-review framework, resource-review context, full RiskEvidenceSynthesis StructureDefinition report, direct HTTP/search behavior findings, shared Resource/DomainResource behavior context, and the deterministic aggregate only after forming the resource-level judgment. I also checked the local package facts behind the main conclusion: R6 has no `StructureDefinition-RiskEvidenceSynthesis.json`, `fhir-old-types` lists `RiskEvidenceSynthesis`, and R6 `Evidence` contains the likely replacement surfaces for variables, statistics, and certainty."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "cds",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 RiskEvidenceSynthesis was trial-use/FMM 0, so the compatibility burden is weak compared with mature or normative resources. That makes the resource consolidation into Evidence easier to justify, but it does not erase safety or interpretability concerns where evidence variables, quantitative estimates, or certainty ratings can be mis-mapped."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "migration-program-dominates",
+    "confidence": "High",
+    "oneLineConclusion": "RiskEvidenceSynthesis has no R6 resource identity, so migration to Evidence-style structures is unavoidable; preservation work still matters where it avoids low-cost lossy target-model changes such as certainty rating cardinality."
+  },
+  "reasoning": {
+    "thesisMd": "This is primarily a resource identity/remodel migration, not a collection of independent local field breaks. An R4 instance with `resourceType: RiskEvidenceSynthesis` cannot become an R6 instance by preserving the same root type, and the likely R6 target is the broader `Evidence` resource. Because the resource identity and REST/search surface disappear, a migration program is already unavoidable before individual element compatibility can solve much.",
+    "migrationShapeMd": "The migration shape is `removed-or-replaced-resource`. R4 had required top-level `population` and `outcome`, optional `exposure`, optional `riskEstimate` and `sampleSize`, and repeatable `certainty`. R6 instead appears to represent these concepts through `Evidence.variableDefinition` role entries, repeatable `Evidence.statistic` with nested sample-size and attribute-estimate structures, and a remodeled `Evidence.certainty`. Those are not simple wire-name aliases; they require resource-type conversion, endpoint/search redesign, and domain mapping policy for observed versus intended variables, numerator/denominator counts, confidence interval scaling, and certainty semantics.",
+    "compatibilityLeverageMd": "The unavoidable resource replacement really does lower the leverage of trying to preserve every old RiskEvidenceSynthesis element path. Keeping the old resource as a base R6 compatibility resource or full endpoint alias would preserve many old instances, but it would also retain duplicate resource identities, generated classes, routes, and search behavior for overlapping evidence content. However, `migration-program-dominates` should not be read as `no compatibility work matters`: explicit maps, transition guidance, and low-cost target-model compatibility can still prevent avoidable data loss.",
+    "lessBreakingAlternativesMd": "The strongest low-cost standards-review item is the certainty remodel: R4 allowed repeatable `certainty.rating`, while R6 `Evidence.certainty.rating` is 0..1. Keeping rating repeatable while recommending one rating per typed certainty aspect would preserve old multi-rating content and still allow the richer type/rater/recursive subcomponent model. By contrast, retaining old `population`/`exposure`/`outcome` or `riskEstimate`/`sampleSize` fields alongside the generalized Evidence structures would create duplicate encodings and consistency rules, so those are better treated as local migration chores plus mapping guidance once the resource redesign is accepted.",
+    "behaviorImpactMd": "The two direct behavior findings are real but derivative of the same resource lifecycle decision. The base CapabilityStatement no longer advertises the RiskEvidenceSynthesis endpoint, and search parameters whose only R4 base was RiskEvidenceSynthesis disappear with the removed endpoint. Those reinforce that clients need endpoint/query migration, but they do not independently change the resource-level conclusion. The 11 shared Resource/DomainResource behavior findings were considered as context only because RiskEvidenceSynthesis is not itself Resource or DomainResource.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate on `majorMigrationAlreadyUnavoidable: Yes`, `removed-or-replaced-resource`, and `migration-program-dominates`. The nuance I would preserve explicitly is that this posture discounts old-path preservation for the removed resource, not all break prevention. The certainty rating cardinality change remains standards-review-worthy, while the terminology binding shifts are mostly governance/mapping work absent evidence of an R4-valid code becoming base R6-invalid.",
+    "uncertaintyMd": "The resource identity conclusion is high confidence. Detailed element mapping confidence is lower because the local inputs did not include an official RiskEvidenceSynthesis-to-Evidence replacement declaration, ConceptMap, or conversion guide, and the R6 input is a ballot package."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "RiskEvidenceSynthesis:ARTIFACT_IDENTITY:root:old-type-removal",
+      "title": "RiskEvidenceSynthesis is no longer an R6 resource type",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the decisive break. R6 lacks a same-name StructureDefinition and marks the name as an old type, so old instances fail at `resourceType` before element-level compatibility is considered. FMM 0 makes the removal more acceptable, but it still requires explicit data, API, search, and codegen migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "RiskEvidenceSynthesis:CONVERSION_OR_MAPPING:population-exposure-outcome:variable-definition",
+      "title": "Population, exposure, and outcome references are remodeled as Evidence.variableDefinition roles",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The fixed top-level PICO-like fields become repeatable role-classified variable definitions with observed/intended choices and Group/EvidenceVariable targets. This supports the conclusion that migration is a model transform. Preserving old named fields would ease simple cases but would create duplicate encodings and consistency problems."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "RiskEvidenceSynthesis:CONVERSION_OR_MAPPING:risk-estimate-statistic:statistic-remodel",
+      "title": "riskEstimate and sampleSize are remodeled into Evidence.statistic",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is another substantive target-model transform. Quantitative content moves into repeatable statistics with Quantity values, nested sample sizes, attribute estimates, and changed confidence-interval level convention. It is migration-critical, but retaining the old quantitative backbone in the base model would create hard-to-govern duplicate statistical representations."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "RiskEvidenceSynthesis:SEMANTIC_OR_CONFORMANCE_TEXT:certainty:certainty-remodel",
+      "title": "Certainty representation changes cardinality, terminology, and nesting semantics",
+      "role": "needs-follow-up",
+      "reasonMd": "This remains the most important avoidable local issue after accepting the resource replacement. The richer certainty model is reasonable, but narrowing `rating` from 0..* to 0..1 can force splitting or dropping old ratings. Keeping rating repeatable appears low cost compared with the benefit of preserving old certainty content."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "RiskEvidenceSynthesis:TERMINOLOGY_BINDING:evidence-value-sets:binding-shifts",
+      "title": "Evidence-related terminology bindings changed or weakened in the R6 Evidence model",
+      "role": "discounted",
+      "reasonMd": "The terminology changes matter for ConceptMaps, generated enums, analytics, and reverse conversion, but the report does not show a concrete R4-valid code that becomes invalid in base R6. I therefore treat this as terminology-governance work rather than a resource-level break driver."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "important-but-local",
+      "reasonMd": "RiskEvidenceSynthesis is included in the removed endpoint inventory. For this resource, the finding is an operational manifestation of the resource removal: generic clients and route-generation tooling need an endpoint transition, but the cause and proportionality are decided by the resource replacement."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "important-but-local",
+      "reasonMd": "RiskEvidenceSynthesis is one of the removed-resource bases, so R4 searches against that endpoint have no same-base R6 search surface. This should be handled in the migration program by mapping or retiring queries after the Evidence replacement strategy is defined."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This shared Resource behavior may affect generic migration tooling, but it is not specific to RiskEvidenceSynthesis and was not scored as part of the resource conclusion under the review instructions."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-convert--Resource-convert:resource-convert-input-parameter-renamed",
+      "title": "Required input parameter renamed from input to resource",
+      "role": "context-only",
+      "reasonMd": "This shared conversion-operation break is relevant background for cross-version tooling, but it is not a RiskEvidenceSynthesis-specific behavior finding. It does not change the resource-level judgment."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or verify an official RiskEvidenceSynthesis-to-Evidence migration guide covering resource type, canonical/identifier preservation, variableDefinition roles, statistic mapping, certainty, endpoint retirement, and search replacement."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit `Evidence.certainty.rating` cardinality or provide a transition profile/alias that preserves repeatable R4 certainty ratings without forcing data loss."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Create implementation test cases for observed versus intended variables, numerator/denominator/sample-size mapping, 95-to-0.95 confidence interval level normalization, multiple statistics, and multi-rating certainty entries."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Compare old and new evidence terminology value-set expansions and publish ConceptMaps where synthesis type, study design, statistic type, precision/attribute estimate type, or certainty ratings changed meaning."
+    }
+  ],
+  "caveats": [
+    "No official local ConceptMap, migration guide, or replacement declaration was available; detailed Evidence mappings are inferred from StructureDefinition semantics.",
+    "R6 Evidence is the likely replacement, but the reviewed inputs do not prove every RiskEvidenceSynthesis use case maps cleanly to Evidence.",
+    "Terminology expansions were not compared, so code-level compatibility of old and new value sets remains unresolved.",
+    "The R6 source package is 6.0.0-ballot4, so final R6 content could change.",
+    "Shared Resource/DomainResource behavior findings were considered only as context and not scored for this resource."
+  ]
+}

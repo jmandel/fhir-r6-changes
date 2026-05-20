@@ -1,0 +1,164 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Provenance",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Provenance.resource-review-context.json",
+    "structureReportPath": "output/Provenance.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Provenance.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 11,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Provenance resource-review context, the full StructureDefinition report, the deterministic aggregate as prior context, the direct SearchParameters behavior finding affecting Provenance, shared Resource/DomainResource behavior context, and the local R4/R6 Provenance StructureDefinitions and relevant terminology/search metadata. Shared Resource and DomainResource behavior findings were treated as context only because Provenance is neither base artifact."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "sec",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Provenance is trial-use/FMM 3 under the Security work group. That is not a normative no-break baseline, but Provenance is audit/accountability/security infrastructure, so hard instance breaks and semantic reclassification need meaningful justification and transition help."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Provenance keeps its resource identity, but R6 makes a targeted audit/security remodel that requires explicit mapping while still leaving high value in low-cost compatibility preservation."
+  },
+  "reasoning": {
+    "thesisMd": "Provenance is not removed or replaced, and much of the target/agent/entity backbone remains recognizable. However, real R4 deployments cannot treat this as a validator-only upgrade: `reason` is removed and split into `authorization` plus `why`, the required `entity.role` code system drops the R4-only `derivation` code, and `agent.onBehalfOf` both narrows targets and changes toward explicit delegation semantics. Those are enough to make a targeted resource migration program unavoidable for serious Provenance stores, especially because the affected content is audit/security relevant.",
+    "migrationShapeMd": "The migration shape is a moderate targeted remodel rather than a major whole-resource rewrite. R4 instances without `reason`, without `entity.role = derivation`, and without Device/RelatedPerson `onBehalfOf` references may still be structurally close, but implementers need explicit rules for why/authorization classification, entity-role code mapping, delegation/accountability review, and search target regeneration. R6-only additions such as `basedOn`, `patient`, `encounter`, broader `agent.who` targets, and optional `recorded` mainly affect R6-to-R4 down-conversion and profiles rather than forcing every R4 instance to change.",
+    "compatibilityLeverageMd": "Because the resource identity survives and the hard breaks are concentrated in a few paths, migration burden should not be used to dismiss avoidable breaks. Preserving old wire names, legacy codes, or transitional target types where low-cost would materially reduce human review and audit-risk migration. The right posture is to expect a Provenance migration workstream but still protect compatibility per high-value path, not to declare that the redesign makes additional break avoidance irrelevant.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidates remain `reason`, `entity.role`, and `agent.onBehalfOf`: retain `reason` as deprecated or a coded alias while adding textual `why`; keep `derivation` as a deprecated required-bound code while adding more precise codes; and either keep Device/RelatedPerson targets for one release or introduce a delegation-specific element while preserving legacy `onBehalfOf`. These alternatives have real clarity tradeoffs, but they look cheaper than forcing lossy/expert mapping in mature audit data. By contrast, R6-only optional context fields, broadened `agent.who`, summary-flag changes, and the new self/circular delegation error constraints are mostly local migration or policy chores once the R6 model direction is accepted.",
+    "behaviorImpactMd": "The only direct behavior finding is the grouped SearchParameter reference-target change that includes Provenance. For Provenance this affects typed reference modifiers, chained searches, generated target enums, and reverse-include planning around `agent`, `target`, `entity`, and new clinical `patient`/`encounter` search surfaces. It is a real API migration concern but it follows the structural resource-target changes and does not independently make the resource a major redesign. The 11 shared Resource/DomainResource behavior findings are relevant platform background only and were not scored as Provenance-specific breaks.",
+    "comparisonToDeterministicAggregateMd": "The independent conclusion agrees with the deterministic aggregate outcome: `Partial` major migration, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The reason is not the raw count alone; it is the shape of three high-impact hard breaks clustered around audit reason, entity role, and delegated authority, plus the fact that several lower-cost preservation options remain plausible.",
+    "uncertaintyMd": "Confidence is high for the structural and search metadata deltas because both R4 and R6 package artifacts are present. Confidence is lower for the exact standards intent and optimal mappings because official ballot rationale, Jira discussion, and authoritative terminology transition guidance were not part of the local evidence."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:ELEMENT_PRESENCE_OR_IDENTITY:Provenance.reason:be90a8",
+      "title": "Provenance.reason was removed and split/reframed as authorization plus why",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`reason` is a hard old-valid/new-invalid wire break and a semantic split from a coded PurposeOfUse-like field into coded `authorization` plus textual `why`. That requires expert mapping for security/audit semantics and is the clearest standards-review-worthy preservation candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:TERMINOLOGY_BINDING:Provenance.entity.role:54055e",
+      "title": "Required Provenance.entity.role code set removed derivation and added instantiates/other",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The required binding means an R4 `derivation` entity role can become invalid in base R6. Retaining `derivation` as a deprecated legacy code would be a low-cost compatibility valve unless the standards group has a strong reason to force immediate recoding."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:REFERENCE_TARGET:Provenance.agent.onBehalfOf:6c650f",
+      "title": "Provenance.agent.onBehalfOf no longer permits Device or RelatedPerson and now represents delegation",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is both a target-list hard break and a semantics shift toward delegated authority. It can invalidate R4 audit data and can also silently change accountability interpretation, so it materially shapes the resource-level migration program."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:SEMANTIC_OR_CONFORMANCE_TEXT:Provenance.agent.role:e028f2",
+      "title": "Provenance.agent.role changed to structural-role semantics and a much narrower example value set",
+      "role": "important-but-local",
+      "reasonMd": "The same JSON can still validate, but role interpretation can change for displays, authorization/audit rules, and terminology-driven UX. It is worth transition guidance or a staged design discussion, but it is not itself a hard instance break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:VALUE_CONSTRAINT:Provenance.agent:eda0a8",
+      "title": "R6 adds local error constraints preventing self or circular delegation patterns on Provenance.agent",
+      "role": "important-but-local",
+      "reasonMd": "The new constraints can reject some R4 patterns, but they target narrow self/circular delegation cases with a plausible accountability goal. They are migration-relevant but do not make compatibility preservation as compelling as the removed field/code/target breaks."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:SEMANTIC_OR_CONFORMANCE_TEXT:Provenance.entity.agent:2cf303",
+      "title": "Provenance.entity.agent definition changed from generated-entity responsibility to used-entity responsibility",
+      "role": "important-but-local",
+      "reasonMd": "This is semantic rather than structural, but attribution is central to Provenance. It should be covered by migration guidance so existing entity-agent assertions are not reinterpreted without review."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:CARDINALITY:Provenance.recorded:bdb567",
+      "title": "Provenance.recorded minimum cardinality decreased from 1 to 0",
+      "role": "discounted",
+      "reasonMd": "This does not break R4-to-R6 instances because R4 already supplies `recorded`. It matters mainly for R6-to-R4 down-conversion and for audit profiles that still require a recorded timestamp."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:ELEMENT_PRESENCE_OR_IDENTITY:Provenance.basedOn|Provenance.patient|Provenance.encounter:be7e3f",
+      "title": "R6 adds optional basedOn, patient, and encounter context elements",
+      "role": "discounted",
+      "reasonMd": "These optional additions improve context and do not create old-valid/new-invalid R4-to-R6 breaks. They are down-conversion and indexing chores, not reasons to treat R6 Provenance as a whole-resource replacement."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:REFERENCE_TARGET:Provenance.agent.who:4cafcc",
+      "title": "Provenance.agent.who adds CareTeam, Group, and HealthcareService reference targets",
+      "role": "discounted",
+      "reasonMd": "Broadened `agent.who` targets are additive for R4-to-R6 and mostly create R6-to-R4 policy decisions. They should be documented but do not support a high-break-avoidance conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:TERMINOLOGY_BINDING:Provenance.activity|Provenance.agent.type:2eaefe",
+      "title": "Provenance.activity and agent.type bindings were weakened and retargeted to different example value sets",
+      "role": "discounted",
+      "reasonMd": "The binding strength is weaker in R6, so base validation is not narrower. This can affect picklists and analytics, but it is mainly transition documentation and ConceptMap work."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Provenance:FLAGS_AND_MODIFIERS:Provenance._summary:db610e",
+      "title": "Several local Provenance elements became summary elements in R6",
+      "role": "discounted",
+      "reasonMd": "Summary projection behavior can change what servers return for `_summary`, but this is low-risk API/output behavior and not a structural migration driver."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "This is the one direct behavior finding for Provenance. It can break typed/chained reference searches and generated target enums, especially around changed resource target lists, but it is a search-layer migration issue rather than evidence of resource identity replacement."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-delete:resource-meta-delete-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta-delete operation",
+      "role": "context-only",
+      "reasonMd": "This high-risk generic Resource operation removal can affect systems that manage metadata on Provenance instances, but it is a base Resource behavior issue and was not counted as a Provenance-specific structural break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "These shared search metadata changes affect generic clients across Resource/DomainResource. They are relevant platform context but do not change the resource-level Provenance conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Ask the Security work group to explicitly review whether R6 can preserve `Provenance.reason`, the `entity.role` `derivation` code, and Device/RelatedPerson `agent.onBehalfOf` targets as deprecated or transitional compatibility surfaces."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish authoritative R4-to-R6 Provenance mapping guidance for `reason` to `authorization`/`why`, `derivation` to the R6 entity-role codes, and legacy `onBehalfOf` values to the new delegation semantics."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update conformance tests and migration examples to include Provenance search target changes, typed/chained reference queries, and the new delegation constraints."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For implementations that require R4 round-tripping or strict audit timestamps, profile R6 Provenance to require `recorded` and define extension/down-conversion policy for R6-only context elements."
+    }
+  ],
+  "caveats": [
+    "This review is based on local R4 4.0.1 and R6 6.0.0-ballot4 package artifacts and the supplied reports; official ballot rationale and Jira history were not reviewed.",
+    "Shared Resource and DomainResource behavior findings were considered as context only, not as Provenance-specific migration drivers.",
+    "R6 ballot4 content may change before publication, so the review should be revisited if the Provenance StructureDefinition or search parameters change."
+  ]
+}

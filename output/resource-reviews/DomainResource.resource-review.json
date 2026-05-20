@@ -1,0 +1,164 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "DomainResource",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/DomainResource.resource-review-context.json",
+    "structureReportPath": "output/DomainResource.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/DomainResource.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 4,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 10,
+    "methodNotesMd": "Reviewed the output contract, resource assessment rubric, fresh-review framework, the DomainResource context bundle, the full local StructureDefinition report, the deterministic aggregate, and relevant behavior findings. I treated the aggregate as prior context only and verified the key R4/R6 DomainResource StructureDefinition elements for `contained`, `modifierExtension`, and the root `dom-*` constraints."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "fhir",
+    "stabilityPressure": "Strong",
+    "effectMd": "R4 DomainResource is normative/FMM 5, so even metadata and base-behavior changes need a strong compatibility rationale. That stability pressure does not turn every tooling migration into a design problem, but it strongly favors preserving legacy-compatible behavior where the preservation cost is low."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "Medium",
+    "oneLineConclusion": "DomainResource instances remain structurally stable, but generic base search and Resource/DomainResource behavior changes create a targeted API migration where low-cost compatibility preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "`DomainResource` is not undergoing a local content-model redesign: identity, local element presence, cardinalities, types, and reference targets are stable, and there are no local hard R4-to-R6 instance breaks. The important migration work is instead around summary serialization, contained-resource validation/prose, legacy constraint metadata, shared search metadata, and generic Resource-level operation behavior inherited by DomainResource-derived resources.",
+    "migrationShapeMd": "The instance migration shape is light: R4 instances using `text`, `contained`, `extension`, or `modifierExtension` remain structurally representable in R6. The only local potential instance concerns are a likely-equivalent `dom-3` FHIRPath rewrite and ambiguous prose around contained `Parameters`; neither implies a broad data transform. However, because this artifact is itself the DomainResource base, shared Resource/DomainResource behavior findings are not merely background: clients, servers, SDK generators, validators, and conformance tests that use generic search metadata or Resource operations such as `$meta`, `$meta-add`, `$meta-delete`, `$convert`, and `$validate` need targeted migration.",
+    "compatibilityLeverageMd": "The partial migration burden does not make additional breaks low-value. For a normative/FMM 5 base artifact, preserving optional legacy operation artifacts, accepting old parameter names where safe, and documenting/accepting old common search query forms can materially reduce ecosystem churn. Compatibility leverage remains high for low-cost base-surface preservation, while the local structural findings should still be judged individually rather than written off as part of a major remodel.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking alternatives are on behavior surfaces: keep or deprecate the R4 Resource `$meta*` OperationDefinitions in core, preserve the legacy `$validate` instance-level request shape, keep the `$convert` input parameter name `input`, and provide compatibility guidance or aliases for `_profile`, `_text`, `_content`, and `_query` type metadata. The local structural alternatives are weaker: keeping `modifierExtension.isSummary=false` would undercut safety-oriented summary behavior, retaining XPath duplicates would prolong legacy metadata, and keeping the older `dom-3` expression does not appear materially more compatible if `as(uri)` works as intended.",
+    "behaviorImpactMd": "The direct SearchParameters finding matters because shared special/profile parameters are common infrastructure and `_profile` changed from URI metadata to reference metadata. The shared Resource behavior findings matter for DomainResource because this review is for a base artifact: removal of generic `$meta*` operations and changed `$validate` semantics create real API/codegen/conformance migration. Other shared findings, such as `$graph` removal or Measure `$collect-data` output reshaping, are useful context but do not drive the DomainResource resource-level conclusion to the same degree.",
+    "comparisonToDeterministicAggregateMd": "I agree with the aggregate that the local StructureDefinition shape is `mostly-stable-with-local-breaks` and that no broad DomainResource instance-transform program is implied by the four structure findings. I differ on unavoidability because the aggregate explicitly did not score shared Resource/DomainResource behavior; for the DomainResource base artifact, those generic behavior findings are materially in scope and make a targeted API migration partially unavoidable. This does not justify ignoring avoidable breaks; it strengthens the case for low-cost preservation on base behavior surfaces.",
+    "uncertaintyMd": "Confidence is medium because official HL7 rationale, narrative-page interpretation, and validator conformance tests were not available for the `contained` prose and `dom-3` rewrite, and because the R6 input is ballot4. The structural evidence itself is high-confidence."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DomainResource:FLAGS_AND_MODIFIERS:DomainResource.modifierExtension:1a1f29",
+      "title": "DomainResource.modifierExtension is now included in summaries",
+      "role": "important-but-local",
+      "reasonMd": "This can change `_summary` payload shape and generated summary DTOs, but it is additive and safety-oriented: modifier extensions are non-ignorable, and no R4 instance becomes invalid. It should be handled as summary serializer/client migration, not as a reason to classify DomainResource as remodeled."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DomainResource:VALUE_CONSTRAINT:DomainResource.dom-3:8b3d41",
+      "title": "Contained-resource invariant dom-3 was rewritten in FHIRPath",
+      "role": "discounted",
+      "reasonMd": "The human rule and severity are unchanged, and the R6 expression appears to express the same contained-resource reference requirement using `as(uri)`. It deserves validator regression tests, especially for canonical/uri/url references, but it does not currently look like an intentional old-valid/new-invalid base-rule change."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DomainResource:SERIALIZATION_OR_CODEGEN:DomainResource.constraint-xpath:45c7e2",
+      "title": "Local DomainResource invariants no longer include XPath expressions",
+      "role": "important-but-local",
+      "reasonMd": "XPath-only XML/Schematron tooling has a real migration chore, but the wire instance model and FHIRPath constraints remain. Given R4's warning that XPath metadata was legacy and non-cross-format, this is proportionate cleanup rather than a standards-level DomainResource break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DomainResource:SEMANTIC_OR_CONFORMANCE_TEXT:DomainResource.contained:9e6a04",
+      "title": "Contained-resource text now calls out Parameters and additional resources",
+      "role": "needs-follow-up",
+      "reasonMd": "The computable type remains `0..* Resource`, but the R6 `if and only if` Parameters sentence could be read as new normative prose on a base element. Because DomainResource is normative and widely inherited, the standards value is in clarifying intended validator/conformance behavior rather than assuming the prose is harmless."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the direct behavior finding for DomainResource. The query codes survive, but type metadata changes can alter generated client APIs and conformance validation for very common infrastructure searches, especially `_profile`. Compatibility text or accepting legacy query forms looks relatively low-cost."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "important-but-local",
+      "reasonMd": "For the DomainResource base review, generic operation discoverability is relevant, but the grouped CapabilityStatement finding mainly points to operation-specific decisions. It supports targeted API migration pressure without proving every removed advertisement should be restored."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This generic Resource operation is a broad base API surface used for metadata discovery. Retaining a deprecated core OperationDefinition would preserve generated clients, canonical references, and conformance tests at modest technical cost, so this remains standards-review-worthy despite the targeted migration."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Removing a generic metadata-mutation operation creates a hard runtime/codegen break for implementers that used the R4 operation. Because Resource and Meta remain core and the contract is small, a deprecated compatibility artifact appears low-cost enough to preserve."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-delete:resource-meta-delete-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta-delete operation",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Like `$meta-add`, this is a generic state-changing metadata workflow with high conformance/runtime impact for users. Its removal contributes to partial base-API migration unavoidability, but the availability of a same-canonical deprecated artifact means compatibility preservation still has high value."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`$validate` is normative/FMM 5 Resource infrastructure. Rejecting an R4-shaped instance-level validation request without `mode` is an old-valid/new-invalid API behavior, and preserving that legacy interpretation while adding clearer R6 modes looks plausible."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-convert--Resource-convert:resource-convert-input-parameter-renamed",
+      "title": "Required input parameter renamed from `input` to `resource`",
+      "role": "important-but-local",
+      "reasonMd": "The operation is low maturity, so it does not dominate the resource conclusion. Still, the required parameter rename is central to every formal invocation and seems avoidable by keeping `input` while improving prose."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-graph:operation-resource-graph-removed",
+      "title": "Resource `$graph` operation is removed in R6",
+      "role": "discounted",
+      "reasonMd": "This is a real API break for users of `$graph`, but its low FMM, optional nature, and apparent connection to removed GraphDefinition machinery make it more like a local migration chore once that broader retirement is accepted."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-profile-canonical-type",
+      "title": "R6 narrows the `profile` input from `uri` to `canonical(StructureDefinition)`",
+      "role": "important-but-local",
+      "reasonMd": "The generated type and strict validation surface change, but common wire values are still strings and the R6 computability goal is strong. This is worth documenting and testing, but it is less avoidable than the `$validate` invocation-matrix break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Measure-collect-data--Measure-collect-data:Measure-collect-data:output-bundle-return",
+      "title": "Output changes from `measureReport` plus `resource` parts to repeatable `return` Bundles",
+      "role": "context-only",
+      "reasonMd": "Although `Resource` appears in the affected-resource list, this is primarily a Measure operation output redesign rather than DomainResource base behavior. It is useful ecosystem context but does not drive the DomainResource conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Standards review should prioritize low-cost compatibility preservation for generic Resource operations, especially deprecated core artifacts or explicit transition guidance for `$meta`, `$meta-add`, `$meta-delete`, and the legacy `$validate` instance-level request shape."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Document and, where feasible, preserve legacy-compatible behavior for shared search parameters such as `_profile`, `_text`, `_content`, and `_query`, so generated clients and conformance tools have a clear R4-to-R6 transition."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Clarify whether the R6 `DomainResource.contained` Parameters sentence is enforceable base conformance, a warning-level expectation, or explanatory guidance; align validator behavior with that decision."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add regression coverage for the `dom-3` FHIRPath rewrite and for summary serialization including `modifierExtension`, while treating XPath metadata removal as a planned tooling migration to FHIRPath."
+    }
+  ],
+  "caveats": [
+    "DomainResource is an abstract base artifact, so this review separates local instance-shape compatibility from generic Resource/DomainResource API behavior.",
+    "No official change rationale, narrative-page adjudication, or validator test suite results were available for the `contained` prose or `dom-3` rewrite.",
+    "The R6 source package is ballot4, so final R6 artifacts may alter these conclusions."
+  ]
+}

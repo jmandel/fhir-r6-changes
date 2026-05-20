@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "RelatedPerson",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/RelatedPerson.resource-review-context.json",
+    "structureReportPath": "output/RelatedPerson.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/RelatedPerson.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 4,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, resource assessment rubric, fresh-review framework, RelatedPerson context, the full RelatedPerson StructureDefinition report, the deterministic aggregate, relevant R4/R6 RelatedPerson StructureDefinitions, and behavior context. Direct behavior reports had no findings whose affected resources include `RelatedPerson`; shared `Resource`/`DomainResource` behavior findings were considered as platform context only."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 RelatedPerson is trial-use/FMM 2, so maturity does not create strong preservation pressure by itself. The review therefore turns mainly on the actual compatibility mechanism: one required terminology binding and a targeted semantic split of relationship information."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "RelatedPerson keeps its identity and most wire shape; affected implementations need targeted language and relationship/role migration, not a wholesale resource-level migration program."
+  },
+  "reasoning": {
+    "thesisMd": "RelatedPerson is not removed or replaced, and the local element diff is small: R6 adds `RelatedPerson.role` and keeps the existing core paths. The material R4-to-R6 work is concentrated in two areas: `communication.language` now has a required BCP-47/all-languages binding, and the older broad `relationship` concept is split into personal `relationship` plus functional `role`. That is real migration work, but it is not broad enough to make every additional compatibility concern irrelevant.",
+    "migrationShapeMd": "The actual migration shape is a moderate targeted remodel. Instances with `communication` entries may need language normalization from text-only or local codes to BCP-47 codes. Instances that used R4 `relationship` for functional roles such as emergency contact, guarantor, interpreter, caregiver, billing contact, legal authority, or employer need classification into R6 `role`; personal/kinship relationships remain on `relationship`. R6-to-R4 exchange also needs a policy for `role` because R4 has no native field for it. Outside those areas, the resource identity, cardinalities, and most element names remain stable.",
+    "compatibilityLeverageMd": "Because a major resource migration is not already unavoidable, compatibility should still be judged per change. The required language binding and relationship/role split are important enough to plan for, but they do not justify dismissing future local breaking changes as low value. Conversely, the existing findings mostly appear proportionate for an FMM 2 trial-use resource, so the recommended posture is to preserve compatibility per change rather than to demand rollback of the targeted R6 model improvement.",
+    "lessBreakingAlternativesMd": "Less-breaking designs exist in principle but are not uniformly low-cost. Keeping `communication.language` preferred or warning-only would preserve more R4 instances but would weaken the R6 base guarantee that language values are computable. Leaving `relationship` broad while adding `role` would reduce migration effort but would create two valid homes for functional roles and make the R6 personal-versus-functional distinction unreliable. The additive `role` element is not an R4-to-R6 validation break, and the telecom identity guidance is guidance-only with a plausible security/privacy rationale.",
+    "behaviorImpactMd": "There are no direct RelatedPerson operation, search, or HTTP behavior findings in the supplied behavior reports. The 11 shared `Resource`/`DomainResource` behavior findings may affect servers and clients that operate on RelatedPerson instances through generic Resource APIs, but they are platform-level migration concerns rather than evidence that the RelatedPerson resource model itself has a major migration burden.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's main conclusion of `majorMigrationAlreadyUnavoidable = No` and `preserve-compatibility-per-change`. I would describe the shape slightly more specifically than `mostly-stable-with-local-breaks`: the relationship/role split is a targeted semantic remodel, even though it is not broad enough to make a major resource-level migration unavoidable.",
+    "uncertaintyMd": "Confidence is high for the structural shape and direct behavior count. Residual uncertainty is mainly terminology-specific: the exact code-level mapping from legacy relationship concepts to personal relationship versus functional role depends on terminology expansion or an official ConceptMap, and strict validator handling of text-only CodeableConcept values under required bindings can vary by implementation."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "RelatedPerson:TERMINOLOGY_BINDING:RelatedPerson.communication.language:71d9b0",
+      "title": "RelatedPerson.communication.language binding strengthened from preferred Common Languages to required All Languages",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the only hard R4-to-R6 instance break: R4 text-only or local language CodeableConcept values that satisfied a preferred binding can fail strict R6 validation against the required all-languages/BCP-47 binding. It is important for migration planning and language-access workflows, but it is localized to `communication.language` and appears proportionate to the computable-language goal."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "RelatedPerson:SEMANTIC_OR_CONFORMANCE_TEXT:RelatedPerson.relationship:4c30e2",
+      "title": "RelatedPerson.relationship narrowed to personal relationships while functional relationships move to RelatedPerson.role",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This finding gives the resource its targeted-remodel shape. It is not a base validation break because the path, datatype, cardinality, and preferred binding strength remain permissive, but it can require non-mechanical classification of legacy relationship codes and has business workflow implications for emergency contact, guarantor, interpreter, caregiver, billing, and legal-role use cases."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "RelatedPerson:ELEMENT_PRESENCE_OR_IDENTITY:RelatedPerson.role:0ad645",
+      "title": "R6 adds RelatedPerson.role for functional relationships with no native R4 counterpart",
+      "role": "important-but-local",
+      "reasonMd": "The new `role` element is optional and additive, so it does not invalidate R4 instances. It matters because it is the forward-compatible home for functional relationship data and creates R6-to-R4 loss or parser rejection unless down-conversion policy is explicit. This is a local migration chore once the relationship split is accepted, not a reason to classify the whole resource as a major unavoidable migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "RelatedPerson:SEMANTIC_OR_CONFORMANCE_TEXT:RelatedPerson.telecom:8b9f2a",
+      "title": "R6 adds user-identity guidance: use identifier type USER, not telecom",
+      "role": "discounted",
+      "reasonMd": "The telecom and identifier structures remain unchanged. The new guidance may trigger a security-model audit for systems that overloaded contact points as login identities, but ordinary R4 contact data remains representable and valid. This does not materially affect the resource-level compatibility conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This and related Resource-level metadata operation removals can matter for generic servers managing RelatedPerson instances, but the affected surface is the shared Resource API rather than RelatedPerson's StructureDefinition. It should be handled in a platform/API migration track and not counted as a RelatedPerson model break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared search-parameter metadata change can affect generic search tooling across resources, including RelatedPerson servers, but it is not a RelatedPerson-specific search behavior finding and does not change the resource-level migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish explicit migration guidance, and ideally a ConceptMap or classification table, for moving R4 `relationship` codings into R6 personal `relationship` versus functional `role`, including ambiguous/custom code handling and preservation of original codings."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Provide validator-facing examples for `RelatedPerson.communication.language` under the required all-languages binding, especially text-only, local-code, regional BCP-47, and sign-language cases, so adopters can distinguish automatable normalization from manual review."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Treat the telecom user-identity wording as security/privacy modeling guidance rather than an instance-migration blocker; only systems that intentionally used `telecom` as login or account identity need targeted remediation."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Track shared Resource operation and core search-parameter behavior changes in a cross-resource platform migration plan, not as RelatedPerson-specific design debt."
+    }
+  ],
+  "caveats": [
+    "The exact expansion of the R6 personal-relationship value set was not locally available in the supplied package, so code-level relationship classification should be confirmed against terminology artifacts or official guidance.",
+    "The language binding assessment assumes strict R6 terminology validation; local validator behavior for text-only CodeableConcepts under required bindings may differ.",
+    "Shared Resource and DomainResource behavior findings were considered only as context, per the resource-review instructions."
+  ]
+}

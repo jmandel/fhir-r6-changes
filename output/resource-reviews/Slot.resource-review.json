@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Slot",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Slot.resource-review-context.json",
+    "structureReportPath": "output/Slot.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Slot.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 2,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Slot StructureDefinition report, the resource-review context, the deterministic aggregate after forming the resource-level conclusion, the relevant R4/R6 Slot StructureDefinition elements, and Slot search-parameter evidence. I also checked the behavior reports for findings whose `affectedResources` include `Slot`; none were present. Shared `Resource`/`DomainResource` behavior findings were treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Slot is a mature trial-use scheduling resource, so compatibility matters for appointment discovery and booking workflows. This raises the burden above experimental content, but it is not the normative/FMM 5 case where even small hard breaks require exceptional justification."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "Slot remains mostly stable in R6; migration is targeted to `serviceType` wrapping/reference policy and `appointmentType` collection handling, not a resource-level redesign."
+  },
+  "reasoning": {
+    "thesisMd": "Slot keeps its resource identity, local element inventory, required `status` code set, `schedule` reference, and most scheduling semantics. The only hard R4-to-R6 instance break is `Slot.serviceType`, where populated R4 `CodeableConcept` values must become R6 `CodeableReference.concept`; `Slot.appointmentType` widens from singleton to repeating and therefore creates API/down-conversion work but not old-valid/new-invalid instance failure. That is a targeted migration shape, not an unavoidable whole-resource migration program.",
+    "migrationShapeMd": "`Slot.serviceType` is the substantive remodel: R4 uses `CodeableConcept`, while R6 uses `CodeableReference(HealthcareService)`, so R4 coded values need mechanical wrapping under `concept` and R6 reference-valued entries need a mapping or preservation strategy when exporting to R4. `Slot.appointmentType` changes `0..1` to `0..*`, which changes generated models and can be lossy from R6 back to R4 when more than one value is present. Other checked areas point toward stability: no local element removals, renames, required additions, new Slot-specific invariants, modifier changes, or required status-code changes were found; `Slot.specialty` binding weakening is not an R4-to-R6 break.",
+    "compatibilityLeverageMd": "Because Slot does not already require a broad resource migration program, each avoidable Slot-local break still has normal leverage. The hard `serviceType` break should not be dismissed merely because a transform is straightforward; however, the transform is deterministic for R4 coded values and the new reference branch appears to serve a concrete scheduling-model goal. Compatibility preservation is therefore best handled per change, with strong migration guidance rather than treating the resource as already lost to redesign.",
+    "lessBreakingAlternativesMd": "For `serviceType`, a less-breaking base design could have kept `CodeableConcept` and added a sibling HealthcareService reference, but that would split one concept across two fields, require conflict/precedence rules, complicate search behavior, and forgo the unified `CodeableReference` pattern. That makes the alternative partial rather than clearly low-cost. For `appointmentType`, retaining `0..1` would preserve singleton APIs but would hide the R6 scheduling use case where a slot can support several appointment styles; since all R4 instances remain structurally valid, this is mainly a local migration chore.",
+    "behaviorImpactMd": "No direct operation, search, or HTTP behavior finding was assigned to `Slot`. The shared `Resource`/`DomainResource` findings, including base `$meta` operation removals, `$validate` semantics, and shared search-parameter metadata changes, may affect any FHIR server or client stack that also handles Slot, but under the review rules they are base-behavior context rather than Slot-local evidence and do not change the Slot resource conclusion.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's conclusion of `majorMigrationAlreadyUnavoidable = No`, `mostly-stable-with-local-breaks`, and `preserve-compatibility-per-change`. The independent review adds that `serviceType` is the only finding that materially drives the resource-level conclusion and is worth explicit standards/migration guidance, while `appointmentType` is an important but local generated-model and R6-to-R4 conversion issue.",
+    "uncertaintyMd": "Confidence is high for the computable StructureDefinition and search-parameter shape. Remaining uncertainty is mainly rationale and prevalence: no official Slot R4-to-R6 change note or production Slot corpus was available locally, external terminology expansion was not performed, and the R6 input is a ballot4 package rather than a final R6 release."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Slot:TYPE_DOMAIN:Slot.serviceType:b7d4a1",
+      "title": "Slot.serviceType changed from CodeableConcept to CodeableReference(HealthcareService)",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the only hard R4-to-R6 Slot instance break. Existing populated R4 values with direct `coding`/`text` children are not valid R6 `CodeableReference` items until wrapped under `concept`; R6 `reference` entries also need R6-to-R4 mapping policy. It drives the conclusion that Slot has real targeted migration work, but not broad resource redesign."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Slot:CARDINALITY:Slot.appointmentType:6a21ce",
+      "title": "Slot.appointmentType is repeatable in R6",
+      "role": "important-but-local",
+      "reasonMd": "This widens cardinality from `0..1` to `0..*`, so R4 instances remain valid in R6 but generated APIs and business logic must treat the property as a collection. It is locally important for converters and SDKs, especially when down-converting multiple R6 values to R4, but it does not make a resource-level migration program unavoidable."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This is a high-risk shared Resource operation issue, but it is not Slot-specific and has no `affectedResources` entry for `Slot`. It should be addressed in Resource/API migration planning rather than counted as evidence that Slot itself was remodeled."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "Slot instances may be validated through generic `$validate`, but the finding is about the shared Resource operation contract. It does not alter Slot's StructureDefinition migration shape and remains context only for this resource review."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared search metadata change can affect generic clients that also search Slot, but it is not a Slot search-parameter removal or Slot-local behavior finding. The Slot-local search evidence instead supports the `serviceType` remodel: token search moved to `Slot.serviceType.concept` and R6 added `service-type-reference`."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or verify explicit Slot migration guidance for `serviceType`: wrap R4 `CodeableConcept` values as `CodeableReference.concept`, define how R6 `HealthcareService` references are represented or mapped when exporting to R4, and document the related token/reference search behavior."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update generated models, validators, and conversion tests so `Slot.appointmentType` is handled as a collection in R6 and so down-conversion to R4 has an explicit policy when multiple appointment types are present."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Do not plan a broad Slot resource migration program solely from these findings; review any future Slot-local breaking changes on their own compatibility rationale because per-change preservation still has leverage."
+    }
+  ],
+  "caveats": [
+    "The R6 evidence is from the 6.0.0-ballot4 package, so final R6 content may differ.",
+    "No official HL7 Slot change rationale or production prevalence corpus was available locally.",
+    "External terminology expansion was not performed; local evidence was sufficient for Slot.status code stability and Slot.specialty binding weakening, but not for every external terminology artifact."
+  ]
+}

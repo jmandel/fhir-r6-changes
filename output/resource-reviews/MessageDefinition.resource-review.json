@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MessageDefinition",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MessageDefinition.resource-review-context.json",
+    "structureReportPath": "output/MessageDefinition.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MessageDefinition.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 6,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-level context, the full local StructureDefinition report, the deterministic aggregate only after forming the judgment, and the supplied Resource/DomainResource shared behavior context. I also checked the R4 and R6 MessageDefinition element inventories: the same-name resource remains, `MessageDefinition.graph` is the only removed local element, and R6 adds optional `versionAlgorithm[x]` and `copyrightLabel`."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "inm",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 MessageDefinition is FMM 1/trial-use, so hard breaks still need concrete migration handling but do not carry the same preservation burden as mature or normative infrastructure. Low maturity is especially relevant here because both hard breaks are tied to low-maturity messaging/graph/resource-inventory surfaces rather than to common patient-data exchange."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "MessageDefinition keeps its R6 identity and most of its wire shape; migration is targeted to `graph`, R4-only `focus.code` values, and metadata semantics rather than an unavoidable whole-resource redesign."
+  },
+  "reasoning": {
+    "thesisMd": "`MessageDefinition` is not a resource-family replacement or broad model remodel. The meaningful R4-to-R6 burden is concentrated in two hard instance breaks: removal of `MessageDefinition.graph` and the required `focus.code` binding moving with the FHIR resource inventory. Those are real breaks for affected instances, but many R4 instances that do not populate `graph` and use still-present focus resource types can migrate structurally with only metadata review.",
+    "migrationShapeMd": "The local element inventory is mostly stable: R4 has 45 local elements and R6 has 46, with one local removal (`graph`) and two optional additions (`versionAlgorithm[x]`, `copyrightLabel`). The `focus.code` path, cardinality, and required binding strength remain, but the bound resource-type set changed substantially. This creates targeted validation and mapping work, not a comprehensive reshaping of the MessageDefinition backbone.",
+    "compatibilityLeverageMd": "Because a major resource-level migration program is not already unavoidable, compatibility should still be evaluated per change. That does not mean every break should be prevented: preserving `graph` would carry a pointer to the removed GraphDefinition model, and accepting obsolete focus resource codes would weaken the meaning of an R6 required binding. Still, if a low-cost transition artifact such as explicit ConceptMaps, legacy extensions, or migration notes can be provided, it remains useful because there is no broader redesign that makes those mitigations irrelevant.",
+    "lessBreakingAlternativesMd": "No finding looks like a clear low-cost base-spec preservation candidate. Deprecating `graph` would keep old instances valid but would also imply continued support for a removed graph mechanism. A version-spanning `resource-types` binding would preserve more old `focus.code` values but would require R6 consumers to handle resources that are not R6 resources. Preserving R4 `jurisdiction` semantics and adding a separate authority-jurisdiction element is plausible, but it would duplicate canonical-artifact jurisdiction channels and diverge from the R6 metadata alignment pattern. The warning constraints and optional additions are already compatibility-preserving forms.",
+    "behaviorImpactMd": "No direct OperationDefinition, SearchParameter, or HTTP behavior finding was assigned to `MessageDefinition`. The 11 shared Resource/DomainResource behavior findings remain relevant background for platform migration, especially the removal of Resource `$graph` and generic metadata operations, but they are not scored as MessageDefinition-specific breaks.",
+    "comparisonToDeterministicAggregateMd": "After independent review, I agree with the deterministic aggregate's `No` major-migration conclusion, `mostly-stable-with-local-breaks` shape, and `preserve-compatibility-per-change` posture. The reason is not the count alone: the same-name resource persists, the only local removal is a targeted `graph` path tied to removed GraphDefinition support, and there are no direct behavior findings for this resource.",
+    "uncertaintyMd": "Confidence is high for the structural and binding changes visible in the packaged definitions. The main uncertainty is prevalence: the reports do not establish how many real R4 MessageDefinition instances used `graph` or R4-only `focus.code` values."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageDefinition:ELEMENT_PRESENCE_OR_IDENTITY:MessageDefinition.graph:1f4a9e",
+      "title": "MessageDefinition.graph was removed in R6",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest old-valid/new-invalid local structural break. It matters for any R4 instance that used graph-driven bundle inclusion semantics, but it is targeted rather than resource-wide and preserving it would keep a base reference to the removed GraphDefinition capability."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageDefinition:TERMINOLOGY_BINDING:MessageDefinition.focus.code:7c2d41",
+      "title": "MessageDefinition.focus.code required resource-type binding changed with removed and added codes",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The required binding means R4-only resource codes can become invalid in R6, and generated enums or dispatch code may need updates. This is important migration work, but it follows the broader R6 resource inventory rather than indicating that MessageDefinition itself was remodeled."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:MessageDefinition.jurisdiction:bd91c0",
+      "title": "MessageDefinition.jurisdiction semantics shifted from intended use jurisdiction to maintaining authority jurisdiction",
+      "role": "important-but-local",
+      "reasonMd": "The unchanged wire shape can mask a semantic migration from intended-use jurisdiction to maintaining-authority jurisdiction. It is not a hard instance break, but catalogues, publication workflows, and regional selection logic should migrate intended-use meaning to `useContext`."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageDefinition:SEMANTIC_OR_CONFORMANCE_TEXT:MessageDefinition.experimental:e63b5f",
+      "title": "MessageDefinition.experimental now means no version of the artifact is ever intended for genuine use",
+      "role": "discounted",
+      "reasonMd": "The boolean path and validity are unchanged, and the R4 wording already described non-genuine use. This may affect local lifecycle policy, but for FMM 1 MessageDefinition it does not materially change the resource-level compatibility posture."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageDefinition:ELEMENT_PRESENCE_OR_IDENTITY:MessageDefinition.versionAlgorithm-copyrightLabel:a82b65",
+      "title": "R6 adds versionAlgorithm[x] and copyrightLabel with no R4 core representation",
+      "role": "discounted",
+      "reasonMd": "These are optional R6 additions. They can matter for R6-to-R4 downgrade or round-trip fidelity, but they do not make existing R4 MessageDefinition instances invalid in R6."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MessageDefinition:VALUE_CONSTRAINT:MessageDefinition.url-name:0b9c77",
+      "title": "R6 adds/tightens warning constraints for MessageDefinition canonical URL and name",
+      "role": "discounted",
+      "reasonMd": "The constraints are warning-level processability guidance. Warning-as-error toolchains may need configuration or cleanup, but the base specification did not turn these cases into hard invalidity."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-graph:operation-resource-graph-removed",
+      "title": "Resource `$graph` operation is removed in R6",
+      "role": "context-only",
+      "reasonMd": "This shared Resource operation removal reinforces that graph-related migration is a broader platform concern, but it is not a direct MessageDefinition behavior finding and should not be double-counted as a resource-local API break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This can affect generic Resource/DomainResource search tooling during an R6 migration, but it is shared infrastructure context rather than a MessageDefinition-specific search surface change."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "Medium",
+      "actionMd": "Publish or verify explicit cross-version guidance for `MessageDefinition.graph`, including whether legacy graph intent should move to an extension, profile/IG rule, or external migration note."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For `MessageDefinition.focus.code`, provide migration support for R4-only and R6-only resource codes, preferably with a ConceptMap or release-note table that distinguishes renamed/replaced resources from retired ones."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Audit catalogues and governance tooling that interpret `jurisdiction`; migrate intended-use jurisdiction to `useContext` where the old R4 meaning is relied on."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Treat `url`/`name` warning constraints as cleanup guidance during conversion, not as a reason to reject otherwise migrated R4 MessageDefinition instances unless local policy intentionally fails on warnings."
+    }
+  ],
+  "caveats": [
+    "No direct behavior findings were assigned to MessageDefinition; shared Resource/DomainResource behavior was considered only as context.",
+    "The review relies on the supplied local R4/R6 packages and reports, not on external usage telemetry for MessageDefinition instances.",
+    "R6 input is ballot content, so final R6 publication changes could alter the resource-level conclusion."
+  ]
+}

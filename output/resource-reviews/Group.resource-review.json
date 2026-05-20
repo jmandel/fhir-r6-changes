@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Group",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Group.resource-review-context.json",
+    "structureReportPath": "output/Group.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Group.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 10,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "I reviewed the Group resource context, the full StructureDefinition report, the relevant R4/R6 Group StructureDefinitions, the maturity map, and then compared the resulting judgment to the deterministic aggregate. No direct behavior findings had `affectedResources` including `Group`; shared `Resource`/`DomainResource` behavior was treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "fhir",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 Group was FMM 1/trial-use, so the standards burden for preserving every local wire detail is weak. That does not erase the compatibility impact of a mandatory, central membership-basis change or of lifecycle/cohort semantics used in cohort export, eligibility, analytics, or access-control workflows."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Group needs a targeted semantic migration, led by `actual` to `membership`, but identity is preserved and many other findings are R6-only expansion or down-conversion chores."
+  },
+  "reasoning": {
+    "thesisMd": "R6 does not remove or replace the `Group` resource, but it changes the core membership model enough that a resource-level transform is unavoidable for real R4 instances. Every R4 Group has mandatory `actual`; R6 removes it and requires `membership`, whose `definitional`/`conceptual`/`enumerated` values are not a lossless boolean rename. That is a targeted semantic remodel rather than a wholesale resource replacement.",
+    "migrationShapeMd": "The primary R4-to-R6 migration work is to infer and populate `Group.membership`, remove `Group.actual`, and map populated `Group.active` to the new optional modifier `status` when appropriate. `Group.code` also needs semantic review because it shifts from member-kind example coding toward group-use extensible coding. The remaining high-looking impacts mostly expand R6 expressivity: wider `type`, more `member.entity` targets, `combinationMethod`, richer characteristic qualifiers, new `value[x]` choices, and canonical metadata. Those require R6 implementation and R6-to-R4 policy, but they do not broadly invalidate old R4 instances.",
+    "compatibilityLeverageMd": "Because a Group migration path is already needed, preventing one additional local break is less decisive than it would be for a mostly stable resource. However, this is not a case where migration-program-dominates: low-cost compatibility still matters for central or commonly populated fields. Deprecated retention, clear aliases, or explicit cross-version maps for `actual`, `active`, and possibly `code` could materially reduce implementer risk without blocking most R6 functionality.",
+    "lessBreakingAlternativesMd": "The most standards-review-worthy alternative is staging `actual` rather than replacing it abruptly: R6 could have added `membership` while retaining deprecated `actual` for one release or defining a computable transition rule. That has real duplicate-representation tradeoffs, but it would preserve R4-valid instances and reduce expert-dependent inference. Retaining deprecated `active` alongside `status` looks lower-cost. For `Group.code`, adding a separate group-use classifier would have avoided repurposing an existing element, though the low R4 FMM softens the concern. For widened targets, widened choice types, canonical metadata, and optional characteristic qualifiers, extension-only alternatives would mainly harm R6 interoperability and are not good R4-to-R6 preservation mechanisms.",
+    "behaviorImpactMd": "No direct operation, search, or HTTP behavior finding was scoped specifically to Group. The shared `Resource` and `DomainResource` operation/search changes can affect Group servers as part of a platform-wide R6 migration, but they should not drive the Group-specific resource conclusion.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's `Partial` major-migration conclusion, `moderate-targeted-remodel` shape, and `preserve-where-low-cost-but-expect-resource-migration` posture. The independent reasoning puts more weight on the mandatory, central `actual` to `membership` semantic transform than on raw finding counts, and discounts several high-impact findings that are primarily R6-to-R4 or optional R6 expressivity issues.",
+    "uncertaintyMd": "The structural deltas are clear, but official ballot rationale and a cross-version Group ConceptMap were not available. The R6 input is also a ballot build, so final publication could change details."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:ELEMENT_PRESENCE_OR_IDENTITY:Group.actual-membership:0f6b41",
+      "title": "Mandatory Group.actual boolean was replaced by mandatory Group.membership code",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the central resource-level break. It affects every conformant R4 Group because `actual` is mandatory in R4 and absent in R6, while `membership` is mandatory in R6 and absent in R4. Mapping the boolean to `definitional`, `conceptual`, or `enumerated` can require domain judgment, so a targeted migration program is already unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:ELEMENT_PRESENCE_OR_IDENTITY:Group.active:7ad2c9",
+      "title": "Group.active was removed while R6 adds lifecycle status as an optional modifier element",
+      "role": "important-but-local",
+      "reasonMd": "This invalidates only R4 instances that populated `active`, so it does not drive the whole resource conclusion. It still matters because a deprecated `active` field or explicit mapping to `status` appears relatively low-cost and lifecycle mistakes can make retired or inactive cohorts appear usable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:TERMINOLOGY_BINDING:Group.code:4c0a12",
+      "title": "Group.code changed from member-kind example coding to extensible group-use coding",
+      "role": "needs-follow-up",
+      "reasonMd": "This is not a universal old-valid/new-invalid break, but it is a semantic repurposing of the same path. Existing business rules that treated `code` as member-kind need review, and a separate group-use element would have been a plausible less-breaking design if preserving R4 semantics was important."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:FLAGS_AND_MODIFIERS:Group.combinationMethod:92e7c4",
+      "title": "R6 adds modifier Group.combinationMethod for combining characteristics",
+      "role": "important-but-local",
+      "reasonMd": "The default preserves R4 all-of behavior, so this does not force R4 instance migration. It is nevertheless safety/business relevant for R6 processors and down-conversion because ignoring non-default combination logic can materially change cohort membership."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:ELEMENT_PRESENCE_OR_IDENTITY:Group.characteristic.qualifiers:ad1f09",
+      "title": "R6 adds several characteristic qualifier elements, including modifier offset",
+      "role": "important-but-local",
+      "reasonMd": "These optional additions do not reject R4 data, but they make R6 Group evaluation richer and potentially non-ignorable, especially for modifier `offset`. They belong in implementation and down-conversion guidance rather than the main R4-to-R6 break rationale."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:TERMINOLOGY_BINDING:Group.type:bb41e2",
+      "title": "Group.type is no longer always mandatory and the required group-type value set was expanded",
+      "role": "discounted",
+      "reasonMd": "R4 `type` values remain valid and the cardinality is relaxed except for the new conceptual case. The compatibility problem is mostly R6-to-R4 representation of conceptual Groups or new type codes, so it should not inflate the R4-to-R6 migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:REFERENCE_TARGET:Group.member.entity:3b9e80",
+      "title": "Group.member.entity accepts many new target resource types in R6",
+      "role": "discounted",
+      "reasonMd": "The target set is widened and retains all R4 targets. Existing R4 member references continue to fit; the real chore is preventing silent data loss when R6 Groups with new target types are exported back to R4."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:SERIALIZATION_OR_CODEGEN:CanonicalResource:6e391d",
+      "title": "Group now implements CanonicalResource-style metadata",
+      "role": "discounted",
+      "reasonMd": "The canonical metadata fields are optional and do not invalidate R4 instances. They add R6 model/codegen surface and create lossy down-conversion when populated, but they are not a reason to treat Group as a resource replacement."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:TYPE_DOMAIN:Group.characteristic.value:5d28ab",
+      "title": "Group.characteristic.value[x] adds uri and Expression choice types",
+      "role": "discounted",
+      "reasonMd": "This is an additive choice-type widening. Existing R4 characteristic values remain valid, so the issue is generated-code coverage and R6-to-R4 handling for new `valueUri` or `valueExpression` content."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Group:FLAGS_AND_MODIFIERS:Group.characteristic.summary:df03a5",
+      "title": "Group.characteristic and key children became summary elements",
+      "role": "discounted",
+      "reasonMd": "Summary flags can change REST projection behavior, but they do not affect instance validity or semantic migration of old Group data. This should be handled as an API/projection review rather than as a resource-level compatibility driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This shared Resource-level behavior may affect Group endpoints in a platform migration, but it is not Group-specific and therefore should not be scored as part of the Group resource model conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This is shared Resource/DomainResource search metadata context. It is relevant to server-wide R6 behavior testing but does not change the Group-specific structural migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Define and publish a Group R4-to-R6 mapping for `actual` to `membership`, with explicit cases for enumerated members, characteristic-defined groups, conceptual groups, mixed members plus characteristics, and ambiguous legacy records."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Revisit low-cost transition options for `active` to `status` and `code` semantic repurposing, or at least provide normative migration notes so lifecycle and group-use semantics are not silently changed."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Treat R6-only Group capabilities as implementation chores: update R6 evaluators for `combinationMethod` and characteristic qualifiers, and make R6-to-R4 conversion reject or extension-preserve new type codes, member targets, choice types, and canonical metadata."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Handle shared Resource/DomainResource operation and search changes in the broader server migration plan rather than in the Group-specific standards judgment."
+    }
+  ],
+  "caveats": [
+    "The R6 source package reviewed is 6.0.0-ballot4, not a final publication.",
+    "No official Group R4-to-R6 ConceptMap or ballot rationale was available, so semantic migration guidance is inferred from the local definitions.",
+    "No direct Group-specific behavior findings were present; shared Resource/DomainResource behavior findings were used only as context.",
+    "R4 FMM 1/trial-use weakens the stability burden, but does not prove the resource is unused or that central cohort semantics are low risk."
+  ]
+}

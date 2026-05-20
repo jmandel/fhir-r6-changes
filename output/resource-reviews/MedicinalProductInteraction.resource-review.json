@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MedicinalProductInteraction",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MedicinalProductInteraction.resource-review-context.json",
+    "structureReportPath": "output/MedicinalProductInteraction.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MedicinalProductInteraction.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/HttpRestBehavior.report.json",
+      "output/SearchParameters.report.json",
+      "output/OperationDefinitions.report.json"
+    ],
+    "reviewedStructureFindingCount": 8,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource context, full StructureDefinition report, deterministic aggregate, the relevant direct HTTP and SearchParameter behavior findings, selected shared Resource/DomainResource behavior context, and the underlying R4/R6 StructureDefinition evidence. Shared Resource/DomainResource behavior was treated as context only because the assigned artifact is `MedicinalProductInteraction`, not `Resource` or `DomainResource`."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "brr",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 `MedicinalProductInteraction` is trial-use/FMM 0, so the compatibility burden is much lower than it would be for mature or normative content. That weakens objections to the R6 consolidation into `ClinicalUseDefinition`, but it does not erase safety and regulatory concerns for drug-interaction knowledge or justify avoidable data loss where preservation is cheap."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "R6 replaces the standalone `MedicinalProductInteraction` resource with `ClinicalUseDefinition(type = interaction)`, so migration is unavoidable, but low-cost preservation such as an interaction-level description still matters."
+  },
+  "reasoning": {
+    "thesisMd": "`MedicinalProductInteraction` is not a mostly stable resource with isolated path breaks. The same-name R6 StructureDefinition is absent, and the interaction model is merged into `ClinicalUseDefinition` with a required root discriminator and an `interaction` branch. That makes a resource-level migration program unavoidable for instances, REST endpoints, generated models, search behavior, profiles, and related product/substance references.",
+    "migrationShapeMd": "The migration shape is a resource replacement plus structural remodel: change `resourceType` to `ClinicalUseDefinition`, set root `type` to `interaction`, move interaction-specific content under `ClinicalUseDefinition.interaction`, convert `subject` from optional `Reference` to required `CodeableReference`, update old `MedicinalProduct` and `Substance` references to R6 definition-resource families, move/wrap coded `effect` into `effect.concept`, and handle R6-only context such as status, severity, route, population, and library. This is not a simple rename or validator-only change.",
+    "compatibilityLeverageMd": "The resource identity break lowers the leverage of preserving most old local paths: keeping legacy endpoints, root-level interactant aliases, or old target resource families would duplicate a whole retired model and create long-lived server, search, SDK, and profile burden. However, migration-program dominance is not the same as saying additional breaks are irrelevant. A small number of low-cost compatibility choices still have meaningful value, especially preserving free-text interaction description and publishing explicit endpoint/search/mapping guidance.",
+    "lessBreakingAlternativesMd": "Most partial alternatives are expensive or semantically incomplete: retaining the old resource identity or endpoint aliases would create two standard representations; making the root discriminator optional would weaken generic classification; keeping old subject/interactant targets depends on retired product/substance resources; and preserving a separate coded `effect` alongside CodeableReference creates duplicate fields. The exception is R4 `description`: adding optional `ClinicalUseDefinition.interaction.description` or `interaction.note` would preserve clinical nuance with little model or validation cost and deserves standards follow-up.",
+    "behaviorImpactMd": "The direct behavior findings reinforce the same migration program rather than creating an independent reason to preserve the old resource. The R4 base CapabilityStatement no longer advertises a `MedicinalProductInteraction` REST endpoint, and SearchParameters whose only base is the removed resource disappear. These are real API/search breaks for clients and conformance tooling, but for this resource they are derivative of the resource replacement and should be handled through explicit successor endpoint/search guidance rather than by assuming the old endpoint can remain in core.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate correctly identified `majorMigrationAlreadyUnavoidable = Yes` and `removed-or-replaced-resource`. I differ on the practical compatibility posture: rather than pure `migration-program-dominates`, the resource should be treated as `preserve-where-low-cost-but-expect-resource-migration` because the `description` loss is a concrete, avoidable clinical-text loss and endpoint/search guidance can reduce migration cost without retaining the whole old model.",
+    "uncertaintyMd": "Confidence is high for computable structure and behavior changes. Uncertainty remains around official HL7 rationale, official R4-to-R6 maps, production prevalence, and exact terminology expansion effects; these uncertainties do not change the conclusion that resource-level migration is required."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductInteraction:ARTIFACT_IDENTITY:root:34e0db",
+      "title": "MedicinalProductInteraction resource is absent in R6 and interaction content is merged into ClinicalUseDefinition",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the decisive resource-level break. R4 instances with `resourceType: \"MedicinalProductInteraction\"`, generated classes, REST routes, profile references, and dispatch logic cannot carry forward unchanged because R6 uses `ClinicalUseDefinition` for interaction content."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductInteraction:VALUE_CONSTRAINT:ClinicalUseDefinition.type:251b80",
+      "title": "R6 requires a root type discriminator and gates the interaction branch with invariants",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The required `ClinicalUseDefinition.type = \"interaction\"` discriminator and branch invariants show that migration is more than changing the resource name. A mapper must distinguish old `MedicinalProductInteraction.type` from the new root discriminator, but the requirement is defensible in the merged resource."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductInteraction:CARDINALITY:subject:28e057",
+      "title": "Subject is now mandatory and represented as CodeableReference with changed targets",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`subject` identifies the product or substance the interaction applies to, so making it mandatory and changing to R6-era `CodeableReference` targets is a central migration hotspot. The change is a hard break for subjectless R4 records and requires product/substance-family migration, but preserving the old optional Reference shape would undermine the R6 applicability model."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductInteraction:ELEMENT_PRESENCE_OR_IDENTITY:description:2ab3dd",
+      "title": "R4 free-text description has no direct R6 interaction field",
+      "role": "needs-follow-up",
+      "reasonMd": "This is the clearest avoidable local break. R4 had optional free text for the interaction; R6 has no direct interaction-level text slot, so migration must use narrative or extensions. Adding optional `ClinicalUseDefinition.interaction.description` or `interaction.note` would be low-cost and would preserve clinical/regulatory nuance."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductInteraction:REFERENCE_TARGET:interactant.item[x]:4664cd",
+      "title": "Interactant item moved under the interaction branch and its reference targets changed",
+      "role": "important-but-local",
+      "reasonMd": "The interactant is central content, but the break is mostly a local migration chore once the ClinicalUseDefinition redesign and R6 product/substance definition resources are accepted. Medication, ObservationDefinition, and CodeableConcept values are relatively direct; old `MedicinalProduct` and `Substance` references need separate resource-family maps."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductInteraction:TYPE_DOMAIN:effect:aa71db",
+      "title": "Interaction effect changed from CodeableConcept to CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "The CodeableReference change affects generated APIs and downgrade behavior, but forward migration of R4 coded effects into `effect.concept` is mostly mechanical. A less-breaking parallel reference field would create duplicate representations, so this does not drive a standards-revisit conclusion at the resource level."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductInteraction:CARDINALITY:management:320e2d",
+      "title": "Management actions are repeatable in R6, creating downgrade loss risk",
+      "role": "discounted",
+      "reasonMd": "This is not an R4-to-R6 hard break: a single R4 management action maps to a one-item R6 list. It matters for R6-to-R4 downgrade policy and clinical display, but it should not count as evidence for preserving the old R4 shape."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductInteraction:FLAGS_AND_MODIFIERS:status-context:23e539",
+      "title": "R6 adds interaction context fields absent from R4, including modifier status, route, severity, population, and library",
+      "role": "important-but-local",
+      "reasonMd": "The added fields are optional and useful, so they do not create an R4-to-R6 compatibility problem. They remain safety-relevant for downgrade and consumption because `status` is a modifier and severity/route/population affect clinical interpretation."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "For this resource, the removed endpoint advertisement is the API reflection of the resource replacement. It confirms that clients using core endpoint inventories or generated route matrices need migration, but retaining an old endpoint in core would amount to retaining the removed resource model."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "important-but-local",
+      "reasonMd": "Search breakage is real for any R4 `MedicinalProductInteraction?...` query, but it depends on the successor resource design. The useful standards action is explicit mapping to `ClinicalUseDefinition` searches or transition guidance, not judging this as a separate reason to keep every old search surface."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "This generic Resource-level operation break can affect servers that also handle medicinal-product interaction data, but it is not specific to `MedicinalProductInteraction` and was not scored in the resource-level migration conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared search metadata issue is relevant implementation context but is not specific to this removed/replaced resource and does not change the `MedicinalProductInteraction` conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or verify an official R4 `MedicinalProductInteraction` to R6 `ClinicalUseDefinition(type = \"interaction\")` migration map covering the discriminator, subject, interactant, effect, incidence, management, and references to the R6 product/substance definition families."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit the loss of R4 `description`; consider an optional `ClinicalUseDefinition.interaction.description` or `interaction.note` so clinically meaningful free text has a standard R6 destination."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document endpoint and search migration guidance for `MedicinalProductInteraction` clients, including the successor `ClinicalUseDefinition` endpoint/search expectations and whether any implementation-specific transition aliases are appropriate."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define downgrade and extension policies for R6-only safety context such as modifier `status`, route, severity, population, library, and repeated management actions before converting R6 data back to R4."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 ConceptMap, StructureMap, or narrative change note was present in the local inputs; the replacement mapping is inferred from computable artifacts.",
+    "No production instance corpus was reviewed, so prevalence of subjectless records, description use, and endpoint/search use is unknown.",
+    "Shared Resource/DomainResource behavior findings were reviewed as context only and intentionally not scored for this resource.",
+    "Terminology expansions for R6 interaction value sets were not compared, so terminology conclusions are limited to structure, binding strength, and value set identity."
+  ]
+}

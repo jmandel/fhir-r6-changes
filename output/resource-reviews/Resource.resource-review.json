@@ -1,0 +1,169 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Resource",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Resource.resource-review-context.json",
+    "structureReportPath": "output/Resource.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Resource.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 3,
+    "reviewedDirectBehaviorFindingCount": 11,
+    "reviewedSharedBehaviorContextCount": 0,
+    "methodNotesMd": "Reviewed the output contract, resource-level rubric, fresh-review framework, Resource review context, full Resource StructureDefinition report, deterministic aggregate, and the direct behavior findings whose `affectedResources` include `Resource`. I also spot-checked the R4/R6 core package StructureDefinitions and OperationDefinitions for the Resource base hierarchy, `Resource.id`, `Resource.language`, `$convert`, `$validate`, and removed Resource metadata operations. The Measure `$collect-data` finding is included because the supplied affected-resource list names `Resource`, but it was discounted for this Resource-level conclusion because the operation is Measure-scoped rather than a generic Resource operation."
+  },
+  "r4Maturity": {
+    "fmm": 5,
+    "standardsStatus": "normative",
+    "workGroup": "fhir",
+    "stabilityPressure": "Strong",
+    "effectMd": "R4 `Resource` is normative and FMM 5, so changes to the base resource and generic Resource behavior carry strong compatibility pressure. That does not prohibit all cleanup, but it raises the burden for hard validation changes and especially for low-cost API compatibility breaks in generic operations and search metadata."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "`Resource` keeps its identity and core data shape, but stricter base validation plus generic Resource operation/search changes require a targeted migration program; low-cost compatibility preservation remains high-value because the R4 baseline is normative/FMM 5."
+  },
+  "reasoning": {
+    "thesisMd": "`Resource` is not removed or fundamentally redesigned as an instance model. There are no local element removals, renames, mandatory additions, or cardinality reductions in the StructureDefinition. The real migration shape is a targeted infrastructure migration: base tooling must understand the new `Base` superclass and narrower `Resource.id` type marker, validators must enforce or prepare for the required `Resource.language` binding, and clients/servers must account for changed generic Resource operations, search-parameter metadata, and CapabilityStatement advertisements.",
+    "migrationShapeMd": "The same-name R6 `Resource` remains, and ordinary resource instances still have the same principal base fields. The one clear structure-level old-valid/new-invalid break is `Resource.language`, which changes from preferred Common Languages to required All Languages/BCP-47. The other structure changes are primarily codegen and validator metadata: `Resource` now declares `Base` as its superclass and `Resource.id` is marked as FHIR `id` rather than generic `string`. The behavior surface is more consequential than the element model: R6 core removes the Resource `$meta`, `$meta-add`, `$meta-delete`, and `$graph` OperationDefinitions, changes `$convert` parameter names, tightens or clarifies `$validate`, and changes shared Resource search metadata. That is enough for a partial Resource-level migration program, but not enough to say migration-program-dominates or that compatibility preservation has little value.",
+    "compatibilityLeverageMd": "Because the resource identity and core wire model remain stable, each avoidable generic break still matters. The migration program will already need validators, generators, search clients, and operation clients to be version-aware, but preserving old operation names or aliases where low-cost can still prevent avoidable SDK, conformance, and server-route churn. The strongest preservation pressure is on generic Resource metadata operations and `$validate`, not on changes like the formal `Base` superclass or the canonical `profile` type where the R6 computability goal is stronger.",
+    "lessBreakingAlternativesMd": "Several less-breaking base designs remain plausible. R6 could retain `$meta`, `$meta-add`, and `$meta-delete` as deprecated or compatibility OperationDefinitions in core while pointing future evolution to an API incubator; these operations depend on core `Resource`/`Meta` content and were FMM 3 R4 infrastructure, so the preservation cost looks modest. `$convert` could keep accepting the R4 `input` parameter name or publish an alias while documenting `resource` as canonical. `$validate` could preserve legacy instance-level supplied-resource validation without `mode` as a compatible general-validation form while still recommending the clearer R6 matrix. SearchParameter changes could add explicit compatibility text that R4 query forms for `_text`, `_content`, `_query`, and URI-form `_profile` remain accepted where feasible. By contrast, retaining the absent `Base` superclass or generic `string` marker for `Resource.id` would undercut computable type-model improvements, and retaining a preferred-only `Resource.language` binding would weaken the R6 goal of interoperable language tags.",
+    "behaviorImpactMd": "Direct behavior findings dominate the resource-level risk. The removal of Resource metadata operations is a hard executable API/conformance break for clients and generated SDKs that used the R4 core operations. `$validate` is normative/FMM 5 infrastructure and the invocation-matrix change can reject a plausible legacy call shape. Search metadata changes are common and can affect generated query APIs even when the query codes remain recognizable. The Measure `$collect-data` output change is real for that operation but should not drive the Resource-level conclusion because `Resource` is only present as payload content there.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`; I agree with that top-line posture. My independent read narrows the rationale: structure alone would be closer to `mostly-stable-with-local-breaks`, while the partial migration conclusion is justified by generic Resource behavior/API changes plus the cross-resource `Resource.language` validation break. I also discount the Measure `$collect-data` finding for Resource-level leverage even though it is mechanically in scope through `affectedResources`.",
+    "uncertaintyMd": "Exact production prevalence is not measured here. The practical severity of `Resource.language` depends partly on terminology-server BCP-47 handling and existing data quality. The best treatment of removed metadata operations depends on the intended status and discoverability of any API-incubator replacements, which was not fully evaluated beyond the supplied reports and package artifacts."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Resource:ARTIFACT_IDENTITY:Resource:base-superclass",
+      "title": "Resource now explicitly specializes Base",
+      "role": "important-but-local",
+      "reasonMd": "This is a real runtime/codegen migration for validators and model generators that special-cased `Resource` as the root, but it does not alter instance wire content. The computable `Base` hierarchy is a plausible R6 design goal, so this is mainly an unavoidable tooling chore once the hierarchy remodel is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Resource:SERIALIZATION_OR_CODEGEN:Resource.id:fhir-type",
+      "title": "Resource.id FHIR type marker changed from string to id",
+      "role": "important-but-local",
+      "reasonMd": "The wire value is still a string, but generated APIs and validators may narrow behavior and reject non-id-shaped logical ids. This deserves migration testing, yet the narrower `id` marker better matches FHIR semantics and does not by itself force a broad data remodel."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Resource:TERMINOLOGY_BINDING:Resource.language:binding-strength",
+      "title": "Resource.language binding strengthened from preferred Common Languages to required All Languages",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clear structure-level hard instance break: an R4 instance with a present malformed or non-BCP-47 language code can become invalid in R6. Because `Resource.language` is a base element on a normative/FMM 5 artifact and affects indexing, accessibility, presentation, and localization, it drives the need for data-quality assessment even though the stricter BCP-47 goal is reasonable."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "needs-follow-up",
+      "reasonMd": "The grouped CapabilityStatement change is real for discovery and conformance tooling, but it mixes operations with different maturity and replacement stories. It matters as a standards-review prompt, especially for `$meta*` operations, but should be resolved operation-by-operation rather than treated as a single uniform Resource break."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-collect-data--Measure-collect-data:Measure-collect-data:output-bundle-return",
+      "title": "Output changes from `measureReport` plus `resource` parts to repeatable `return` Bundles",
+      "role": "discounted",
+      "reasonMd": "This finding is in the direct behavior set only because `Resource` appears in the affected payload. It is a substantive Measure `$collect-data` migration, but it does not say much about the generic Resource model or Resource-level compatibility leverage."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Resource-convert--Resource-convert:resource-convert-input-parameter-renamed",
+      "title": "Required input parameter renamed from `input` to `resource`",
+      "role": "important-but-local",
+      "reasonMd": "The carried value remains one `Resource`; the break is the formal `Parameters.parameter.name`. Keeping or accepting the R4 `input` name as an alias would be a low-cost compatibility preservation, so this is standards-review-worthy even though the operation itself was low-maturity in R4."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Resource-convert--Resource-convert:resource-convert-output-parameter-return",
+      "title": "Output parameter renamed from `output` to `return` and now supports direct Resource return",
+      "role": "important-but-local",
+      "reasonMd": "This breaks formal response parsers keyed to `output`, but the R6 `return` shape aligns with generic FHIR operation conventions for a single Resource result. It is a local migration chore unless a compatibility alias can be supported without creating response ambiguity."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Resource-graph:operation-resource-graph-removed",
+      "title": "Resource `$graph` operation is removed in R6",
+      "role": "discounted",
+      "reasonMd": "Removal is concrete for actual `$graph` users, but the R4 operation was FMM 1/trial-use and tied to a low-maturity graph mechanism. Retaining it as deprecated would reduce generated-code churn, but the cost of carrying an operation whose underlying model is not part of R6 core is materially higher than for the metadata operations."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`$meta-add` is a generic Resource metadata mutation operation affecting tags, profiles, and security labels. Since the operation depends only on core `Resource`/`Meta` concepts and preserving a deprecated OperationDefinition would be relatively low cost, outright core removal remains an avoidable-looking break despite the broader migration program."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Resource-meta-delete:resource-meta-delete-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta-delete operation",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`$meta-delete` removal drops a standard route, canonical artifact, generated SDK surface, and conformance contract for a generic FMM 3 Resource metadata workflow. A deprecated or compatibility OperationDefinition would preserve R4 clients without requiring all R6 servers to implement it."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`$meta` is the simplest and broadest of the removed metadata operations: it has no input and returns core `Meta`. Its removal has significant discovery, SDK, and conformance impact, and the preservation cost of retaining a deprecated core OperationDefinition appears modest."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`$validate` is normative/FMM 5 infrastructure. Rejecting an instance-level supplied-resource validation request that omitted `mode` can break plausible R4 clients, while a less-breaking design could preserve that legacy form and still recommend the clearer R6 invocation matrix."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-profile-canonical-type",
+      "title": "R6 narrows the `profile` input from `uri` to `canonical(StructureDefinition)`",
+      "role": "important-but-local",
+      "reasonMd": "This affects generated operation APIs and validators, but most real profile values are already StructureDefinition canonical URLs serialized as strings. The stronger computable type is proportionate if migration guidance notes that R4 URI-valued canonicals should continue to serialize cleanly."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "important-but-local",
+      "reasonMd": "The query codes remain recognizable, but type metadata changes can affect generated clients, modifiers, chaining, and conformance tests for very common Resource search parameters. This deserves compatibility text or server acceptance guidance for R4-style query forms, especially URI-form `_profile`."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit removal of core Resource `$meta`, `$meta-add`, and `$meta-delete`. Prefer retaining deprecated or compatibility OperationDefinitions, or provide an explicit standards-track transition mechanism that preserves canonical resolution, generated-code surfaces, and CapabilityStatement discoverability without requiring every R6 server to implement the operations."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Clarify `$validate` compatibility. If R6 wants the new invocation matrix, specify whether servers may or should accept the R4 instance-level supplied-resource/no-`mode` form as legacy general validation, and document adapter behavior for clients."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish Resource-level migration guidance for `Resource.language`: expected BCP-47 validation behavior, normalization of common legacy values, and how terminology servers should treat malformed or private-use tags during R4-to-R6 migration."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add transition guidance for generic search metadata changes, especially preserving or explicitly documenting R4-compatible request forms for `_text`, `_content`, `_query`, and URI-form `_profile` even if R6 SearchParameter metadata is more precise."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "For `$convert`, consider accepting the R4 `input` parameter name as a deprecated alias for R6 `resource`, and document the `output` to `return` response change for generated clients."
+    }
+  ],
+  "caveats": [
+    "This review is based on the supplied reports and local R4/R6 core package artifacts, not on measured production usage.",
+    "The R6 package reviewed is 6.0.0-ballot4; final R6 publication choices could change the compatibility assessment.",
+    "No shared Resource/DomainResource behavior context findings were supplied separately; all behavior considerations here are from direct findings whose affectedResources include Resource.",
+    "Operation removals may have external API-incubator replacements, but those replacements were not treated as preserving R6 core compatibility unless the supplied reports established equivalent core discoverability and canonical continuity."
+  ]
+}

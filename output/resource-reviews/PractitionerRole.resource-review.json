@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "PractitionerRole",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/PractitionerRole.resource-review-context.json",
+    "structureReportPath": "output/PractitionerRole.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/PractitionerRole.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 4,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource context, full PractitionerRole StructureDefinition report, deterministic aggregate prepass, direct OperationDefinition/SearchParameter behavior findings, and shared Resource/DomainResource behavior context. Shared base behavior was treated as context only because the assigned artifact is PractitionerRole, not Resource or DomainResource."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 PractitionerRole was FMM 2/trial-use, so there is neutral stability pressure: the model was not normative or high-maturity, but real directory, referral, scheduling, and provider-attribution workflows still make operationally important breaks worth minimizing when preservation is low-cost."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "PractitionerRole keeps its identity and most core fields, but contact and availability need targeted transforms; this does not make unrelated avoidable breaks low-value."
+  },
+  "reasoning": {
+    "thesisMd": "PractitionerRole is not removed or broadly redesigned. The R6 resource remains recognizably the R4 resource, with practitioner, organization, role, specialty, location, service, endpoint, active, identifier, and period concepts largely preserved. The meaningful migration burden is concentrated in two local representation changes: `telecom` becomes `contact`/`ExtendedContactDetail`, and the R4 availability fields become one `Availability` datatype element. That is enough to require a targeted migration workstream for many real directory implementations, but not enough to say resource-level migration dominates every further compatibility decision.",
+    "migrationShapeMd": "The actual migration shape is a moderate targeted remodel. Existing R4 instances that populate `PractitionerRole.telecom`, `availableTime`, `notAvailable`, or `availabilityExceptions` are old-valid/new-invalid until transformed. The transforms are mostly structural, but they touch operational contact and scheduling data and can lose information when moving between R4 and richer R6 datatypes. Optional R6 additions such as `network`, `display`, `characteristic`, and `communication` add directory expressiveness without forcing forward R4-to-R6 instance changes.",
+    "compatibilityLeverageMd": "Because the resource identity is stable and the hard breaks are localized, compatibility leverage remains high on a per-change basis. The contact and availability remodels may be proportionate because preserving old and new fields in the same base resource would create duplicate sources and precedence rules. That does not justify low-cost breaks elsewhere: aliases, explicit transitional behavior, or warnings still matter when they avoid runtime or silent-query failures without compromising the R6 model.",
+    "lessBreakingAlternativesMd": "For the two structural breaks, retaining deprecated `telecom`, `availableTime`, `notAvailable`, and `availabilityExceptions` in R6 would preserve old instances but would impose competing contact/schedule representations and conflict handling. Those are not clearly low-cost base-model alternatives. By contrast, the Measure `$collect-data` `practitioner` parameter removal has a much cheaper preservation path: a deprecated alias to the broader `reporter` parameter for Practitioner references, with defined precedence or explicit rejection.",
+    "behaviorImpactMd": "The direct behavior findings do not turn PractitionerRole itself into a broad migration program. The Measure `$collect-data` filter rename is standards-review-worthy because unknown-parameter handling can silently broaden provider-panel results and PractitionerRole is now an allowed reporter resource. The shared search-expression finding is less convincing for PractitionerRole specifically: the local package comparison shows stable same-code PractitionerRole search expressions, with R6 adding new directory search parameters rather than moving existing ones. Shared Resource/DomainResource behavior remains important ecosystem context but was not scored as PractitionerRole-local impact.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `majorMigrationAlreadyUnavoidable: No`, `migrationShape: mostly-stable-with-local-breaks`, and `preserve-compatibility-per-change`. I agree with the compatibility posture and with not letting shared base behavior dominate this resource. I would slightly raise the migration-shape judgment to `Partial`/`moderate-targeted-remodel` because `telecom` is common directory data and availability is operationally meaningful; many real implementations need deliberate transforms even though the resource is not broadly redesigned.",
+    "uncertaintyMd": "Confidence is high for the structural conclusions because the R4/R6 core StructureDefinitions and reports agree. Prevalence is less certain for availability data and for the Measure `$collect-data` operation in PractitionerRole-related workflows."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PractitionerRole:ELEMENT_PRESENCE_OR_IDENTITY:PractitionerRole.telecom:214471",
+      "title": "PractitionerRole.telecom was removed and replaced by PractitionerRole.contact",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard forward instance and generated-API break for a common directory field: untransformed R4 `telecom` is not valid in R6 and clients move from `ContactPoint[]` to `ExtendedContactDetail[]`. It materially drives the targeted migration conclusion. Preserving both fields in base R6 would reduce migration cost but would create duplicate contact representations and precedence questions, so it is not a clear low-cost compatibility win."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PractitionerRole:ELEMENT_PRESENCE_OR_IDENTITY:PractitionerRole.availableTime:b1635b",
+      "title": "R4 availability fields were replaced by R6 PractitionerRole.availability",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "R4 `availableTime`, `notAvailable`, and `availabilityExceptions` disappear from the R6 wire shape and are replaced by a reusable `Availability` datatype. This is a hard targeted migration for scheduling/directory implementations and can affect business operations if availability is mapped incorrectly. Once the reusable datatype design is accepted, however, keeping old fields beside it would create competing schedule sources and conflict rules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PractitionerRole:CONVERSION_OR_MAPPING:PractitionerRole.network:af338e",
+      "title": "R6 adds optional directory metadata not representable in R4 PractitionerRole",
+      "role": "important-but-local",
+      "reasonMd": "The optional R6 additions do not make R4 instances invalid and should not drive a forward R4-to-R6 break conclusion. They still matter for mixed-version gateways and R6-to-R4 round-tripping because network, display, characteristic, and communication can affect directory selection and patient access if dropped."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PractitionerRole:TERMINOLOGY_BINDING:PractitionerRole.specialty:0a3fae",
+      "title": "PractitionerRole.specialty binding weakened from preferred to example",
+      "role": "discounted",
+      "reasonMd": "The path, datatype, cardinality, and value set remain present while binding strength weakens. This may change QA or documentation expectations, but it does not reject old data or require a migration program."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-collect-data--Measure-collect-data:Measure-collect-data:provider-filter-renamed",
+      "title": "The `practitioner` filter is removed in favor of broader reporter/provider parameters",
+      "role": "needs-follow-up",
+      "reasonMd": "This direct behavior finding remains avoidable and standards-review-worthy even though it is not a PractitionerRole StructureDefinition remodel. R6's broader reporter goal is reasonable, but dropping the R4 `practitioner` parameter can break generated clients or, worse, be ignored by servers and return broader results. A deprecated alias for Practitioner references appears low-cost relative to the safety/business risk of silent provider-panel expansion."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "discounted",
+      "reasonMd": "The finding is in scope because its affected-resource list includes PractitionerRole, but it does not materially drive this resource judgment. Comparing local PractitionerRole search parameters shows stable same-code expressions for the existing R4 codes, with R6 adding new search parameters for new directory fields. The general warning about index migration remains useful, but the report evidence does not show a PractitionerRole-specific stable-code expression move comparable to the cited Organization or DocumentReference examples."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This shared Resource-level operation removal can affect PractitionerRole instances operationally, but it is a base Resource behavior issue rather than a local PractitionerRole migration shape. It should be handled in Resource-level review, not counted again as a PractitionerRole-specific driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes may affect generic clients searching PractitionerRole, but they apply through Resource/DomainResource infrastructure and are not evidence of a local PractitionerRole redesign."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or verify canonical cross-version transforms for `telecom` to `contact.telecom` and for R4 availability fields to `availability`, including explicit policy for R6-only contact and availability details when round-tripping to R4."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit Measure `$collect-data` provider filtering so R6 either accepts `practitioner` as a deprecated alias for Practitioner reporter references or requires servers to reject it explicitly rather than silently broadening results."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add migration/index tests for PractitionerRole directories that use contact, availability, network, characteristic, communication, or provider-panel queries so result sets are compared before and after data transformation."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "For mixed R4/R6 deployments, document extension or loss-policy guidance for R6-only directory metadata (`network`, `display`, `characteristic`, `communication`)."
+    }
+  ],
+  "caveats": [
+    "Shared Resource and DomainResource behavior findings were reviewed as context only and not scored as PractitionerRole-local breaks.",
+    "The review relies on the local R4/R6 core packages and generated reports; actual implementation prevalence of availability and Measure `$collect-data` usage may vary.",
+    "The direct SearchParameters finding lists PractitionerRole as affected, but the local package comparison did not show an existing PractitionerRole search-code expression move."
+  ]
+}

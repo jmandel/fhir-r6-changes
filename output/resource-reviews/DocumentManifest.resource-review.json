@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "DocumentManifest",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/DocumentManifest.resource-review-context.json",
+    "structureReportPath": "output/DocumentManifest.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/DocumentManifest.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 2,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, resource-assessment rubric, fresh-review framework, the DocumentManifest context and StructureDefinition report, the two direct behavior findings that name DocumentManifest, and the shared Resource/DomainResource behavior context as context only. I checked the R4 package evidence for DocumentManifest as a concrete DomainResource, verified that the R6 ballot package has no DocumentManifest StructureDefinition and lists it only in `fhir-old-types`, then compared my conclusion with the deterministic aggregate."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "sd",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 DocumentManifest was trial-use/FMM 2, so there is real but neutral stability pressure. The resource may have production document-exchange use, but the maturity baseline does not create the strong compatibility burden that would apply to normative or FMM 5 resources."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "migration-program-dominates",
+    "confidence": "High",
+    "oneLineConclusion": "DocumentManifest is absent from R6 core, so every R4 instance/API/search use needs a resource-level migration strategy rather than isolated element preservation."
+  },
+  "reasoning": {
+    "thesisMd": "The decisive change is resource identity: R4 defines `DocumentManifest` as a concrete resource, while the inspected R6 package has no same-name StructureDefinition and records the code only as an old type. That makes unchanged R4 instances, generated model classes, REST routes, reference handling, and search clients incompatible with base R6. The right migration question is therefore which R6 pattern should replace each use of the manifest, not whether one or two local paths can be kept compatible.",
+    "migrationShapeMd": "This is a removed-or-replaced-resource migration. The old resource was a manifest-level wrapper with identifiers, status, type, subject, author/recipient/source metadata, a required repeatable `content` list of referenced resources, and related identifiers/resources. Candidate R6 carriers such as `List`, `Composition` plus `Bundle`, and `DocumentReference` cover parts of those semantics but do not supply a lossless one-to-one replacement without policy choices or extensions.",
+    "compatibilityLeverageMd": "A resource-level migration program is unavoidable and dominates the compatibility posture. That does lower the value of preserving individual old element names because there is no R6 `DocumentManifest` container for those elements. It does not mean additional compatibility work is valueless: explicit successor guidance, conversion maps, CapabilityStatement notes, and narrowly feasible endpoint/search transition behavior can still reduce migration risk. However, preserving the full old resource as deprecated R6 core content would carry non-trivial validator, model, REST, search, and overlapping-document-model burden.",
+    "lessBreakingAlternativesMd": "The strongest base-compatible alternative would be retaining `DocumentManifest` as a deprecated or retired R6 resource for a transition release. That would preserve old instances and APIs, but it is not a low-cost local tweak because it keeps an obsolete resource family and its operational surface alive in core. Lower-cost mitigations are official mapping guidance and replacement profiles for `List`, `Composition`/`Bundle`, or `DocumentReference` use cases; these help migration but do not make R4 instances base-valid R6.",
+    "behaviorImpactMd": "The direct behavior findings matter, but mostly as consequences of the resource removal. The base CapabilityStatement no longer advertising a `DocumentManifest` endpoint and the disappearance of DocumentManifest-only search surfaces make existing clients and conformance tests fail at runtime. These reinforce the need for endpoint/search transition guidance, but they do not create a separate low-cost way to preserve DocumentManifest compatibility once the resource identity is removed. Shared `Resource` and `DomainResource` operation/search findings were reviewed only as background because the assigned artifact is not Resource or DomainResource.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's core conclusion: major migration is unavoidable, the migration shape is removed-or-replaced-resource, and migration-program-dominates is the right resource-level posture. The nuance is that direct behavior breaks should still inform migration guidance and standards notes; they are not made harmless by the resource removal, but they are derivative rather than independent reasons to preserve the old resource.",
+    "uncertaintyMd": "The main uncertainty is not whether DocumentManifest is absent from the inspected R6 package; that is well supported. The uncertainty is the standards rationale and intended replacement strategy, because no official removal rationale, ConceptMap, StructureMap, or final R6 publication package was available in the local inputs."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentManifest:ARTIFACT_IDENTITY:root:removed-r6",
+      "title": "DocumentManifest resource is absent from the R6 core package",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This finding drives the resource-level answer. It is an old-valid/new-invalid instance break and a generated API/REST/reference break because the R6 core package has no `DocumentManifest` StructureDefinition. The plausible less-breaking alternative, retaining a deprecated resource, would preserve compatibility but is broad and costly rather than a low-cost local preservation measure."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DocumentManifest:CONVERSION_OR_MAPPING:DocumentManifest.content:no-direct-r6-model",
+      "title": "No inspected R6 resource provides a lossless one-to-one replacement for manifest grouping and metadata",
+      "role": "important-but-local",
+      "reasonMd": "This finding matters for migration planning because `content` was required and central to the old resource. Once resource removal is accepted, though, the issue becomes a local mapping chore: choose `List`, `Composition`/`Bundle`, `DocumentReference`, extensions, or local policy based on the use case. It does not independently justify preserving old element names without the old resource."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "important-but-local",
+      "reasonMd": "This is directly in scope because DocumentManifest is listed among the affected resources. It is a real runtime/search break for clients using queries such as `DocumentManifest?patient=...`, but it follows from the missing endpoint and missing resource type. Transition aliases or documented redirects could help only where a replacement query has clear semantics."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "important-but-local",
+      "reasonMd": "This direct behavior finding confirms that generic clients and conformance tooling lose the advertised DocumentManifest REST surface. For this resource it reinforces the resource-removal conclusion rather than changing it; any low-cost preservation would need to be endpoint transition documentation or aliases, not element-level compatibility."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This shared Resource-level behavior may affect systems that also operate on DocumentManifest-like records during migration, but the prompt scope treats shared Resource/DomainResource findings as context only unless the assigned artifact is Resource or DomainResource. It was not scored into the DocumentManifest resource conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared search metadata change could affect generic clients broadly, but it is not specific to DocumentManifest's removal or replacement. It remains background compatibility pressure for platform migration rather than a DocumentManifest resource-level driver."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish an explicit DocumentManifest migration guide or map that covers the major R4 use cases: XDS-style manifests of `DocumentReference`, general resource groupings, EN 13606 extracts, and workflow-related collections. The guide should call out how to map `content`, status, identifiers, subject, author/recipient/source, and `related`, and where information loss or extensions are expected."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Standards review should decide explicitly whether a transitional deprecated `DocumentManifest` resource, endpoint aliases, or search redirects are worth the maintenance cost. If not, the R6 documentation should say that no base-compatible successor exists and point clients to replacement patterns."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add CapabilityStatement/search transition notes for removed DocumentManifest endpoints and common queries so generic clients and conformance tests can distinguish intentional removal from accidental server non-support."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Re-run this review against the final R6 publication package or a later ballot if DocumentManifest is reintroduced or if official conversion artifacts are added."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 diff, ballot rationale, ConceptMap, or StructureMap for DocumentManifest removal was available in the local inputs.",
+    "The R6 evidence comes from the 6.0.0-ballot4 package, not a final publication package.",
+    "Expected real-world prevalence of DocumentManifest use is unknown from the supplied local reports.",
+    "Shared Resource/DomainResource behavior findings were reviewed as context only and not scored as DocumentManifest-specific findings."
+  ]
+}

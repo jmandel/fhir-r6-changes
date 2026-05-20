@@ -1,0 +1,204 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Composition",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Composition.resource-review-context.json",
+    "structureReportPath": "output/Composition.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Composition.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 11,
+    "reviewedDirectBehaviorFindingCount": 5,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the output contract, resource assessment rubric, fresh-review framework, Composition resource-review context, full Composition StructureDefinition report, deterministic aggregate, and the direct OperationDefinition/SearchParameter behavior findings whose `affectedResources` include `Composition`. Shared `Resource`/`DomainResource` behavior was considered only as environmental context because the assigned resource is `Composition`, not a base artifact."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "sd",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 Composition was trial-use/FMM 2, so the compatibility burden is neutral rather than normative. That lowers the presumption against model cleanup, but it does not make privacy labels, section interpretation, document-generation operations, or common document metadata low-value compatibility surfaces."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Composition keeps its identity, but R6 makes enough targeted structural and document-operation changes that real migration planning is needed; preserving low-cost compatibility still has meaningful value."
+  },
+  "reasoning": {
+    "thesisMd": "Composition is not removed or replaced, and much of the clinical document skeleton remains recognizable. The actual migration shape is a moderate targeted remodel around document security metadata, section interpretation, relationship/event modeling, attestation coding, common metadata cardinalities, and the `$document` operation. For production systems, especially those with subject/identifier metadata or document-generation clients, a coordinated migration program is already likely. But the resource has not been so completely redesigned that additional avoidable breaks become irrelevant.",
+    "migrationShapeMd": "Forward migration needs both mechanical transforms and policy decisions. Mechanical transforms include wrapping `attester.mode` as a CodeableConcept, mapping R4 `event.code` and `event.detail` into `CodeableReference`, changing `identifier` and `subject` from singleton JSON objects to arrays where populated, and switching `$document` clients to the instance route. Policy-heavy transforms include preserving `confidentiality`, deciding whether `section.mode` semantics survive as extension/profile data, mapping `relatesTo` relationship terminology and targets, and defining R6-to-R4 behavior for expanded status codes, optional R6-only fields, and widened reference targets.",
+    "compatibilityLeverageMd": "Because Composition migration is already a real project, preventing one additional local remodel will not eliminate the need for migration. The right posture is still not `migration-program-dominates`: several high-value breaks look low-cost or moderate-cost to preserve, and they sit on privacy, section safety semantics, central document-generation behavior, or common metadata/codegen surfaces. Compatibility preservation should be concentrated where it avoids data loss, security ambiguity, or avoidable route/search churn.",
+    "lessBreakingAlternativesMd": "The strongest preservation candidates are retaining `Composition.section.mode` as optional/deprecated, keeping `Composition.confidentiality` with explicit relationship to `meta.security` or a computable replacement path, and retaining the R4 type-level `Composition/$document` invocation plus `id` parameter as deprecated while preferring the instance route. Partial alternatives exist for `relatesTo`, `event`, and `attester.mode`, but they would create duplicate same-fact representations and precedence rules. Status-code expansion, optional additions, and reference-target widenings are mainly migration/down-conversion issues rather than R4-to-R6 base-design breaks.",
+    "behaviorImpactMd": "Direct behavior findings reinforce the same posture. The `$document` type-level invocation removal is a concrete runtime/API break on a central Composition use case and has a plausible low-cost transition design. The `$document` output-shape change is genuinely uncertain because R4 evidence conflicted between no computable output, wrapper prose, and a direct document Bundle example. Bundle `composition` search metadata and grouped reference/expression search changes matter for generated clients and search-index migration, but they are mostly compatibility and testing work around the accepted model changes. Shared Resource/DomainResource operation and search issues remain context only.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's top-level result: `majorMigrationAlreadyUnavoidable=Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The independent review puts more weight than the aggregate summary on the forward wire-shape effect of `identifier` and `subject` becoming arrays, and less weight on optional additions and target widenings as forward breaks. The important conclusion is that targeted migration is expected, not that additional compatibility preservation has low leverage.",
+    "uncertaintyMd": "Confidence is high for the structural and operation/search deltas visible in the supplied artifacts. The main uncertainties are official HL7 rationale, rendered narrative guidance for removed `confidentiality` and `section.mode`, authoritative terminology expansions/ConceptMaps for `relatesTo`, `event`, and `status`, and real-world prevalence of R4 `$document` type-level or search-wrapper implementations."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.confidentiality:5c1995",
+      "title": "Composition.confidentiality was removed",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard old-valid/new-invalid break on privacy/security metadata. The likely move toward general security labels is plausible, but dropping a populated confidentiality code without a computable base replacement can change access-control meaning. A deprecated field or explicit `meta.security` mapping looks worth standards review despite FMM 2."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.section.mode:5fd07d",
+      "title": "Composition.section.mode was removed",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest low-cost preservation candidate. R4 `section.mode` carried working/snapshot/changes semantics and warned that changes-only sections must not be read as complete. R6 has no competing local replacement, so retaining the optional element as deprecated would preserve old instances and safety-relevant interpretation at low model cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:CARDINALITY:Composition.cardinality-relaxations:748e3e",
+      "title": "R6 relaxes required/singular Composition cardinalities",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The min decreases for `author` and `title` mainly affect R6-to-R4 policy, but `identifier` and `subject` becoming repeatable changes populated FHIR JSON from singleton object to array. Since `subject` is common document metadata, this contributes materially to expected migration even though the underlying cardinality change is a widening."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:TYPE_DOMAIN:Composition.attester.mode:13257a",
+      "title": "Composition.attester.mode changed from code to CodeableConcept",
+      "role": "important-but-local",
+      "reasonMd": "Existing attesters need a code-string-to-CodeableConcept transform and generated models change. The old and new concepts are closely aligned and the richer coding goal is coherent, so this is mainly a local migration chore once the R6 model is accepted; preserving both primitive and CodeableConcept forms would duplicate the same attestation fact."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.relatesTo:76de2d",
+      "title": "Composition.relatesTo code/type and target choices were remodelled",
+      "role": "important-but-local",
+      "reasonMd": "This is a real relationship-model migration: `code` becomes CodeableConcept `type`, `targetIdentifier` disappears, and target choices broaden to general artifacts/resources. It needs terminology and target mapping policy, but the broader artifact-relationship goal is plausible and deprecated aliases would create classifier/target precedence problems."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:TYPE_DOMAIN:Composition.event:9ad30b",
+      "title": "Composition.event.code/detail merged into CodeableReference detail",
+      "role": "important-but-local",
+      "reasonMd": "R4 event concepts and references must be wrapped or split into R6 `CodeableReference` entries. This is a hard wire/model break, but CodeableReference is a coherent normalization of code-or-reference event facts; preserving parallel R4 arrays would leave duplicate event representations and pairing ambiguity."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:TERMINOLOGY_BINDING:Composition.status:a7785f",
+      "title": "Composition.status required value set expanded",
+      "role": "important-but-local",
+      "reasonMd": "No R4 status code was removed, so this does not itself reject R4 instances. It still matters because `status` is required and modifier, and closed enums/workflow logic must learn new R6 lifecycle states and define R6-to-R4 down-maps."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:REFERENCE_TARGET:Composition.reference-target-expansions:735ac2",
+      "title": "Several reference target domains widened",
+      "role": "discounted",
+      "reasonMd": "R4 target types remain valid in R6. New CareTeam, Group, and Patient target cases create reverse-conversion and business-rule work, but they do not drive R4-to-R6 incompatibility or call for a less-breaking R6 base design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:ELEMENT_PRESENCE_OR_IDENTITY:Composition.optional-additions:c4e3ee",
+      "title": "R6 adds optional metadata, consent, request, participant, and note elements",
+      "role": "discounted",
+      "reasonMd": "Optional additions are the compatibility-preserving way to expand the resource. They deserve R6-to-R4 loss/extension policy, especially for consent, basedOn, participant, and notes, but they do not make old R4 Composition instances invalid."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:TERMINOLOGY_BINDING:Composition.category:bc2556",
+      "title": "Composition.category example binding changed",
+      "role": "discounted",
+      "reasonMd": "The element shape and example binding strength remain compatible. Generated picklists and profile authors should notice the terminology guidance shift, but this is metadata/tooling churn rather than a resource-level migration driver."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Composition:VALUE_CONSTRAINT:Composition.cmp-3:785ac2",
+      "title": "R6 adds warning constraint cmp-3 for attested Composition content",
+      "role": "discounted",
+      "reasonMd": "The new constraint is warning severity. Warning-as-error pipelines may need policy changes, but base R6 does not invalidate old instances, and a warning is already the less-breaking form of this quality expectation."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Composition-document--Composition-document:composition-document-type-invocation-and-id-removed",
+      "title": "R6 removes the R4 type-level $document invocation and id parameter",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a central Composition runtime/API break: R4 clients could call `Composition/$document` with `id`, while R6 only defines instance invocation. Keeping the type-level route and `id` parameter as deprecated would have preserved many clients without blocking the preferred R6 instance route, so this remains standards-review-worthy."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Composition-document--Composition-document:composition-document-output-now-direct-bundle",
+      "title": "R6 formalizes a direct Bundle return where R4 had no out parameter and search-wrapper prose",
+      "role": "needs-follow-up",
+      "reasonMd": "The R6 direct Bundle return improves computability, but R4 evidence conflicts: no computable out parameter, prose suggesting a search wrapper, and an example showing a direct document Bundle. This should be clarified for conformance/testing, but it is not a reason to reject the resource-level migration shape."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:bundle-first-entry-resource-search-type",
+      "title": "Bundle composition and message searches changed from reference search to the new resource search type",
+      "role": "important-but-local",
+      "reasonMd": "Composition is affected through document Bundle discovery. The new `resource` search type is semantically more accurate for `Bundle.entry[0].resource`, but metadata-driven clients that generated reference-style `Bundle?composition=Composition/123` behavior need query-builder and conformance updates. Transitional aliases are useful where old syntax is deployed."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "Composition participates in the grouped target-list changes. Simple untyped searches may survive, but typed modifiers, chained searches, generated target enums, and reverse-include behavior need migration tests. Most changes follow underlying model/resource changes, so this is search migration work rather than a Composition model redesign driver."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "Composition is in the affected resource set. Stable search codes can keep the same external name while indexing moved R6 paths, which risks silent result-set drift if data transforms and indexes are not updated together. This supports the need for a coordinated migration/test plan."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "context-only",
+      "reasonMd": "This can affect generic clients used with Composition servers, but the finding is shared Resource-level discovery context and should not be double-counted as a Composition-specific content-model break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "Metadata operations can matter for Composition instances, especially tags and security labels, but this is a generic Resource operation removal. It remains environmental context for this review and belongs in the base Resource behavior assessment."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes can affect Composition query clients, but they are not specific to Composition and therefore do not change the resource-level judgment."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the two strongest low-cost structural preservation candidates before finalizing R6: retain/deprecate `Composition.section.mode`, and either retain/deprecate `Composition.confidentiality` or publish a computable, security-reviewed replacement mapping to `meta.security` or another base path."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish authoritative Composition R4-to-R6 mapping guidance and tests covering singleton-to-array `identifier`/`subject`, `attester.mode`, `relatesTo`, `event.detail` CodeableReference transforms, `confidentiality`, `section.mode`, status down-mapping, and R6-to-R4 policy for optional additions and widened targets."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Preserve or explicitly justify removal of the R4 `Composition/$document` type-level invocation and `id` parameter; if removed from base, provide a clear transition/conformance statement for servers that keep it as a compatibility endpoint."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Clarify `$document` response-shape expectations and test fixtures, including whether any R4 searchset-wrapper behavior is legacy-compatible or simply erroneous."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define Composition-related search migration guidance, including Bundle `composition` reference-to-resource search behavior, typed/chained reference search changes, and before/after tests for stable search codes whose expressions moved."
+    }
+  ],
+  "caveats": [
+    "This review used local package/report evidence and did not inspect official Jira items, ballot minutes, or final R6 change proposals.",
+    "No official cross-version ConceptMaps or StructureMaps were supplied for Composition status, relationship, event, confidentiality, or section mode mappings.",
+    "The R6 input is 6.0.0-ballot4; later ballots or final R6 artifacts may change the conclusions.",
+    "Shared Resource/DomainResource behavior findings were considered as context only because Composition is not Resource or DomainResource."
+  ]
+}

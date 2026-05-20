@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Endpoint",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Endpoint.resource-review-context.json",
+    "structureReportPath": "output/Endpoint.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Endpoint.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 6,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Endpoint StructureDefinition findings, the Endpoint-scoped SearchParameter behavior finding, and the shared Resource/DomainResource behavior context. I treated the deterministic aggregate as prior context only and used the R4 trial-use/FMM 2 status as the compatibility baseline."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Neutral",
+    "effectMd": "Endpoint was trial-use at FMM 2 in R4, so the stability pressure is neutral rather than normative or weak. That lowers the burden compared with mature/normative resources, but it does not erase the impact of mandatory wire-shape breaks or safety/business-significant endpoint selection semantics."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Endpoint keeps its identity, but status, connectionType, and payload changes make targeted instance migration unavoidable while low-cost preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "Endpoint is not removed or replaced, and much of its directory identity remains recognizable. However, complete R4 Endpoint instances cannot simply be revalidated as R6 because `status`, mandatory `connectionType`, and mandatory payload representation each require conversion. That makes a resource-level migration program practically unavoidable for real Endpoint data, but only at a targeted-remodel level rather than a whole-resource replacement level.",
+    "migrationShapeMd": "The core migration is concentrated in a few central paths: required-bound `Endpoint.status` removes the R4 `test` code; `Endpoint.connectionType` changes from one mandatory `Coding` to one-or-more `CodeableConcept`; and R4 top-level `payloadType`/`payloadMimeType` move under repeating `Endpoint.payload`. These affect validators, generated models, and serializers for ordinary conformant Endpoint instances. Other changes, such as `environmentType`, `availability`, and the narrower interpretation of `period`, add operational context and round-trip loss rather than replacing the whole resource.",
+    "compatibilityLeverageMd": "Because a transform is already needed, not every local break has equal leverage. The connectionType and payload remodels are mostly migration chores once the richer R6 representation is accepted. But this does not mean compatibility preservation is pointless: retaining a deprecated `status=test` code or avoiding a silent semantic redefinition of `managingOrganization` would reduce avoidable migration risk without undermining the broad Endpoint redesign.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation case is `Endpoint.status`: keeping `test` as a deprecated legacy code while adding `limited` and `environmentType` would preserve R4-valid mandatory status values and still guide new use. The `managingOrganization` semantic narrowing also has a plausible less-breaking design: keep the R4 data-steward/associated-organization meaning and add a distinct technical-management or help-desk reference. By contrast, carrying both old and new `connectionType` or payload representations would create duplicate protocol/payload locations, precedence rules, and inconsistent representations; those alternatives are only partial and have real model cost. The optional `environmentType` addition itself is forward-compatible for R4 data, and `availability` appears proportionate even though overloaded R4 `period` uses need cleanup.",
+    "behaviorImpactMd": "The direct behavior finding is the stable-code SearchParameter expression move. For Endpoint this is most concretely visible in the retained `payload-type` search code moving from `Endpoint.payloadType` to `Endpoint.payload.type`, plus the new R6 `payload-profile` search. This adds index/query migration risk but mostly follows the underlying payload remodel. The shared Resource/DomainResource operation and special-search behavior findings are context only for Endpoint and did not drive this resource-level conclusion.",
+    "comparisonToDeterministicAggregateMd": "The independent review agrees with the deterministic aggregate's `Partial` major-migration result, `moderate-targeted-remodel` shape, and `preserve-where-low-cost-but-expect-resource-migration` posture. The important nuance is that a targeted Endpoint migration program is already unavoidable for conformant instances, but the aggregate burden should not be used to dismiss the avoidable `status=test` and `managingOrganization` concerns.",
+    "uncertaintyMd": "Confidence is high for the structural deltas because they are directly visible in the R4 and R6 StructureDefinitions. Actual production prevalence of `status=test`, overloaded `period` availability use, and `managingOrganization` stewardship interpretation was not measured."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Endpoint:TERMINOLOGY_BINDING:Endpoint.status:status-codes",
+      "title": "Required Endpoint.status code set removes `test` and adds `limited`",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a mandatory required-binding break: R4 instances with `status=test` become invalid in R6, and mapping them to R6 requires policy about operational state plus environment classification. It is also the clearest low-cost preservation candidate because R6 could keep `test` as a deprecated legacy code while adding `limited` and `environmentType`."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Endpoint:TYPE_DOMAIN:Endpoint.connectionType:coding-to-codeableconcept",
+      "title": "Endpoint.connectionType changes from a single Coding to repeating CodeableConcept",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Because the element remains mandatory, ordinary R4 Endpoint instances and generated models must change shape. The common R4-to-R6 transform is mechanical by wrapping the `Coding`, but strict parsers and codegen still break; retaining both old and new representations would add substantial duplication and conflict handling."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.payload:payload-backbone",
+      "title": "R4 direct payload fields are replaced by an optional repeating Endpoint.payload backbone",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "R4 `payloadType` is mandatory and no longer exists at the same top-level path in R6, so untransformed complete R4 instances fail. The grouped R6 payload model supports multiple payload descriptions and profiles, so preserving flat legacy fields would reduce migration cost but at the price of duplicate payload metadata and precedence rules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Endpoint:SEMANTIC_OR_CONFORMANCE_TEXT:Endpoint.managingOrganization:technical-manager",
+      "title": "Endpoint.managingOrganization semantics narrow toward technical/help-desk management",
+      "role": "important-but-local",
+      "reasonMd": "This does not invalidate instances, but it silently changes an unchanged field from organization associated with the data toward technical/help-desk management. That can affect outage, governance, and support workflows, and a separate technical-management element would have been a modest less-breaking design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.environmentType:added",
+      "title": "R6 adds Endpoint.environmentType for dev/test/prod classification with no R4 peer",
+      "role": "discounted",
+      "reasonMd": "The element is optional and additive, so it does not create an R4-to-R6 instance break by itself. It matters mainly as part of the migration story for `status=test` and for lossy R6-to-R4 conversion, not as an avoidable forward-compatibility problem."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Endpoint:ELEMENT_PRESENCE_OR_IDENTITY:Endpoint.availability:added",
+      "title": "R6 adds Endpoint.availability and narrows Endpoint.period to planned operational interval",
+      "role": "important-but-local",
+      "reasonMd": "R4 `period` remains structurally valid, but systems that used it for detailed availability or downtime need semantic review. The R6 addition appears proportionate because a single `Period` cannot express recurring availability and exceptions well, so this is mostly a migration/documentation task once the clearer model is accepted."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "Endpoint is directly affected through search expressions that follow moved model paths, especially `payload-type` moving from `Endpoint.payloadType` to `Endpoint.payload.type`. This creates index and compatibility-server risk, but it is downstream of the structural payload remodel rather than an independent reason to classify Endpoint as a major redesign."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This and the other shared Resource/DomainResource operation findings may affect generic servers that also host Endpoint, but they are not Endpoint-specific findings and were not scored into the Endpoint resource-level migration conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the EndpointStatus value set transition: either preserve `test` as a deprecated legacy code or publish explicit normative migration guidance that maps `status=test` to `environmentType=test` plus a chosen operational status."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Revisit `Endpoint.managingOrganization` wording or add a distinct technical/help-desk management reference so R4-era data-steward associations are not silently reinterpreted."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide Endpoint-specific migration fixtures for wrapping `connectionType`, grouping payload metadata, converting `status=test`, and updating affected search indexes such as `payload-type`."
+    }
+  ],
+  "caveats": [
+    "Shared Resource/DomainResource behavior findings were considered only as context because Endpoint is not Resource or DomainResource.",
+    "The review did not measure real-world prevalence of particular Endpoint codes or operational conventions.",
+    "External terminology-server expansion behavior was not rechecked beyond the local R4/R6 package evidence."
+  ]
+}

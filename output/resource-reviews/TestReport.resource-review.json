@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "TestReport",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/TestReport.resource-review-context.json",
+    "structureReportPath": "output/TestReport.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/TestReport.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 1,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the TestReport StructureDefinition report, local R4/R6 package evidence, the direct HTTP/search behavior findings whose `affectedResources` include `TestReport`, and the shared Resource/DomainResource behavior context. The deterministic aggregate was compared only after forming the resource-level conclusion. Shared Resource/DomainResource behavior was not scored as TestReport-specific."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "fhir",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 `TestReport` was trial-use and FMM 0, so the compatibility burden is much weaker than for mature or normative resources. That softens the standards concern around removing it from R6 core, but it does not erase the real break for conformance, certification, and automated testing tools that stored, validated, searched, or exchanged TestScript execution results."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "migration-program-dominates",
+    "confidence": "High",
+    "oneLineConclusion": "R6 core removes `TestReport`, so core-only migration is a resource/package identity problem rather than an element-level mapping problem; low FMM makes the removal more defensible, but transition guidance for testing tools still matters."
+  },
+  "reasoning": {
+    "thesisMd": "`TestReport` has a whole-resource identity break: the R4 core resource exists as a concrete `DomainResource`, while the local R6 core package and package index contain no `TestReport` StructureDefinition. A valid R4 `TestReport` is therefore not merely using renamed fields; it is an unsupported resource type for core-only R6 validators, generated models, REST endpoint inventories, and search metadata.",
+    "migrationShapeMd": "The migration shape is resource retirement/removal from core. The R4 model includes required execution-result fields such as `status`, `testScript`, and `result`, plus optional score, tester, issued date, participants, setup/test/teardown execution details, and six resource-specific search parameters. Because there is no same-name R6 core resource, migration requires a deliberate package or replacement decision: preserve legacy R4 payloads, validate against an additional-resource/testing package if that is the intended R6 home, or map into an implementation-specific reporting artifact with explicit semantics. It should not be treated as a set of local element renames.",
+    "compatibilityLeverageMd": "A resource-level migration program is unavoidable for core-only R6 adoption, and that lowers the leverage of preserving individual `TestReport` element names or individual search parameters in isolation. It does not mean compatibility has no value: low-cost transition aids such as clear successor-package guidance, CapabilityStatement notes, validator/package instructions, or documented endpoint/search handling can materially reduce cost for testing ecosystems. What would not be low-cost is pretending the old endpoint/search surface remains in R6 core while the resource model itself is absent.",
+    "lessBreakingAlternativesMd": "The most compatible base design would have kept `TestReport` in R6 core for at least one release, possibly deprecated or explicitly marked as moved. That would preserve R4 instances, generated classes, routes, and search parameters, but it also retains a specialized FMM 0 testing resource in core and may conflict with moving the testing resource family to a dedicated package or IG. Lower-cost alternatives are standards-review-worthy: publish an explicit migration note, identify the authoritative R6 package/canonical for TestReport-like content, and document whether servers may advertise legacy/additional-resource endpoints.",
+    "behaviorImpactMd": "The two direct behavior findings are real but derivative. The R6 base CapabilityStatement no longer advertises a `TestReport` endpoint among removed R4 resource endpoints, so generic route inventories and conformance test harnesses lose the core `/TestReport` surface. The search report likewise removes search parameters whose base resources are absent; for `TestReport`, that includes R4 searches such as `identifier`, `issued`, `participant`, `result`, `tester`, and `testscript`. These are important migration chores for systems that used TestReport, but they do not create a separate model-remodel decision once resource removal from core is accepted.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's top-line `Yes` for major migration, `removed-or-replaced-resource` migration shape, and `migration-program-dominates` leverage conclusion. The nuance is that the structure report's critical impact is mechanically true for core-only validation and code generation, but the practical standards pressure is moderated by FMM 0/trial-use status and specialized testing use. The direct behavior findings should be handled as endpoint/search transition work that follows from the identity break, not as independent evidence that every additional break is immaterial.",
+    "uncertaintyMd": "The local evidence is strong that R6 core lacks `TestReport`; the remaining uncertainty is the official HL7 rationale and the exact intended successor path outside core, including whether an R6 testing IG/additional-resource package is meant to carry forward the model."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "TestReport:ARTIFACT_IDENTITY:root:6f0bb9",
+      "title": "TestReport resource is absent from the R6 core package",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the decisive finding. It turns R4 `TestReport` instances into unknown/unsupported resource types for core-only R6 validation and generated SDKs. Because the resource identity is absent rather than remodeled element-by-element, a migration/package strategy is unavoidable before local field compatibility can help."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "important-but-local",
+      "reasonMd": "`TestReport` is one of the removed endpoint advertisements. This matters for generic clients and test harnesses that build route matrices from the base CapabilityStatement, but for TestReport it is a consequence of the resource's core removal rather than a separate reason to preserve individual elements."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "important-but-local",
+      "reasonMd": "The R4 `TestReport` search surface disappears with the endpoint. Systems that queried by identifier, issued date, participant URI, result, tester, or testscript need explicit migration tests and possibly legacy/additional-resource search support. This remains operationally important, but it is a local chore once the resource is no longer in R6 core."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "This and the other shared Resource/DomainResource behavior findings may affect generic R6 validation workflows, including workflows that also handle TestReport-like content. They were treated as context only because the assigned artifact is `TestReport`, not the base `Resource` or `DomainResource` artifact."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Confirm and document the authoritative R6 path for TestScript execution reports: whether `TestReport` is carried by a testing IG/additional-resource package, how validators and SDK generators should load it, and whether R4 instances can be validated after adding that package."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish endpoint and search transition guidance for implementers that exposed R4 `/TestReport`, including how to advertise legacy or additional-resource support in CapabilityStatement and how to handle the six R4 TestReport search parameters."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Avoid recommending generic mappings to unrelated report resources unless a profile or implementation guide preserves TestScript execution semantics such as setup/test/teardown actions, participant roles, result, score, and testscript linkage."
+    }
+  ],
+  "caveats": [
+    "The conclusion is based on the supplied local R4 and R6 core packages and reports; external HL7 change notes or IG packages were not treated as authoritative unless reflected in the supplied material.",
+    "The business impact is concentrated in conformance, certification, and automated testing infrastructure rather than broad clinical exchange.",
+    "Shared Resource/DomainResource behavior findings were reviewed as context but intentionally not scored as TestReport-specific findings."
+  ]
+}

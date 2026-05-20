@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Specimen",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Specimen.resource-review-context.json",
+    "structureReportPath": "output/Specimen.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Specimen.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Specimen resource-review context, the full local StructureDefinition report, the R4 and R6 Specimen definitions for the affected paths, the Specimen body-site SearchParameter definitions, and the deterministic aggregate only after forming the resource-level conclusion. The direct behavior finding in scope is the SearchParameters CodeableReference split affecting Specimen. Shared Resource/DomainResource behavior findings were considered as background only and were not scored as Specimen-specific breaks."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 Specimen is trial-use/FMM 2, so there is no strong normative stability presumption. That neutral maturity does not erase the practical impact of common laboratory fields such as accession identifiers, container details, body site, processing method, and subject/source semantics."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Specimen keeps its identity but needs a targeted R4-to-R6 migration program for identifiers, containers, CodeableReference fields, processing, subject/focus semantics, and body-site search behavior."
+  },
+  "reasoning": {
+    "thesisMd": "Specimen is not removed or wholly replaced, but it is no longer mostly stable for real implementations. R6 keeps the resource identity while changing several operationally important surfaces: accession identifiers are folded into typed identifiers; container details are remodeled around a required `device[x]`; body site and processing additives move to CodeableReference shapes; `processing.procedure` is renamed to `processing.method`; and `subject` is narrowed toward subject-of-record with `focus` carrying a different collection source. These are targeted changes, but together they require explicit transform rules and test fixtures for any nontrivial Specimen implementation.",
+    "migrationShapeMd": "The actual migration shape is a moderate targeted remodel rather than a major resource replacement. Some R4 specimens with only simple identifiers, type, subject, status, and request-like metadata may migrate with little change. Implementations using accession numbers, container details, body sites, processing steps/additives, or subject-as-physical-source need resource-specific mapping policy. The largest non-mechanical choices are creating or coding container devices, distinguishing accession identifiers in the general identifier array, and deciding whether an old `subject` is still the R6 subject or should become `focus` with a different subject-of-record.",
+    "compatibilityLeverageMd": "A targeted migration program is already unavoidable for many real Specimen users, but that does not make additional break prevention low value. Several breaks are still low-cost or safety-relevant to preserve: the `processing.procedure` to `method` rename looks like a same-concept path rename; the body-site search parameter changed from token to reference under the same code/canonical; and the subject/focus semantic change can affect correct association of results to patient, donor, fetus, group, device, product, or environmental source. Compatibility preservation remains valuable where it avoids extra transforms without undermining R6's cleaner model.",
+    "lessBreakingAlternativesMd": "The strongest preservation candidates are retaining or aliasing `Specimen.processing.procedure` while clarifying that it means processing method, and preserving the old Specimen `bodysite` token search behavior as an alias for the CodeableReference concept arm while adding reference search behavior separately. The container remodel also deserves standards attention because making `device[x]` mandatory and deleting inline children invalidates common legacy container records; however, retaining inline children beside device references has more substantial duplication and consistency tradeoffs. Accession consolidation and CodeableReference conversions are hard breaks, but the less-breaking alternatives would create parallel representations with meaningful long-term costs.",
+    "behaviorImpactMd": "The direct behavior break is material for Specimen because R4 `Specimen-bodysite` was a token SearchParameter over `Specimen.collection.bodySite`, while the R6 definition keeps the `bodysite` code/canonical but makes it a reference search over `Specimen.collection.bodySite.reference`. Old clients issuing coded body-site token queries can receive rejection or empty results. The shared Resource/DomainResource behavior findings, including Resource-level operation removals and shared meta/search behavior, remain ecosystem context only for this review.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`; I agree with that final posture after reviewing the actual changes. The important nuance is that the conclusion is not driven by counts alone: the compatibility leverage remains high for the low-cost rename/search alias issues and for safety-sensitive subject/focus guidance, even though several other hard breaks are acceptable local migration chores once the R6 model is accepted.",
+    "uncertaintyMd": "Confidence is high for the structural and search-parameter changes because the local R4/R6 package definitions were available. Remaining uncertainty is about official committee rationale, official cross-version ConceptMaps, and full terminology expansions for processing and container/device value sets."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.container:934b19",
+      "title": "Specimen.container was remodeled: several R4 subelements were removed and R6 requires container.device[x]",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most resource-shaping local remodel. R4 inline container identifiers, description, type, capacity, and additive are removed, while every R6 container requires `device[x]`. Legacy instances need a device/code/canonical mapping before validation, and incorrect mapping can affect specimen handling and chain-of-custody. Device normalization is a plausible R6 goal, but mandatory `device[x]` and removal of inline fields make this standards-review-worthy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.processing.procedure:8870a4",
+      "title": "Specimen.processing.procedure was replaced by Specimen.processing.method with a different example value set",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard old-valid/new-invalid path rename with the same cardinality and datatype. Keeping the old path and clarifying its definition/aliases would preserve R4 instances and generated APIs at modest cost. It remains one of the clearest low-cost compatibility-preservation candidates."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:codeable-reference-splits-clinical",
+      "title": "Several common clinical search codes split into code/reference variants or changed type because elements became CodeableReference-like",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "For Specimen, R4 `bodysite` was a token search over coded body site, while R6 keeps `bodysite` as a reference search over `bodySite.reference`. This can break old coded body-site queries even though the resource still carries coded body-site data in the CodeableReference concept arm. A deprecated token alias or separate concept search is a practical low-cost preservation point."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Specimen:SEMANTIC_OR_CONFORMANCE_TEXT:Specimen.subject:9ac738",
+      "title": "Specimen.subject semantics were narrowed to subject-of-record and R6 adds Specimen.focus for the actual collection source",
+      "role": "needs-follow-up",
+      "reasonMd": "This is not a hard validation break, but it is clinically and operationally important. Automated converters may not know whether an old R4 `subject` is the subject of record or the actual sampled source. The change can affect donor, fetal, group, device, product, animal, or environmental specimens and needs explicit migration guidance and examples."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.accessionIdentifier:10dc7f",
+      "title": "Specimen.accessionIdentifier was removed and folded into Specimen.identifier",
+      "role": "important-but-local",
+      "reasonMd": "This is a common hard wire break for laboratory workflows, but the R6 target design is coherent: accession numbers become `identifier` entries distinguished by `Identifier.type = ACSN`. A deprecated alias would help migration but would also create two same-resource locations for the same accession fact, so this is mostly a local transform and duplicate-handling chore once the consolidation is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Specimen:TYPE_DOMAIN:Specimen.collection.bodySite:7c3859",
+      "title": "Specimen.collection.bodySite changed from CodeableConcept to CodeableReference(BodyStructure)",
+      "role": "important-but-local",
+      "reasonMd": "The datatype change is a hard wire break and clinically meaningful because body site affects result interpretation. However, the R6 CodeableReference goal is legitimate: the site may be a code or a modeled BodyStructure instance. Preserving the old CodeableConcept path plus adding a sibling reference would split one anatomical fact across two fields, so this is best treated as a justified local migration chore paired with search compatibility review."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Specimen:TYPE_DOMAIN:Specimen.processing.additive:b5ac2d",
+      "title": "Specimen.processing.additive changed from Reference(Substance) to CodeableReference(Substance or SubstanceDefinition)",
+      "role": "important-but-local",
+      "reasonMd": "R4 direct Substance references must be nested in the R6 CodeableReference reference arm, and R6 can also use concept-only additives or SubstanceDefinition references. The break matters for analytic context, but the expressivity gain is plausible and sibling alternatives would duplicate additive semantics."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Specimen:ELEMENT_PRESENCE_OR_IDENTITY:Specimen.combined-role-feature:5dbde8",
+      "title": "R6 adds Specimen.combined, Specimen.role, and Specimen.feature, which are not representable in base R4",
+      "role": "discounted",
+      "reasonMd": "These optional R6 additions create R6-to-R4 downgrade loss but do not invalidate R4 instances. They should be handled through extension/downgrade policy rather than treated as reasons to avoid the R6 additions."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Specimen:VALUE_CONSTRAINT:Specimen.collection.procedure:79a0ad",
+      "title": "R6 adds Specimen.collection.procedure and local invariant spm-1 forbids using it with collection.collector",
+      "role": "discounted",
+      "reasonMd": "The invalid combination requires a new R6-only `collection.procedure`; unchanged R4 collector-only instances remain valid. This may affect enriched conversions, but it is not an old-valid/new-invalid R4 compatibility problem."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Specimen:CONVERSION_OR_MAPPING:Specimen.collection-processing-workflow:33a897",
+      "title": "R6 expands collection/processing workflow detail and reference targets beyond R4 representability",
+      "role": "important-but-local",
+      "reasonMd": "The richer R6 collection and processing workflow fields need downgrade policy, but they are mostly additive or R6-to-R4 representability issues. They contribute to the migration backlog without materially changing the resource-level compatibility posture."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This and the other shared Resource/DomainResource behavior findings can affect servers that expose Specimen through generic resource operations, but they are not Specimen-specific changes and were not counted toward the Specimen migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit low-cost compatibility preservation for `Specimen.processing.procedure` and the Specimen `bodysite` search behavior: deprecated aliases or transitional support would preserve many R4 instances and queries without blocking the R6 model."
+    },
+    {
+      "priority": "High",
+      "actionMd": "For the container remodel, either reconsider a transition design such as optional `container.device[x]` plus deprecated inline children, or publish authoritative mapping guidance for old container identifiers, type, capacity, and additives into Device, DeviceDefinition, or CodeableConcept forms."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish explicit `subject`/`focus` migration guidance with safety-relevant examples for donor, fetal, group, biologically derived product, device, substance, location, and environmental specimens."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide cross-version maps and test fixtures for accession identifier consolidation, CodeableReference wrapping/unwrapping for body site and additives, and R6-only downgrade fields such as `combined`, `role`, `feature`, and collection/processing workflow references."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 Specimen change rationale or ballot reconciliation notes were available locally.",
+    "No official cross-version ConceptMaps were available for the main Specimen remodels.",
+    "Terminology expansion was not run for the processing/container value sets; terminology risk is based on local ValueSet definitions and report evidence.",
+    "Shared Resource/DomainResource behavior findings were reviewed as ecosystem context only, per the resource-review instructions."
+  ]
+}

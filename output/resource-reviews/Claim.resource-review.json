@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Claim",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Claim.resource-review-context.json",
+    "structureReportPath": "output/Claim.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Claim.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 11,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the output contract, assessment rubric, fresh-review framework, Claim resource-review context, full Claim StructureDefinition report, deterministic aggregate, targeted R4/R6 Claim StructureDefinition elements, and behavior reports for direct Claim findings. No direct behavior findings affected Claim; shared Resource/DomainResource behavior findings were read as context only."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "fm",
+    "stabilityPressure": "Neutral",
+    "effectMd": "Claim was FMM 2 / trial-use in R4, so the compatibility burden is neutral rather than strong. That lowers the presumption against model evolution, but Claim is a financial-management resource where patient identity, billing codes, care-team responsibility, body site, and DRG/package data can have real reimbursement and safety consequences."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Claim keeps its R4 identity, but the mandatory `patient` -> `subject` rename makes a resource-level migration program unavoidable; several targeted billing, anatomy, and care-team remodels still leave high value in low-cost compatibility preservation."
+  },
+  "reasoning": {
+    "thesisMd": "Claim is not removed or replaced, and much of the resource remains recognizable. However, every conforming R4 Claim has required `Claim.patient`, while R6 requires `Claim.subject` and has no `patient` element. That alone means raw R4 Claims need transformation before R6 validation. Additional local breaks in body-site anatomy, supporting-info timing, DRG/package placement, and care-team semantics make the migration broader than a single rename for realistic billing systems.",
+    "migrationShapeMd": "The actual shape is a moderate targeted remodel, not a wholesale resource replacement. The universal transform is `patient` to `subject`; other transforms are conditional on populated optional paths. Some are mechanical but central, such as `timingDate` to `timingDateTime`; others require business policy, such as multiple diagnosis-level package codes collapsing to one claim-level DRG, loss of `careTeam.responsible`, credential values moving into `specialty`, and R6 body-site structures with multiple sites or BodyStructure references. R6-to-R4 planning is also needed for Group subjects, widened references, broad supporting-info value types, optionalized required fields, and product/service ranges.",
+    "compatibilityLeverageMd": "Because a migration program is already required, preventing one additional local break has less leverage than it would on a mostly stable resource. It still matters. Several high-use or business-critical breaks look cheap to preserve or at least cheap to document with transition semantics. The right standards posture is to expect resource migration while preserving compatibility where doing so does not create conflicting duplicate representations or defeat the R6 goal.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidates are retaining or aliasing the R4 recipient name while widening targets, retaining the `date` choice alongside `dateTime` and `Timing`, preserving `careTeam.responsible` or defining a computable transition equivalent, and carrying credential-oriented `qualification` values without forcing them into `specialty`. `diagnosis.packageCode` also deserves review because the move to a single root `diagnosisRelatedGroup` can lose per-diagnosis distinctions. By contrast, the body-site backbone has a clearer modeling goal, and keeping both old and new anatomy structures would create duplicate representation and precedence problems.",
+    "behaviorImpactMd": "The supplied behavior reports have no direct OperationDefinitions, SearchParameters, or HTTP REST findings whose affected resources include Claim. The 11 shared Resource/DomainResource behavior findings remain operational context for Claim servers, especially generic metadata operations and special search-parameter metadata, but they are not Claim-specific and do not drive this resource-level conclusion.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate that a migration program is unavoidable and that compatibility should be preserved where low cost. I do not fully adopt its `major-model-remodel` label: Claim's resource identity and many core structures remain stable, so the better shape is a targeted remodel with one universal required-path rename plus several important optional-path rewrites. This distinction does not lower the need for migration planning, but it does keep avoidable local preservation work visible.",
+    "uncertaintyMd": "Confidence is high for the computable structural differences because the R4 and R6 StructureDefinitions were checked directly. Confidence is lower for standards intent and prevalence because no official Financial Management work-group rationale, final R6 publication package, or full terminology expansion analysis was available in the supplied inputs."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.patient:6f1b22",
+      "title": "Mandatory Claim.patient was replaced by mandatory Claim.subject and the subject target widened",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the resource-level tipping point: `Claim.patient` is required in R4 and absent in R6, while `Claim.subject` is required in R6. Every R4 Claim instance therefore needs at least this rename before R6 validation, and R6 Group subjects create reverse-conversion policy. Because the semantic role is substantially the same recipient role, retaining `patient` with widened targets or a transition alias remains a high-value, low-cost preservation candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:SLICING_AND_CONTENT_MODEL:Claim.item.bodySite:0a3bf9",
+      "title": "Claim.item.bodySite changed from CodeableConcept to a repeating backbone with CodeableReference site entries",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the largest content-model remodel: same path name, but R4 `CodeableConcept` plus sibling `subSite` becomes a repeating backbone with required `site` CodeableReference entries and nested `subSite`. It can be billing- and dental-adjudication-relevant and affects generated types. The R6 model has a coherent anatomy association goal, so this is mostly a migration-design driver rather than an obvious reversal candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:TYPE_DOMAIN:Claim.supportingInfo.timing:3c26cf",
+      "title": "Claim.supportingInfo.timing[x] removed the R4 `date` choice and added `dateTime`/`Timing`",
+      "role": "needs-follow-up",
+      "reasonMd": "R4 `timingDate` becomes invalid because R6 replaces the `date` choice with `dateTime` while also adding `Timing`. The new types are useful, but retaining `date` would preserve existing date-only instances at modest cost. This is an avoidable choice-suffix break even though it is not the main reason a Claim migration program is needed."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.diagnosis.packageCode:bb7f11",
+      "title": "Claim.diagnosis.packageCode moved to root Claim.diagnosisRelatedGroup",
+      "role": "needs-follow-up",
+      "reasonMd": "The path move also changes context from per-diagnosis to one claim-level code. Single-code migrations are straightforward, but multiple diagnosis-level DRG/package codes cannot be represented losslessly in one root element, and this data can affect reimbursement grouping. This deserves standards review or explicit transition guidance even though the resource migration is already unavoidable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:ELEMENT_PRESENCE_OR_IDENTITY:Claim.careTeam.responsible:91a61a",
+      "title": "Claim.careTeam.responsible was removed without a direct R6 replacement",
+      "role": "needs-follow-up",
+      "reasonMd": "The removed optional boolean identified the billing or responsible care-team member. R6 has no direct computable replacement, so implementers must invent role-code, extension, or local policy mappings. Keeping a deprecated boolean or defining an explicit transition equivalent looks low cost compared with inconsistent local responsibility mapping."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:SEMANTIC_OR_CONFORMANCE_TEXT:Claim.careTeam.qualification:54f0d8",
+      "title": "Claim.careTeam.qualification was replaced by narrower Claim.careTeam.specialty semantics",
+      "role": "needs-follow-up",
+      "reasonMd": "The datatype and value set are similar, but R4 covered credential or specialization while R6 `specialty` narrows the meaning. Credential values can be misrepresented by a mechanical rename. This is a standards-review-worthy semantic narrowing, especially because retaining a credential-oriented field or transition rule would not require broad resource redesign."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:CARDINALITY:Claim.item.productOrService:8671ac",
+      "title": "Line-item productOrService became optional and productOrServiceEnd added range semantics",
+      "role": "important-but-local",
+      "reasonMd": "Existing R4 line codes remain valid in R6, so this does not drive forward migration unavoidability. It is still billing-central: R6 processors and downgrade paths must handle missing product/service codes and code ranges. Treat this as important migration and profiling work rather than as a base compatibility problem."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:CARDINALITY:required-fields-loosened:29db73",
+      "title": "Provider, priority, and insurance requirements were relaxed, creating R6-to-R4 gaps",
+      "role": "discounted",
+      "reasonMd": "Lowering minimum cardinalities for provider, priority, and insurance creates nullability and R6-to-R4 conversion work, but it does not invalidate R4 instances. Workflows that still require those elements can reassert them in R6 profiles, so this does not materially increase R4-to-R6 break-avoidance pressure."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:TYPE_DOMAIN:Claim.supportingInfo.value:0f6ac3",
+      "title": "Claim.supportingInfo.value[x] expanded from five choices to a broad Any-style datatype set",
+      "role": "discounted",
+      "reasonMd": "The old R4 choices remain allowed, so the change is additive for R4-to-R6 migration. It creates generated-choice branching and downgrade limits for new R6 data, but that is normal expressiveness growth rather than an avoidable break for existing R4 Claims."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:REFERENCE_TARGET:reference-targets-widened:1db217",
+      "title": "Several existing Claim references widened their allowed target resources",
+      "role": "discounted",
+      "reasonMd": "The affected reference paths retain their R4 targets and add new R6 targets such as Patient/RelatedPerson enterers, Organization facilities, and ServiceRequest prescriptions. This matters for generated unions, authorization, search indexing, and downgrade checks, but it is forward-compatible for R4 instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Claim:TERMINOLOGY_BINDING:example-to-preferred-bindings:4c87c2",
+      "title": "Several local example terminology bindings were strengthened to preferred",
+      "role": "discounted",
+      "reasonMd": "Preferred bindings can create warnings or QA pressure, but they should not reject out-of-set CodeableConcepts in base validation. This is conformance guidance and terminology hygiene, not a material driver of Claim migration shape."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "This generic Resource-level operation removal can affect Claim endpoints operationally, but it is shared across resources and should be judged in the Resource behavior review rather than counted as a Claim-specific structural migration driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared Resource/DomainResource search metadata issue may affect Claim-capable servers, but it is not specific to Claim and does not alter the Claim resource-level conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Send the low-cost preservation candidates back for standards review: retain or alias the R4 recipient `patient` path while allowing Group subjects, retain the `date` timing choice, preserve or transition `careTeam.responsible`, clarify `qualification` versus `specialty`, and revisit whether DRG/package information needs per-diagnosis preservation."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish concrete Claim R4-to-R6 mapping rules and fixtures for `patient`/`subject`, `item.bodySite` and `subSite`, `supportingInfo.timing[x]`, `diagnosis.packageCode`, `careTeam.responsible`, `careTeam.qualification`, and product/service code ranges, including lossy/manual-review cases."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide R6 profiling and downgrade guidance for fields that are forward-compatible but operationally important: optional provider/priority/insurance and productOrService, broad `supportingInfo.value[x]`, widened reference targets, Group subjects, and preferred-binding terminology warnings."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Track shared Resource/DomainResource behavior changes separately for Claim-serving systems so metadata operations and shared search-parameter metadata are not confused with Claim-specific model breaks."
+    }
+  ],
+  "caveats": [
+    "No direct Claim-specific behavior findings were present in the supplied behavior reports.",
+    "No official R4-to-R6 Claim change rationale or Financial Management work-group design notes were available in the supplied inputs.",
+    "The R6 package reviewed is 6.0.0-ballot4, so final R6 content may still change.",
+    "Full terminology expansions and real-world prevalence data were not available; terminology and prevalence judgments rely on StructureDefinition-level evidence and financial workflow plausibility.",
+    "Shared Resource/DomainResource behavior findings were intentionally treated as context only, not as Claim-specific scoring inputs."
+  ]
+}

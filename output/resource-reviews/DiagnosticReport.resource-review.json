@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "DiagnosticReport",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/DiagnosticReport.resource-review-context.json",
+    "structureReportPath": "output/DiagnosticReport.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/DiagnosticReport.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 11,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the output contract, resource assessment rubric, and fresh-review framework; read the DiagnosticReport review context, full StructureDefinition report, deterministic aggregate, and in-scope behavior findings. I also cross-checked the key element and SearchParameter deltas directly in the local R4 and R6 packages. The deterministic aggregate was treated as prior context and compared only after forming the resource-level judgment. Shared Resource/DomainResource behavior findings were considered context only."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "DiagnosticReport was FMM 3/trial-use in R4, so breaking changes in common diagnostic, imaging, result-interpretation, and search workflows need a credible justification. This is not normative-level pressure, but it is enough that low-cost compatibility preservation should not be dismissed merely because R6 also introduces several targeted remodels."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "DiagnosticReport keeps its identity but has targeted high-impact remodels around imaging links, media links, conclusion codes, and searches, so migration is partially unavoidable while cheap compatibility aliases still matter."
+  },
+  "reasoning": {
+    "thesisMd": "DiagnosticReport is not removed and its ordinary report shell remains recognizable, but the R6 model changes several clinically meaningful edges. R4 instances using `imagingStudy`, `media.link` to `Media`, `conclusionCode` as direct `CodeableConcept`, or `basedOn` to `ImmunizationRecommendation` need transformation before strict R6 validation. That is enough for a real migration workstream in full-featured DiagnosticReport implementations, but it is not a wholesale resource replacement and does not make all additional compatibility preservation low-value.",
+    "migrationShapeMd": "The migration shape is a moderate targeted remodel. The strongest R4-to-R6 breaks are an avoidable-looking wire-name rename from `imagingStudy` to `study`, a media retargeting from `Media` to `DocumentReference` tied to the broader removal of Media, and the `conclusionCode` switch from `CodeableConcept` to `CodeableReference`. The `basedOn` target removal is a real hard break but appears rarer and depends on the removed `ImmunizationRecommendation` resource. Other changes, such as `issued` widening to `dateTime`, new optional R6 content, added status code `modified`, widened reference domains, the composition invariant, and summary-flag shifts are mainly reverse-version, additive, or runtime-surface work rather than reasons by themselves to declare the whole resource redesigned.",
+    "compatibilityLeverageMd": "A migration program is already prudent for systems that exchange imaging/media/result-interpretation reports or rely on DiagnosticReport searches. However, the presence of that program does not lower the value of preserving low-cost compatibility. In particular, keeping or aliasing the old `imagingStudy` wire name and preserving the old `conclusion` token search as a deprecated alias would reduce breakage without undermining the main R6 goals. By contrast, retaining `Media` or `ImmunizationRecommendation` targets in base R6 is not a cheap DiagnosticReport-only choice if those resources are absent from the R6 package.",
+    "lessBreakingAlternativesMd": "The clearest standards-review-worthy alternative is for `imagingStudy` -> `study`: the R6 element still targets only `ImagingStudy` with the same optional repeating cardinality, so the apparent goal could likely have been met by broadening definition/prose and preserving the existing wire name. The direct SearchParameter split for coded conclusions also has a plausible lower-break path: keep `DiagnosticReport-conclusion` as a deprecated token alias to `DiagnosticReport.conclusionCode.concept` while adding the new reference search. The `conclusionCode` datatype remodel and media retargeting have real migration cost, but the obvious less-breaking alternatives introduce duplicate conclusion representations or require carrying removed resource models.",
+    "behaviorImpactMd": "The direct behavior impact is in SearchParameters, not OperationDefinitions or HTTP REST behavior. The R4 `DiagnosticReport-conclusion` token search is replaced in R6 by `conclusioncode-code` and `conclusioncode-reference`, which can break existing query URLs even after instances are structurally migrated. The `DiagnosticReport-media` search target also changes from `Media` to `DocumentReference`, and `based-on` loses `ImmunizationRecommendation`, affecting typed modifiers, generated client enums, and chaining expectations. Shared Resource/DomainResource behavior findings, including Resource-level operations and special/profile search metadata changes, remain relevant ecosystem context but were not scored as DiagnosticReport-specific drivers.",
+    "comparisonToDeterministicAggregateMd": "The independent conclusion agrees with the deterministic aggregate's `Partial` major-migration result and `preserve-where-low-cost-but-expect-resource-migration` posture, but the reason is substantive rather than count-based. The decisive shape is a cluster of targeted transforms plus a direct search break, with one low-cost structural preservation candidate (`imagingStudy`) and one low-cost behavior preservation candidate (`conclusion` search alias).",
+    "uncertaintyMd": "Confidence is high for the computable deltas because they were checked against the local package files. Design intent, expected production prevalence, and any official cross-version mapping rationale were not fully available in the supplied artifacts, so recommendations that depend on committee rationale should be read as standards-review prompts rather than proof that the R6 design is wrong."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DiagnosticReport:ELEMENT_PRESENCE_OR_IDENTITY:DiagnosticReport.imagingStudy-study:2f19d0",
+      "title": "DiagnosticReport.imagingStudy was removed and replaced by DiagnosticReport.study",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most avoidable-looking hard break. R4 `imagingStudy` and R6 `study` are both optional repeating references to `ImagingStudy`, so old instances, FHIRPath, serializers, generated models, and search extraction code break on a wire-name change whose apparent benefit is mostly a broader label. It deserves standards follow-up even though the resource also has other migration work."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DiagnosticReport:REFERENCE_TARGET:DiagnosticReport.media.link:41e9b8",
+      "title": "DiagnosticReport.media.link retargeted from Media to DocumentReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a safety-relevant hard instance and runtime break for reports that carry media/image links, and it also drives the `DiagnosticReport-media` search target change. It is more a core migration chore than a cheap local preservation candidate because R6 does not retain the `Media` resource in the supplied package."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DiagnosticReport:TYPE_DOMAIN:DiagnosticReport.conclusionCode:8c73aa",
+      "title": "DiagnosticReport.conclusionCode changed from CodeableConcept to CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The JSON shape changes from direct `CodeableConcept` to `CodeableReference.concept` or `.reference`, so old coded conclusions require wrapping and new Observation/Condition references cannot round-trip to R4. The transform is partly mechanical for old coded values but clinically important and coupled to the direct search-code split."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DiagnosticReport:REFERENCE_TARGET:DiagnosticReport.basedOn:7a4c2b",
+      "title": "DiagnosticReport.basedOn no longer permits ImmunizationRecommendation references",
+      "role": "important-but-local",
+      "reasonMd": "This is a real old-valid/new-invalid target break, but it appears rare for DiagnosticReport and preserving it would require more than a local target-list tweak because `ImmunizationRecommendation` is absent from the R6 package. It contributes to migration burden but does not by itself drive a resource-level redesign conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DiagnosticReport:TYPE_DOMAIN:DiagnosticReport.conclusion:4ab120",
+      "title": "DiagnosticReport.conclusion changed from string to markdown",
+      "role": "important-but-local",
+      "reasonMd": "This is not a hard instance break because ordinary R4 strings remain string-shaped in JSON, but conclusion display is clinically visible. Implementers need rendering and sanitization review; the change is proportionate enough to treat as a local migration concern rather than a standards blocker."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DiagnosticReport:ELEMENT_PRESENCE_OR_IDENTITY:r6-new-content:b2d91e",
+      "title": "R6 adds several optional content-bearing DiagnosticReport elements with no R4 native equivalent",
+      "role": "discounted",
+      "reasonMd": "The added fields may be clinically and audit significant when backporting R6 data to R4, but they do not invalidate R4 DiagnosticReport instances or force R4-to-R6 migration. They are relevant to conversion guidance, not to avoidable R4 compatibility breakage."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DiagnosticReport:TYPE_DOMAIN:DiagnosticReport.issued:6d50f1",
+      "title": "DiagnosticReport.issued widened from instant to dateTime",
+      "role": "discounted",
+      "reasonMd": "This widening should preserve R4 `instant` values in R6. It can affect reverse conversion and code that assumes instant precision, but it is not an R4-to-R6 hard break and should not drive the resource-level migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DiagnosticReport:FLAGS_AND_MODIFIERS:summary-flags:5cf002",
+      "title": "Summary flags changed for media, conclusion, conclusionCode, and recommendation",
+      "role": "important-but-local",
+      "reasonMd": "The summary surface changes can affect `_summary` responses and lightweight client views, especially removing media from summary and adding conclusion-oriented fields. This is runtime/API behavior to communicate, but it does not affect instance validity and is secondary to the structural/search breaks."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:codeable-reference-splits-clinical",
+      "title": "Several common clinical search codes split into code/reference variants or changed type because elements became CodeableReference-like",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "For DiagnosticReport, R4 had token search code `conclusion` over `conclusionCode`, while R6 exposes `conclusioncode-code` and `conclusioncode-reference`. Existing clients can see query failures or empty results even if instance migration is handled. A deprecated token alias for the concept half looks like a low-cost compatibility preservation opportunity."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "DiagnosticReport is directly affected through `media` changing from `Media` to `DocumentReference`, `based-on` losing `ImmunizationRecommendation`, and broader reference target metadata shifts. Much of this follows the structural model, so it is a migration chore more than an independent reason to reject the R6 direction."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-convert--Resource-convert:resource-convert-input-parameter-renamed",
+      "title": "Required input parameter renamed from `input` to `resource`",
+      "role": "context-only",
+      "reasonMd": "This Resource-level operation break can affect conversion tooling used with DiagnosticReport, but it is shared infrastructure behavior and was not counted as a DiagnosticReport-specific migration driver."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "Metadata operations are relevant to all resources, including DiagnosticReport, but this is a base Resource behavior issue. It should be handled in shared migration guidance rather than used to inflate the DiagnosticReport resource-level conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes may affect clients querying DiagnosticReport, but the finding is explicitly Resource/DomainResource context. The DiagnosticReport-specific behavior judgment rests on the direct conclusion and reference-target search findings."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `imagingStudy` -> `study` rename. Unless there is a stronger target-expansion rationale not visible in the supplied artifacts, preserve the R4 wire name or provide a first-class deprecated alias/mapping that validators and generated models can recognize."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Preserve DiagnosticReport coded-conclusion search compatibility where feasible by keeping `DiagnosticReport-conclusion` as a deprecated token alias to `DiagnosticReport.conclusionCode.concept`, while retaining the new code/reference searches for precise R6 semantics."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish explicit migration guidance for `media.link` and `DiagnosticReport-media`: how R4 `Media` references map to R6 `DocumentReference`, what content is preserved or lost, and how servers should handle old typed searches during transition."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document the `conclusionCode` conversion contract: wrap old `CodeableConcept` values as `CodeableReference.concept`, define reverse behavior for R6 Observation/Condition references, and call out clinical decision-support, quality, and billing consumers."
+    }
+  ],
+  "caveats": [
+    "The review did not treat shared Resource/DomainResource behavior findings as DiagnosticReport-specific drivers.",
+    "Official ballot rationale and cross-version mapping artifacts were not supplied, so some less-breaking judgments depend on the evidence visible in the local package and reports.",
+    "R6-to-R4 loss for new optional DiagnosticReport fields is clinically important for converters, but it was not counted as making R4-to-R6 migration unavoidable."
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "GuidanceResponse",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/GuidanceResponse.resource-review-context.json",
+    "structureReportPath": "output/GuidanceResponse.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/GuidanceResponse.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 6,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, the full GuidanceResponse StructureDefinition report, the local R4/R6 StructureDefinitions for identity and key element shapes, and the deterministic aggregate only after forming the resource-level judgment. There were no direct behavior findings for GuidanceResponse; shared Resource/DomainResource behavior findings were reviewed as non-scoring platform context."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "cds",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 GuidanceResponse is trial-use/FMM 2, so it does not carry a normative or high-FMM compatibility burden. That makes broad R6 CDS/workflow modernization easier to justify, but it does not erase concrete old-valid/new-invalid breaks in decision-support reasons, diagnostics, and proposed-action results."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "GuidanceResponse keeps its resource identity, but central reason/result/evaluation-message changes make targeted migration unavoidable for many implementations while low-cost compatibility preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "GuidanceResponse is not removed or replaced, and most local elements retain their identity, cardinality, type, reference targets, bindings, and modifier status. The actual migration shape is a same-resource targeted remodel around three important CDS surfaces: R4 `reasonCode`/`reasonReference` become R6 `reason` CodeableReference, `evaluationMessage` narrows from repeating to singleton, and `result` moves from a single `CarePlan|RequestGroup` reference to repeating references across R6 request resources with `RequestOrchestration` replacing `RequestGroup`.",
+    "migrationShapeMd": "A full resource identity migration is not required, but a version-aware GuidanceResponse mapper is still needed for realistic R4 data. `reasonCode` maps to `reason.concept` and `reasonReference` maps to `reason.reference`, with reverse-conversion policy for paired concept/reference items or references outside the old target set. `result` requires coordinated migration of referenced `RequestGroup` resources to `RequestOrchestration` and policy for R6 multiple-result or newly allowed request-resource references. `evaluationMessage` is narrower and can force aggregation, selection, extension retention, or manual review when R4 has multiple diagnostic outcomes.",
+    "compatibilityLeverageMd": "Because several central fields already need explicit mapping, compatibility leverage is lower than for a mostly unchanged resource with one isolated break. It is still not a case where migration-program concerns dominate everything: the resource identity is stable, many R4 instances may only touch a subset of these fields, and at least one important break (`evaluationMessage` max `*` to `1`) appears cheap to avoid in the base model. The best posture is therefore to expect targeted migration while preserving low-cost compatibility and publishing clear transition rules.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidate is `evaluationMessage`: keeping `0..*` in base and recommending one aggregate OperationOutcome would preserve R4 diagnostics without blocking the apparent simplification goal. For `reason`, deprecated `reasonCode`/`reasonReference` aliases would preserve old wire names, but they duplicate the R6 CodeableReference representation and need conflict/ordering rules. For `result`, retaining a legacy RequestGroup target would ease R4 migration but would keep an obsolete workflow resource or weaken proposed-action validation, so it is a partial rather than clearly low-cost alternative.",
+    "behaviorImpactMd": "No direct OperationDefinition, SearchParameter, or HTTP behavior findings were assigned to GuidanceResponse. The shared Resource/DomainResource behavior findings, including generic `$meta`, `$validate`, CapabilityStatement operation advertisement, and special search-parameter metadata changes, remain relevant to platforms that serve GuidanceResponse but are not GuidanceResponse-specific and were not used to increase the resource-level migration classification.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's high-level result: `majorMigrationAlreadyUnavoidable=Partial`, `resourceMigrationShape=moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The reason is not the count alone; it is the substantive mix of stable resource identity, three local hard breaks, two central non-mechanical mappings, and one clearly avoidable cardinality narrowing.",
+    "uncertaintyMd": "Confidence is high for the computable R4/R6 StructureDefinition differences. Remaining uncertainty is about prevalence and official intent: no production corpus, official migration guide, cross-version ConceptMap, or ballot rationale was supplied for GuidanceResponse, CodeableReference migration, or RequestGroup-to-RequestOrchestration mapping."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "GuidanceResponse:ELEMENT_PRESENCE_OR_IDENTITY:GuidanceResponse.reason:4b9f2a",
+      "title": "R4 reasonCode and reasonReference were merged into R6 reason CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a hard old-valid/new-invalid change for any R4 instance using either old reason field and a generated-model break from two arrays to one CodeableReference array. It materially drives the targeted remodel conclusion, but the consolidation is coherent and usually mechanically mappable, so alias-based preservation is only partially attractive because it would create duplicate reason representations and conflict rules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "GuidanceResponse:CARDINALITY:GuidanceResponse.evaluationMessage:6c2d1f",
+      "title": "evaluationMessage maximum cardinality decreased from many to one",
+      "role": "needs-follow-up",
+      "reasonMd": "This is the most avoidable local break. The type and target remain `Reference(OperationOutcome)`, but valid R4 responses with multiple diagnostic/evaluation messages fail R6 cardinality. Keeping `0..*` in base and encouraging one aggregate OperationOutcome through guidance or profiles would preserve R4 data with little apparent cost, so this deserves standards review even though other GuidanceResponse migration work remains."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "GuidanceResponse:REFERENCE_TARGET:GuidanceResponse.result:0e77aa",
+      "title": "result targets changed from CarePlan or RequestGroup to a broad R6 request-resource set",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "`result` carries proposed actions, so changing the allowed targets is safety and workflow significant. R4 `RequestGroup/...` references are no longer valid R6 targets unless the referenced resource is migrated to `RequestOrchestration`; R6 also permits many targets R4 cannot represent. This is a central migration driver, but the break appears tied to the broader workflow model rather than an isolated low-cost rename."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "GuidanceResponse:CARDINALITY:GuidanceResponse.result:3a51e8",
+      "title": "result changed from single-valued to repeating",
+      "role": "important-but-local",
+      "reasonMd": "This does not invalidate R4 instances because every R4 singleton fits R6 `0..*`, but it changes generated APIs and creates R6-to-R4 loss risk for multiple proposed actions. It is important for migration tests and down-conversion policy, but it should not be treated as an avoidable R4-to-R6 instance break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "GuidanceResponse:ELEMENT_PRESENCE_OR_IDENTITY:GuidanceResponse.location:9d0c44",
+      "title": "R6 adds optional GuidanceResponse.location",
+      "role": "discounted",
+      "reasonMd": "The new optional `location` element is forward-compatible for R4 instances and is not a modifier. It needs R6-to-R4 retention policy if populated, but that is ordinary optional-field down-conversion work rather than evidence of an R4-to-R6 compatibility problem."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "GuidanceResponse:FLAGS_AND_MODIFIERS:summary-context-fields:f2a8b1",
+      "title": "subject, encounter, and occurrenceDateTime are newly included in summaries",
+      "role": "discounted",
+      "reasonMd": "The summary-flag changes can affect `_summary` payloads, lightweight generated models, and privacy/minimal-disclosure tests, but they do not change full-resource validity or modifier semantics. This is a local runtime awareness item, not a driver of the resource-level migration conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "HttpRestBehavior:base:system-operation-advertisement",
+      "title": "Base CapabilityStatement removed several R4 system-level operation advertisements",
+      "role": "context-only",
+      "reasonMd": "This may affect generic servers and clients that also handle GuidanceResponse, but the finding is about base CapabilityStatement operation discovery rather than the GuidanceResponse resource model. It was reviewed as platform context and not counted as a direct GuidanceResponse break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "Validation-operation changes can affect migration tooling used to validate GuidanceResponse instances, especially in cross-version test suites. Because the affected surface is the shared Resource operation contract, not GuidanceResponse-specific behavior, it does not drive this resource-level classification."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes are relevant to all resource-serving platforms, but they are not local GuidanceResponse search or structure changes. They should be handled by the shared SearchParameter/base-resource review rather than inflating this resource's migration burden."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit `GuidanceResponse.evaluationMessage` cardinality before finalizing R6: keep base `0..*` or provide a clearly justified transition design if single-valued diagnostics are required."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish an authoritative GuidanceResponse migration map covering `reasonCode`/`reasonReference` to CodeableReference, `RequestGroup` result references to `RequestOrchestration`, and policies for multiple or newly allowed R6 `result` targets."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add migration tests for R4 instances with populated reason fields, more than one `evaluationMessage`, `result` references to both CarePlan and RequestGroup, and R6 down-conversion cases with paired reasons, `location`, and multiple results."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Review `_summary` and minimal-disclosure behavior for the newly summarized subject, encounter, occurrenceDateTime, and location context fields."
+    }
+  ],
+  "caveats": [
+    "No official HL7 migration guide, ConceptMap, rendered diff, or ballot rationale was supplied for GuidanceResponse.",
+    "No production corpus or implementation-guide prevalence analysis was available, so the frequency of reason fields, multiple evaluation messages, and RequestGroup results is estimated rather than measured.",
+    "Shared Resource and DomainResource behavior findings were reviewed only as context and were not scored as GuidanceResponse-specific direct behavior findings.",
+    "The R6 input is ballot4, so final publication could alter the reviewed structure or behavior."
+  ]
+}

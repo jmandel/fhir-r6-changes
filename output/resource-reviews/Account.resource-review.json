@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Account",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Account.resource-review-context.json",
+    "structureReportPath": "output/Account.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Account.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/HttpRestBehavior.report.json",
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json"
+    ],
+    "reviewedStructureFindingCount": 6,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Account resource-review context, the full Account StructureDefinition report, the shared behavior context, the R4 maturity map entry, and then compared the independent conclusion with the deterministic aggregate. There were no direct behavior findings for Account; shared Resource/DomainResource behavior findings were considered as context only, not scored as Account-specific redesign."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 Account is trial-use/FMM 2, so it does not carry normative-level compatibility pressure. That neutral maturity context does not dismiss the hard hierarchy-field rename, because the affected workflow is financial/account hierarchy data and a low-cost compatible design appears plausible."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "Account keeps its identity and is mostly stable; `Account.partOf` -> `Account.parent` is the single hard avoidable R4-to-R6 instance break, while the other material issues are codegen, runtime-assumption, or R6-to-R4 conversion chores."
+  },
+  "reasoning": {
+    "thesisMd": "A broad Account migration program is not already unavoidable for R4-to-R6 instance validity. The resource remains the same canonical Account StructureDefinition, has no new mandatory top-level R6 content, and most existing R4 Accounts can move forward structurally. The main forward break is the `partOf` path rename. The other substantial findings matter for generated models, billing business logic, and mixed-version/down-conversion policy, but they do not show a wholesale replacement of the Account model.",
+    "migrationShapeMd": "The migration shape is a targeted local remodel: map `Account.partOf` to `Account.parent` where present, update generated model types for `description`, and test local billing logic for R6 guarantor and financial fields. R6 also adds optional richer billing, balance, diagnosis/procedure, and coverage context that R4 cannot represent natively, so organizations supporting R6-to-R4 exchange need explicit loss/extension/mapping policy. That reverse-direction policy work is important, but it is different from saying every R4 Account requires a major R6 transformation.",
+    "compatibilityLeverageMd": "Because the resource is not already dominated by an unavoidable redesign, preserving compatibility per change remains high leverage. The fact that implementers must regenerate models or add mappings for optional R6 financial content does not justify an avoidable wire-name break in the existing hierarchy field. Low-cost preservation of the old path, or at minimum an explicit transitional mapping, would materially reduce migration risk.",
+    "lessBreakingAlternativesMd": "The standards-review-worthy less-breaking alternative is the hierarchy rename: R6 could have retained `partOf` with clarified wording, or provided a deprecated compatibility path if `parent` was strongly preferred. The `description` string-to-markdown change has only a partial alternative because markdown carries useful rendering/sanitization semantics and keeps a string-like JSON representation. The optional new R6 billing and clinical fields are already forward-compatible additions; their mitigation belongs in cross-version mapping guidance rather than in blocking the base R6 additions.",
+    "behaviorImpactMd": "No direct Account OperationDefinition, SearchParameter, or HTTP behavior finding was present. Shared Resource/DomainResource findings such as Resource `$meta` removals, `$validate` semantics, and shared search-parameter metadata can affect generic clients operating on Account endpoints, but per the review rules they are context only for Account and do not make Account itself a major migration case.",
+    "comparisonToDeterministicAggregateMd": "The independent conclusion agrees with the deterministic aggregate on the main labels: major migration is not already unavoidable, the shape is mostly stable with local breaks, and compatibility should be preserved per change. The important nuance is that the aggregate's one hard break is not just a count signal; it is a low-cost-to-preserve hierarchy rename that still deserves renewed standards attention. Conversely, the R6-only financial additions are business-important down-conversion work but should not be inflated into an R4-to-R6 hard-break program.",
+    "uncertaintyMd": "Confidence is high for the computable structure shape and finding count. The main uncertainty is standards intent and prevalence: the supplied inputs did not include official Account change rationale, rendered narrative change notes, production usage data for `partOf`, or live terminology expansion for new financial value sets."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Account:ELEMENT_PRESENCE_OR_IDENTITY:Account.partOf:7a6a56",
+      "title": "Account hierarchy element changed from partOf to parent",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the only clear old-valid/new-invalid Account instance break: an R4 Account carrying `partOf` will not match the R6 element name without transformation. It does not by itself make a resource-wide migration program unavoidable, but it is the strongest reason to preserve compatibility per change because the old and new elements describe the same parent-account relationship and retaining the R4 name appears low cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Account:SERIALIZATION_OR_CODEGEN:Account.description:2df66e",
+      "title": "Account.description type changed from string to markdown",
+      "role": "important-but-local",
+      "reasonMd": "This matters for generated APIs and rendering/sanitization behavior, but ordinary JSON values remain string-like and the path/cardinality are unchanged. It is a local implementation chore rather than evidence of major Account remodeling."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Account:CARDINALITY:Account.guarantor.party:5fb2ad",
+      "title": "Guarantor party is no longer required and guarantor can point to an Account",
+      "role": "important-but-local",
+      "reasonMd": "Lowering the minimum is not a forward R4-to-R6 validation break. The material issue is mixed-version runtime and down-conversion behavior: R4-era logic often assumes `guarantor.party`, while R6 can represent account-based guarantor responsibility and related financial details."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Account:CONVERSION_OR_MAPPING:Account.diagnosis-procedure-covers:cc31bd",
+      "title": "R6 adds clinical billing context on Account that R4 cannot carry natively",
+      "role": "important-but-local",
+      "reasonMd": "These optional additions do not invalidate R4 Accounts in R6, but they create real R6-to-R4 loss risks for billing, reimbursement, and audit workflows. They need mapping policy, not renewed base-design review to preserve R4 forward compatibility."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Account:CONVERSION_OR_MAPPING:Account.billing-balance:91e303",
+      "title": "R6 adds Account billing status, currency, balance, and calculation timestamp",
+      "role": "important-but-local",
+      "reasonMd": "The new financial state is optional and therefore forward-compatible for R4 instances, but loss or misinterpretation of balances, currency, or calculation time can have high business impact in mixed-version systems. This is a safety/business-critical migration-policy issue rather than an avoidable R4-to-R6 hard break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Account:SEMANTIC_OR_CONFORMANCE_TEXT:Account.subject:a9450f",
+      "title": "Account.subject guidance now allows billing-demographic Patient divergence from clinical Patient",
+      "role": "discounted",
+      "reasonMd": "The guidance can affect local identity assumptions, but the base element path, cardinality, and target types are unchanged. It is useful implementation guidance and does not materially change the resource-level compatibility conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This shared Resource operation removal can affect clients that use generic metadata operations on Account instances, and the low-cost-preservation concern is real at the Resource behavior level. It is not a direct Account finding, so it is not counted as Account content-model migration pressure."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "Account validation clients may encounter this shared `$validate` behavior change, but it is inherited Resource operation behavior. It should be handled in the Resource/operation review, not used to classify Account as a major remodel."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata can affect generated clients for all resources, including Account, but the query codes remain shared infrastructure concerns. It does not alter the Account StructureDefinition migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `Account.partOf` -> `Account.parent` rename. Prefer retaining `partOf` in base R6 if possible, or publish an explicit deprecated compatibility path/cross-version mapping so hierarchy data does not disappear during migration."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish Account R4/R6 mapping guidance for the new R6 billing, balance, diagnosis/procedure, coverage, and guarantor fields, including when to preserve data in extensions, map to related resources, or reject lossless down-conversion."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add implementation migration tests for `description` markdown handling, nullable `guarantor.party`, account-based guarantor responsibility, and the clarified `subject` Patient-linking semantics."
+    }
+  ],
+  "caveats": [
+    "No direct Account behavior/API findings were present; shared Resource/DomainResource behavior findings were treated as context only.",
+    "The supplied inputs did not include official Account ballot rationale or rendered change notes, so design intent is inferred from computable artifacts and reports.",
+    "No live terminology expansion was available for the new Account financial value sets."
+  ]
+}

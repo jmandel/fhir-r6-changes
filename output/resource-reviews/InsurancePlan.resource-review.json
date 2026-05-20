@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "InsurancePlan",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/InsurancePlan.resource-review-context.json",
+    "structureReportPath": "output/InsurancePlan.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/InsurancePlan.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 8,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, the full `InsurancePlan` StructureDefinition report, the deterministic aggregate as prior context, the local R4/R6 `InsurancePlan` definitions, and the R6 `InsuranceProduct` definition to verify where removed product content moved. The behavior reports were searched for findings whose `affectedResources` include `InsurancePlan`; none were direct. Shared `Resource`/`DomainResource` behavior findings were treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 `InsurancePlan` was FMM 0 trial-use, so the standards burden to preserve every R4 wire shape is weak. That lowers the presumption against remodeling, but it does not erase the practical business risk in payer/product status, identifiers, coverage, network, contact, and plan cost data."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "R6 keeps `InsurancePlan` but remodels it from a combined product/plan container into plan resources linked to `InsuranceProduct`; nontrivial R4 data needs a split, while identifier/type/status compatibility still has review value."
+  },
+  "reasoning": {
+    "thesisMd": "The actual migration shape is a same-name resource remodel, not a simple element cleanup. R4 `InsurancePlan` carried product-level identity, status, ownership, contacts, endpoints, coverage benefits, and repeatable nested plan offerings. R6 moves product facts to `InsuranceProduct`, leaves `InsurancePlan` as the individual plan offering, adds `InsurancePlan.product`, and hoists former `plan[]` children to the root. That makes a resource-level migration program unavoidable for realistic R4 use, but not so absolute that each additional compatibility break becomes irrelevant.",
+    "migrationShapeMd": "The core transform is to create or match an `InsuranceProduct` for the R4 product-side content, then create one R6 `InsurancePlan` for each R4 `InsurancePlan.plan` repetition, preserving cost, network, and coverage-area facts at the new root. The same-name resource identity and all-optional base elements mean sparse R4 instances may not require a full split, so `Partial` is more precise than an unconditional `Yes`. For normal product-directory data, however, path-preserving migration is unsafe: `identifier` and `type` retain familiar paths but now identify/classify the plan rather than the product.",
+    "compatibilityLeverageMd": "The resource redesign is broad enough that migration planning dominates for product fields and the removed `plan[]` backbone once the split is accepted. Still, the best standards posture is not `migration-program-dominates`: low-cost preservation or explicit conversion rules for stable-looking paths can prevent silent business errors. `InsurancePlan.identifier`, `InsurancePlan.type`, and moved modifier `status` are the areas where compatibility preservation remains high leverage despite the broader remodel.",
+    "lessBreakingAlternativesMd": "Retaining all old product fields and the old repeatable `plan[]` backbone as deprecated content would preserve more R4 instances, but it would also leave duplicate product and plan representations with conflict/precedence rules, so those breaks are mostly local migration chores after accepting the new normalized model. The more avoidable concerns are narrower: avoid reusing `InsurancePlan.type` with a different meaning and lower max, make `identifier` migration source-path-aware, and provide explicit transitional handling for the moved modifier `status`.",
+    "behaviorImpactMd": "No direct operation, search, or HTTP behavior finding was scoped to `InsurancePlan`. The shared `Resource`/`DomainResource` behavior findings are relevant to the general R6 ecosystem but do not change this resource-level conclusion. Separate search-parameter migration may still be needed because product and plan facts moved across resources, but that is not represented as a direct behavior finding in the supplied reports.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial` and `preserve-where-low-cost-but-expect-resource-migration`; I agree with those two conclusions. I characterize the migration shape as `major-model-remodel` rather than merely moderate because the resource's business object changed from combined product plus nested plans to plan resources backed by `InsuranceProduct`. The low R4 FMM prevents treating the whole redesign as presumptively unacceptable.",
+    "uncertaintyMd": "Confidence is high for the structural shape because the R4/R6 StructureDefinitions and R6 `InsuranceProduct` are available locally. Uncertainty remains around official rationale, official conversion maps, terminology expansions, real-world prevalence for this FMM 0 resource, and whether the ballot4 R6 content will change before final publication."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "InsurancePlan:ARTIFACT_IDENTITY:root:5d1b71",
+      "title": "InsurancePlan was split from a combined product/plan resource into a plan resource backed by InsuranceProduct",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the organizing change: the resource name survives, but the business object shifts. It makes a same-resource copy unsafe and requires product matching/creation plus plan-resource creation for nontrivial R4 instances."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.product-fields:cba827",
+      "title": "Product metadata, contacts, endpoints, ownership, and coverage benefits were removed from InsurancePlan",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "These removals are not isolated churn; they are the concrete product half of the split. Once the R6 model is accepted, migration must move these facts to `InsuranceProduct`, but official maps or transitional fields would materially reduce implementation risk."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.plan:62296d",
+      "title": "Repeatable R4 InsurancePlan.plan backbone was removed and its child plan data was hoisted to the R6 InsurancePlan root",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the plan half of the split. R4 instances with multiple `plan` repetitions generally need to become multiple R6 `InsurancePlan` resources, so migration requires identity/reference policy rather than a local rename."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "InsurancePlan:ELEMENT_PRESENCE_OR_IDENTITY:InsurancePlan.status:b74bb0",
+      "title": "Modifier element InsurancePlan.status was removed from InsurancePlan and moved to InsuranceProduct.status",
+      "role": "important-but-local",
+      "reasonMd": "`status` follows the product move, but it was a modifier and carries active/draft/retired semantics. Dropping or misplacing it can make inactive products look usable, so conversion guidance or a transitional alias has higher value than an ordinary moved optional field."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "InsurancePlan:CARDINALITY:InsurancePlan.type:fc5acb",
+      "title": "InsurancePlan.type changed from repeatable product type to single plan classification",
+      "role": "needs-follow-up",
+      "reasonMd": "This is the most avoidable-looking local break: it both narrows cardinality and reuses a stable path with a different business meaning. A renamed R6 plan-classification element, a legacy alias, or stronger normative conversion rules would reduce silent mapper errors."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "InsurancePlan:SEMANTIC_OR_CONFORMANCE_TEXT:InsurancePlan.identifier:2bb116",
+      "title": "InsurancePlan.identifier kept the path but changed from product identifier to plan/group identifier semantics",
+      "role": "needs-follow-up",
+      "reasonMd": "This is not a base validation break, but it is high-risk because path-based transforms can produce syntactically valid R6 plans carrying product identifiers. That can corrupt matching, search, and deduplication, so explicit source-path-aware mapping guidance remains valuable even after accepting the remodel."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "InsurancePlan:VALUE_CONSTRAINT:InsurancePlan.ipn-1:58a463",
+      "title": "InsurancePlan-specific invariant requiring identifier or name was removed from InsurancePlan",
+      "role": "discounted",
+      "reasonMd": "Removing the invariant does not reject old R4 instances in R6. It matters mainly for R6-to-R4 round-tripping and data quality, so it does not drive the R4-to-R6 resource-level migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "InsurancePlan:REFERENCE_TARGET:InsurancePlan.product:02afeb",
+      "title": "R6 added InsurancePlan.product Reference(InsuranceProduct), creating a new cross-resource dependency not representable in R4",
+      "role": "important-but-local",
+      "reasonMd": "The optional product reference is additive for R4-to-R6 validation, but it confirms the new cross-resource dependency and is central to down-conversion and product dereferencing policy."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared `Resource`/`DomainResource` behavior context may affect generic clients, but it is not scoped specifically to `InsurancePlan` and therefore was not used to score the resource-level migration burden."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or verify official R4-to-R6 conversion maps for the product/plan split, including product resource creation or matching, one-R6-plan-per-R4-`plan` rules, reference/identifier preservation, and round-trip policy."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `InsurancePlan.type` and `InsurancePlan.identifier` changes as standards-review items because they preserve familiar paths while changing business meaning; prefer legacy aliases, distinct R6 naming, or normative conversion warnings over silent path-based migration."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Provide explicit transitional handling for moved modifier `status`, especially for retired/draft/unknown product states, so migrated directories do not treat unavailable products as active."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Review `InsuranceProduct` and InsurancePlan/InsuranceProduct search parameters together with this resource, because product facts and search/indexing responsibilities moved across resource boundaries."
+    }
+  ],
+  "caveats": [
+    "No official R4-to-R6 diff rationale or executable conversion map was supplied.",
+    "The R6 input package is a ballot4 build, so final R6 content may differ.",
+    "R4 FMM 0 makes implementation prevalence uncertain; business-risk judgments are based on the semantics of payer directory and coverage data.",
+    "Shared `Resource` and `DomainResource` behavior findings were reviewed as context only and did not count as direct `InsurancePlan` behavior breaks."
+  ]
+}

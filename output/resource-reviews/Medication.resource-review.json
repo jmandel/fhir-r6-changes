@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Medication",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Medication.resource-review-context.json",
+    "structureReportPath": "output/Medication.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Medication.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Medication resource-review context, the full Medication StructureDefinition report, primary R4/R6 Medication element definitions for the changed paths, the direct SearchParameters finding whose `affectedResources` include Medication, and the shared Resource/DomainResource behavior context as background only. The deterministic aggregate was compared after forming the resource-level conclusion."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "phx",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Medication was FMM 3/trial-use, so it does not have a normative compatibility burden, but it is mature enough that product identity, ingredient, package, batch, and medication search behavior should not be broken without a clear migration benefit. Low-cost preservation is especially important for simple renames and for semantics with clinical, regulatory, or supply-chain meaning."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Medication keeps its R6 resource identity, but common package, ingredient, and renamed product fields require targeted migration while low-cost compatibility preservation remains valuable."
+  },
+  "reasoning": {
+    "thesisMd": "The actual migration shape is a same-resource targeted remodel, not a removed resource and not a mostly unchanged resource. The R6 core still has `Medication`, and simple code/status-only instances may need little structural work, but R4 instances using common Medication details such as `form`, `manufacturer`, `amount`, `ingredient.item[x]`, `ingredient.strength`, or `batch` will not validate unchanged against R6.",
+    "migrationShapeMd": "A resource-level migration program is therefore partly unavoidable for any implementation that supports more than the thinnest Medication representation. The work is concentrated in field transforms: `form` to `doseForm`, `manufacturer` to the narrower `marketingAuthorizationHolder` or another policy destination, `amount` to `packageSize`, `ingredient.item[x]` to `CodeableReference`, `ingredient.strength` to `strength[x]`, and `batch` to `instance` with an added identifier option. This is substantial enough to require coordinated validator, serializer, FHIRPath, profile, and index updates, but it is not a full resource identity replacement.",
+    "compatibilityLeverageMd": "The need for a targeted migration program does lower the value of preserving every old wire name indefinitely, especially where the R6 model intentionally normalizes package size or ingredient representation. It does not make additional break prevention pointless. Several breaks appear cheap to avoid or worth explicit transition behavior: retaining or aliasing `form`, preserving `batch` while adding `batch.identifier` or an equivalent alias, and keeping a distinct `manufacturer` path alongside `marketingAuthorizationHolder` to avoid forcing a semantically unsafe regulatory/manufacturing mapping.",
+    "lessBreakingAlternativesMd": "The strongest low-cost alternatives are for the pure or near-pure renames. `form` and `doseForm` have the same type, cardinality, binding, and definition, so keeping `form` as the stable base name or a deprecated alias would preserve R4 instances with little model cost. `batch` to `instance` also keeps lot number and expiration date, so adding `identifier` under the old backbone would preserve most R4 data. `manufacturer` to `marketingAuthorizationHolder` is more than a rename because the MAH may differ from the manufacturer; preserving both concepts would reduce semantic migration risk. By contrast, retaining both R4 `ingredient.item[x]` and R6 CodeableReference, or both a single R4 package `amount` and richer R6 package-size decomposition, would create duplicate representations and consistency rules, so those are more plausibly local migration chores once the R6 design is accepted.",
+    "behaviorImpactMd": "The direct behavior issue is a SearchParameter expression move: stable search codes still exist, but expressions can now index R6 paths such as `Medication.doseForm` instead of R4 `Medication.form`. For fully transformed data this is expected, but compatibility servers, custom stores, and incremental migrations can see silent result-set drift unless indexes and search fixtures are migrated with the data. Shared Resource and DomainResource operation/search findings are real platform context, but Medication is neither Resource nor DomainResource, so those shared findings do not drive this Medication-specific resource conclusion.",
+    "comparisonToDeterministicAggregateMd": "After independent review, I agree with the deterministic aggregate's high-level labels: `majorMigrationAlreadyUnavoidable = Partial`, migration shape `moderate-targeted-remodel`, and compatibility posture `preserve-where-low-cost-but-expect-resource-migration`. The conclusion is not because there are six hard breaks in the abstract; it follows from the specific concentration of breaks in common Medication product/package/ingredient paths plus several standards-review-worthy low-cost preservation opportunities.",
+    "uncertaintyMd": "The structural evidence is high confidence from the supplied R4 and R6 StructureDefinitions. Remaining uncertainty is about official pharmacy work-group rationale, final R6 ballot changes, rendered narrative migration guidance, terminology expansions, and whether the status definition change is intended as a semantic shift or only a clarification."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.manufacturer:mah-rename",
+      "title": "Medication.manufacturer was replaced by marketingAuthorizationHolder with narrower semantics",
+      "role": "needs-follow-up",
+      "reasonMd": "This is one of the most standards-review-worthy breaks. R4 `manufacturer` is not equivalent to R6 `marketingAuthorizationHolder`; the R6 definition explicitly allows the MAH to manufacture the product or contract manufacturing elsewhere. A forced rename can therefore create wrong regulatory or supply-chain meaning, and retaining optional `manufacturer` alongside `marketingAuthorizationHolder` appears lower cost than making every implementation choose a lossy mapping."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.form:doseform-rename",
+      "title": "Medication.form was renamed to doseForm",
+      "role": "needs-follow-up",
+      "reasonMd": "This looks like the cleanest avoidable break. The element remains optional `CodeableConcept` with the same example binding and descriptive text, so the R6 goal could likely be met by clarifying the old `form` name or retaining it as a deprecated alias. Because Medication form is a common query and generated-model property, this low-cost preservation would reduce real churn."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Medication:SERIALIZATION_OR_CODEGEN:Medication.amount:package-size",
+      "title": "Medication.amount was replaced by packageSize.numberOfItems and packageSize.amountPerItem",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This contributes materially to the targeted migration program. R4 has a single package amount `Ratio`; R6 separates package count from amount per item. The R6 representation is more expressive and may justify migration, but old instances need restructuring and reverse conversion can be lossy when R6 uses both count and per-item detail."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Medication:TYPE_DOMAIN:Medication.ingredient.item:codeable-reference",
+      "title": "Ingredient item changed from item[x] choice to CodeableReference and added SubstanceDefinition target",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Ingredient identity is required within each ingredient and changes from R4 choice-suffixed names to a single CodeableReference. This affects validation, serializers, generated accessors, FHIRPath, and down-conversion for `SubstanceDefinition` or combined concept/reference content. It is probably a deliberate R6 modeling modernization, but it is not a trivial compatibility chore."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Medication:TYPE_DOMAIN:Medication.ingredient.strength:choice-expanded",
+      "title": "Ingredient strength changed from Ratio to strength[x] with Ratio, CodeableConcept, or Quantity",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Medication strength is safety-sensitive. Even though R4 `Ratio` can map to R6 `strengthRatio`, the wire name changes and R6 can now carry coded or quantity strengths that have no base R4 equivalent. This makes migration and testing necessary for both forward validation and downgrade policy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.batch:instance-rename",
+      "title": "Medication.batch was renamed to instance and gained instance.identifier",
+      "role": "needs-follow-up",
+      "reasonMd": "The old lot number and expiration date content largely survives under a renamed backbone, and the main R6 addition is an optional identifier. Preserving `batch` and adding `batch.identifier`, or defining a deprecated alias, would avoid breaking lot/expiration exchange and FHIRPath/index logic with modest model cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Medication:TERMINOLOGY_BINDING:Medication.status:status-meaning",
+      "title": "Medication.status keeps the same required codes but changes code definitions toward record currency",
+      "role": "needs-follow-up",
+      "reasonMd": "The codes still validate, so this is not a hard instance break, but `status` is a modifier and implementations may attach workflow or safety behavior to `active`, `inactive`, and `entered-in-error`. If R6 intentionally shifts from medication availability toward record currentness, that deserves explicit clarification or a separate element rather than relying on unchanged codes with changed semantics."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Medication:ELEMENT_PRESENCE_OR_IDENTITY:Medication.ingredient.role:added",
+      "title": "Medication.ingredient.role was added and is not representable in base R4 Medication",
+      "role": "discounted",
+      "reasonMd": "This is optional and additive for R4-to-R6 migration. It creates downgrade and round-trip policy work for R6-originated instances, but it does not make R4 Medication instances invalid in R6 and should not inflate the resource-level R4-to-R6 compatibility judgment."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Medication:REFERENCE_TARGET:Medication.definition:definition-targets",
+      "title": "Medication.definition adds R6-only definitional resource references",
+      "role": "discounted",
+      "reasonMd": "The formal-definition reference is optional R6-only content. It is important for R6-to-R4 downgrade planning and product-definition linkage, but because there is no corresponding R4 element being removed or narrowed, it is not a direct old-valid/new-invalid R4-to-R6 break."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "Medication is in scope because one example is `Medication.form` moving to `Medication.doseForm`. The search code may still be accepted, but the indexed expression changes, so servers that migrate metadata before data or keep compatibility stores can return different results. This should be addressed with Medication-specific index migration tests and, where feasible, transitional expression handling."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "Generic Medication servers may also expose Resource-level metadata operations, and the operation-level finding may deserve preservation in its own review. Under the resource-review rules, it is context only here because Medication is not the Resource or DomainResource artifact."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This shared search metadata issue can affect platform-level conformance and generic clients, but it is not a Medication content-model or Medication-specific search expression change. It should not be counted as additional Medication-specific migration pressure."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit the low-cost rename breaks before finalizing R6: keep or alias `Medication.form` and `Medication.batch` where possible, and preserve a distinct `manufacturer` concept rather than forcing it into `marketingAuthorizationHolder`."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish authoritative Medication R4-to-R6 maps for `amount` to `packageSize`, `ingredient.item[x]` to CodeableReference, `ingredient.strength` to `strength[x]`, and downgrade handling for R6-only `SubstanceDefinition`, coded/quantity strengths, `ingredient.role`, `definition`, and `instance.identifier`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Clarify `Medication.status` semantics in R6, especially whether unchanged codes now describe record currentness rather than medication use/availability, because the element is a modifier and can affect runtime behavior."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Add Medication search/index migration guidance and regression fixtures for stable search codes whose expressions move, especially searches over dose form/form, so partial migrations do not silently change result sets."
+    }
+  ],
+  "caveats": [
+    "The conclusion is based on the supplied R6 6.0.0-ballot4 core package; final R6 publication could change the Medication design.",
+    "No official R4-to-R6 Medication diff, pharmacy work-group rationale, rendered narrative migration guide, ConceptMap, or StructureMap was supplied.",
+    "No live terminology expansions or production instance corpus was reviewed, so prevalence and exact terminology compatibility remain uncertain.",
+    "Shared Resource and DomainResource behavior findings were considered only as context and not scored as Medication-specific breaks."
+  ]
+}

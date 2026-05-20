@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "EpisodeOfCare",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/EpisodeOfCare.resource-review-context.json",
+    "structureReportPath": "output/EpisodeOfCare.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/EpisodeOfCare.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 6,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the output contract, resource-level rubric, fresh-review framework, EpisodeOfCare resource-review context, the full EpisodeOfCare StructureDefinition report, the deterministic aggregate, local R4/R6 EpisodeOfCare StructureDefinitions, and behavior reports for direct findings. No OperationDefinition, SearchParameter, or HTTP behavior finding directly names EpisodeOfCare; shared Resource/DomainResource behavior findings were considered as context only."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 EpisodeOfCare is trial-use/FMM 2, so the baseline compatibility pressure is neutral rather than normative. That permits model evolution, but it does not make central patient/subject, diagnosis, care-team, or billing-priority breaks harmless, especially where old wire shapes could be preserved at low base-model cost."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "EpisodeOfCare keeps its resource identity but needs a targeted R4-to-R6 migration program for subject and diagnosis remodeling; low-cost preservation of avoidable renames and rank data still matters."
+  },
+  "reasoning": {
+    "thesisMd": "EpisodeOfCare is not removed or replaced, but it is not merely a stable resource with one local nuisance break. Every conformant R4 instance uses required `patient`, which R6 replaces with required `subject`, and populated diagnosis data must be reshaped and sometimes clinically classified across `reason` and `diagnosis`. That makes a resource-specific migration program practically unavoidable for real R4-to-R6 adoption, while leaving several individual changes worth revisiting because they are avoidable wire-name or data-loss breaks rather than necessary consequences of the R6 diagnosis model.",
+    "migrationShapeMd": "The migration shape is a moderate targeted remodel. Mechanical transforms include `patient` to `subject`, `team` to `careTeam`, `diagnosis.role` to repeating `diagnosis.use`, and wrapping R4 `diagnosis.condition` references as R6 CodeableReference entries. Policy-heavy transforms include deciding whether old broad diagnosis entries are reasons, addressed diagnoses, or both, handling R6 concept-only or multiple diagnosis conditions in down-conversion, and preserving `diagnosis.rank` through Account diagnosis sequence, extensions, or local policy. The resource identity remains stable and there are no direct EpisodeOfCare behavior/API findings.",
+    "compatibilityLeverageMd": "Because a targeted migration program is already needed, preventing one additional local change will not eliminate migration work. It would still reduce risk and cost where the break is a low-value rename or a removable data-loss edge. The right posture is not `migration-program-dominates`; it is to expect EpisodeOfCare migration while preserving compatibility where doing so does not undermine the R6 clinical model.",
+    "lessBreakingAlternativesMd": "The strongest low-cost alternatives are retaining `EpisodeOfCare.patient` as the required subject slot while widening its target to Patient or Group, retaining `diagnosis.role` while allowing repeat and updated preferred terminology, retaining `team` with clearer text or aliases, and keeping `diagnosis.rank` as deprecated with guidance toward Account for billing sequence. By contrast, preserving the old single Reference-only `diagnosis.condition` or broad R4 diagnosis semantics alongside the new reason/diagnosis split would create duplicate clinical representations and conflict rules, so those remodels are better treated as proportionate migration chores with strong mapping guidance.",
+    "behaviorImpactMd": "There are no direct EpisodeOfCare OperationDefinition, SearchParameter, or HTTP behavior findings. Shared Resource/DomainResource issues such as Resource `$meta` operation removals, `$validate` semantics, system operation advertisement churn, and shared special search-parameter metadata can affect generic clients operating on EpisodeOfCare instances, but the review rules make them context only for this resource and they do not change the EpisodeOfCare content-model conclusion.",
+    "comparisonToDeterministicAggregateMd": "The independent conclusion agrees with the deterministic aggregate on `moderate-targeted-remodel`, major migration `Partial`, and `preserve-where-low-cost-but-expect-resource-migration`. The qualitative emphasis is that the required `patient` rename alone makes version-specific instance transformation unavoidable, but the resource is still far from a wholesale replacement. Counts should not be used to dismiss the avoidable `patient`, `role`, `team`, and `rank` concerns.",
+    "uncertaintyMd": "Confidence is high for the structural deltas and absence of direct behavior findings. The main uncertainties are official PA work-group rationale, real-world prevalence of EpisodeOfCare diagnosis/rank/team usage, and whether ballot migration guidance or ConceptMaps will explicitly cover diagnosis role/use and reason/diagnosis classification."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "EpisodeOfCare:element:patient-subject:0f0a54",
+      "title": "Required patient was renamed to required subject and widened to Patient or Group",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most universal R4-to-R6 instance break: R4 requires `patient`, while R6 requires `subject`, so an untransformed R4 EpisodeOfCare fails strict R6 validation even when it has no optional diagnosis or team content. Widening to Group is reasonable, but keeping the old wire path with updated wording and target types appears a plausible low-cost compatible design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "EpisodeOfCare:type:diagnosis-condition:7d8d0b",
+      "title": "diagnosis.condition changed from one required Reference to repeating CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a real hard shape break for populated diagnoses and a source of R6-to-R4 loss because R6 can carry concept-only, text-only, multiple, or absent conditions. It materially drives the need for migration, but the unified CodeableReference model has a coherent clinical goal and preserving a parallel old Reference field would create duplicate diagnosis representations."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "EpisodeOfCare:semantic:diagnosis-reason-split:68bd1f",
+      "title": "R4 diagnosis semantics split between R6 reason and diagnosis",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The semantic split creates expert-dependent migration: old R4 diagnosis data may represent reasons for care, actually addressed conditions, or both. That is safety-relevant because blindly choosing one bucket can overstate treatment or lose the reason-for-care meaning. The split is probably justified, but it needs explicit migration guidance rather than being treated as a trivial local rename."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "EpisodeOfCare:element:diagnosis-role-use:1d6b42",
+      "title": "diagnosis.role was replaced by repeating diagnosis.use with a different preferred ValueSet",
+      "role": "important-but-local",
+      "reasonMd": "The element remains an optional CodeableConcept classification with similar prose, but the path changes from `role` to `use`, max cardinality widens, and the preferred ValueSet changes. Because preferred bindings do not themselves reject old codings, the avoidable part is mainly the wire-name break; retaining `role` while allowing repeats would likely preserve R4 instances at modest cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "EpisodeOfCare:element:diagnosis-rank:aa4071",
+      "title": "diagnosis.rank was removed from EpisodeOfCare",
+      "role": "important-but-local",
+      "reasonMd": "This optional removal does not by itself define the whole resource migration shape, but it matters because rank can carry billing sequence or clinical priority and R6 moves billing-oriented ranking to Account rather than a same-resource field. A deprecated transitional `diagnosis.rank` would reduce data-loss risk while still guiding implementers toward Account for reimbursement use cases."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "EpisodeOfCare:element:team-careTeam:2de3c5",
+      "title": "team was renamed to careTeam",
+      "role": "important-but-local",
+      "reasonMd": "This is a mechanically reversible optional CareTeam reference rename with unchanged cardinality and target. It is a local migration chore once the broader EpisodeOfCare migration is accepted, but it remains standards-review-worthy because clearer naming could have been achieved in definitions or aliases without breaking old instances, generated properties, and FHIRPath expressions."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "Generic clients may use Resource-level metadata operations against EpisodeOfCare instances, so this shared behavior issue is operationally relevant. It is not an EpisodeOfCare-specific behavior finding and should be resolved in the Resource/OperationDefinition review rather than used to classify the EpisodeOfCare content model."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata can affect generated clients and conformance tooling for EpisodeOfCare endpoints, but the affected resources are Resource/DomainResource rather than EpisodeOfCare directly. It is therefore context only for this resource-level judgment."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit low-cost wire compatibility for `patient`/`subject`, `diagnosis.role`/`diagnosis.use`, and `team`/`careTeam`. Prefer retaining the old paths where feasible, or publish explicit deprecated aliases/cross-version mapping rules if the R6 names are retained."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish EpisodeOfCare migration guidance for diagnosis classification: when old R4 diagnosis data becomes R6 `reason`, R6 `diagnosis`, or both; how to wrap Condition references as CodeableReference; and how to handle R6 concept-only or multiple diagnosis conditions in R4 export."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define a non-silent migration path for `diagnosis.rank`, including when to migrate to `Account.diagnosis.sequence`, when to preserve a non-billing priority in an extension/profile, and how to test that rank data is not dropped."
+    }
+  ],
+  "caveats": [
+    "No direct EpisodeOfCare behavior/API findings were present; shared Resource/DomainResource behavior findings were treated as context only.",
+    "The supplied evidence did not include official PA ballot rationale, Jira discussion, or production prevalence data for EpisodeOfCare diagnosis, rank, or team usage.",
+    "R4 FMM 2/trial-use creates neutral stability pressure, so the review relies on concrete migration mechanism and safety/business relevance rather than a high-maturity compatibility presumption."
+  ]
+}

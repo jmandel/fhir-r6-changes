@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "DetectedIssue",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/DetectedIssue.resource-review-context.json",
+    "structureReportPath": "output/DetectedIssue.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/DetectedIssue.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 8,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the DetectedIssue resource context, the full local StructureDefinition report, the deterministic aggregate as prior context, and the shared behavior inventory. No direct DetectedIssue behavior/API findings were present; shared Resource/DomainResource behavior was treated as context only."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "cds",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 DetectedIssue was trial-use/FMM 1, so breaking changes do not carry a mature/normative preservation burden. That weak stability pressure does not eliminate concern for central CDS alert semantics such as status, subject context, severity, and issue classification."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "DetectedIssue keeps its identity but has a targeted core-field remodel that requires migration work; status and code/category still merit low-cost compatibility preservation or standards clarification."
+  },
+  "reasoning": {
+    "thesisMd": "DetectedIssue is not removed or replaced, and most of the resource remains recognizable. The migration burden is concentrated in a few central fields: mandatory `status` terminology, `patient` to `subject`, `severity` from primitive code to `CodeableConcept`, and the semantic split between `code` and new `category`. That is enough to require a field-aware migration program for real implementations, but not enough to say that additional break prevention has no value.",
+    "migrationShapeMd": "The actual shape is a moderate targeted remodel. Three findings create old-valid/new-invalid R4 instance breaks: removed required `status` codes, the `patient` wire name being replaced by `subject`, and populated primitive `severity` strings becoming invalid as R6 `CodeableConcept`. A fourth high-impact change, the `code`/`category` split, is more dangerous semantically because old category codes may continue to validate in the wrong R6 slot. Other changes are additive, reverse-conversion loss, or local codegen/presentation chores.",
+    "compatibilityLeverageMd": "A resource-level migration program is already needed for systems with nontrivial DetectedIssue use, especially because patient context, severity, status, and issue classification are likely tied to CDS display, routing, and suppression logic. That does not make compatibility preservation low value. Retaining or clarifying legacy status handling and avoiding silent `code` semantic drift would reduce migration risk at comparatively low standards cost, while `patient` to `subject` and `severity` redesigns have stronger model-rationale and duplicate-field tradeoffs.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking candidates are status terminology and `code` semantics. R6 could consider deprecated legacy status codes or at least resolve the `processing-error` ValueSet/text inconsistency and publish explicit mapping expectations. For `code`, preserving the R4 category meaning and adding a separate specific-code element, or otherwise making the migration non-silent, would better protect existing alert routing and filtering. By contrast, keeping `patient` as the canonical generalized subject name would preserve payloads but leave a misleading element name, and keeping both primitive and CodeableConcept severity would create safety-sensitive duplicate severity representations.",
+    "behaviorImpactMd": "There were no behavior findings directly scoped to DetectedIssue. The 11 shared Resource/DomainResource behavior findings, including Resource operation removals/renames and shared search metadata changes, may affect generic clients that also process DetectedIssue, but they are base-surface issues and should not drive this resource-specific migration conclusion.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate's `Partial` major-migration, `moderate-targeted-remodel` shape, and `preserve-where-low-cost-but-expect-resource-migration` posture are broadly correct. My independent read puts more explanatory weight on the mandatory modifier-like lifecycle importance of `status` and the silent semantic risk of `code`/`category`, and less weight on additive/reverse-only findings. The aggregate should not be read as implying that local Revisit findings are absorbed by the migration program.",
+    "uncertaintyMd": "The main uncertainty is terminology detail: the reports note that full v3 ActCode expansion was not available and that R6 `processing-error` appears in DetectedIssue status text/CodeSystem but not in the supplied required ValueSet compose. Prevalence of real R4 DetectedIssue exchange is also uncertain because the resource was FMM 1."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DetectedIssue:TERMINOLOGY_BINDING:DetectedIssue.status:vs-change",
+      "title": "DetectedIssue.status required binding changed from ObservationStatus to DetectedIssueStatus and removes several R4 status codes",
+      "role": "needs-follow-up",
+      "reasonMd": "`status` is mandatory, summary, and central to whether a detected issue is current, erroneous, cancelled, or mitigated. Removing R4 required-binding codes is an old-valid/new-invalid break and can affect alert suppression/display. Even with FMM 1, this is the clearest standards-review item because legacy code retention, deprecation, or precise mapping guidance could materially lower migration risk."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DetectedIssue:ELEMENT_PRESENCE_OR_IDENTITY:DetectedIssue.patient-to-subject:rename",
+      "title": "DetectedIssue.patient was replaced by DetectedIssue.subject and subject target types were broadened",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a common wire-name/API break: R4 `patient` payloads and generated accessors do not directly populate R6 `subject`, and R6 non-Patient subjects cannot round-trip to base R4. It helps make migration unavoidable, but the broader subject model has a credible design rationale and the less-breaking alternative leaves a misleading legacy name or duplicate fields."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DetectedIssue:TYPE_DOMAIN:DetectedIssue.severity:code-to-codeableconcept",
+      "title": "DetectedIssue.severity changed from required-bound primitive code to preferred-bound CodeableConcept",
+      "role": "important-but-local",
+      "reasonMd": "Populated R4 severity strings are invalid R6 JSON shape and generated models change from scalar/enum-like code to `CodeableConcept`. The common migration is mechanical wrapping of high/moderate/low into a coding, and the richer coding goal is reasonable, so this is an important local migration chore rather than a high-leverage preservation target."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DetectedIssue:SEMANTIC_OR_CONFORMANCE_TEXT:DetectedIssue.code:category-split",
+      "title": "DetectedIssue.code no longer carries the high-level category; R6 adds category for categorization and changes the code binding",
+      "role": "needs-follow-up",
+      "reasonMd": "This is not a hard structural validation break, but it is a serious silent semantic migration risk: R4 category values can be copied into R6 `code` and still look acceptable while filtering, access control, display grouping, or CDS rules interpret them as specific issue codes. A clearer base design or mandatory migration guidance would be valuable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DetectedIssue:TYPE_DOMAIN:DetectedIssue.identified_x_:timing-added",
+      "title": "DetectedIssue.identified[x] gained Timing and changed from initial identification time to occurrence/ongoing timing",
+      "role": "important-but-local",
+      "reasonMd": "R4 `dateTime` and `Period` shapes remain allowed in R6, so this does not drive forward instance invalidity. Implementers still need to update choice handlers and distinguish initial detection time from occurrence timing, especially for R6-to-R4 loss of `Timing`, but the issue is local migration guidance rather than standards preservation."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DetectedIssue:REFERENCE_TARGET:DetectedIssue.author:target-widened",
+      "title": "DetectedIssue.author can now be Patient or RelatedPerson as well as practitioner/device actors",
+      "role": "discounted",
+      "reasonMd": "The target list widens and preserves all R4 author targets, so there is no R4-to-R6 old-valid/new-invalid mechanism. Closed client assumptions and R6-to-R4 downgrade of Patient/RelatedPerson authors need handling, but this is not an avoidable R6 breaking change."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DetectedIssue:SERIALIZATION_OR_CODEGEN:DetectedIssue.detail:markdown-type",
+      "title": "DetectedIssue.detail changed from string to markdown",
+      "role": "discounted",
+      "reasonMd": "Both `string` and `markdown` serialize as JSON strings, so R4 plain-text detail remains structurally representable. Generated primitive wrappers and rendering/sanitization policy may change, but this does not materially affect the resource-level migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "DetectedIssue:ELEMENT_PRESENCE_OR_IDENTITY:DetectedIssue.r6-only-context:added-fields",
+      "title": "R6 adds optional context, evidence, medication-class, management, and mitigation-note elements with no native R4 representation",
+      "role": "important-but-local",
+      "reasonMd": "The added R6 fields are optional and do not invalidate R4 instances. They matter for downgrade and round-trip safety because management codes, mitigation notes, evidence quality, and medication class can be clinically meaningful, but they are additive expressivity rather than avoidable R4-to-R6 breaks."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This and related Resource-level operation removals can affect generic clients handling DetectedIssue resources, but they are inherited/base REST behavior issues. They should be addressed in the Resource behavior review and not counted as DetectedIssue-specific structural migration pressure."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search metadata changes may require generic client/server updates, but they do not change the DetectedIssue resource model and therefore remain context only for this review."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Resolve the DetectedIssue `status` terminology design: clarify the `processing-error` ValueSet discrepancy and decide whether removed R4 ObservationStatus codes should remain as deprecated legacy values or receive explicit normative mapping guidance."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Revisit the `code`/`category` split for silent semantic migration risk. If the base design is retained, provide precise guidance for when R4 `code` maps to R6 `category`, R6 `code`, or both, and call out search/filter/access-control implications."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish a DetectedIssue field migration recipe covering `patient` to `subject`, severity code wrapping, non-Patient subject downgrade policy, and generated model/API updates."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Define optional downgrade extension patterns for R6-only context and management fields when R6 DetectedIssue content must round-trip through R4 without losing mitigation, evidence, or medication-class information."
+    }
+  ],
+  "caveats": [
+    "No direct DetectedIssue behavior findings were present; shared Resource/DomainResource behavior was deliberately not scored for this resource.",
+    "R4 DetectedIssue was FMM 1/trial-use, so conclusions emphasize concrete safety/CDS mechanisms rather than general stability expectations.",
+    "Terminology conclusions rely on the supplied local package/report evidence; full v3 ActCode expansion and official ballot rationale could refine the code/category and status analysis."
+  ]
+}

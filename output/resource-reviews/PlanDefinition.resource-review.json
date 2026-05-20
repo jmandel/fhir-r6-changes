@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "PlanDefinition",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/PlanDefinition.resource-review-context.json",
+    "structureReportPath": "output/PlanDefinition.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/PlanDefinition.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, the full PlanDefinition StructureDefinition report, the direct PlanDefinition behavior findings from OperationDefinitions and SearchParameters, and shared Resource/DomainResource behavior as background only. I used the deterministic aggregate only as prior context and compared to it after forming the resource-level judgment."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "cds",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 PlanDefinition is trial-use/FMM 2, so the stability burden is neutral rather than normative. That allows proportionate redesign of a CDS definition resource, but it does not erase the practical impact of breaking central action orchestration fields or the same-canonical `$apply` operation."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "PlanDefinition keeps its resource identity, but R6 substantially remodels action orchestration and `$apply`, so many real implementations need migration while several low-cost compatibility preserves still deserve review."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a resource identity break: the PlanDefinition canonical, type, and DomainResource base remain present in R6. The actual migration shape is an action-centric remodel. R4 PlanDefinitions that use action data requirements, related-action links, absolute or period timing, repeated action codes, or the R4 participant code set need version-aware transforms before R6 validation. Implementations using `$apply` also face a same-canonical runtime API break because the result changes from a direct CarePlan to Parameters containing repeatable Bundles.",
+    "migrationShapeMd": "The structural migration centers on `PlanDefinition.action`. Direct R4 `action.input` and `action.output` DataRequirements are wrapped under `requirement` or replaced by `relatedData`; `relatedAction.actionId` becomes required `targetId`; `timingDateTime` and `timingPeriod` are removed in favor of remaining timing choices and `RelativeTime`; `action.code` is narrowed from repeatable to single-valued; and participant modeling grows a top-level `actor` model while the required participant-type code `related-person` is no longer accepted. Optional R6 additions and domain widenings add R6-to-R4 retention policy, but they do not make old R4 instances invalid.",
+    "compatibilityLeverageMd": "Because the action model and `$apply` operation already require explicit migration for non-trivial users, preventing one additional break will not eliminate the need for a PlanDefinition migration program. However, that does not make additional breaks low value. Low-cost preservation remains meaningful where the R6 goal can be met without changing old wire names, old cardinality, or old required-bound codes. Those preserves reduce validator failures, generated API churn, and lossy human mapping even when broader action migration remains necessary.",
+    "lessBreakingAlternativesMd": "The clearest standards-review candidates are `relatedAction.actionId` to `targetId`, `action.code` max `*` to `1`, and participant `related-person` to `relatedperson`; each appears preservable with modest base-model cost through retained wire names, warning/profile guidance, or deprecated terminology aliases. SearchParameter canonical consolidation also has a plausible alias/deprecation path. `$apply` has only a partial less-breaking path because keeping the R4 CarePlan result alongside the R6 Bundle-per-subject result would create duplicate result envelopes, but the transition cost is high enough to merit review. The input/output wrapper and timing choice changes are real migration chores, yet their alternatives would prolong duplicate same-purpose representations or overlapping timing semantics.",
+    "behaviorImpactMd": "The direct behavior findings matter. `$apply` is a PlanDefinition-specific operation and its output envelope, cardinality, and resource organization change in a way that breaks generated R4 clients and conformance tests. The SearchParameter consolidation usually preserves query codes such as `PlanDefinition?date=`, but changes canonical SearchParameter identity in CapabilityStatement metadata and registries. Shared Resource/DomainResource operation and special-search findings were considered only as generic context because PlanDefinition is neither `Resource` nor `DomainResource`.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's broad posture: `major-model-remodel`, `majorMigrationAlreadyUnavoidable: Partial`, and `preserve-where-low-cost-but-expect-resource-migration`. The reason is not the count alone; it is that the hard breaks cluster in the central action model and in the resource's primary operation. I would also emphasize that the aggregate must not be read to downgrade the avoidable local findings: several `Revisit` items remain low-cost compatibility opportunities even though a migration program is partly unavoidable.",
+    "uncertaintyMd": "Confidence is high for the computable structure and operation/search facts in the supplied reports. Confidence is lower for prevalence and official rationale because no official HL7 change notes, final R6 package, terminology-server expansions, or cross-version ConceptMaps for PlanDefinition participant codes were supplied."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PlanDefinition:TYPE_DOMAIN:PlanDefinition.action.input-output:6b7e21",
+      "title": "action.input and action.output changed from direct DataRequirement arrays to wrapper backbone elements",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the largest local action-shape break. R4 data requirement content under `action.input[]` or `action.output[]` must be moved under `requirement`, while R6 `relatedData` and `title` need reverse-conversion policy. It drives migration planning, but the wrapper model has a coherent goal and preserving both direct requirements and wrapper entries would create duplicate input/output representations."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PlanDefinition:TYPE_DOMAIN:PlanDefinition.action.timing:38e58f",
+      "title": "action.timing[x] removed dateTime and Period choices and added RelativeTime",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "R4 `timingDateTime` and `timingPeriod` are old-valid/new-invalid choice names, and timing affects clinical or operational scheduling. Most forward cases can be transformed into `Timing.event` or `Timing.repeat.boundsPeriod`, so this is a serious migration chore but less standards-actionable than the low-cost rename and alias cases."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PlanDefinition:ELEMENT_PRESENCE_OR_IDENTITY:PlanDefinition.action.relatedAction:0a84ce",
+      "title": "relatedAction.actionId was replaced by targetId and R6 added endRelationship",
+      "role": "needs-follow-up",
+      "reasonMd": "This is a required same-parent pointer rename with substantially the same role. Adding `endRelationship` and widening `id` to `string` did not require changing the old wire name. Keeping `actionId` with clarified target semantics looks like a low-cost compatibility preserve that would avoid direct validation and generated-model churn."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PlanDefinition:CARDINALITY:PlanDefinition.action.code:4dbf19",
+      "title": "action.code maximum cardinality decreased from 0..* to 0..1",
+      "role": "needs-follow-up",
+      "reasonMd": "Multiple R4 `action.code` repetitions become invalid, and collapsing distinct CodeableConcepts can require human judgment about primary versus secondary classifications. Base R6 could likely have kept `0..*` and used definitions, warnings, profiles, or implementation-guide rules to prefer one conceptual action code."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PlanDefinition:TERMINOLOGY_BINDING:PlanDefinition.action.participant:bc41d0",
+      "title": "Action participant model expanded and required participant-type codes changed",
+      "role": "needs-follow-up",
+      "reasonMd": "The richer actor/canonical/reference participant model is a genuine R6 enhancement, but the forward hard break is mainly that R4 `related-person` is no longer valid while `relatedperson` appears to represent the same concept. A deprecated alias and ConceptMap would preserve R4 instances without blocking the actor model."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "PlanDefinition-apply--PlanDefinition-apply:plandefinition-apply-careplan-return-to-bundle-parameters",
+      "title": "The $apply result changes from a direct CarePlan to repeatable Bundle returns in Parameters",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is not an instance-shape finding, but it is directly PlanDefinition-specific and high impact for CDS clients. A generated R4 client expecting one top-level CarePlan must instead parse a Parameters response with zero or more Bundle-valued `return` parts. The R6 goal is plausible, but transition behavior or a separately named result contract deserves standards review."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:canonicalresource-metadataresource-consolidation",
+      "title": "R6 consolidates many per-resource canonical SearchParameter URLs into multi-base CanonicalResource and MetadataResource definitions",
+      "role": "needs-follow-up",
+      "reasonMd": "PlanDefinition query codes generally survive, so this is not the same as removing `PlanDefinition?date=` or `PlanDefinition?status=`. The break is conformance identity: clients, registries, and generated SDKs that key support by the R4 per-resource canonical SearchParameter URL can fail. Deprecated alias SearchParameter resources would be a relatively low-cost compatibility bridge."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PlanDefinition:REFERENCE_TARGET:PlanDefinition.subject-definition-detail:9d2a66",
+      "title": "R6 widens subject, action definition, and goal target detail domains beyond R4",
+      "role": "discounted",
+      "reasonMd": "These are mostly R6 widenings while retaining R4-compatible forms, so they do not make R4 instances invalid. They matter for R6-to-R4 exchange and generated target unions, but they should not inflate the forward migration conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PlanDefinition:CONVERSION_OR_MAPPING:PlanDefinition.r6-new-elements:fd093b",
+      "title": "R6 adds optional metadata and behavior elements with no base R4 representation",
+      "role": "important-but-local",
+      "reasonMd": "Fields such as `versionAlgorithm[x]`, `asNeeded[x]`, `action.linkId`, `action.location`, and `action.applicabilityBehavior` can affect publication and execution semantics in R6. They are optional additions rather than forward breaks, so they are local down-conversion policy items once R6 expressivity is accepted."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PlanDefinition:VALUE_CONSTRAINT:PlanDefinition.local-invariants:df46a7",
+      "title": "R6 adds local warning invariants for canonical hygiene, goal/action references, and relatedArtifact use",
+      "role": "discounted",
+      "reasonMd": "These warning-level constraints can affect warning-as-error publication pipelines, but they do not create ordinary base invalidity. They are already the less-breaking way to introduce stronger canonical and internal-reference guidance."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "PlanDefinition:SERIALIZATION_OR_CODEGEN:PlanDefinition.markdown-fields:41b930",
+      "title": "Several text fields changed primitive type from string to markdown",
+      "role": "discounted",
+      "reasonMd": "The JSON wire members remain strings, so this is mainly generated primitive type, validation, and rendering/sanitization awareness. It should be covered by SDK and UI migration, but it does not drive the resource-level compatibility conclusion."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-validate--Resource-validate:resource-validate-instance-invocation-matrix",
+      "title": "R6 invocation matrix changes instance-level Resource $validate request semantics",
+      "role": "context-only",
+      "reasonMd": "Generic Resource and DomainResource behavior can affect infrastructure that validates PlanDefinition instances, but it is not a PlanDefinition-specific change and should not be duplicated into this resource's score."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Ask standards reviewers to revisit low-cost compatibility preservation for `relatedAction.actionId`, repeatable `action.code`, and the participant-type `related-person` code, because these breaks appear avoidable without undermining the R6 action/actor model."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Publish a PlanDefinition R4-to-R6 migration map covering action input/output wrappers, timing conversions, related-action links, action code consolidation, participant/actor mapping, `$apply` response handling, and canonical SearchParameter identity changes."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Consider transition compatibility for `$apply` and SearchParameters: a documented legacy single-subject CarePlan mode or separate operation for `$apply`, and deprecated per-resource SearchParameter aliases for CanonicalResource/MetadataResource consolidation."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define R6-to-R4 retention policy for `relatedData`, `endRelationship`, `RelativeTime`, actor-based participants, widened subject/definition/detail choices, and optional R6-only execution fields such as `location` and `applicabilityBehavior`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Update validators, SDKs, FHIRPath, search metadata comparison, and CDS operation clients with regression tests for representative PlanDefinition actions and `$apply` responses."
+    }
+  ],
+  "caveats": [
+    "No official HL7 PlanDefinition R4-to-R6 migration guide, rendered ballot rationale, Jira history, or final R6 package was supplied.",
+    "Terminology conclusions for participant-type code migration rely on local packaged CodeSystems; no live terminology expansion or official ConceptMap was available.",
+    "Prevalence of affected optional action fields was not measured, so `Partial` reflects that many non-trivial users need migration while minimal instances may not.",
+    "Shared Resource and DomainResource behavior findings were treated as context only, not as PlanDefinition-specific direct behavior findings."
+  ]
+}

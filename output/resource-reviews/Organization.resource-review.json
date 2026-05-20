@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Organization",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Organization.resource-review-context.json",
+    "structureReportPath": "output/Organization.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Organization.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 6,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review contract, resource assessment rubric, fresh-review framework, Organization context and full StructureDefinition report, R4/R6 Organization and R6 ExtendedContactDetail definitions, and the direct OperationDefinition/SearchParameter findings whose `affectedResources` include Organization. Shared Resource/DomainResource behavior findings were considered only as background because the reviewed resource is Organization."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "Organization was trial-use/FMM 3 in R4, so compatibility for common administrative and directory data has meaningful stability pressure. This does not forbid remodeling, but it raises the burden for deleting common wire paths such as top-level `telecom` and `address` without a transition mechanism."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Organization keeps its resource identity but needs targeted migration for the R6 contact/address/telecom remodel; low-cost preservation of common R4 contact paths still matters."
+  },
+  "reasoning": {
+    "thesisMd": "Organization is not removed or replaced, and many core fields remain stable, but R6 materially remodels the way official contact details are represented. Top-level `Organization.telecom` and `Organization.address` disappear, `Organization.contact` becomes `ExtendedContactDetail`, `contact.name` changes JSON shape, and R6 applies no-home constraints to the new contact container. For real directory, billing, reporting, and provider-routing datasets, that is enough to require a planned resource migration rather than a simple validator or codegen update.",
+    "migrationShapeMd": "The migration shape is a moderate targeted remodel, not a whole-resource redesign. Instances using only identifiers, name, type, active, aliases, partOf, or endpoint may require little structural work. Instances with the common address/telecom/contact surface need deliberate mapping: wrap former top-level contact points and addresses in contact entries, decide grouping rules, convert singleton contact names to arrays, and rebuild address-search indexes against the R6 path.",
+    "compatibilityLeverageMd": "Because typical Organization implementations will already need contact-model migration, preventing every local break has less leverage than it would on a mostly unchanged resource. That does not mean additional break prevention has no value. The deleted top-level `address` and `telecom` paths are common FMM 3 administrative data, so deprecated aliases, explicit transitional guidance, or dual-index search behavior could still materially reduce upgrade cost if the duplicate-representation tradeoffs are acceptable.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking candidates are transitional retention of `Organization.telecom` and `Organization.address`, or at least explicit compatibility guidance for aliases/search indexing. Those alternatives are not free: they create duplicate official-contact locations and require conflict, update, and search rules. By contrast, preserving the old local `Organization.contact` backbone would undercut the cross-resource `ExtendedContactDetail` goal, and weakening the no-home invariant would reduce the official-contact semantic cleanup. The `Measure/$collect-data` `practitioner` parameter rename has a much cheaper less-breaking path: keep `practitioner` as a deprecated alias for the Practitioner reporter case.",
+    "behaviorImpactMd": "The direct behavior findings do not change the structural conclusion but do matter. The stable `Organization-address` search code now indexes `Organization.contact.address`, so search/index migration is coupled to the address move and can silently change result sets if data migration lags. The `Measure/$collect-data` provider filter change affects Organization as a possible reporter/provider and is an avoidable API compatibility issue. Shared Resource/DomainResource behavior issues are real base-platform concerns but are not Organization-specific resource-level drivers here.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate concluded `Partial`, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. I agree with that result, but based on the substance rather than counts: the common top-level address/telecom removals and the contact datatype replacement drive targeted migration, while the same facts keep address/telecom compatibility preservation worth standards review.",
+    "uncertaintyMd": "Confidence is high for the StructureDefinition and behavior deltas because the package evidence is explicit. Uncertainty remains about the official work-group rationale, real-world prevalence of nested contact `home` use, and jurisdiction-specific use of organization qualifications."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Organization:ELEMENT_PRESENCE_OR_IDENTITY:Organization.telecom:6bb8d1",
+      "title": "Top-level Organization.telecom was removed and folded into Organization.contact.telecom",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a common old-valid/new-invalid wire break for official organization phone, email, fax, and URL data. It is one of the main reasons typical Organization instances need migration. Because a deprecated top-level alias is plausible, though not free, this remains standards-review-worthy rather than merely a local transform chore."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Organization:ELEMENT_PRESENCE_OR_IDENTITY:Organization.address:4e9a21",
+      "title": "Top-level Organization.address was removed and folded into Organization.contact.address",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "Organization addresses are common directory, billing, reporting, and routing data. Moving them under `Organization.contact.address` invalidates R4 instances and changes generated APIs and search indexing. The contact-based model is coherent, but a transitional retained/deprecated `address` path or explicit dual-index guidance is worth revisiting because of the field's prevalence."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Organization:SERIALIZATION_OR_CODEGEN:Organization.contact:9c0b72",
+      "title": "Organization.contact changed from a local backbone component to ExtendedContactDetail, changing codegen and contact.name JSON shape",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The reusable datatype replacement is the center of the remodel and creates generated-code and JSON-shape migration, especially `contact.name` object-to-array conversion. I treat this as probably proportionate once the R6 shared-contact model is accepted, but it still makes a resource-level migration program necessary for contact-using implementations."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Organization:VALUE_CONSTRAINT:Organization.contact:no-home:fc4a8e",
+      "title": "R6 newly forbids home-use telecom and address values inside Organization.contact",
+      "role": "important-but-local",
+      "reasonMd": "This is a real old-valid/new-invalid validator break for a narrower pattern. It should be handled explicitly in migration scans, but it does not materially alter the resource-level conclusion and appears proportionate to the official-organization-contact semantics."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Organization:CONVERSION_OR_MAPPING:Organization.qualification:ab18d4",
+      "title": "R6 adds Organization.qualification, creating substantial R6-to-R4 structured data loss risk",
+      "role": "important-but-local",
+      "reasonMd": "This optional addition does not make R4 instances invalid in R6, so it does not drive the R4-to-R6 migration-program judgment. It still matters for safety/business governance because qualification, accreditation, status, period, and issuer data can be regulatory or directory-trust content that needs explicit R6-to-R4 mapping."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Organization:CONVERSION_OR_MAPPING:Organization.description:0f73ac",
+      "title": "R6 adds Organization.description, which has no core R4 Organization counterpart",
+      "role": "discounted",
+      "reasonMd": "This is an optional additive R6 field with only ordinary downgrade/round-trip loss risk. It does not invalidate R4 data and should not materially influence the resource-level break-avoidance posture beyond documenting downgrade policy when description text matters."
+    },
+    {
+      "sourceSurface": "OperationDefinitions",
+      "findingId": "Measure-collect-data--Measure-collect-data:Measure-collect-data:provider-filter-renamed",
+      "title": "The `practitioner` filter is removed in favor of broader reporter/provider parameters",
+      "role": "needs-follow-up",
+      "reasonMd": "This direct behavior finding includes Organization because R6 adds broader reporter/provider support. It does not drive Organization structure migration, but it is a low-cost avoidable API break: keeping `practitioner` as a deprecated alias for Practitioner reporters would avoid client failure or silent query broadening while preserving the broader R6 reporter model."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:stable-code-expression-moves",
+      "title": "Many stable search codes now index different R6 element paths after resource model changes",
+      "role": "important-but-local",
+      "reasonMd": "For Organization, the stable address search code moves from `Organization.address` to `Organization.contact.address`. This is mostly a consequence of the structural remodel, but it is operationally important because clients may keep using the same query code while servers silently index a different path."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This is a generic Resource-level operation issue, not an Organization-specific change. It should be reviewed and mitigated at the shared API/platform layer, and I did not count it as a driver of the Organization resource migration conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit whether R6 should preserve `Organization.telecom` and `Organization.address` as deprecated transitional aliases, or publish explicit rationale and compatibility guidance explaining why duplicate official-contact locations are too costly."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish and test a concrete Organization migration map: move top-level telecom/address into `contact`, define grouping and conflict rules, convert `contact.name` to an array, rebuild Organization address search indexes, and require an explicit policy for nested `home` contact uses."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For `Measure/$collect-data`, preserve `practitioner` as a deprecated alias for `reporter=Practitioner/...` or require strict warning/error behavior so stale R4 clients do not silently collect broader provider data."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define downgrade/round-trip mappings for `Organization.qualification` and, where needed, `Organization.description`, preferably with standard extensions or IG guidance so credentialing and directory-disambiguation data is not silently flattened or lost."
+    }
+  ],
+  "caveats": [
+    "This review is based on the local R4/R6 package definitions and reports; it did not include separate official work-group rationale beyond the supplied evidence.",
+    "Shared Resource/DomainResource behavior findings were treated as context only and should be resolved in their own base behavior reviews.",
+    "Real-world prevalence for nested `home` organization contacts and R6 organization qualification exchange is uncertain, so those items are migration-policy priorities rather than primary resource-level drivers."
+  ]
+}

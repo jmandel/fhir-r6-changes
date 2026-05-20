@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Schedule",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Schedule.resource-review-context.json",
+    "structureReportPath": "output/Schedule.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Schedule.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 5,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Schedule resource-review context, the full Schedule StructureDefinition report, the deterministic aggregate as prior context, and checked the supplied behavior reports for findings whose `affectedResources` include `Schedule`. No direct Schedule behavior findings were present. The shared Resource/DomainResource behavior findings were considered only as background, per the resource-review rubric."
+  },
+  "r4Maturity": {
+    "fmm": 3,
+    "standardsStatus": "trial-use",
+    "workGroup": "pa",
+    "stabilityPressure": "Meaningful",
+    "effectMd": "R4 Schedule was FMM 3/trial-use, so compatibility has meaningful weight for scheduling and appointment-discovery workflows. That pressure is not as strong as normative content, but it means the one hard local break should still be justified and accompanied by clear migration guidance rather than dismissed as ordinary churn."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "No",
+    "resourceMigrationShape": "mostly-stable-with-local-breaks",
+    "compatibilityLeverage": "preserve-compatibility-per-change",
+    "confidence": "High",
+    "oneLineConclusion": "Schedule keeps its resource identity and is mostly stable; the main R4-to-R6 break is the targeted `serviceType` CodeableConcept-to-CodeableReference remodel."
+  },
+  "reasoning": {
+    "thesisMd": "Schedule does not appear to require a broad resource-level migration program. The R4 and R6 resources retain the same identity, cardinalities are largely stable, and there are no direct Schedule operation/search/HTTP behavior breaks in the supplied behavior reports. The one hard break, `Schedule.serviceType`, is important because populated R4 instances must change JSON shape and generated-model use, but it is a localized element migration rather than evidence that the whole resource has been redesigned.",
+    "migrationShapeMd": "The actual migration shape is targeted: R4 `Schedule.serviceType` coded values become R6 `CodeableReference.concept`, while R6 reference-valued service types to `HealthcareService` need an explicit downgrade or round-trip policy. `Schedule.comment` changes the primitive type from `string` to `markdown`, which may affect generated APIs and rendering but keeps a JSON string scalar. `Schedule.actor` widens to include `CareTeam`, `Schedule.name` is an optional addition, and `Schedule.specialty` weakens a non-required binding; these are not forward instance breaks for existing R4 data.",
+    "compatibilityLeverageMd": "Because migration is not already dominated by a removed resource or broad remodel, avoidable compatibility preservation still has high leverage on each local change. The `serviceType` break may be acceptable for the CodeableReference modeling goal, but it remains the place where conversion guidance, examples, and possibly compatibility aliases or transition support would materially reduce implementer cost. The other findings are mostly downgrade/profile chores once R6 expressivity is accepted.",
+    "lessBreakingAlternativesMd": "The plausible less-breaking base alternative for `serviceType` would keep the old `CodeableConcept` field and add a separate `HealthcareService` reference, or otherwise provide transition behavior. That would preserve R4 wire shape but creates duplicate service identity representations and consistency rules, so it is not an obviously low-cost base-model alternative. For `comment`, keeping `string` plus prose would be more codegen-compatible but would lose the computable markdown signal. The remaining additions/widenings do not need less-breaking base designs for forward compatibility.",
+    "behaviorImpactMd": "No direct behavior/API findings in the supplied OperationDefinitions, SearchParameters, or HttpRestBehavior reports list `Schedule` as affected. The 11 shared Resource/DomainResource behavior findings remain relevant to any server that exposes Schedule through generic FHIR APIs, but they are not Schedule-specific and should not drive the Schedule resource-level conclusion.",
+    "comparisonToDeterministicAggregateMd": "This independent review agrees with the deterministic aggregate's broad posture: major migration is `No`, the shape is `mostly-stable-with-local-breaks`, and the right standards posture is `preserve-compatibility-per-change`. The important nuance is that `serviceType` is still a meaningful FMM 3 scheduling break even though it does not make a resource-wide migration program unavoidable.",
+    "uncertaintyMd": "Confidence is high for the structural comparison because both R4 and R6 StructureDefinitions are available and the local report evidence is specific. Confidence is lower for standards rationale and exact terminology consequences because no official Schedule R4-to-R6 diff, Jira rationale, ConceptMap, or terminology-server expansion was available, and the R6 input is a ballot build."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Schedule:TYPE_DOMAIN:Schedule.serviceType:8f1a3c",
+      "title": "Schedule.serviceType changed from CodeableConcept to CodeableReference(HealthcareService)",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the only hard R4-to-R6 instance break and the main migration work: populated R4 `serviceType` entries no longer have the R6 wire shape unless wrapped as `CodeableReference.concept`. It also creates reverse-version policy work for R6 `HealthcareService` references. The break is targeted and plausibly justified, so it does not by itself make a broad Schedule migration program unavoidable, but it remains the key avoidable/preservable compatibility concern."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Schedule:REFERENCE_TARGET:Schedule.actor:0e4d92",
+      "title": "Schedule.actor can now reference CareTeam",
+      "role": "important-but-local",
+      "reasonMd": "The existing R4 Reference shape and target set are preserved and R6 only adds `CareTeam`, so R4 instances remain valid in this respect. The finding matters mainly for R6-to-R4 downgrade, generated target unions, and business rules that need to handle team-owned schedules."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Schedule:ELEMENT_PRESENCE_OR_IDENTITY:Schedule.name:2a7b19",
+      "title": "R6 adds optional Schedule.name",
+      "role": "discounted",
+      "reasonMd": "This optional display/search label is additive and does not force any R4-to-R6 instance migration. It may require a downgrade extension or loss policy for R6 content populated with `name`, but it should not affect the resource-level compatibility conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Schedule:TYPE_DOMAIN:Schedule.comment:5dc8b4",
+      "title": "Schedule.comment changed primitive type from string to markdown",
+      "role": "important-but-local",
+      "reasonMd": "The primitive type change can affect generated models, validators, and rendering behavior, but the serialized JSON value remains a string and ordinary R4 text comments should generally migrate without data reshaping. It is a local runtime/codegen concern rather than a hard instance migration driver."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Schedule:TERMINOLOGY_BINDING:Schedule.specialty:7cbb84",
+      "title": "Schedule.specialty binding strength weakened from preferred to example",
+      "role": "discounted",
+      "reasonMd": "Weakening a preferred binding to example does not reject old values and is not a forward compatibility break. It may be standards-review-worthy only as a terminology-guidance question for specialty coding consistency, best handled by profiles if stronger guidance is needed."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-delete:resource-meta-delete-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta-delete operation",
+      "role": "context-only",
+      "reasonMd": "This generic Resource operation removal can affect servers that expose Schedule resources, but the affected resource in the behavior report is `Resource`, not `Schedule`. It should be handled as shared API migration context rather than counted as a Schedule-specific resource break."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search-parameter metadata changes may affect generic clients querying Schedule, but they apply across Resource/DomainResource infrastructure and do not change the Schedule StructureDefinition migration shape."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Provide explicit R4-to-R6 Schedule conversion guidance for `serviceType`, including the mechanical `CodeableConcept` to `CodeableReference.concept` mapping and a policy for R6 `HealthcareService` references when downgrading or round-tripping."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "In standards review, confirm that the `serviceType` CodeableReference remodel is worth the FMM 3 wire/model break, and consider low-cost transition aids such as examples, implementation notes, or compatibility mappings."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Treat `CareTeam` actors, optional `name`, markdown `comment`, and weakened `specialty` binding as local implementation/profile updates rather than reasons to classify Schedule as broadly redesigned."
+    }
+  ],
+  "caveats": [
+    "No official Schedule-specific R4-to-R6 change rationale, Jira issue, or ConceptMap was available in the supplied inputs.",
+    "The R6 package is 6.0.0-ballot4, so final R6 content may differ.",
+    "Terminology conclusions are limited by the absence of live terminology-server expansions.",
+    "Shared Resource/DomainResource behavior findings were considered as context only because Schedule itself is not the Resource or DomainResource artifact under review."
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MedicationAdministration",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MedicationAdministration.resource-review-context.json",
+    "structureReportPath": "output/MedicationAdministration.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MedicationAdministration.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 11,
+    "reviewedDirectBehaviorFindingCount": 3,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-review context, full MedicationAdministration StructureDefinition report, local R4/R6 StructureDefinitions for the affected paths, direct SearchParameter behavior findings, shared Resource/DomainResource behavior context, R4 maturity map, and the deterministic aggregate only after forming the resource-level conclusion. Shared Resource/DomainResource behavior was treated as context only because MedicationAdministration is not Resource or DomainResource."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "phx",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 MedicationAdministration is trial-use/FMM 2, so it does not carry normative or mature-trial-use preservation pressure. The neutral maturity baseline does not erase clinical and safety relevance: medication identity, administration timing, reason, performer/device, and status semantics are central enough that avoidable low-cost breaks still deserve attention."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "MedicationAdministration keeps its identity but R6 remodels multiple central and required fields, so a resource-level migration program is unavoidable while low-cost compatibility preservation remains valuable."
+  },
+  "reasoning": {
+    "thesisMd": "This is not a removed-resource case, but it is more than a few local edits. Required medication identity changes from R4 choice serialization to CodeableReference, required administration timing is renamed from `effective[x]` to `occurrence[x]`, category changes JSON shape when present, reason/device/performer move to CodeableReference patterns, context narrows away from EpisodeOfCare, and `instantiates` loses a native URI slot. Direct SearchParameter changes add query/API migration work, especially around reason searches and canonical URL reuse.",
+    "migrationShapeMd": "A conformant R4 instance cannot be handed to an R6 validator with only tolerance for unknowns disabled; common instances need explicit transforms. The migration program must rewrite/wrap `medication[x]`, rename required timing, wrap singleton `category` as an array, map `reasonCode`/`reasonReference` into `reason`, wrap `device` and `performer.actor` references under CodeableReference, classify `context` by target type, and decide how to preserve `instantiates`. Reverse or mixed-version exchange also needs policy for `occurrenceTiming`, multiple categories, Procedure reasons, CodeableReference concept/reference pairs, Group performers, `recorded`, and sub-potency fields.",
+    "compatibilityLeverageMd": "Because the resource already needs a migration program, preserving every old path is not the main compatibility lever. But the resource identity is stable and several breaks appear avoidable without undermining the R6 model. Preventing low-cost wire-name, JSON-shape, semantic, or SearchParameter metadata breaks still reduces implementation cost, lowers silent clinical misinterpretation risk, and helps phased R4/R6 coexistence.",
+    "lessBreakingAlternativesMd": "The highest-value low-cost alternatives are retaining `effective[x]` while adding Timing, preserving `category` as 0..1 with an additive repeating classification, retaining/deprecating `instantiates`, providing a native EpisodeOfCare-compatible path or deprecated `context`, splitting broader status-change rationale into a new element instead of broadening `statusReason`, avoiding SearchParameter canonical URL repurposing, and keeping old token search names as deprecated aliases for CodeableReference `.concept` searches. In contrast, the core CodeableReference conversions for `medication`, `reason`, `device`, and `performer.actor` have clearer duplicate-field and precedence costs, so they are migration chores once the R6 remodel is accepted.",
+    "behaviorImpactMd": "The direct behavior findings matter but do not change the structural conclusion by themselves. `medications-date` canonical reuse is standards-review-worthy because it can silently bind metadata-driven clients to a different base and clinical meaning. CodeableReference search splits compound the structural reason remodel and can break common token queries unless aliases or explicit mappings are provided. Reference target and chain changes are real but mostly follow the underlying target-model changes. Shared Resource/DomainResource operation and search changes remain contextual infrastructure migration work, not MedicationAdministration-specific scoring inputs.",
+    "comparisonToDeterministicAggregateMd": "The deterministic aggregate reached the same headline posture: major migration `Yes`, shape `major-model-remodel`, and leverage `preserve-where-low-cost-but-expect-resource-migration`. I agree with that outcome, but not merely because of the counts. The decisive facts are the required central rewrites plus several non-mechanical mappings and direct search API changes. The aggregate's warning that low-cost less-breaking alternatives still matter is important and should not be diluted by the fact that a migration program is already needed.",
+    "uncertaintyMd": "Confidence is high for the structural migration shape because the local R4/R6 StructureDefinitions directly show the affected elements. Prevalence and standards intent are less certain because this review did not independently inspect ballot minutes, implementation telemetry, live terminology expansions, or official migration rationale."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:SERIALIZATION_OR_CODEGEN:MedicationAdministration.medication:30d50d",
+      "title": "medication[x] changed from a required choice to CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is a mandatory, central medication-identity rewrite: every R4 instance has `medicationCodeableConcept` or `medicationReference`, while R6 expects a `medication` CodeableReference container. It drives the need for a migration transform, but the alias alternative has real duplicate mandatory medication representation and conflict-rule costs."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.occurrence[x]:4e99f8",
+      "title": "effective[x] was renamed to occurrence[x] and Timing was added",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The required administration-time field changed wire names, making ordinary R4 instances invalid until transformed. This also remains a strong standards-review item because Timing could have been added while retaining `effective[x]`; the rename looks lower value than its compatibility cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:REFERENCE_TARGET:MedicationAdministration.context:719fca",
+      "title": "context became encounter and lost EpisodeOfCare target",
+      "role": "important-but-local",
+      "reasonMd": "Encounter-valued `context` can be renamed, but EpisodeOfCare-valued data has no valid R6 `encounter` slot. This is optional rather than universal, yet it creates type-dependent and potentially lossy migration that could have been softened by a deprecated `context` or explicit EpisodeOfCare path."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.reason:fcceed",
+      "title": "reasonCode and reasonReference merged into reason CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The R4 reason arrays move into a single CodeableReference array and R6 can represent Procedure reasons or paired concept/reference values. This is substantial migration work and affects search behavior, but the consolidation has a coherent model goal and old-path aliases would introduce duplicate reason semantics."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:TYPE_DOMAIN:MedicationAdministration.device-performer.actor:88b74c",
+      "title": "device and performer.actor changed from Reference to CodeableReference",
+      "role": "important-but-local",
+      "reasonMd": "Existing references must be wrapped and generated APIs change type. The change is disruptive, especially for performer/device audit and safety context, but the R6 goal of allowing coded-only actors/devices or Group performers makes it more a local migration chore than a low-cost preservation target."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:CARDINALITY:MedicationAdministration.category:c5d186",
+      "title": "category changed from singleton object to repeating array and binding weakened",
+      "role": "important-but-local",
+      "reasonMd": "FHIR JSON cardinality widening changes a populated `category` from an object to an array, so it is a hard wire break despite being conceptually a widening. Because an additive `additionalCategory` or classification element could preserve the R4 object shape, this remains a useful low-cost preservation candidate."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.instantiates:eb9744",
+      "title": "instantiates URI was removed; basedOn CarePlan is not equivalent",
+      "role": "important-but-local",
+      "reasonMd": "R4 `instantiates` carried arbitrary protocol/guideline/orderset URIs; R6 `basedOn` Reference(CarePlan) is not a mechanical substitute. This may be rarer than medication or timing, but preserving a deprecated optional URI would be low cost and avoid extension-dependent migration."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:ELEMENT_PRESENCE_OR_IDENTITY:MedicationAdministration.recorded-isSubPotent-subPotentReason:12afd3",
+      "title": "R6 adds recorded and sub-potency fields not native to R4",
+      "role": "important-but-local",
+      "reasonMd": "These optional additions do not make R4 instances invalid in R6, so they do not drive R4-to-R6 migration unavoidability. They still require reverse/downgrade policy because losing capture time or sub-potency reason can be clinically and audit significant."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:REFERENCE_TARGET:MedicationAdministration.partOf:d110e8",
+      "title": "partOf now permits MedicationDispense references",
+      "role": "discounted",
+      "reasonMd": "This target widening does not break R4-to-R6 instances. It only creates R6-to-R4 representability work for new MedicationDispense references, so it is not a reason to resist the R6 resource design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:SEMANTIC_OR_CONFORMANCE_TEXT:MedicationAdministration.statusReason:0afe4d",
+      "title": "statusReason broadened from not-performed reason to status-change reason",
+      "role": "important-but-local",
+      "reasonMd": "The shape remains stable, but the meaning broadens from not-given rationale to general status-change rationale. That can silently mislead R4-era clinical/business logic; a separate `statusChangeReason` would be a clearer compatibility-preserving design."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicationAdministration:VALUE_CONSTRAINT:MedicationAdministration.dosage.mad-1:76544f",
+      "title": "dosage invariant relaxed to allow text-only dosage",
+      "role": "discounted",
+      "reasonMd": "The invariant relaxation does not invalidate R4 content in R6. It is a downgrade/quality-policy item for R6 text-only dosage, not a resource-level reason to avoid the R6 change."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:medications-date-repurposed",
+      "title": "`medications-date` keeps its canonical URL but moves from MedicationRequest to MedicationAdministration",
+      "role": "needs-follow-up",
+      "reasonMd": "This is not just a local client rewrite: canonical URL reuse can make metadata-driven clients silently execute a different clinical query against MedicationAdministration. A new canonical for the administration date search would preserve clearer version semantics even though the resource itself already needs migration."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:codeable-reference-splits-clinical",
+      "title": "Several common clinical search codes split into code/reference variants or changed type because elements became CodeableReference-like",
+      "role": "important-but-local",
+      "reasonMd": "For MedicationAdministration this includes reason-given behavior, so it compounds the `reason` CodeableReference remodel. Keeping old token codes as deprecated aliases for the `.concept` branch is a practical low-cost compatibility measure where exact old semantics map cleanly."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:reference-target-and-chain-changes",
+      "title": "Reference SearchParameters changed target lists, affecting chaining, type modifiers, and reverse include expectations",
+      "role": "important-but-local",
+      "reasonMd": "Typed modifiers, chains, and reverse-includes may need query migration after target-list changes. This matters for API compatibility, but much of it follows broader resource target changes; deprecated targets are only worth preserving where the target still exists and remains semantically valid."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta:resource-meta-removed-from-r6-core",
+      "title": "R6 core removes the Resource $meta operation",
+      "role": "context-only",
+      "reasonMd": "Resource-level `$meta` removal can affect any MedicationAdministration-serving implementation, but it is a shared Resource operation issue rather than a MedicationAdministration-specific design break. It should be tracked in infrastructure migration, not double-counted in this resource's structural conclusion."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Treat MedicationAdministration as requiring an explicit R4-to-R6 resource migration map covering medication, occurrence/effective, category, context/encounter, reason, device, performer.actor, and instantiates; do not rely on direct validation or codegen name matching."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Escalate low-cost preservation candidates for standards review: retain or alias `effective[x]`, preserve category object compatibility, keep/deprecate `instantiates`, provide an EpisodeOfCare-compatible context path, split broader status-change rationale from not-given `statusReason`, and avoid SearchParameter canonical URL repurposing."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Audit query builders and conformance metadata for MedicationAdministration search changes, especially `reason-given` token-to-code/reference migration, typed reference chains, and the `medications-date` canonical/base change."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Define reverse-exchange policy for R6-only or lossy content: `occurrenceTiming`, multiple categories, Procedure or paired CodeableReference reasons, concept-only devices/performers, Group performers, `recorded`, sub-potency fields, and text-only dosage."
+    }
+  ],
+  "caveats": [
+    "The review relies on local R4/R6 package StructureDefinitions and generated reports; it did not inspect external ballot rationale, implementation telemetry, or live terminology expansions.",
+    "Shared Resource/DomainResource behavior findings were considered as infrastructure context only because MedicationAdministration is not itself Resource or DomainResource.",
+    "R4 FMM 2 neutral stability pressure reduces the presumption against coherent remodels, but central medication administration data can still be safety and audit relevant."
+  ]
+}

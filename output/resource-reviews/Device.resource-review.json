@@ -1,0 +1,164 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Device",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Device.resource-review-context.json",
+    "structureReportPath": "output/Device.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Device.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 12,
+    "reviewedDirectBehaviorFindingCount": 1,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Device resource-review context, the full Device StructureDefinition report, the deterministic aggregate only after forming the resource-level judgment, and the behavior reports for direct Device hits. OperationDefinitions and SearchParameters had no direct Device behavior findings in the supplied reports; HttpRestBehavior had one direct Device-affecting CapabilityStatement search advertisement finding. Shared Resource/DomainResource behavior findings were considered as context only and not scored as Device-specific drivers."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "oo",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 Device was trial-use/FMM 2, so the compatibility burden is neutral rather than strong. That lowers the presumption against redesign, but it does not eliminate concern for safety, operational, UDI, device association, or metadata-driven REST workflows."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "major-model-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "R6 Device keeps its name but remodels core association, status, property, naming, UDI, and definition shapes enough that a real migration program is unavoidable; low-cost compatibility still matters for partial adopters and pure renames."
+  },
+  "reasoning": {
+    "thesisMd": "Device is not a removed or replaced resource, but it is not a mostly stable resource with isolated local breaks. The most consequential R6 changes alter resource boundaries (`patient`/`owner` to DeviceAssociation), repurpose `status` from availability to record lifecycle, and re-scope `property` from operational configuration toward fixed characteristics with a different value model. Those changes require explicit data transformation and implementation policy, not just accepting new element names.",
+    "migrationShapeMd": "The migration shape is a major model remodel. R4 instances can fail validation because several R4 elements are removed, renamed, or retyped (`definition`, `deviceName`, `statusReason`, `patient`, `owner`, `version`, `specialization`, `distinctIdentifier`, `url`, and `property.value*`). More importantly, some changes require creating or coordinating other resources, especially DeviceAssociation, and distinguishing record status from availability. These are resource-level mapping decisions that affect persistence, APIs, search behavior, and client semantics.",
+    "compatibilityLeverageMd": "The unavoidable migration program does not mean additional break prevention has no value. Some implementers use only a subset of Device and may not touch the DeviceAssociation, status, or property remodels; deprecated aliases or transitional support for pure renames such as `deviceName`/`name` and `version`/`deviceVersion`, a considered answer for `url`, and equivalent search aliases can reduce avoidable churn. By contrast, preserving ambiguous `status` semantics or duplicate inline `patient`/`owner` relationships may be unsafe or costly; those need clear migration guidance rather than simple compatibility shims.",
+    "lessBreakingAlternativesMd": "The best low-cost preservation candidates are mechanically mappable names or removals with no conflicting replacement: `Device.version` to `Device.deviceVersion`, parts of `Device.deviceName` to `Device.name`, potentially a deprecated `Device.url` if no R6 replacement is intended, and REST search advertisements where old and new semantics remain equivalent. Lower-break designs are less obvious for `status` because the same codes now mean a different thing, for `patient`/`owner` because DeviceAssociation intentionally changes resource boundaries, and for `property` because the R6 model narrows each property repetition to one required choice value and changes the semantic scope.",
+    "behaviorImpactMd": "The only direct Device behavior finding is the HttpRestBehavior CapabilityStatement search advertisement churn across common resources. It is not enough by itself to drive the Device migration conclusion, but it is relevant for metadata-driven clients and reinforces the need for query alias/mapping review. Shared Resource and DomainResource operation/search findings are real ecosystem context but are not Device-specific under the review rules.",
+    "comparisonToDeterministicAggregateMd": "The independent conclusion agrees with the deterministic aggregate on `majorMigrationAlreadyUnavoidable = Yes`, `resourceMigrationShape = major-model-remodel`, and `compatibilityLeverage = preserve-where-low-cost-but-expect-resource-migration`. The important refinement is qualitative: the conclusion is driven by the association extraction, status semantic split, and property remodel, not by count thresholds alone. The aggregate also should not be read to downgrade all Revisit findings; several low-cost or safety-critical compatibility questions remain standards-review-worthy.",
+    "uncertaintyMd": "The structural evidence is high confidence because the relevant R4 and R6 StructureDefinitions directly show the changed paths. Remaining uncertainty is mainly intent and prevalence: the supplied inputs do not include official cross-version maps, implementation telemetry, or final standards rationale for each Device redesign."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.patient-owner:association-resource",
+      "title": "Device.patient and Device.owner were removed and moved to DeviceAssociation-style associations",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the clearest resource-level remodel: R4 inline patient and owner references no longer fit the R6 Device resource and must be represented through DeviceAssociation relationships. That changes resource boundaries, persistence, referential integrity, and likely search/API behavior, so migration is not just a local field rename."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:SEMANTIC_OR_CONFORMANCE_TEXT:Device.status:availability-record-split",
+      "title": "Device.status changed from availability semantics to record status and statusReason was removed",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This combines a hard break (`statusReason` removal) with a higher-risk semantic drift: the same `status` codes can still validate while changing from device availability to record status. That is safety/operations significant and needs explicit migration to `availabilityStatus` or other association/status concepts, not a simple alias."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:SLICING_AND_CONTENT_MODEL:Device.property.value:choice-required",
+      "title": "Device.property values changed from two repeating value elements to one required choice",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "The `property` change is both a wire-shape break and a conceptual re-scope. Empty or multi-valued R4 property repetitions need policy, and dynamic settings may now belong in DeviceMetric or Observation. This supports the conclusion that Device needs a migration program even when individual mappings are mechanically possible."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.deviceName:name",
+      "title": "Device.deviceName was reshaped to Device.name with changed child names and terminology",
+      "role": "important-but-local",
+      "reasonMd": "`deviceName` is common enough to matter and has a hard wire-name/type break. Much of the old content appears mappable to R6 `name`, so this is a strong candidate for transition aliases or clear mapping guidance even though it does not by itself force the whole-resource migration program."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:TYPE_DOMAIN:Device.definition:ref-canonical",
+      "title": "Device.definition changed from Reference(DeviceDefinition) to canonical(DeviceDefinition)",
+      "role": "important-but-local",
+      "reasonMd": "This is a real wire-format break from a Reference object to a canonical primitive. It is likely proportionate to the R6 model direction, but implementers still need explicit mapping rules for local references, versioned canonicals, and reverse conversion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:CARDINALITY:Device.udiCarrier:di-issuer-required",
+      "title": "UDI carrier repetitions now require deviceIdentifier and issuer",
+      "role": "important-but-local",
+      "reasonMd": "UDI is safety and regulatory relevant, and old R4 carriers lacking DI or issuer are rejected in R6. The break may be justified because incomplete UDI carriers are weak data, but migration cannot be silent: missing issuer/DI values need remediation, omission, or an explicit data-quality policy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.version:deviceVersion",
+      "title": "Device.version was renamed to Device.deviceVersion and gained installDate",
+      "role": "important-but-local",
+      "reasonMd": "This looks like a mostly mechanical rename with an additive R6 child. It is therefore exactly the kind of break where preserving an alias, deprecating the old name, or providing a simple map could avoid churn for generated models and persistence layers at relatively low cost."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.specialization:conformsTo",
+      "title": "Device.specialization was replaced by Device.conformsTo",
+      "role": "important-but-local",
+      "reasonMd": "This is rarer than the name/status/association changes, but it is still a hard break for conformance/capability descriptions. It deserves mapping guidance because `systemType` to `specification` is plausible while the new `category` has no R4 base destination."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.distinctIdentifier:biologicalSourceEvent",
+      "title": "Device.distinctIdentifier was removed; biological traceability is now biologicalSourceEvent",
+      "role": "important-but-local",
+      "reasonMd": "Although likely rare, this concerns biological traceability and can be safety/regulatory relevant. The R6 Identifier model is richer and likely more appropriate, but R4 string data needs careful migration rather than being treated as disposable local cleanup."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:ELEMENT_PRESENCE_OR_IDENTITY:Device.url:removed",
+      "title": "Device.url was removed with no same-path R6 replacement",
+      "role": "needs-follow-up",
+      "reasonMd": "This is not the largest Device break, but it is standards-review-worthy because the report found no local R6 replacement. If the element was removed only for cleanup, a deprecated field or clear replacement would be a low-cost compatibility win; if it moved elsewhere, the migration target should be explicit."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:CARDINALITY:Device.type:max-widened",
+      "title": "Device.type widened from 0..1 to 0..*",
+      "role": "discounted",
+      "reasonMd": "This does not break R4-to-R6 instances. It can create R6-to-R4 loss for multiple types, but that is not a reason to constrain the R6 base model during an R4-to-R6 compatibility review."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Device:TERMINOLOGY_BINDING:Device.udiCarrier.entryType:electronic-transmission",
+      "title": "UDI entryType required value set added electronic-transmission",
+      "role": "discounted",
+      "reasonMd": "Old R4 codes remain valid in R6, so this is not an R4-to-R6 break. The reverse-conversion enum loss is a local backward-compatibility concern, not a driver of the Device migration conclusion."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:search-advertisement-churn",
+      "title": "Base CapabilityStatement search advertisements changed across most common resources",
+      "role": "needs-follow-up",
+      "reasonMd": "This direct behavior finding affects Device and can break metadata-driven clients that discover search parameters from CapabilityStatement. It should be resolved with query-specific SearchParameter analysis and deprecated aliases where semantics remain equivalent, but it is secondary to the structural Device remodel."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "This representative shared Resource/DomainResource behavior issue may affect Device implementations as part of the general FHIR REST ecosystem, but Device is not Resource or DomainResource for review-scoring purposes. It was considered as context only."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or review an explicit R4-to-R6 Device migration map covering `status`/`availabilityStatus`, `statusReason`, DeviceAssociation creation for `patient` and `owner`, `property.value*`, UDI required fields, `definition`, and biological traceability."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Do not treat the status change as a harmless rename. Migration guidance should warn that copied `active`/`inactive` codes can validate while changing meaning from availability to record lifecycle."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Revisit low-cost compatibility preservation for pure renames and removals, especially `deviceName` to `name`, `version` to `deviceVersion`, and `url`, using deprecated aliases or very clear replacement guidance where that does not conflict with the R6 model."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "For Device-related REST behavior, identify high-value R4 search advertisements that remain semantically equivalent in R6 and retain transitional aliases in CapabilityStatement/search support where practical."
+    }
+  ],
+  "caveats": [
+    "This review relies on the supplied R4 4.0.1 and R6 6.0.0-ballot4 package snapshots and generated reports.",
+    "No official cross-version StructureMap or implementation prevalence telemetry was available in the supplied inputs.",
+    "Shared Resource and DomainResource behavior findings were intentionally not counted as Device-specific direct behavior findings."
+  ]
+}

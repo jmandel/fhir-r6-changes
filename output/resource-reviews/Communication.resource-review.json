@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "Communication",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/Communication.resource-review-context.json",
+    "structureReportPath": "output/Communication.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/Communication.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 5,
+    "reviewedDirectBehaviorFindingCount": 0,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the Communication structure report, resource-review context, deterministic aggregate, R4/R6 Communication StructureDefinitions for the affected paths, and the supplied direct/shared behavior context. No direct behavior findings include `Communication`; shared `Resource`/`DomainResource` behavior findings were considered only as context, per the contract."
+  },
+  "r4Maturity": {
+    "fmm": 2,
+    "standardsStatus": "trial-use",
+    "workGroup": "pc",
+    "stabilityPressure": "Neutral",
+    "effectMd": "R4 `Communication` is trial-use/FMM 2, so the compatibility burden is neutral rather than strong. That lowers the presumption against breaking changes, but does not make central payload, reason, workflow-traceability, or protocol/provenance changes unimportant."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Partial",
+    "resourceMigrationShape": "moderate-targeted-remodel",
+    "compatibilityLeverage": "preserve-where-low-cost-but-expect-resource-migration",
+    "confidence": "High",
+    "oneLineConclusion": "Communication keeps its identity, but R6 introduces targeted hard breaks around payload content, reason, instantiation links, and basedOn target validation; migration is partially unavoidable, while low-cost preservation still matters."
+  },
+  "reasoning": {
+    "thesisMd": "`Communication` is not removed or replaced, and most of the resource shape remains recognizable. The migration burden comes from a small number of semantically important local remodels: text payloads must move from `contentString` to `contentCodeableConcept.text` or another representation, `reasonCode`/`reasonReference` collapse into `reason` `CodeableReference`, protocol instantiation links disappear, and `basedOn` changes from a broad `Reference(Resource)` to a finite request-resource list.",
+    "migrationShapeMd": "This is a **moderate targeted remodel**, not a whole-resource redesign. There are no new local mandatory fields, no resource identity break, and no direct Communication-specific operation/search/HTTP break. However, a realistic R4 Communication migration cannot be handled by validator regeneration alone when instances use common text payload content or reason fields; those require explicit transforms and, in some cases, mapping policy.",
+    "compatibilityLeverageMd": "A migration program is likely needed for implementations that exchanged populated R4 Communications, especially because payload content is the communicated message itself. That does not make additional break prevention pointless: preserving optional legacy fields or widening a choice type would directly reduce old-valid/new-invalid failures without changing the resource identity or forcing a competing resource family.",
+    "lessBreakingAlternativesMd": "The strongest low-cost preservation candidates are retaining `payload.contentString` as a deprecated choice while adding `CodeableConcept`, and retaining `instantiatesCanonical`/`instantiatesUri` as deprecated optional elements or providing an explicit same-resource replacement. By contrast, keeping both old reason fields and new `reason` would create parallel representations needing precedence rules, and keeping `basedOn` as `Reference(Resource)` would weaken the R6 goal of computable request-like targets.",
+    "behaviorImpactMd": "No direct behavior findings whose `affectedResources` include `Communication` were present. The 11 shared `Resource`/`DomainResource` behavior findings remain relevant to generic server/client migration planning, but they are not Communication-specific evidence and were not used to make this resource-level structural conclusion.",
+    "comparisonToDeterministicAggregateMd": "The independent review agrees with the deterministic aggregate's overall posture: `Partial` major migration, `moderate-targeted-remodel`, and `preserve-where-low-cost-but-expect-resource-migration`. The reasoning here gives more weight to the qualitative centrality of `payload.content[x]` and to the avoidability of removing string payloads and instantiation links, rather than relying on the raw count of four hard breaks.",
+    "uncertaintyMd": "The structural deltas are high-confidence because the affected R4/R6 StructureDefinition elements were checked directly. Prevalence, committee rationale, and final R6 resolution remain less certain because the review used the supplied ballot package and reports rather than external change-note history."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Communication:TYPE_DOMAIN:Communication.payload.content_x_:a81629",
+      "title": "Communication.payload.content[x] removed string content and added CodeableConcept content",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the most important Communication-specific break. `payload.content[x]` carries the communicated content, and R4 `contentString` is likely a natural representation for simple messages. R6 can support coded payloads without necessarily invalidating existing string payloads, so retaining `string` as a deprecated choice appears standards-review-worthy."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Communication:CONVERSION_OR_MAPPING:Communication.reason:bd5217",
+      "title": "R4 reasonCode and reasonReference were merged into Communication.reason CodeableReference",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This creates a real instance-shape and generated-model migration from two R4 arrays into repeated `CodeableReference`. It contributes materially to the migration program, but the R6 model has a coherent datatype goal; the main need is clear mapping guidance rather than necessarily preserving all three fields in base."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Communication:ELEMENT_PRESENCE_OR_IDENTITY:Communication.instantiates:4f0a63",
+      "title": "Protocol instantiation elements were removed from Communication",
+      "role": "needs-follow-up",
+      "reasonMd": "The removed optional summary elements preserve protocol, guideline, questionnaire, or external-definition linkage. Because they are optional non-modifier provenance links, keeping them as deprecated elements would likely be a low-cost way to preserve R4 instances and audit/workflow meaning."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Communication:REFERENCE_TARGET:Communication.basedOn:37bb12",
+      "title": "Communication.basedOn reference targets were narrowed from any Resource to named request resources",
+      "role": "important-but-local",
+      "reasonMd": "This can reject R4 instances whose `basedOn` points outside the R6 finite request-resource list. It is a local migration concern rather than a resource-redesign driver because R4 already described the element as an order/proposal/plan relationship, and the R6 change makes that intent computable."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "Communication:REFERENCE_TARGET:Communication.participants:0d9978",
+      "title": "Sender and recipient reference targets were widened for R6 participants",
+      "role": "discounted",
+      "reasonMd": "This is not an R4-to-R6 instance break: R6 preserves the R4 sender/recipient target sets and adds new targets. It matters only for R6-to-R4 conversion or older clients consuming new R6 data."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This and related Resource-level operation removals can affect generic servers that expose operations on Communication instances, but the finding is assigned to `Resource`, not specifically to `Communication`, so it does not change the Communication resource-level structural judgment."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "SearchParameters:shared-special-profile-types:core-meta",
+      "title": "Core special/profile search parameters changed type metadata for _content, _text, _query, and _profile",
+      "role": "context-only",
+      "reasonMd": "Shared search-parameter metadata changes may affect conformance tooling and generic search clients across resources. They are relevant implementation context, but they are not a Communication-specific behavior break."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Revisit `Communication.payload.content[x]`: consider retaining `string` as a deprecated choice alongside `CodeableConcept`, or provide explicit normative migration guidance for `contentString` to `contentCodeableConcept.text`."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Revisit the removal of `instantiatesCanonical` and `instantiatesUri`; if they remain removed, define an explicit replacement or extension mapping so protocol/provenance linkage is not lost silently."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Publish concrete migration rules for `reasonCode`/`reasonReference` to `reason` `CodeableReference` and for out-of-list `basedOn` targets, since these are local migration chores once the R6 remodel is accepted."
+    }
+  ],
+  "caveats": [
+    "Direct Communication behavior findings were absent; shared Resource/DomainResource behavior context was not scored as Communication-specific.",
+    "Prevalence and rationale assessments are based on supplied local reports and package definitions, not external ballot discussion records.",
+    "The R6 source is 6.0.0-ballot4, so final publication changes could alter this review."
+  ]
+}

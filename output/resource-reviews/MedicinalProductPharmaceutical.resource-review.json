@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "MedicinalProductPharmaceutical",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/MedicinalProductPharmaceutical.resource-review-context.json",
+    "structureReportPath": "output/MedicinalProductPharmaceutical.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/MedicinalProductPharmaceutical.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 9,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource-specific context, full StructureDefinition report, deterministic aggregate, relevant behavior findings, and the R4/R6 package definitions for `MedicinalProductPharmaceutical` and likely R6 successor `AdministrableProductDefinition`. Shared `Resource`/`DomainResource` behavior findings were read as context only, because the assigned artifact is not `Resource` or `DomainResource`."
+  },
+  "r4Maturity": {
+    "fmm": 0,
+    "standardsStatus": "trial-use",
+    "workGroup": "brr",
+    "stabilityPressure": "Weak",
+    "effectMd": "The R4 artifact is trial-use/FMM 0, so the burden to preserve exact wire compatibility is weak compared with mature or normative resources. That softens standards-stability objections, but it does not eliminate regulatory, safety, or implementation cost where a medicinal-product migration loses meaning or requires expert mapping."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "migration-program-dominates",
+    "confidence": "High",
+    "oneLineConclusion": "R6 removes/replaces `MedicinalProductPharmaceutical`, so a resource-level migration program dominates; low-cost transition aids still matter, but preserving isolated old element names would not make R4 instances R6-valid."
+  },
+  "reasoning": {
+    "thesisMd": "`MedicinalProductPharmaceutical` is not a same-name R6 resource. An R4 instance with `resourceType: \"MedicinalProductPharmaceutical\"` is therefore invalid in R6 before any element-level question is reached. The closest R6 shape is not a simple rename: it centers on `AdministrableProductDefinition` and links into the broader medicinal product graph, including `MedicinalProductDefinition`, `ManufacturedItemDefinition`, `Ingredient`, and packaging/product structures. That makes a resource-level migration program unavoidable.",
+    "migrationShapeMd": "The actual migration shape is a replacement/remodel, not a local diff. R4 MPP has required `administrableDoseForm`, repeating `ingredient` references to `MedicinalProductIngredient`, repeating `device`, `characteristics`, and required `routeOfAdministration`. R6 APD adds a required modifier `status`, introduces graph links such as `formOf` and `producedFrom`, changes `ingredient` to coded content while detailed ingredient data lives elsewhere, narrows `device` to one integral device, and remodels `characteristics` as `property` with `value[x]` and required-bound `status`. Several mappings require policy decisions about lifecycle state, ingredient granularity, product/manufactured-item graph placement, route ownership, and terminology.",
+    "compatibilityLeverageMd": "Because resource identity is gone, preventing one additional local APD element break has reduced leverage unless R6 also provides a legacy resource alias, wrapper, cross-version StructureMap, or compatibility profile. The main compatibility levers are explicit successor mapping, endpoint/search transition guidance, and deciding whether any legacy resource surface should remain temporarily. Still, migration being unavoidable is not the same as saying every added break is harmless: low-cost preservation of old wire names or wider bindings can reduce mapper complexity and round-trip loss.",
+    "lessBreakingAlternativesMd": "The strongest less-breaking alternative would have been a deprecated R6 `MedicinalProductPharmaceutical` compatibility resource or alias with normative mapping to the new product-family resources. That could preserve old `resourceType`, endpoint, and search surfaces for one transition release, but it would require maintaining overlapping regulatory models. Within the APD successor, a lower-cost candidate is to make the `characteristics` to `property` transition less lossy, especially around `property.status` required binding or deprecated aliases. By contrast, the required APD `status`, ingredient split, and integral-device narrowing look more like deliberate model goals than cheap compatibility oversights.",
+    "behaviorImpactMd": "The two direct behavior findings are real but derivative of the resource replacement. The base CapabilityStatement no longer advertises the old MPP REST endpoint, and removed-resource search parameters disappear because there is no same-base R6 resource. These should be handled in endpoint/search migration guidance rather than treated as independent reasons to preserve every old field. Shared `Resource` and `DomainResource` operation/search changes, including `$meta`, `$validate`, `$convert`, and shared search metadata, affect generic infrastructure but are not MPP-specific drivers.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate on `majorMigrationAlreadyUnavoidable: Yes`, `removed-or-replaced-resource`, and `migration-program-dominates`. The nuance is that this should not be read as 'no compatibility work is worth doing': transition aliases, official maps, endpoint/search guidance, and a focused review of the characteristics/status remodel may still have practical value even though they cannot remove the need for a resource-level migration.",
+    "uncertaintyMd": "The review did not rely on an official, complete cross-version map for the medicinal-product family. Real-world prevalence is uncertain because the R4 artifact is FMM 0, but the domain is regulatory and can still carry high business impact for systems that adopted these resources."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPharmaceutical:ARTIFACT_IDENTITY:root:7f8a21",
+      "title": "MedicinalProductPharmaceutical has no R6 StructureDefinition and is treated as an old resource type",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the decisive resource-level break. Old instances fail at `resourceType`/StructureDefinition identity before any child element can be considered. A deprecated alias or compatibility resource would be the only low-level preservation mechanism with broad leverage, but it would carry the cost of maintaining an overlapping old model."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPharmaceutical:CARDINALITY:AdministrableProductDefinition.status:b3c914",
+      "title": "Likely successor requires a new modifier lifecycle status",
+      "role": "important-but-local",
+      "reasonMd": "Once APD is chosen as the successor, `status` is a new required modifier. This is a real old-valid/new-invalid migration chore and safety-relevant because lifecycle state can affect use, but it looks proportionate to a successor model that requires all APD instances to declare publication status. Migration guidance should define deterministic defaulting, such as using the R6 `unknown` code when justified."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPharmaceutical:TYPE_DOMAIN:ingredient:aa19df",
+      "title": "Ingredient changed from references to a split code-or-Ingredient model",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This confirms the successor is a remodel rather than a rename. R4 ingredient references cannot be copied directly into APD coded ingredients, and preserving rich ingredient meaning can require creating separate R6 `Ingredient` resources with their own required content. This is central migration work, not a cheap field-preservation issue."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPharmaceutical:CARDINALITY:device:12e4c0",
+      "title": "Device cardinality narrows and semantics change to an integral device",
+      "role": "important-but-local",
+      "reasonMd": "This matters for instances with multiple or non-integral devices, because migration must decide whether a device belongs on APD or in packaging/product structures. It is local to the successor mapping and likely justified by clearer semantics, so it does not independently change the resource-level conclusion."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPharmaceutical:ELEMENT_PRESENCE_OR_IDENTITY:characteristics:8ac0fd",
+      "title": "Characteristics are remodeled as properties with a value[x] and required-bound status",
+      "role": "needs-follow-up",
+      "reasonMd": "This is the most standards-review-worthy child-element finding after accepting the replacement. The old `characteristics` shape maps conceptually to APD `property`, but the rename, new `value[x]`, and required-bound `property.status` can create terminology and round-trip loss. A deprecated alias, looser transition binding, or explicit mapping rule may be a relatively low-cost way to reduce avoidable migration pain."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPharmaceutical:CARDINALITY:administrableDoseForm:43b9e7",
+      "title": "Administrable dose form is optional in the R6 successor, creating R6-to-R4 representability risk",
+      "role": "discounted",
+      "reasonMd": "This is not an R4-to-R6 hard break because lowering a minimum does not reject old data. It matters for reverse conversion and round trips, but it should not drive the R4-to-R6 resource-level compatibility posture."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPharmaceutical:CONVERSION_OR_MAPPING:successor-links:f69c31",
+      "title": "R6 successor adds product, manufactured-item, code, and description content not native to R4 MPP",
+      "role": "discounted",
+      "reasonMd": "These additions support the new split model and are optional for forward validation. They are important to migration completeness and reverse-conversion loss, but they are not avoidable forward breaks by themselves."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPharmaceutical:VALUE_CONSTRAINT:route-formOf-apd1:6d4047",
+      "title": "R6 successor adds a cross-resource constraint forbidding duplicate route on formOf product",
+      "role": "important-but-local",
+      "reasonMd": "The invariant can reject a migrated graph if route is placed both on APD and on the referenced medicinal product. This is important because it requires graph-level migration tests, but it appears to enforce a coherent ownership rule rather than an arbitrary local break."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "MedicinalProductPharmaceutical:SEMANTIC_OR_CONFORMANCE_TEXT:route-dose-text:35d8ef",
+      "title": "Route dosing definitions are generalized from clinical trial protocol context",
+      "role": "discounted",
+      "reasonMd": "The computable route/dose shape is essentially preserved, so this is semantic cleanup rather than a hard resource migration driver. Implementers should review labels and provenance assumptions, but it does not affect the resource-level conclusion."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "important-but-local",
+      "reasonMd": "For MPP this is the API manifestation of the resource identity removal: generic route discovery will no longer see an MPP endpoint in the R6 base capability statement. It deserves transition guidance or server-specific legacy endpoints where needed, but it is derivative of the resource replacement."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "important-but-local",
+      "reasonMd": "Queries against the old MPP base cannot be mechanically preserved when the endpoint/resource base is gone. Where a one-to-one APD or broader product-family mapping exists, transition aliases or documented query rewrites could reduce client disruption."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-meta-add:resource-meta-add-operation-removed-from-r6-core",
+      "title": "Resource $meta-add is removed from R6 core",
+      "role": "context-only",
+      "reasonMd": "This and the other shared `Resource`/`DomainResource` operation/search findings affect generic FHIR infrastructure, but they are not specific to MPP and should not be counted again as resource-level evidence for this review."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Publish or verify an explicit MPP migration map to APD plus the surrounding medicinal-product resources, with worked examples for status, ingredient detail, device placement, characteristics/property, and route ownership."
+    },
+    {
+      "priority": "High",
+      "actionMd": "Decide whether R6 should provide a temporary legacy `MedicinalProductPharmaceutical` compatibility surface, alias, or official cross-version StructureMap. If not, document that old wire instances require transformation before validation."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Review the `characteristics` to `property` remodel, especially `property.status` binding, for a lower-cost transition design or explicit terminology mapping guidance."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "Document REST endpoint and search migration for old MPP clients, including whether any server-specific legacy endpoints or search aliases are expected during transition."
+    }
+  ],
+  "caveats": [
+    "The R4 resource is FMM 0/trial-use, so compatibility preservation has weaker standards pressure than for mature or normative resources.",
+    "The direct HTTP and SearchParameter findings are grouped behavior findings; their MPP impact depends on the chosen successor endpoint and query mapping.",
+    "Shared Resource/DomainResource behavior findings were considered as context only and not scored as MPP-specific breaks.",
+    "No authoritative end-to-end cross-version medicinal-product map was assumed beyond the supplied reports and local package definitions."
+  ]
+}

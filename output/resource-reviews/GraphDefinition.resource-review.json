@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "fhir-r4-r6-resource-review/v1",
+  "resourceType": "GraphDefinition",
+  "reviewMethod": {
+    "contextPath": "batch/resource-review/context/GraphDefinition.resource-review-context.json",
+    "structureReportPath": "output/GraphDefinition.report.json",
+    "deterministicAggregatePath": "output/resource-change-assessments/GraphDefinition.resource-assessment.json",
+    "behaviorReportPaths": [
+      "output/OperationDefinitions.report.json",
+      "output/SearchParameters.report.json",
+      "output/HttpRestBehavior.report.json"
+    ],
+    "reviewedStructureFindingCount": 3,
+    "reviewedDirectBehaviorFindingCount": 2,
+    "reviewedSharedBehaviorContextCount": 11,
+    "methodNotesMd": "Reviewed the resource context, the full GraphDefinition StructureDefinition report, the deterministic aggregate as prior context, the two direct behavior findings for GraphDefinition, and the shared Resource/DomainResource behavior context only as context. I also checked the local R4/R6 package facts that R4 defines a concrete GraphDefinition resource and R6 core has no matching StructureDefinition entry."
+  },
+  "r4Maturity": {
+    "fmm": 1,
+    "standardsStatus": "trial-use",
+    "workGroup": "fhir",
+    "stabilityPressure": "Weak",
+    "effectMd": "R4 GraphDefinition was trial-use/FMM 1, so the compatibility burden is weak. That softens the case for retaining an experimental resource in R6 core, but it does not remove the need for explicit migration planning for systems that used GraphDefinition to drive graph traversal, document assembly, validation, or package export behavior."
+  },
+  "overall": {
+    "majorMigrationAlreadyUnavoidable": "Yes",
+    "resourceMigrationShape": "removed-or-replaced-resource",
+    "compatibilityLeverage": "migration-program-dominates",
+    "confidence": "High",
+    "oneLineConclusion": "GraphDefinition is absent from R6 core, so migration is dominated by resource externalization/removal rather than by preservable local element changes."
+  },
+  "reasoning": {
+    "thesisMd": "The actual migration shape is whole-resource removal or externalization from R6 core. R4 `GraphDefinition` instances have no R6 core StructureDefinition, parser target, generated model, REST endpoint, or same-base search surface. Because R4 maturity was only FMM 1/trial-use, this is likely proportionate if the intent was to move the model to incubator content, but implementers who used graph definitions still need a resource-level migration program.",
+    "migrationShapeMd": "This is not a small rename or isolated field loss. R4 `GraphDefinition` is a concrete `DomainResource` with required `name`, `status`, and `start`, plus recursive `link`/`target` rules, target profiles, reverse lookup information, and compartment rule terminology. R6 core has no local element tree for these concepts. A migration therefore requires a policy choice: retain R4 resources as legacy configuration, adopt the external API-incubator GraphDefinition artifact if appropriate, or convert the graph rules into implementation-specific configuration, profiles, or extensions.",
+    "compatibilityLeverageMd": "A migration program is already unavoidable because the resource identity is gone. That substantially lowers the leverage of preserving individual GraphDefinition fields or search parameters inside R6 core: there is no core resource to host them unless the whole resource is retained. This does not mean compatibility aids are worthless; clear successor guidance, package dependencies, canonical continuity, and optional legacy operation/search support can still reduce implementation cost. But those are migration-support measures, not low-cost local fixes that would make R4 GraphDefinition instances valid as R6 core.",
+    "lessBreakingAlternativesMd": "The main less-breaking base design would have been to keep `GraphDefinition` in R6 core as a deprecated compatibility StructureDefinition while moving active development to an incubator artifact. That would preserve old instances and generated types, but it has material tradeoffs: continued core maintenance for FMM 1 content, duplicate core/incubator representations, and ambiguous operation targets. Retaining the small graph-compartment CodeSystems or documenting canonical redirects would be a useful migration aid, but it would not solve the core instance break by itself.",
+    "behaviorImpactMd": "The direct behavior findings reinforce the same migration shape. The base CapabilityStatement no longer advertises a GraphDefinition REST endpoint, and search parameters whose only R4 base was GraphDefinition disappear with the removed endpoint. The related Resource `$graph` operation removal is shared Resource behavior rather than a direct GraphDefinition finding, but it is operationally coupled to the same graph-definition model. These behavior breaks matter for clients and generated SDKs, yet they are derivative of the resource removal rather than independent reasons to preserve isolated search or endpoint artifacts.",
+    "comparisonToDeterministicAggregateMd": "I agree with the deterministic aggregate's `Yes`/`removed-or-replaced-resource`/`migration-program-dominates` posture, but not because the counts alone settle the question. The decisive evidence is the absent R6 core StructureDefinition and the lack of any same-core destination for the recursive graph model. I also discount the GraphDefinition-specific terminology finding as an independent break once the resource itself is gone, and I treat direct HTTP/search findings as derivative migration concerns.",
+    "uncertaintyMd": "The external API-incubator GraphDefinition artifact and official ballot rationale were not included in the local inputs. If that artifact is nearly compatible with R4, the implementation migration may be less disruptive, but R6 core still requires an explicit dependency or legacy-handling decision."
+  },
+  "findingConsiderations": [
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "GraphDefinition:ARTIFACT_IDENTITY:root:7a9f31",
+      "title": "GraphDefinition resource is absent from the R6 core package",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This is the primary resource-level break. An R4 instance with `resourceType: \"GraphDefinition\"` has no R6 core StructureDefinition, generated class, parser dispatch target, or resource-type enum entry. Since the resource identity is absent, preserving individual old fields would require retaining a whole deprecated compatibility resource."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "GraphDefinition:ELEMENT_PRESENCE_OR_IDENTITY:GraphDefinition-local-elements:2c6b44",
+      "title": "All R4 GraphDefinition-specific elements lose direct R6 core representation",
+      "role": "drives-resource-conclusion",
+      "reasonMd": "This shows the migration is a model decision, not only a resourceType validation failure. R4 graph traversal rules such as `start`, recursive `link.target.link`, target profiles, and compartment logic need a non-core destination or must be retired."
+    },
+    {
+      "sourceSurface": "StructureDefinition",
+      "findingId": "GraphDefinition:TERMINOLOGY_BINDING:GraphDefinition.link.target.compartment:5e1d0a",
+      "title": "GraphDefinition-specific compartment rule terminology is not present in R6 core",
+      "role": "discounted",
+      "reasonMd": "The missing graph-compartment terminology is useful to track for converter and replacement-package continuity, but it is not an independent base R6 instance break once the containing GraphDefinition resource and compartment elements are absent from core."
+    },
+    {
+      "sourceSurface": "HttpRestBehavior",
+      "findingId": "HttpRestBehavior:base:resource-endpoint-inventory",
+      "title": "The full base CapabilityStatement no longer advertises many R4 resource REST endpoints",
+      "role": "important-but-local",
+      "reasonMd": "For GraphDefinition this means generic clients and route generators will not discover an R6 core GraphDefinition endpoint. The effect is operationally important, but it follows from the resource removal rather than providing a separate low-cost compatibility lever."
+    },
+    {
+      "sourceSurface": "SearchParameters",
+      "findingId": "SearchParameters:removed-resource-base-search-surfaces",
+      "title": "Search parameters whose only R4 bases were removed resources disappear from the R6 search surface",
+      "role": "important-but-local",
+      "reasonMd": "GraphDefinition-specific searches, such as the R4 `start` search surface, cannot survive as normal R6 core searches without a GraphDefinition endpoint or a defined replacement endpoint. Aliases could help legacy implementations only if a successor model is explicitly chosen."
+    },
+    {
+      "sourceSurface": "SharedBehaviorContext",
+      "findingId": "Resource-graph:operation-resource-graph-removed",
+      "title": "Resource `$graph` operation is removed in R6",
+      "role": "context-only",
+      "reasonMd": "The operation is assigned to shared `Resource` behavior, so it is not scored as a direct GraphDefinition finding. It is still relevant context because R4 `$graph` consumed a GraphDefinition canonical and its removal is part of the same low-maturity graph traversal surface leaving core."
+    }
+  ],
+  "recommendedNextActions": [
+    {
+      "priority": "High",
+      "actionMd": "Confirm the intended R6 successor for GraphDefinition, especially the API-incubator artifact referenced by R6 operation documentation, and publish explicit migration guidance for stored R4 GraphDefinition resources and graph-driven workflows."
+    },
+    {
+      "priority": "Medium",
+      "actionMd": "If preserving existing R4 users is a standards goal, consider a deliberately deprecated compatibility package or core artifact that keeps the R4 canonical/resource identity for one transition; otherwise state clearly that GraphDefinition is no longer an R6 core resource."
+    },
+    {
+      "priority": "Low",
+      "actionMd": "Carry forward or redirect the graph-compartment terminology canonicals in the chosen replacement package, and document whether GraphDefinition search parameters or `$graph` behavior are legacy-only, replaced, or intentionally unsupported."
+    }
+  ],
+  "caveats": [
+    "This review covers the supplied R6 core package; it does not adjudicate the external API-incubator GraphDefinition artifact.",
+    "Shared Resource and DomainResource behavior findings were treated as context only because the assigned resource is GraphDefinition.",
+    "Low R4 maturity weakens stability pressure, so absence from core does not by itself prove the R6 design should be revisited."
+  ]
+}
